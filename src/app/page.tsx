@@ -1,3 +1,9 @@
+import { AppShell } from '@/components/app-shell';
+
 export default function Home() {
-  return <main className="app-loading"><p>Threadline 正在准备工作台…</p></main>;
+  return (
+    <AppShell>
+      <div className="tl-workspace-placeholder" aria-label="工作台内容区" />
+    </AppShell>
+  );
 }
