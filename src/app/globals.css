@@ -138,15 +138,22 @@
   font-size: 0.75rem;
   cursor: pointer;
 }
+.task-dialog-backdrop {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  background: rgb(20 30 45 / 0.3);
+}
 .task-dialog {
   width: min(560px, calc(100vw - 28px));
   padding: 0;
   border: 0;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-window);
-}
-.task-dialog::backdrop {
-  background: rgb(20 30 45 / 0.3);
+  background: var(--surface);
 }
 .task-dialog form {
   padding: 26px;
@@ -698,7 +705,8 @@
   padding-left: 24px;
   border-left: 2px solid var(--border-subtle);
 }
-.daily-children label {
+.daily-children label,
+.daily-child-row {
   display: grid;
   grid-template-columns: 25px 1fr auto;
   align-items: center;
@@ -730,6 +738,15 @@
   }
   .quick-panel {
     padding: 18px 25px;
+  }
+}
+@media (min-width: 761px) and (max-width: 1150px) {
+  .metric-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px 0;
+  }
+  .metric-strip .tl-stat {
+    padding: 0 15px;
   }
 }
 @media (max-width: 760px) {
@@ -1138,6 +1155,12 @@ button,
   min-height: 620px;
   border: 1px dashed var(--border);
   border-radius: var(--radius-lg);
+}
+.form-error {
+  margin: 0;
+  color: #c13f3f;
+  font-size: 0.8125rem;
+  font-weight: 600;
 }
 @media (max-width: 760px) {
   .tl-window {

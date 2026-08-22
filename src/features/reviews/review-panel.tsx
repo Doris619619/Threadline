@@ -1,28 +1,46 @@
 'use client';
 import { useState } from 'react';
 import { Surface } from '@/components/ui/surface';
+import type { Daily, DailyHistoryEntry } from '@/features/daily/daily-panel';
+import type { Project, Task } from '@/types/domain';
 
-const data = {
-  week: {
-    total: '6h30min',
-    tasks: '2 / 8',
-    rate: '25%',
-    plan: '6h5min',
-    actual: '6h30min',
-    moves: ['移期 2', '放弃 1', '进入待安排 1'],
-  },
-  month: {
-    total: '42h30min',
-    tasks: '52 / 61',
-    rate: '85.2%',
-    plan: '38h',
-    actual: '42h30min',
-    moves: ['移期 7', '放弃 3', '进入待安排 5'],
-  },
-};
-export function ReviewPanel() {
+const minutes = (value: number) =>
+  value < 60
+    ? `${value}min`
+    : `${Math.floor(value / 60)}h${value % 60 ? `${value % 60}min` : ''}`;
+
+export function ReviewPanel({
+  tasks,
+  projects,
+  daily,
+  dailyHistory,
+}: {
+  tasks: Task[];
+  projects: Project[];
+  daily: Daily[];
+  dailyHistory: DailyHistoryEntry[];
+}) {
   const [period, setPeriod] = useState<'week' | 'month'>('week');
-  const report = data[period];
+  const relevant = tasks.filter((task) => task.status !== 'trashed');
+  const completed = relevant.filter((task) => task.completed).length;
+  const taskActual = relevant.reduce(
+    (total, task) => total + (task.actualDurationMinutes ?? 0),
+    0,
+  );
+  const dailyActual = daily.reduce((total, item) => total + item.actual, 0);
+  const planned = relevant.reduce(
+    (total, task) => total + (task.plannedDurationMinutes ?? 0),
+    0,
+  );
+  const totalActual = taskActual + dailyActual;
+  const dailyDone = daily.filter(
+    (item) => item.completed || item.children.some((child) => child.completed),
+  ).length;
+  const flow = [
+    ['移期', relevant.filter((task) => task.status === 'rescheduled').length],
+    ['放弃', relevant.filter((task) => task.status === 'abandoned').length],
+    ['进入待安排', relevant.filter((task) => task.status === 'backlog').length],
+  ] as const;
   return (
     <div className="review-panel">
       <header>
@@ -48,35 +66,61 @@ export function ReviewPanel() {
       <div className="review-grid">
         <Metric
           title="总投入时间"
-          value={report.total}
+          value={minutes(totalActual)}
           detail="普通与 Daily 实际耗时"
         />
-        <Metric title="普通任务完成率" value={report.rate} detail={report.tasks} />
+        <Metric
+          title="普通任务完成率"
+          value={
+            relevant.length
+              ? `${Math.round((completed / relevant.length) * 100)}%`
+              : '0%'
+          }
+          detail={`${completed} / ${relevant.length}`}
+        />
         <Metric
           title="计划 vs 实际"
-          value={report.actual}
-          detail={`预计 ${report.plan}`}
+          value={minutes(totalActual)}
+          detail={`预计 ${minutes(planned)}`}
         />
       </div>
       <Surface className="review-details">
         <section>
           <h3>各项目投入</h3>
           <div className="project-bars">
-            <Bar label="AI研究" value="2h30min" percent={78} />
-            <Bar label="课程" value="1h56min" percent={62} />
-            <Bar label="生活" value="1h04min" percent={39} />
+            {projects
+              .filter((project) => project.status === 'active')
+              .map((project) => {
+                const value = relevant
+                  .filter((task) => task.projectId === project.id)
+                  .reduce(
+                    (total, task) => total + (task.actualDurationMinutes ?? 0),
+                    0,
+                  );
+                return (
+                  <Bar
+                    key={project.id}
+                    label={project.name}
+                    value={minutes(value)}
+                    percent={totalActual ? Math.round((value / totalActual) * 100) : 0}
+                  />
+                );
+              })}
           </div>
         </section>
         <section>
           <h3>Daily 完成情况</h3>
-          <p>听力训练　1/1　·　30min</p>
-          <p>背单词　0/1　·　0min</p>
-          <p>发布周报　0/1　·　0min</p>
+          <p>
+            {dailyDone}/{daily.length} 已完成 · {minutes(dailyActual)}
+          </p>
+          <p>已记录 {dailyHistory.length} 条 Daily 历史</p>
         </section>
         <section>
           <h3>任务流转</h3>
-          {report.moves.map((item) => (
-            <p key={item}>{item}</p>
+          {flow.map(([label, count]) => (
+            <p key={label}>
+              {label} {count}
+            </p>
           ))}
         </section>
       </Surface>

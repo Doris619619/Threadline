@@ -1,12 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { ProjectTag } from '@/components/ui/project-tag';
 import { Surface } from '@/components/ui/surface';
 
-type Daily = {
+export type Daily = {
   id: string;
   project: string;
   color: string;
@@ -16,7 +15,7 @@ type Daily = {
   completed: boolean;
   children: { title: string; completed: boolean; actual: number }[];
 };
-const seed: Daily[] = [
+export const seedDaily: Daily[] = [
   {
     id: 'listen',
     project: '健身',
@@ -55,23 +54,33 @@ const seed: Daily[] = [
     children: [],
   },
 ];
-export function DailyPanel() {
-  const [items, setItems] = useState(seed);
-  const [history, setHistory] = useState<
-    { date: string; completed: boolean; actual: number; result: string }[]
-  >([]);
+export type DailyHistoryEntry = {
+  date: string;
+  completed: boolean;
+  actual: number;
+  result: string;
+};
+
+export function DailyPanel({
+  items,
+  history,
+  onChange,
+  onRecord,
+}: {
+  items: Daily[];
+  history: DailyHistoryEntry[];
+  onChange: (items: Daily[]) => void;
+  onRecord: (entry: DailyHistoryEntry) => void;
+}) {
   const update = (id: string, fn: (daily: Daily) => Daily) =>
-    setItems((current) => current.map((item) => (item.id === id ? fn(item) : item)));
+    onChange(items.map((item) => (item.id === id ? fn(item) : item)));
   const record = (daily: Daily) =>
-    setHistory((current) => [
-      {
-        date: '2026-08-23',
-        completed: daily.completed || daily.children.some((child) => child.completed),
-        actual: daily.actual,
-        result: daily.result,
-      },
-      ...current,
-    ]);
+    onRecord({
+      date: '2026-08-23',
+      completed: daily.completed || daily.children.some((child) => child.completed),
+      actual: daily.actual,
+      result: daily.result,
+    });
   return (
     <Surface className="daily-panel">
       <header>
@@ -100,7 +109,7 @@ export function DailyPanel() {
             {daily.children.length > 0 && (
               <div className="daily-children">
                 {daily.children.map((child, index) => (
-                  <label key={child.title}>
+                  <div className="daily-child-row" key={child.title}>
                     <Checkbox
                       aria-label={`完成 ${child.title}`}
                       checked={child.completed}
@@ -117,7 +126,7 @@ export function DailyPanel() {
                     />
                     <span>{child.title}</span>
                     <small>实际 {child.actual}min</small>
-                  </label>
+                  </div>
                 ))}
               </div>
             )}

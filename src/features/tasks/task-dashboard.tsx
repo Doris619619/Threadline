@@ -8,7 +8,13 @@ import { ProjectTag } from '@/components/ui/project-tag';
 import { StatItem } from '@/components/ui/stat-item';
 import { Surface } from '@/components/ui/surface';
 import { calculateDuration } from '@/lib/task-rules';
-import { DailyPanel } from '@/features/daily/daily-panel';
+import { taskFormSchema } from '@/lib/schemas';
+import {
+  DailyPanel,
+  seedDaily,
+  type Daily,
+  type DailyHistoryEntry,
+} from '@/features/daily/daily-panel';
 import { ProjectPanel } from '@/features/projects/project-panel';
 import { ReviewPanel } from '@/features/reviews/review-panel';
 import { HistoryPanel } from '@/features/history/history-panel';
@@ -16,7 +22,7 @@ import { useWorkspaceView } from '@/components/app-shell';
 import type { Project, Task, TaskStatus } from '@/types/domain';
 
 const today = '2026-08-23';
-const projects: Project[] = [
+const projectSeed: Project[] = [
   { id: 'work', name: '工作', color: '#4f8cff', status: 'active', createdAt: today },
   { id: 'course', name: '课程', color: '#8b7cf6', status: 'active', createdAt: today },
   {
@@ -85,8 +91,11 @@ function normalizeTime(value: string) {
 export function TaskDashboard() {
   const { active } = useWorkspaceView();
   const [tasks, setTasks] = useState(initialTasks);
+  const [workspaceProjects, setWorkspaceProjects] = useState(projectSeed);
+  const [daily, setDaily] = useState<Daily[]>(seedDaily);
+  const [dailyHistory, setDailyHistory] = useState<DailyHistoryEntry[]>([]);
   const [editing, setEditing] = useState<Task | undefined>();
-  const dialog = useRef<HTMLDialogElement>(null);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const closeDialog = useRef<HTMLDialogElement>(null);
   const shown = tasks.filter((t) => t.status === 'active' && t.date === today);
   const timed = shown
@@ -96,26 +105,33 @@ export function TaskDashboard() {
   const backlog = tasks.filter((t) => t.status === 'backlog');
   const done = shown.filter((t) => t.completed).length;
   const actual = shown.reduce((sum, t) => sum + (t.actualDurationMinutes ?? 0), 0);
+  const dailyActual = daily.reduce((sum, item) => sum + item.actual, 0);
+  const dailyDone = daily.filter(
+    (item) => item.completed || item.children.some((child) => child.completed),
+  ).length;
   const open = (task?: Task) => {
     setEditing(task);
-    dialog.current?.showModal();
+    setTaskDialogOpen(true);
   };
   const update = (task: Task) =>
     setTasks((current) => current.map((item) => (item.id === task.id ? task : item)));
-  const save = (form: FormData) => {
+  const save = (form: FormData): string | undefined => {
     const title = String(form.get('title') ?? '').trim();
     const startRaw = String(form.get('start') ?? '');
     const endRaw = String(form.get('end') ?? '');
     const start = startRaw ? normalizeTime(startRaw) : undefined;
     const end = endRaw ? normalizeTime(endRaw) : undefined;
-    if (
-      !title ||
-      (startRaw && !start) ||
-      (endRaw && !end) ||
-      (end && !start) ||
-      (end && start && end < start)
-    )
-      return;
+    const parsed = taskFormSchema.safeParse({
+      title,
+      projectId: String(form.get('project') ?? ''),
+      plannedMinutes: numberOrUndefined(form.get('planned')),
+      actualMinutes: numberOrUndefined(form.get('actual')),
+    });
+    if (!parsed.success) return parsed.error.issues[0]?.message ?? '请检查任务信息';
+    if (startRaw && !start) return '开始时间格式应为 1420 或 14:20';
+    if (endRaw && !end) return '结束时间格式应为 1530 或 15:30';
+    if (end && !start) return '填写结束时间前，请先填写开始时间';
+    if (end && start && end < start) return '暂不支持跨午夜任务，请选择同一天内的时间';
     const automatic = calculateDuration(start, end);
     const planned = automatic ?? numberOrUndefined(form.get('planned'));
     const base =
@@ -144,7 +160,8 @@ export function TaskDashboard() {
           updatedAt: new Date().toISOString(),
         },
       ]);
-    dialog.current?.close();
+    setTaskDialogOpen(false);
+    return undefined;
   };
   const move = (id: string, status: TaskStatus) =>
     setTasks((current) =>
@@ -159,8 +176,23 @@ export function TaskDashboard() {
           : t,
       ),
     );
-  if (active === 'projects') return <ProjectPanel />;
-  if (active === 'stats' || active === 'review') return <ReviewPanel />;
+  if (active === 'projects')
+    return (
+      <ProjectPanel
+        items={workspaceProjects}
+        tasks={tasks}
+        onChange={setWorkspaceProjects}
+      />
+    );
+  if (active === 'stats' || active === 'review')
+    return (
+      <ReviewPanel
+        tasks={tasks}
+        projects={workspaceProjects}
+        daily={daily}
+        dailyHistory={dailyHistory}
+      />
+    );
   if (active === 'settings') return <HistoryPanel tasks={tasks} onUpdate={update} />;
   return (
     <div className="dashboard">
@@ -178,8 +210,8 @@ export function TaskDashboard() {
           label="Daily"
           value={
             <>
-              <em>2</em>
-              <small>/ 3</small>
+              <em>{dailyDone}</em>
+              <small>/ {daily.length}</small>
             </>
           }
         />
@@ -195,7 +227,7 @@ export function TaskDashboard() {
           label="Daily 实际"
           value={
             <>
-              <em>30min</em>
+              <em>{formatMinutes(dailyActual)}</em>
             </>
           }
         />
@@ -203,7 +235,7 @@ export function TaskDashboard() {
           label="今日总实际"
           value={
             <>
-              <em>{formatMinutes(actual + 30)}</em>
+              <em>{formatMinutes(actual + dailyActual)}</em>
             </>
           }
         />
@@ -223,6 +255,7 @@ export function TaskDashboard() {
               onUpdate={update}
               onEdit={() => open(task)}
               onMove={move}
+              projects={workspaceProjects}
             />
           ))}
         </div>
@@ -248,13 +281,20 @@ export function TaskDashboard() {
               onUpdate={update}
               onEdit={() => open(task)}
               onMove={move}
+              projects={workspaceProjects}
             />
           ))}
         </Surface>
-        <DailyPanel />
+        <DailyPanel
+          items={daily}
+          history={dailyHistory}
+          onChange={setDaily}
+          onRecord={(entry) => setDailyHistory((current) => [entry, ...current])}
+        />
       </div>
       <PlanningQueue
         tasks={backlog}
+        projects={workspaceProjects}
         onUpdate={update}
         onArrange={(id) =>
           setTasks((current) =>
@@ -274,11 +314,20 @@ export function TaskDashboard() {
       <button className="finish-day" onClick={() => closeDialog.current?.showModal()}>
         结束今天
       </button>
-      <TaskDialog dialog={dialog} editing={editing} onSave={save} />
+      <TaskDialog
+        open={taskDialogOpen}
+        editing={editing}
+        projects={workspaceProjects}
+        onSave={save}
+        onClose={() => setTaskDialogOpen(false)}
+      />
       <CloseDialog
         dialog={closeDialog}
         tasks={shown}
         actual={actual}
+        dailyDone={dailyDone}
+        dailyCount={daily.length}
+        dailyActual={dailyActual}
         onCloseDay={(form) => {
           setTasks((current) =>
             current.map((task) => {
@@ -322,11 +371,17 @@ function CloseDialog({
   dialog,
   tasks,
   actual,
+  dailyDone,
+  dailyCount,
+  dailyActual,
   onCloseDay,
 }: {
   dialog: React.RefObject<HTMLDialogElement | null>;
   tasks: Task[];
   actual: number;
+  dailyDone: number;
+  dailyCount: number;
+  dailyActual: number;
   onCloseDay: (data: FormData) => void;
 }) {
   const unfinished = tasks.filter((task) => !task.completed);
@@ -350,16 +405,19 @@ function CloseDialog({
             </b>
           </span>
           <span>
-            Daily <b>2/3</b>
+            Daily{' '}
+            <b>
+              {dailyDone}/{dailyCount}
+            </b>
           </span>
           <span>
             普通实际 <b>{formatMinutes(actual)}</b>
           </span>
           <span>
-            Daily 实际 <b>30min</b>
+            Daily 实际 <b>{formatMinutes(dailyActual)}</b>
           </span>
           <span>
-            今日总实际 <b>{formatMinutes(actual + 30)}</b>
+            今日总实际 <b>{formatMinutes(actual + dailyActual)}</b>
           </span>
         </div>
         <h3>未完成普通任务</h3>
@@ -390,10 +448,12 @@ function CloseDialog({
 }
 function PlanningQueue({
   tasks,
+  projects,
   onUpdate,
   onArrange,
 }: {
   tasks: Task[];
+  projects: Project[];
   onUpdate: (task: Task) => void;
   onArrange: (id: string) => void;
 }) {
@@ -407,7 +467,8 @@ function PlanningQueue({
         <p>还没有待安排事项。任务选择“待安排”后会出现在这里。</p>
       ) : (
         tasks.map((task) => {
-          const project = projects.find((item) => item.id === task.projectId)!;
+          const project =
+            projects.find((item) => item.id === task.projectId) ?? projectSeed[4];
           return (
             <div className="queue-row" key={task.id}>
               <ProjectTag name={project.name} color={project.color} />
@@ -450,13 +511,15 @@ function TaskLine({
   onUpdate,
   onEdit,
   onMove,
+  projects,
 }: {
   task: Task;
   onUpdate: (t: Task) => void;
   onEdit: () => void;
   onMove: (id: string, s: TaskStatus) => void;
+  projects: Project[];
 }) {
-  const project = projects.find((p) => p.id === task.projectId)!;
+  const project = projects.find((p) => p.id === task.projectId) ?? projectSeed[4];
   const timed = Boolean(task.plannedStartTime);
   return (
     <div
@@ -507,80 +570,107 @@ function TaskLine({
   );
 }
 function TaskDialog({
-  dialog,
+  open,
   editing,
+  projects,
   onSave,
+  onClose,
 }: {
-  dialog: React.RefObject<HTMLDialogElement | null>;
+  open: boolean;
   editing?: Task;
-  onSave: (data: FormData) => void;
+  projects: Project[];
+  onSave: (data: FormData) => string | undefined;
+  onClose: () => void;
 }) {
+  const [error, setError] = useState<string>();
+  if (!open) return null;
   return (
-    <dialog ref={dialog} className="task-dialog">
-      <form action={onSave}>
-        <header>
-          <div>
-            <p>{editing ? '编辑任务' : '快速新建'}</p>
-            <h2>{editing ? '修改任务' : '添加任务'}</h2>
+    <div className="task-dialog-backdrop" role="presentation">
+      <section
+        className="task-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={editing ? '编辑任务' : '添加任务'}
+      >
+        <form
+          action={(data) => {
+            const message = onSave(data);
+            setError(message);
+          }}
+        >
+          <header>
+            <div>
+              <p>{editing ? '编辑任务' : '快速新建'}</p>
+              <h2>{editing ? '修改任务' : '添加任务'}</h2>
+            </div>
+            <button type="button" onClick={onClose} aria-label="关闭">
+              ×
+            </button>
+          </header>
+          <label>
+            任务名称
+            <Input name="title" defaultValue={editing?.title} required />
+          </label>
+          <div className="task-form-grid">
+            <label>
+              项目
+              <select name="project" defaultValue={editing?.projectId ?? 'other'}>
+                {projects
+                  .filter((project) => project.status === 'active')
+                  .map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label>
+              开始时间
+              <Input
+                name="start"
+                defaultValue={editing?.plannedStartTime}
+                placeholder="1420 或 14:20"
+              />
+            </label>
+            <label>
+              结束时间
+              <Input
+                name="end"
+                defaultValue={editing?.plannedEndTime}
+                placeholder="可选"
+              />
+            </label>
+            <label>
+              预计时长（分钟）
+              <Input
+                name="planned"
+                type="number"
+                defaultValue={editing?.plannedDurationMinutes}
+              />
+            </label>
+            <label>
+              实际时长（分钟）
+              <Input
+                name="actual"
+                type="number"
+                defaultValue={editing?.actualDurationMinutes}
+              />
+            </label>
           </div>
-          <button formMethod="dialog" aria-label="关闭">
-            ×
-          </button>
-        </header>
-        <label>
-          任务名称
-          <Input name="title" defaultValue={editing?.title} required />
-        </label>
-        <div className="task-form-grid">
-          <label>
-            项目
-            <select name="project" defaultValue={editing?.projectId ?? 'other'}>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            开始时间
-            <Input
-              name="start"
-              defaultValue={editing?.plannedStartTime}
-              placeholder="1420 或 14:20"
-            />
-          </label>
-          <label>
-            结束时间
-            <Input
-              name="end"
-              defaultValue={editing?.plannedEndTime}
-              placeholder="可选"
-            />
-          </label>
-          <label>
-            预计时长（分钟）
-            <Input
-              name="planned"
-              type="number"
-              defaultValue={editing?.plannedDurationMinutes}
-            />
-          </label>
-          <label>
-            实际时长（分钟）
-            <Input
-              name="actual"
-              type="number"
-              defaultValue={editing?.actualDurationMinutes}
-            />
-          </label>
-        </div>
-        <p>开始和结束同时填写时自动计算预计时长；不支持跨午夜。</p>
-        <footer>
-          <button formMethod="dialog">取消</button>
-          <button type="submit">保存</button>
-        </footer>
-      </form>
-    </dialog>
+          <p>开始和结束同时填写时自动计算预计时长；不支持跨午夜。</p>
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+          <footer>
+            <button type="button" onClick={onClose}>
+              取消
+            </button>
+            <button type="submit">保存</button>
+          </footer>
+        </form>
+      </section>
+    </div>
   );
 }
