@@ -9,7 +9,7 @@ import {
   Settings,
   Sparkles,
 } from 'lucide-react';
-import { useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { SidebarItem } from '@/components/ui/sidebar-item';
 
 const navigation = [
@@ -20,6 +20,8 @@ const navigation = [
   { id: 'review', label: '复盘', icon: ClipboardList },
   { id: 'settings', label: '设置', icon: Settings },
 ];
+const WorkspaceViewContext = createContext<{ active: string }>({ active: 'home' });
+export const useWorkspaceView = () => useContext(WorkspaceViewContext);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [active, setActive] = useState('home');
@@ -71,7 +73,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </header>
-        {children}
+        <WorkspaceViewContext.Provider value={{ active }}>
+          {children}
+        </WorkspaceViewContext.Provider>
       </main>
     </div>
   );

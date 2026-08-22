@@ -9,6 +9,8 @@ import { StatItem } from '@/components/ui/stat-item';
 import { Surface } from '@/components/ui/surface';
 import { calculateDuration } from '@/lib/task-rules';
 import { DailyPanel } from '@/features/daily/daily-panel';
+import { ProjectPanel } from '@/features/projects/project-panel';
+import { useWorkspaceView } from '@/components/app-shell';
 import type { Project, Task, TaskStatus } from '@/types/domain';
 
 const today = '2026-08-23';
@@ -79,6 +81,7 @@ function normalizeTime(value: string) {
 }
 
 export function TaskDashboard() {
+  const { active } = useWorkspaceView();
   const [tasks, setTasks] = useState(initialTasks);
   const [editing, setEditing] = useState<Task | undefined>();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -154,6 +157,7 @@ export function TaskDashboard() {
           : t,
       ),
     );
+  if (active === 'projects') return <ProjectPanel />;
   return (
     <div className="dashboard">
       <Surface className="metric-strip">
