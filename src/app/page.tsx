@@ -1,10 +1,10 @@
 import { AppShell } from '@/components/app-shell';
-import { StaticDashboard } from '@/features/dashboard/static-dashboard';
+import { TaskDashboard } from '@/features/tasks/task-dashboard';
 
 export default function Home() {
   return (
     <AppShell>
-      <StaticDashboard />
+      <TaskDashboard />
     </AppShell>
   );
 }
