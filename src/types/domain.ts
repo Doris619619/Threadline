@@ -21,6 +21,8 @@ export type Task = {
   completed: boolean;
   completedAt?: string;
   status: TaskStatus;
+  backlogImportance?: 'important' | 'not_important';
+  ddlAt?: string;
   postponedFrom?: string;
   postponedTo?: string;
   abandonedAt?: string;

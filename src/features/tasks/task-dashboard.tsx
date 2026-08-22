@@ -87,6 +87,7 @@ export function TaskDashboard() {
     .filter((t) => t.plannedStartTime)
     .sort((a, b) => a.plannedStartTime!.localeCompare(b.plannedStartTime!));
   const quick = shown.filter((t) => !t.plannedStartTime);
+  const backlog = tasks.filter((t) => t.status === 'backlog');
   const done = shown.filter((t) => t.completed).length;
   const actual = shown.reduce((sum, t) => sum + (t.actualDurationMinutes ?? 0), 0);
   const open = (task?: Task) => {
@@ -243,8 +244,80 @@ export function TaskDashboard() {
         </Surface>
         <DailyPanel />
       </div>
+      <PlanningQueue
+        tasks={backlog}
+        onUpdate={update}
+        onArrange={(id) =>
+          setTasks((current) =>
+            current.map((task) =>
+              task.id === id
+                ? {
+                    ...task,
+                    status: 'active',
+                    date: today,
+                    updatedAt: new Date().toISOString(),
+                  }
+                : task,
+            ),
+          )
+        }
+      />
       <TaskDialog dialog={dialog} editing={editing} onSave={save} />
     </div>
+  );
+}
+function PlanningQueue({
+  tasks,
+  onUpdate,
+  onArrange,
+}: {
+  tasks: Task[];
+  onUpdate: (task: Task) => void;
+  onArrange: (id: string) => void;
+}) {
+  return (
+    <Surface className="planning-queue">
+      <header>
+        <h2>待安排</h2>
+        <span>重要 / 不重要 · DDL 可选</span>
+      </header>
+      {tasks.length === 0 ? (
+        <p>还没有待安排事项。任务选择“待安排”后会出现在这里。</p>
+      ) : (
+        tasks.map((task) => {
+          const project = projects.find((item) => item.id === task.projectId)!;
+          return (
+            <div className="queue-row" key={task.id}>
+              <ProjectTag name={project.name} color={project.color} />
+              <b>{task.title}</b>
+              <select
+                aria-label={`${task.title}重要性`}
+                value={task.backlogImportance ?? 'important'}
+                onChange={(event) =>
+                  onUpdate({
+                    ...task,
+                    backlogImportance: event.target.value as
+                      'important' | 'not_important',
+                  })
+                }
+              >
+                <option value="important">重要</option>
+                <option value="not_important">不重要</option>
+              </select>
+              <Input
+                aria-label={`${task.title} DDL`}
+                type="datetime-local"
+                value={task.ddlAt ?? ''}
+                onChange={(event) =>
+                  onUpdate({ ...task, ddlAt: event.target.value || undefined })
+                }
+              />
+              <button onClick={() => onArrange(task.id)}>安排到今天</button>
+            </div>
+          );
+        })
+      )}
+    </Surface>
   );
 }
 function numberOrUndefined(value: FormDataEntryValue | null) {
