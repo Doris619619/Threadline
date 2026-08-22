@@ -8,6 +8,7 @@ import { ProjectTag } from '@/components/ui/project-tag';
 import { StatItem } from '@/components/ui/stat-item';
 import { Surface } from '@/components/ui/surface';
 import { calculateDuration } from '@/lib/task-rules';
+import { DailyPanel } from '@/features/daily/daily-panel';
 import type { Project, Task, TaskStatus } from '@/types/domain';
 
 const today = '2026-08-23';
@@ -240,7 +241,7 @@ export function TaskDashboard() {
             />
           ))}
         </Surface>
-        <DailyPreview />
+        <DailyPanel />
       </div>
       <TaskDialog dialog={dialog} editing={editing} onSave={save} />
     </div>
@@ -386,34 +387,5 @@ function TaskDialog({
         </footer>
       </form>
     </dialog>
-  );
-}
-function DailyPreview() {
-  return (
-    <Surface className="daily-panel">
-      <header>
-        <h2>Daily 任务</h2>
-      </header>
-      <div className="daily-group">
-        <div className="daily-parent">
-          <Checkbox aria-label="完成听力训练" defaultChecked />
-          <ProjectTag name="健身" color="#e9a04b" />
-          <b>听力训练</b>
-          <small>Daily</small>
-        </div>
-        <div className="daily-children">
-          <label>
-            <Checkbox aria-label="完成精听" defaultChecked />
-            <span>精听</span>
-            <small>实际 20min</small>
-          </label>
-          <label>
-            <Checkbox aria-label="完成跟读" defaultChecked />
-            <span>跟读</span>
-            <small>实际 10min</small>
-          </label>
-        </div>
-      </div>
-    </Surface>
   );
 }

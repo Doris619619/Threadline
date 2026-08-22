@@ -209,6 +209,43 @@
   color: white;
   background: var(--accent);
 }
+.daily-entry {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) auto;
+  gap: 6px;
+  padding: 9px 0;
+}
+.daily-entry .tl-input {
+  min-height: 30px;
+  font-size: 0.75rem;
+}
+.daily-entry button {
+  border: 0;
+  border-radius: 6px;
+  padding: 0 8px;
+  color: var(--accent);
+  background: var(--accent-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.daily-history {
+  width: 100%;
+  margin-top: 9px;
+  border-top: 1px solid var(--border-subtle);
+  border-collapse: collapse;
+  font-size: 0.7rem;
+}
+.daily-history caption {
+  padding: 9px 0;
+  text-align: left;
+  font-weight: 700;
+}
+.daily-history th,
+.daily-history td {
+  padding: 5px;
+  text-align: left;
+  border-top: 1px solid var(--border-subtle);
+}
 .quick-tasks {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
