@@ -1,0 +1,18 @@
+# dependencies and generated builds
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+playwright-report/
+test-results/
+.pnpm-store/
+
+# local environment files
+.env.local
+.env*.local
+!.env.example
+
+# editor and operating-system artifacts
+.DS_Store
+*.log
