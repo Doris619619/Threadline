@@ -55,6 +55,7 @@ export const seedDaily: Daily[] = [
   },
 ];
 export type DailyHistoryEntry = {
+  dailyId: string;
   date: string;
   completed: boolean;
   actual: number;
@@ -76,6 +77,7 @@ export function DailyPanel({
     onChange(items.map((item) => (item.id === id ? fn(item) : item)));
   const record = (daily: Daily) =>
     onRecord({
+      dailyId: daily.id,
       date: '2026-08-23',
       completed: daily.completed || daily.children.some((child) => child.completed),
       actual: daily.actual,
@@ -89,6 +91,9 @@ export function DailyPanel({
       {items.map((daily) => {
         const complete =
           daily.completed || daily.children.some((child) => child.completed);
+        const recordedToday = history.some(
+          (entry) => entry.dailyId === daily.id && entry.date === '2026-08-23',
+        );
         return (
           <section className="daily-group" key={daily.id}>
             <div className="daily-parent">
@@ -152,8 +157,11 @@ export function DailyPanel({
                 }
                 placeholder="今日结果"
               />
-              <button onClick={() => record({ ...daily, completed: complete })}>
-                记录
+              <button
+                disabled={recordedToday}
+                onClick={() => record({ ...daily, completed: complete })}
+              >
+                {recordedToday ? '已记录' : '记录'}
               </button>
             </div>
           </section>

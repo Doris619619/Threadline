@@ -39,6 +39,21 @@ test('creates an unscheduled task and stores manual actual minutes', async ({
   await expect(page.getByLabel('实际时长（分钟）')).toHaveValue('25');
 });
 
+test('formats actual minutes on a timed task', async ({ page }) => {
+  await page
+    .locator('.quick-panel')
+    .getByRole('button', { name: '添加', exact: true })
+    .click();
+  await page.getByLabel('任务名称').fill('标注访谈记录');
+  await page.getByLabel('开始时间').fill('1200');
+  await page.getByLabel('结束时间').fill('1330');
+  await page.getByLabel('实际时长（分钟）').fill('90');
+  await page.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(
+    page.locator('.timeline-row').filter({ hasText: '标注访谈记录' }),
+  ).toContainText('实际1h30min');
+});
+
 test('completion can be toggled without a dialog', async ({ page }) => {
   const task = page.getByRole('checkbox', { name: '完成邮件处理' });
   await task.check();

@@ -87,10 +87,19 @@ function normalizeTime(value: string) {
     ? `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
     : undefined;
 }
+function isTrashExpired(task: Task) {
+  return (
+    task.status === 'trashed' &&
+    Boolean(task.deletedAt) &&
+    new Date(task.deletedAt!).getTime() < Date.now() - 30 * 24 * 60 * 60 * 1000
+  );
+}
 
 export function TaskDashboard() {
   const { active } = useWorkspaceView();
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, setTasks] = useState(() =>
+    initialTasks.filter((task) => !isTrashExpired(task)),
+  );
   const [workspaceProjects, setWorkspaceProjects] = useState(projectSeed);
   const [daily, setDaily] = useState<Daily[]>(seedDaily);
   const [dailyHistory, setDailyHistory] = useState<DailyHistoryEntry[]>([]);
@@ -171,6 +180,10 @@ export function TaskDashboard() {
               ...t,
               status,
               date: status === 'active' ? t.date : undefined,
+              postponedFrom: status === 'rescheduled' ? t.date : t.postponedFrom,
+              abandonedAt:
+                status === 'abandoned' ? new Date().toISOString() : t.abandonedAt,
+              deletedAt: status === 'trashed' ? new Date().toISOString() : t.deletedAt,
               updatedAt: new Date().toISOString(),
             }
           : t,
@@ -296,6 +309,7 @@ export function TaskDashboard() {
         tasks={backlog}
         projects={workspaceProjects}
         onUpdate={update}
+        onMove={move}
         onArrange={(id) =>
           setTasks((current) =>
             current.map((task) =>
@@ -450,11 +464,13 @@ function PlanningQueue({
   tasks,
   projects,
   onUpdate,
+  onMove,
   onArrange,
 }: {
   tasks: Task[];
   projects: Project[];
   onUpdate: (task: Task) => void;
+  onMove: (id: string, status: TaskStatus) => void;
   onArrange: (id: string) => void;
 }) {
   return (
@@ -496,6 +512,8 @@ function PlanningQueue({
                 }
               />
               <button onClick={() => onArrange(task.id)}>安排到今天</button>
+              <button onClick={() => onMove(task.id, 'abandoned')}>放弃</button>
+              <button onClick={() => onMove(task.id, 'trashed')}>删除</button>
             </div>
           );
         })
