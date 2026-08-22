@@ -82,6 +82,7 @@ export function TaskDashboard() {
   const [tasks, setTasks] = useState(initialTasks);
   const [editing, setEditing] = useState<Task | undefined>();
   const dialog = useRef<HTMLDialogElement>(null);
+  const closeDialog = useRef<HTMLDialogElement>(null);
   const shown = tasks.filter((t) => t.status === 'active' && t.date === today);
   const timed = shown
     .filter((t) => t.plannedStartTime)
@@ -262,8 +263,121 @@ export function TaskDashboard() {
           )
         }
       />
+      <button className="finish-day" onClick={() => closeDialog.current?.showModal()}>
+        结束今天
+      </button>
       <TaskDialog dialog={dialog} editing={editing} onSave={save} />
+      <CloseDialog
+        dialog={closeDialog}
+        tasks={shown}
+        actual={actual}
+        onCloseDay={(form) => {
+          setTasks((current) =>
+            current.map((task) => {
+              const action = form.get(`action-${task.id}`);
+              if (!action || task.completed) return task;
+              if (action === 'tomorrow')
+                return {
+                  ...task,
+                  date: '2026-08-24',
+                  status: 'active',
+                  postponedFrom: today,
+                  postponedTo: '2026-08-24',
+                };
+              if (action === 'backlog')
+                return { ...task, status: 'backlog', date: undefined };
+              if (action === 'abandoned')
+                return {
+                  ...task,
+                  status: 'abandoned',
+                  abandonedAt: new Date().toISOString(),
+                };
+              const target = String(form.get(`date-${task.id}`) ?? '');
+              return target
+                ? {
+                    ...task,
+                    date: target,
+                    status: 'active',
+                    postponedFrom: today,
+                    postponedTo: target,
+                  }
+                : task;
+            }),
+          );
+          closeDialog.current?.close();
+        }}
+      />
     </div>
+  );
+}
+function CloseDialog({
+  dialog,
+  tasks,
+  actual,
+  onCloseDay,
+}: {
+  dialog: React.RefObject<HTMLDialogElement | null>;
+  tasks: Task[];
+  actual: number;
+  onCloseDay: (data: FormData) => void;
+}) {
+  const unfinished = tasks.filter((task) => !task.completed);
+  return (
+    <dialog className="task-dialog close-dialog" ref={dialog}>
+      <form action={onCloseDay}>
+        <header>
+          <div>
+            <p>每日收尾</p>
+            <h2>结束今天</h2>
+          </div>
+          <button formMethod="dialog" aria-label="关闭">
+            ×
+          </button>
+        </header>
+        <div className="close-metrics">
+          <span>
+            普通任务{' '}
+            <b>
+              {tasks.filter((task) => task.completed).length}/{tasks.length}
+            </b>
+          </span>
+          <span>
+            Daily <b>2/3</b>
+          </span>
+          <span>
+            普通实际 <b>{formatMinutes(actual)}</b>
+          </span>
+          <span>
+            Daily 实际 <b>30min</b>
+          </span>
+          <span>
+            今日总实际 <b>{formatMinutes(actual + 30)}</b>
+          </span>
+        </div>
+        <h3>未完成普通任务</h3>
+        {unfinished.length === 0 ? (
+          <p>所有普通任务均已完成。</p>
+        ) : (
+          unfinished.map((task) => (
+            <div className="close-task" key={task.id}>
+              <b>{task.title}</b>
+              <select name={`action-${task.id}`} defaultValue="tomorrow">
+                <option value="tomorrow">移到明天</option>
+                <option value="date">选择日期</option>
+                <option value="backlog">待安排</option>
+                <option value="abandoned">放弃</option>
+              </select>
+              <Input name={`date-${task.id}`} type="date" defaultValue="2026-08-24" />
+            </div>
+          ))
+        )}
+        <p>未完成 Daily 只记录为今日未完成，不会顺延。</p>
+        <footer>
+          <button formMethod="dialog">稍后处理</button>
+          <button type="submit">确认结束今天</button>
+        </footer>
+      </form>
+    </dialog>
   );
 }
 function PlanningQueue({
