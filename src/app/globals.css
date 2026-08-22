@@ -491,6 +491,72 @@
 .bar-row small {
   color: var(--text-secondary);
 }
+.history-panel {
+  display: grid;
+  gap: 16px;
+}
+.history-panel > .tl-surface {
+  padding: 24px;
+}
+.history-panel header {
+  margin-bottom: 12px;
+}
+.history-panel h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+.history-panel header p,
+.empty-copy {
+  margin: 5px 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+.history-panel table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.history-panel th,
+.history-panel td {
+  padding: 9px;
+  text-align: left;
+  border-top: 1px solid var(--border-subtle);
+}
+.history-panel th {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.trash-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 47px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.82rem;
+}
+.trash-row small {
+  color: var(--text-secondary);
+}
+.trash-row button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 6px;
+  padding: 7px;
+  color: var(--accent);
+  background: var(--accent-muted);
+  cursor: pointer;
+}
+@media (max-width: 760px) {
+  .trash-row {
+    grid-template-columns: 1fr auto;
+  }
+  .trash-row small {
+    grid-column: span 2;
+  }
+}
 @media (max-width: 760px) {
   .review-grid,
   .review-details {

@@ -11,6 +11,7 @@ import { calculateDuration } from '@/lib/task-rules';
 import { DailyPanel } from '@/features/daily/daily-panel';
 import { ProjectPanel } from '@/features/projects/project-panel';
 import { ReviewPanel } from '@/features/reviews/review-panel';
+import { HistoryPanel } from '@/features/history/history-panel';
 import { useWorkspaceView } from '@/components/app-shell';
 import type { Project, Task, TaskStatus } from '@/types/domain';
 
@@ -160,6 +161,7 @@ export function TaskDashboard() {
     );
   if (active === 'projects') return <ProjectPanel />;
   if (active === 'stats' || active === 'review') return <ReviewPanel />;
+  if (active === 'settings') return <HistoryPanel tasks={tasks} onUpdate={update} />;
   return (
     <div className="dashboard">
       <Surface className="metric-strip">
