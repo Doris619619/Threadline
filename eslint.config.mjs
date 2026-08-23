@@ -5,5 +5,12 @@ import nextTypescript from 'eslint-config-next/typescript';
 export default defineConfig([
   ...nextVitals,
   ...nextTypescript,
-  globalIgnores(['.next/**', 'node_modules/**', 'coverage/**', 'playwright-report/**']),
+  globalIgnores([
+    '.next/**',
+    '.next-tauri/**',
+    'node_modules/**',
+    'src-tauri/target/**',
+    'coverage/**',
+    'playwright-report/**',
+  ]),
 ]);

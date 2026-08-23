@@ -22,6 +22,17 @@ pnpm dev
 
 访问 `http://localhost:3000`。未提供 Supabase 环境变量时，界面使用本地 seed 数据；UI 的持久化读写通过 `PersistentStateRepository` 端口进入浏览器存储，因此替换为远端实现时不需要改动业务组件。
 
+## Windows 桌面版
+
+桌面版使用 Tauri 2，复用同一套 Next.js 前端。需要 Node.js 22+、pnpm 11+、Rust stable（MSVC 工具链）、Visual Studio C++ Build Tools、Windows SDK 和 WebView2 Runtime。
+
+```bash
+pnpm desktop:dev
+pnpm desktop:build
+```
+
+`desktop:dev` 会自行探测 MSVC、启动 Next.js 开发服务器并打开 Threadline 窗口。`desktop:build` 仅在 Tauri 构建过程中启用 Next.js static export，产物位于 `src-tauri/target/release/bundle/`；原有的 `pnpm build` 与 `pnpm start` 仍保持 Next.js Web/PWA 生产模式。
+
 ## Supabase
 
 将 `.env.local` 中的以下变量填入对应项目的公开 URL 与 anon key：

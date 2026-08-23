@@ -1,7 +1,9 @@
 # dependencies and generated builds
 node_modules/
 .next/
+.next-tauri/
 out/
+.tmp/
 coverage/
 *.tsbuildinfo
 playwright-report/
