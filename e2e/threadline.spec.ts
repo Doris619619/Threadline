@@ -150,7 +150,9 @@ test('deletes a task and restores it from trash', async ({ page }) => {
   await pickup.getByRole('button', { name: '取快递更多操作' }).click();
   await pickup.getByRole('button', { name: '删除', exact: true }).click();
   await page.getByRole('button', { name: '设置', exact: true }).click();
-  await expect(page.getByText('取快递', { exact: true })).toBeVisible();
+  await expect(
+    page.locator('.trash-panel').getByText('取快递', { exact: true }),
+  ).toBeVisible();
   await page.getByRole('button', { name: '恢复', exact: true }).click();
   await expect(page.getByText('回收站为空。')).toBeVisible();
 });
