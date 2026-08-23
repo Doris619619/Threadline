@@ -574,11 +574,14 @@ button,
   color: var(--accent);
 }
 
-.completed .task-title,
+.completed .task-title {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
 .completed .timeline-time,
 .completed .task-duration {
   opacity: 0.45;
-  text-decoration: line-through;
 }
 
 .completed .tl-project-tag {
@@ -687,7 +690,7 @@ button,
 
 .timeline-head {
   display: grid;
-  grid-template-columns: 95px 28px 72px minmax(100px, 1fr) 70px 70px 24px;
+  grid-template-columns: 88px 26px auto minmax(80px, 1fr) 56px 56px 24px;
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
@@ -706,7 +709,7 @@ button,
 
 .timeline-row {
   display: grid;
-  grid-template-columns: 95px 28px 72px minmax(100px, 1fr) 70px 70px 24px;
+  grid-template-columns: 88px 26px auto minmax(80px, 1fr) 56px 56px 24px;
   align-items: center;
   gap: 8px;
   min-height: 44px;
