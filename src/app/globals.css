@@ -656,16 +656,25 @@ button,
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr);
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .side-column {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 
-.schedule-panel,
+.schedule-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px 16px;
+}
+
 .daily-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   padding: 18px 20px 16px;
 }
 
