@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { ProjectTag } from '@/components/ui/project-tag';
@@ -71,14 +72,17 @@ export function DailyPanel({
   history,
   date,
   onChange,
+  onAdd,
   onRecord,
 }: {
   items: Daily[];
   history: DailyHistoryEntry[];
   date: string;
   onChange: (items: Daily[]) => void;
+  onAdd: (item: Daily) => void;
   onRecord: (entry: DailyHistoryEntry) => void;
 }) {
+  const [newTitle, setNewTitle] = useState('');
   const update = (id: string, fn: (daily: Daily) => Daily) =>
     onChange(items.map((item) => (item.id === id ? fn(item) : item)));
   const record = (daily: Daily) =>
@@ -173,6 +177,33 @@ export function DailyPanel({
           </section>
         );
       })}
+      <div className="daily-add">
+        <Input
+          aria-label="新 Daily 名称"
+          value={newTitle}
+          onChange={(event) => setNewTitle(event.target.value)}
+          placeholder="添加 Daily"
+        />
+        <button
+          onClick={() => {
+            if (!newTitle.trim()) return;
+            onAdd({
+              id: crypto.randomUUID(),
+              projectId: 'other',
+              project: '其他',
+              color: '#8793a7',
+              title: newTitle.trim(),
+              actual: 0,
+              result: '',
+              completed: false,
+              children: [],
+            });
+            setNewTitle('');
+          }}
+        >
+          + 添加 Daily
+        </button>
+      </div>
       {history.length > 0 && (
         <table className="daily-history">
           <caption>Daily 历史</caption>

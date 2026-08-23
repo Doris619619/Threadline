@@ -102,9 +102,9 @@ function isTrashExpired(task: Task) {
     new Date(task.deletedAt!).getTime() < Date.now() - 30 * 24 * 60 * 60 * 1000
   );
 }
-function createDailyInstance(date: string): Daily[] {
-  if (date === today) return structuredClone(seedDaily);
-  return seedDaily.map((item) => ({
+function createDailyInstance(date: string, templates: Daily[]): Daily[] {
+  if (date === today) return structuredClone(templates);
+  return templates.map((item) => ({
     ...item,
     actual: 0,
     result: '',
@@ -126,6 +126,10 @@ export function TaskDashboard() {
     'threadline.daily-by-date.v1',
     { [today]: seedDaily },
   );
+  const [dailyTemplates, setDailyTemplates] = usePersistentState<Daily[]>(
+    'threadline.daily-templates.v1',
+    seedDaily,
+  );
   const [dailyHistory, setDailyHistory] = usePersistentState<DailyHistoryEntry[]>(
     'threadline.daily-history.v1',
     [],
@@ -142,7 +146,8 @@ export function TaskDashboard() {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const closeDialog = useRef<HTMLDialogElement>(null);
   const shown = tasks.filter((t) => t.status === 'active' && t.date === selectedDate);
-  const daily = dailyByDate[selectedDate] ?? createDailyInstance(selectedDate);
+  const daily =
+    dailyByDate[selectedDate] ?? createDailyInstance(selectedDate, dailyTemplates);
   const tomorrow = format(
     addDays(new Date(`${selectedDate}T00:00:00`), 1),
     'yyyy-MM-dd',
@@ -377,6 +382,13 @@ export function TaskDashboard() {
           onChange={(items) =>
             setDailyByDate((current) => ({ ...current, [selectedDate]: items }))
           }
+          onAdd={(item) => {
+            setDailyTemplates((current) => [...current, item]);
+            setDailyByDate((current) => ({
+              ...current,
+              [selectedDate]: [...daily, item],
+            }));
+          }}
           onRecord={(entry) => setDailyHistory((current) => [entry, ...current])}
         />
       </div>

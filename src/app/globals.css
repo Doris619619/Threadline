@@ -253,6 +253,23 @@
   text-align: left;
   border-top: 1px solid var(--border-subtle);
 }
+.daily-add {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+.daily-add .tl-input {
+  min-width: 0;
+}
+.daily-add button {
+  flex: 0 0 auto;
+  min-height: 32px;
+  color: var(--accent);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
 .planning-queue {
   padding: 20px 24px;
 }
