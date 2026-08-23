@@ -544,6 +544,14 @@ button,
   transition: background-color 140ms ease;
 }
 
+.quick-task-row-adding {
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+  border-radius: var(--radius-sm);
+  animation: tl-fade-in 180ms ease;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+  padding: 4px 6px;
+}
+
 .quick-task-row:hover {
   background: var(--surface-secondary);
 }
@@ -615,7 +623,7 @@ button,
 }
 
 .tl-inline-input.task-duration-input {
-  text-align: right;
+  text-align: left;
   font-variant-numeric: tabular-nums;
   font-size: 0.75rem;
   padding: 0 4px;
@@ -720,9 +728,10 @@ button,
 
 .dashboard-columns {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr);
+  grid-template-columns: minmax(0, var(--schedule-ratio, 1.45fr)) minmax(280px, 1fr);
   gap: 16px;
   align-items: stretch;
+  transition: grid-template-columns 120ms ease;
 }
 
 .side-column {
@@ -753,9 +762,9 @@ button,
 
 .timeline-head {
   display: grid;
-  grid-template-columns: 78px 22px max-content minmax(0, 1fr) 52px 52px 20px;
+  grid-template-columns: 82px 24px max-content minmax(0, 1fr) 56px 56px 24px;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   padding: 7px 10px;
   color: var(--text-tertiary);
   background: var(--surface-secondary);
@@ -765,17 +774,22 @@ button,
   margin-bottom: 2px;
 }
 
+.timeline-col-project {
+  margin-right: 4px;
+}
+
 .timeline-col-planned,
 .timeline-col-actual {
-  text-align: right;
+  text-align: left;
   font-variant-numeric: tabular-nums;
+  padding-left: 2px;
 }
 
 .timeline-row {
   display: grid;
-  grid-template-columns: 78px 22px max-content minmax(0, 1fr) 52px 52px 20px;
+  grid-template-columns: 82px 24px max-content minmax(0, 1fr) 56px 56px 24px;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   min-height: 40px;
   padding: 4px 10px;
   border-bottom: 1px solid var(--border-subtle);
@@ -789,6 +803,24 @@ button,
 .timeline-row:hover {
   background: var(--surface-secondary);
   border-radius: var(--radius-sm);
+}
+
+.timeline-row-adding {
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+  border-radius: var(--radius-sm);
+  animation: tl-fade-in 180ms ease;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+@keyframes tl-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .timeline-time {
@@ -807,14 +839,183 @@ button,
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  text-align: right;
+  text-align: left;
   padding: 2px 2px;
   box-sizing: border-box;
 }
 
 .task-duration-planned,
 .task-duration-actual {
-  text-align: right;
+  text-align: left;
+}
+
+.tl-inline-confirm-btn {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.tl-inline-confirm-btn:hover {
+  background: color-mix(in srgb, var(--accent) 85%, #000);
+  transform: scale(1.05);
+}
+
+.tl-inline-cancel-btn {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.tl-inline-cancel-btn:hover {
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+}
+
+.tl-inline-actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ================= 行内项目选择 Popover 与快速新建 ================= */
+
+.project-picker-popover {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 50;
+  min-width: 140px;
+  margin-top: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+  animation: tl-fade-in 140ms ease;
+}
+
+.project-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.project-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 100ms ease;
+}
+
+.project-picker-item:hover,
+.project-picker-item.is-selected {
+  background: var(--surface-secondary);
+}
+
+.project-picker-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 4px 0;
+}
+
+.project-picker-new-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 100ms ease;
+}
+
+.project-picker-new-btn:hover {
+  background: var(--accent-muted);
+}
+
+.project-picker-new-form {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+}
+
+.project-picker-new-form input {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 6px;
+  font-size: 0.75rem;
+  color: var(--text-primary);
+  background: var(--surface-secondary);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  outline: none;
+}
+
+.schedule-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+.schedule-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.schedule-resize-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: ew-resize;
+  user-select: none;
+  touch-action: none;
+  transition: all 120ms ease;
+}
+
+.schedule-resize-handle:hover,
+.schedule-resize-handle.is-resizing {
+  background: var(--accent-muted);
+  color: var(--accent);
 }
 
 /* ================= Daily 任务面板 ================= */
