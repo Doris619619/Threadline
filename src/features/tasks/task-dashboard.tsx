@@ -399,27 +399,6 @@ export function TaskDashboard() {
           }
         />
       </Surface>
-      <Surface className="quick-panel">
-        <header>
-          <h2>无时间待办</h2>
-          <button className="add-link" onClick={() => open()}>
-            <Plus size={19} /> 添加
-          </button>
-        </header>
-        <div className="quick-tasks">
-          {quick.map((task) => (
-            <TaskLine
-              key={task.id}
-              task={task}
-              onUpdate={update}
-              onEdit={() => open(task)}
-              onMove={move}
-              onReschedule={() => setRescheduling(task)}
-              projects={workspaceProjects}
-            />
-          ))}
-        </div>
-      </Surface>
       <div className="dashboard-columns">
         <Surface className="schedule-panel">
           <header>
@@ -449,25 +428,52 @@ export function TaskDashboard() {
             />
           ))}
         </Surface>
-        <DailyPanel
-          items={daily}
-          history={dailyHistory}
-          date={selectedDate}
-          projects={workspaceProjects}
-          onChange={(items) =>
-            setDailyByDate((current) => ({ ...current, [selectedDate]: items }))
-          }
-          onAdd={(item) => {
-            setDailyTemplates((current) => [...current, item]);
-            setDailyByDate((current) => {
-              const existing =
-                current[selectedDate] ??
-                createDailyInstance(selectedDate, dailyTemplates);
-              return { ...current, [selectedDate]: [...existing, item] };
-            });
-          }}
-          onRecord={(entry) => setDailyHistory((current) => [entry, ...current])}
-        />
+        <div className="side-column">
+          <Surface className="quick-panel">
+            <header>
+              <h2>无时间待办</h2>
+              <button className="add-link" onClick={() => open()}>
+                <Plus size={19} /> 添加
+              </button>
+            </header>
+            <div className="quick-tasks">
+              {quick.length === 0 ? (
+                <p className="empty-copy">暂无未定时间的待办事项</p>
+              ) : (
+                quick.map((task) => (
+                  <TaskLine
+                    key={task.id}
+                    task={task}
+                    onUpdate={update}
+                    onEdit={() => open(task)}
+                    onMove={move}
+                    onReschedule={() => setRescheduling(task)}
+                    projects={workspaceProjects}
+                  />
+                ))
+              )}
+            </div>
+          </Surface>
+          <DailyPanel
+            items={daily}
+            history={dailyHistory}
+            date={selectedDate}
+            projects={workspaceProjects}
+            onChange={(items) =>
+              setDailyByDate((current) => ({ ...current, [selectedDate]: items }))
+            }
+            onAdd={(item) => {
+              setDailyTemplates((current) => [...current, item]);
+              setDailyByDate((current) => {
+                const existing =
+                  current[selectedDate] ??
+                  createDailyInstance(selectedDate, dailyTemplates);
+                return { ...current, [selectedDate]: [...existing, item] };
+              });
+            }}
+            onRecord={(entry) => setDailyHistory((current) => [entry, ...current])}
+          />
+        </div>
       </div>
       <PlanningQueue
         tasks={backlog}

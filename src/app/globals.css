@@ -484,7 +484,7 @@ button,
 }
 
 .quick-panel {
-  padding: 16px 24px;
+  padding: 16px 20px 14px;
 }
 
 .quick-panel header,
@@ -525,8 +525,8 @@ button,
 
 .quick-tasks {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px 24px;
+  grid-template-columns: 1fr;
+  gap: 6px;
 }
 
 .quick-task-row {
@@ -535,6 +535,13 @@ button,
   align-items: center;
   gap: 8px;
   min-height: 32px;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  transition: background-color 140ms ease;
+}
+
+.quick-task-row:hover {
+  background: var(--surface-secondary);
 }
 
 .task-check-wrap,
@@ -650,6 +657,11 @@ button,
   grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr);
   gap: 16px;
   align-items: start;
+}
+
+.side-column {
+  display: grid;
+  gap: 16px;
 }
 
 .schedule-panel,
