@@ -203,54 +203,60 @@ export function DailyPanel({
                       }
                     />
                     <span>{child.title}</span>
-                    <Input
-                      aria-label={`${daily.title} ${child.title}实际耗时`}
-                      type="number"
-                      min="0"
-                      value={child.actual || ''}
-                      placeholder="实际分钟"
-                      onChange={(event) =>
-                        update(daily.id, (item) => ({
-                          ...item,
-                          children: item.children.map((value, i) =>
-                            i === index
-                              ? { ...value, actual: Number(event.target.value) }
-                              : value,
-                          ),
-                        }))
-                      }
-                    />
+                    {editingId === daily.id ? (
+                      <Input
+                        aria-label={`${daily.title} ${child.title}实际耗时`}
+                        type="number"
+                        min="0"
+                        value={child.actual || ''}
+                        placeholder="实际分钟"
+                        onChange={(event) =>
+                          update(daily.id, (item) => ({
+                            ...item,
+                            children: item.children.map((value, i) =>
+                              i === index
+                                ? { ...value, actual: Number(event.target.value) }
+                                : value,
+                            ),
+                          }))
+                        }
+                      />
+                    ) : (
+                      <small>实际 {child.actual}min</small>
+                    )}
                   </div>
                 ))}
               </div>
             )}
-            <div className="daily-child-add">
-              <Input
-                aria-label={`${daily.title}新子任务`}
-                value={childTitles[daily.id] ?? ''}
-                placeholder="添加子任务"
-                onChange={(event) =>
-                  setChildTitles((current) => ({
-                    ...current,
-                    [daily.id]: event.target.value,
-                  }))
-                }
-              />
-              <button
-                onClick={() => {
-                  const title = childTitles[daily.id]?.trim();
-                  if (!title) return;
-                  update(daily.id, (item) => ({
-                    ...item,
-                    children: [...item.children, { title, completed: false, actual: 0 }],
-                  }));
-                  setChildTitles((current) => ({ ...current, [daily.id]: '' }));
-                }}
-              >
-                + 子任务
-              </button>
-            </div>
-            <div className="daily-entry">
+            {editingId === daily.id && (
+              <>
+                <div className="daily-child-add">
+                  <Input
+                    aria-label={`${daily.title}新子任务`}
+                    value={childTitles[daily.id] ?? ''}
+                    placeholder="添加子任务"
+                    onChange={(event) =>
+                      setChildTitles((current) => ({
+                        ...current,
+                        [daily.id]: event.target.value,
+                      }))
+                    }
+                  />
+                  <button
+                    onClick={() => {
+                      const title = childTitles[daily.id]?.trim();
+                      if (!title) return;
+                      update(daily.id, (item) => ({
+                        ...item,
+                        children: [...item.children, { title, completed: false, actual: 0 }],
+                      }));
+                      setChildTitles((current) => ({ ...current, [daily.id]: '' }));
+                    }}
+                  >
+                    + 子任务
+                  </button>
+                </div>
+                <div className="daily-entry">
               <Input
                 aria-label={`${daily.title}实际耗时`}
                 type="number"
@@ -272,13 +278,15 @@ export function DailyPanel({
                 }
                 placeholder="今日结果"
               />
-              <button
-                disabled={recordedToday}
-                onClick={() => record({ ...daily, completed: complete })}
-              >
-                {recordedToday ? '已记录' : '记录'}
-              </button>
-            </div>
+                  <button
+                    disabled={recordedToday}
+                    onClick={() => record({ ...daily, completed: complete })}
+                  >
+                    {recordedToday ? '已记录' : '记录'}
+                  </button>
+                </div>
+              </>
+            )}
           </section>
         );
       })}
