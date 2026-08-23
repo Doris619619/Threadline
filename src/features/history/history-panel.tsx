@@ -4,6 +4,13 @@ import { Surface } from '@/components/ui/surface';
 import type { DailyHistoryEntry } from '@/features/daily/daily-panel';
 import type { CloseRecord, HistoryEvent, Task } from '@/types/domain';
 
+const eventLabel: Record<string, string> = {
+  rescheduled: '已移期',
+  backlog: '待安排',
+  abandoned: '放弃',
+  scheduled: '已安排',
+};
+
 export function HistoryPanel({
   tasks,
   history,
@@ -64,7 +71,7 @@ export function HistoryPanel({
                     {tasks.find((task) => task.id === event.taskId)?.title ??
                       '今日收尾'}
                   </td>
-                  <td>{event.type.replace('close_', '收尾：')}</td>
+                  <td>{eventLabel[event.type] ?? event.type.replace('close_', '收尾：')}</td>
                   <td>{event.payload?.fromDate ?? event.occurredAt.slice(0, 10)}</td>
                   <td>{event.payload?.toDate ?? '—'}</td>
                 </tr>

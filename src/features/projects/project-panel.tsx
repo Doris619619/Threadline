@@ -6,17 +6,19 @@ import { Input } from '@/components/ui/input';
 import { ProjectTag } from '@/components/ui/project-tag';
 import { Surface } from '@/components/ui/surface';
 import type { Project, Task } from '@/types/domain';
-import type { Daily } from '@/features/daily/daily-panel';
+import type { Daily, DailyHistoryEntry } from '@/features/daily/daily-panel';
 
 export function ProjectPanel({
   items,
   tasks,
   daily,
+  dailyHistory,
   onChange,
 }: {
   items: Project[];
   tasks: Task[];
   daily: Daily[];
+  dailyHistory: DailyHistoryEntry[];
   onChange: (items: Project[]) => void;
 }) {
   const [name, setName] = useState('');
@@ -42,6 +44,9 @@ export function ProjectPanel({
   const selected = items.find((project) => project.id === selectedId);
   const selectedTasks = tasks.filter((task) => task.projectId === selectedId);
   const selectedDaily = daily.filter((item) => item.projectId === selectedId);
+  const selectedDailyHistory = dailyHistory.filter(
+    (item) => item.projectId === selectedId,
+  );
   const saveEdit = () => {
     if (!editingId || !editingName.trim()) return;
     onChange(
@@ -87,6 +92,9 @@ export function ProjectPanel({
             0,
           );
           const projectDaily = daily.filter((item) => item.projectId === project.id);
+          const projectDailyMinutes = dailyHistory
+            .filter((item) => item.projectId === project.id)
+            .reduce((total, item) => total + item.actual, 0);
           return (
             <div className="project-row" key={project.id}>
               {editingId === project.id ? (
@@ -116,8 +124,8 @@ export function ProjectPanel({
               )}
               <b>{project.status === 'archived' ? '已归档' : '活跃'}</b>
               <span>
-                累计 {actual}min · 普通任务 {completed}/{projectTasks.length} · Daily{' '}
-                {projectDaily.length}
+                累计 {actual + projectDailyMinutes}min · 普通任务 {completed}/
+                {projectTasks.length} · Daily {projectDaily.length}
               </span>
               {project.id === 'other' ? (
                 <small>内置项目</small>
@@ -177,14 +185,14 @@ export function ProjectPanel({
               {selectedTasks.reduce(
                 (total, task) => total + (task.actualDurationMinutes ?? 0),
                 0,
-              )}
+              ) + selectedDailyHistory.reduce((total, entry) => total + entry.actual, 0)}
               min
             </strong>
           </header>
           <p>
             普通任务 {selectedTasks.filter((task) => task.completed).length}/
             {selectedTasks.length}
-            {' · '}Daily {selectedDaily.length}
+            {' · '}Daily {selectedDaily.length} 个定义 / {selectedDailyHistory.length} 条历史
           </p>
           <h3>最近任务</h3>
           {selectedTasks.length ? (
@@ -194,6 +202,17 @@ export function ProjectPanel({
               .map((task) => <p key={task.id}>{task.title}</p>)
           ) : (
             <p className="empty-copy">该项目还没有任务。</p>
+          )}
+          <h3>Daily 历史</h3>
+          {selectedDailyHistory.length ? (
+            selectedDailyHistory.slice(0, 5).map((entry) => (
+              <p key={`${entry.dailyId}-${entry.date}`}>
+                {entry.date} · {entry.completed ? '完成' : '未完成'} · {entry.actual}min
+                {entry.result ? ` · ${entry.result}` : ''}
+              </p>
+            ))
+          ) : (
+            <p className="empty-copy">该项目还没有 Daily 历史。</p>
           )}
         </Surface>
       )}

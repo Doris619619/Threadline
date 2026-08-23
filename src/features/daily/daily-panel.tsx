@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { ProjectTag } from '@/components/ui/project-tag';
 import { Surface } from '@/components/ui/surface';
+import type { Project } from '@/types/domain';
 
 export type Daily = {
   id: string;
@@ -61,6 +62,7 @@ export const seedDaily: Daily[] = [
 ];
 export type DailyHistoryEntry = {
   dailyId: string;
+  projectId: string;
   date: string;
   completed: boolean;
   actual: number;
@@ -71,6 +73,7 @@ export function DailyPanel({
   items,
   history,
   date,
+  projects,
   onChange,
   onAdd,
   onRecord,
@@ -78,16 +81,20 @@ export function DailyPanel({
   items: Daily[];
   history: DailyHistoryEntry[];
   date: string;
+  projects: Project[];
   onChange: (items: Daily[]) => void;
   onAdd: (item: Daily) => void;
   onRecord: (entry: DailyHistoryEntry) => void;
 }) {
   const [newTitle, setNewTitle] = useState('');
+  const [projectId, setProjectId] = useState('other');
+  const [childTitles, setChildTitles] = useState<Record<string, string>>({});
   const update = (id: string, fn: (daily: Daily) => Daily) =>
     onChange(items.map((item) => (item.id === id ? fn(item) : item)));
   const record = (daily: Daily) =>
     onRecord({
       dailyId: daily.id,
+      projectId: daily.projectId,
       date,
       completed: daily.completed || daily.children.some((child) => child.completed),
       actual: daily.actual,
@@ -140,11 +147,53 @@ export function DailyPanel({
                       }
                     />
                     <span>{child.title}</span>
-                    <small>实际 {child.actual}min</small>
+                    <Input
+                      aria-label={`${daily.title} ${child.title}实际耗时`}
+                      type="number"
+                      min="0"
+                      value={child.actual || ''}
+                      placeholder="实际分钟"
+                      onChange={(event) =>
+                        update(daily.id, (item) => ({
+                          ...item,
+                          children: item.children.map((value, i) =>
+                            i === index
+                              ? { ...value, actual: Number(event.target.value) }
+                              : value,
+                          ),
+                        }))
+                      }
+                    />
                   </div>
                 ))}
               </div>
             )}
+            <div className="daily-child-add">
+              <Input
+                aria-label={`${daily.title}新子任务`}
+                value={childTitles[daily.id] ?? ''}
+                placeholder="添加子任务"
+                onChange={(event) =>
+                  setChildTitles((current) => ({
+                    ...current,
+                    [daily.id]: event.target.value,
+                  }))
+                }
+              />
+              <button
+                onClick={() => {
+                  const title = childTitles[daily.id]?.trim();
+                  if (!title) return;
+                  update(daily.id, (item) => ({
+                    ...item,
+                    children: [...item.children, { title, completed: false, actual: 0 }],
+                  }));
+                  setChildTitles((current) => ({ ...current, [daily.id]: '' }));
+                }}
+              >
+                + 子任务
+              </button>
+            </div>
             <div className="daily-entry">
               <Input
                 aria-label={`${daily.title}实际耗时`}
@@ -184,14 +233,29 @@ export function DailyPanel({
           onChange={(event) => setNewTitle(event.target.value)}
           placeholder="添加 Daily"
         />
+        <select
+          aria-label="新 Daily 所属项目"
+          value={projectId}
+          onChange={(event) => setProjectId(event.target.value)}
+        >
+          {projects
+            .filter((project) => project.status === 'active')
+            .map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+        </select>
         <button
           onClick={() => {
             if (!newTitle.trim()) return;
+            const project = projects.find((item) => item.id === projectId) ?? projects[0];
+            if (!project) return;
             onAdd({
               id: crypto.randomUUID(),
-              projectId: 'other',
-              project: '其他',
-              color: '#8793a7',
+              projectId: project.id,
+              project: project.name,
+              color: project.color,
               title: newTitle.trim(),
               actual: 0,
               result: '',

@@ -158,6 +158,9 @@
 .task-dialog form {
   padding: 26px;
 }
+.reschedule-dialog {
+  padding: 26px;
+}
 .task-dialog header,
 .task-dialog footer {
   display: flex;
@@ -261,6 +264,15 @@
 }
 .daily-add .tl-input {
   min-width: 0;
+}
+.daily-add select {
+  min-height: 32px;
+  max-width: 88px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: var(--surface);
+  font-size: 0.75rem;
 }
 .daily-add button {
   flex: 0 0 auto;
@@ -755,6 +767,29 @@
 .daily-children small {
   font-size: 0.75rem;
   color: var(--text-secondary);
+}
+.daily-child-row .tl-input {
+  width: 86px;
+  min-height: 29px;
+  font-size: 0.72rem;
+}
+.daily-child-add {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0 2px 37px;
+}
+.daily-child-add .tl-input {
+  min-height: 29px;
+  font-size: 0.74rem;
+}
+.daily-child-add button {
+  flex: 0 0 auto;
+  border: 0;
+  padding: 0 6px;
+  color: var(--accent);
+  background: transparent;
+  font-size: 0.74rem;
+  cursor: pointer;
 }
 .daily-add {
   justify-content: center;

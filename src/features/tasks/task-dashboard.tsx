@@ -148,6 +148,7 @@ export function TaskDashboard() {
   );
   const [editing, setEditing] = useState<Task | undefined>();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [rescheduling, setRescheduling] = useState<Task | undefined>();
   const closeDialog = useRef<HTMLDialogElement>(null);
   const shown = tasks.filter((t) => t.status === 'active' && t.date === selectedDate);
   const movedFromSelectedDate = tasks.filter(
@@ -266,12 +267,40 @@ export function TaskDashboard() {
     );
     appendHistory(status, id, { fromDate: task?.date ?? selectedDate });
   };
+  const reschedule = (targetDate: string) => {
+    if (!rescheduling) return;
+    const sourceDate = rescheduling.date ?? selectedDate;
+    if (targetDate <= sourceDate) return '请选择晚于原计划日期的未来日期';
+    setTasks((current) =>
+      current.map((task) =>
+        task.id === rescheduling.id
+          ? {
+              ...task,
+              status: 'active',
+              date: targetDate,
+              completed: false,
+              completedAt: undefined,
+              postponedFrom: sourceDate,
+              postponedTo: targetDate,
+              updatedAt: new Date().toISOString(),
+            }
+          : task,
+      ),
+    );
+    appendHistory('rescheduled', rescheduling.id, {
+      fromDate: sourceDate,
+      toDate: targetDate,
+    });
+    setRescheduling(undefined);
+    return undefined;
+  };
   if (active === 'projects')
     return (
       <ProjectPanel
         items={workspaceProjects}
         tasks={tasks}
         daily={daily}
+        dailyHistory={dailyHistory}
         onChange={setWorkspaceProjects}
       />
     );
@@ -358,6 +387,7 @@ export function TaskDashboard() {
               onUpdate={update}
               onEdit={() => open(task)}
               onMove={move}
+              onReschedule={() => setRescheduling(task)}
               projects={workspaceProjects}
             />
           ))}
@@ -384,6 +414,7 @@ export function TaskDashboard() {
               onUpdate={update}
               onEdit={() => open(task)}
               onMove={move}
+              onReschedule={() => setRescheduling(task)}
               projects={workspaceProjects}
             />
           ))}
@@ -392,6 +423,7 @@ export function TaskDashboard() {
           items={daily}
           history={dailyHistory}
           date={selectedDate}
+          projects={workspaceProjects}
           onChange={(items) =>
             setDailyByDate((current) => ({ ...current, [selectedDate]: items }))
           }
@@ -435,6 +467,12 @@ export function TaskDashboard() {
         projects={workspaceProjects}
         onSave={save}
         onClose={() => setTaskDialogOpen(false)}
+      />
+      <RescheduleDialog
+        task={rescheduling}
+        defaultDate={tomorrow}
+        onSave={reschedule}
+        onClose={() => setRescheduling(undefined)}
       />
       <CloseDialog
         dialog={closeDialog}
@@ -500,6 +538,7 @@ export function TaskDashboard() {
               )
               .map((item) => ({
                 dailyId: item.id,
+                projectId: item.projectId,
                 date: selectedDate,
                 completed:
                   item.completed || item.children.some((child) => child.completed),
@@ -684,12 +723,14 @@ function TaskLine({
   onUpdate,
   onEdit,
   onMove,
+  onReschedule,
   projects,
 }: {
   task: Task;
   onUpdate: (t: Task) => void;
   onEdit: () => void;
   onMove: (id: string, s: TaskStatus) => void;
+  onReschedule: () => void;
   projects: Project[];
 }) {
   const project = projects.find((p) => p.id === task.projectId) ?? projectSeed[4];
@@ -730,7 +771,7 @@ function TaskLine({
           <MoreHorizontal size={17} />
         </button>
         <div>
-          <button onClick={() => onMove(task.id, 'rescheduled')}>移期</button>
+          <button onClick={onReschedule}>移期</button>
           <button onClick={() => onMove(task.id, 'backlog')}>待安排</button>
           <button onClick={() => onMove(task.id, 'abandoned')}>放弃</button>
           <button onClick={() => onMove(task.id, 'trashed')}>
@@ -739,6 +780,58 @@ function TaskLine({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+function RescheduleDialog({
+  task,
+  defaultDate,
+  onSave,
+  onClose,
+}: {
+  task?: Task;
+  defaultDate: string;
+  onSave: (date: string) => string | undefined;
+  onClose: () => void;
+}) {
+  const [error, setError] = useState<string>();
+  if (!task) return null;
+  return (
+    <div className="task-dialog-backdrop" role="presentation">
+      <form
+        className="task-dialog reschedule-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="移期任务"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const date = String(new FormData(event.currentTarget).get('date') ?? '');
+          const message = onSave(date);
+          setError(message);
+        }}
+      >
+        <header>
+          <div>
+            <h2>移期</h2>
+            <p>{task.title}</p>
+          </div>
+          <button type="button" aria-label="关闭移期" onClick={onClose}>
+            ×
+          </button>
+        </header>
+        <label>
+          新日期
+          <Input aria-label="移期日期" name="date" type="date" defaultValue={defaultDate} />
+        </label>
+        <p className="dialog-hint">默认明天；也可选择任意未来日期。原日期历史会保留。</p>
+        {error && <p className="form-error">{error}</p>}
+        <footer>
+          <button type="button" onClick={onClose}>
+            取消
+          </button>
+          <button type="submit">确认移期</button>
+        </footer>
+      </form>
     </div>
   );
 }

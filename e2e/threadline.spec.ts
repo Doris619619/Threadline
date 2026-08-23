@@ -132,6 +132,16 @@ test('daily subtask completion completes its parent', async ({ page }) => {
   await expect(page.getByRole('checkbox', { name: '完成 Daily 背单词' })).toBeChecked();
 });
 
+test('creates Daily under a selected project with a subtask', async ({ page }) => {
+  await page.getByLabel('新 Daily 名称').fill('阅读训练');
+  await page.getByLabel('新 Daily 所属项目').selectOption('work');
+  await page.getByRole('button', { name: '+ 添加 Daily' }).click();
+  await expect(page.getByText('阅读训练', { exact: true })).toBeVisible();
+  await page.getByLabel('阅读训练新子任务').fill('整理笔记');
+  await page.getByRole('button', { name: '+ 子任务' }).last().click();
+  await expect(page.getByRole('checkbox', { name: '完成 整理笔记' })).toBeVisible();
+});
+
 test('records rescheduling and abandonment in history', async ({ page }) => {
   const pickup = page.locator('.quick-task-row').filter({ hasText: '取快递' });
   await pickup.getByRole('button', { name: '取快递更多操作' }).click();
@@ -140,9 +150,24 @@ test('records rescheduling and abandonment in history', async ({ page }) => {
   const email = page.locator('.timeline-row').filter({ hasText: '邮件处理' });
   await email.getByRole('button', { name: '邮件处理更多操作' }).click();
   await email.getByRole('button', { name: '移期', exact: true }).click();
+  const reschedule = page.getByRole('dialog', { name: '移期任务' });
+  await reschedule.getByRole('button', { name: '确认移期' }).click();
   await page.getByRole('button', { name: '设置', exact: true }).click();
   await expect(page.getByRole('cell', { name: '已移期' })).toBeVisible();
-  await expect(page.getByRole('cell', { name: '放弃' })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '放弃' }).first()).toBeVisible();
+});
+
+test('can choose a future date when rescheduling', async ({ page }) => {
+  const email = page.locator('.timeline-row').filter({ hasText: '邮件处理' });
+  await email.getByRole('button', { name: '邮件处理更多操作' }).click();
+  await email.getByRole('button', { name: '移期', exact: true }).click();
+  const reschedule = page.getByRole('dialog', { name: '移期任务' });
+  await reschedule.getByLabel('移期日期').fill('2026-08-26');
+  await reschedule.getByRole('button', { name: '确认移期' }).click();
+  await page.getByRole('button', { name: '后一天', exact: true }).click();
+  await page.getByRole('button', { name: '后一天', exact: true }).click();
+  await page.getByRole('button', { name: '后一天', exact: true }).click();
+  await expect(page.getByRole('button', { name: '邮件处理', exact: true })).toBeVisible();
 });
 
 test('deletes a task and restores it from trash', async ({ page }) => {
