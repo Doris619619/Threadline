@@ -148,3 +148,16 @@ test('shows task and daily data in weekly review', async ({ page }) => {
   await page.getByRole('button', { name: '月', exact: true }).click();
   await expect(page.getByRole('heading', { name: '月复盘' })).toBeVisible();
 });
+
+test('edits a project and opens its compact project detail', async ({ page }) => {
+  await page.getByRole('button', { name: '项目', exact: true }).click();
+  await page.getByRole('button', { name: '【AI研究】' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'AI研究', exact: true }),
+  ).toBeVisible();
+  const researchRow = page.locator('.project-row').filter({ hasText: 'AI研究' });
+  await researchRow.getByRole('button', { name: '编辑', exact: true }).click();
+  await page.getByLabel('AI研究项目名称').fill('AI 实验室');
+  await page.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(page.getByText('【AI 实验室】')).toBeVisible();
+});

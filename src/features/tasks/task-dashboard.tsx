@@ -21,7 +21,13 @@ import { ReviewPanel } from '@/features/reviews/review-panel';
 import { HistoryPanel } from '@/features/history/history-panel';
 import { useWorkspaceView } from '@/components/app-shell';
 import { usePersistentState } from '@/hooks/use-persistent-state';
-import type { Project, Task, TaskStatus } from '@/types/domain';
+import type {
+  CloseRecord,
+  HistoryEvent,
+  Project,
+  Task,
+  TaskStatus,
+} from '@/types/domain';
 
 const today = '2026-08-23';
 const projectSeed: Project[] = [
@@ -124,6 +130,14 @@ export function TaskDashboard() {
     'threadline.daily-history.v1',
     [],
   );
+  const [history, setHistory] = usePersistentState<HistoryEvent[]>(
+    'threadline.history.v1',
+    [],
+  );
+  const [closeRecords, setCloseRecords] = usePersistentState<CloseRecord[]>(
+    'threadline.close-records.v1',
+    [],
+  );
   const [editing, setEditing] = useState<Task | undefined>();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const closeDialog = useRef<HTMLDialogElement>(null);
@@ -198,7 +212,23 @@ export function TaskDashboard() {
     setTaskDialogOpen(false);
     return undefined;
   };
-  const move = (id: string, status: TaskStatus) =>
+  const appendHistory = (
+    type: string,
+    taskId?: string,
+    payload: Record<string, string> = {},
+  ) =>
+    setHistory((current) => [
+      {
+        id: crypto.randomUUID(),
+        taskId,
+        type,
+        occurredAt: new Date().toISOString(),
+        payload,
+      },
+      ...current,
+    ]);
+  const move = (id: string, status: TaskStatus) => {
+    const task = tasks.find((item) => item.id === id);
     setTasks((current) =>
       current.map((t) =>
         t.id === id
@@ -206,7 +236,8 @@ export function TaskDashboard() {
               ...t,
               status,
               date: status === 'active' ? t.date : undefined,
-              postponedFrom: status === 'rescheduled' ? t.date : t.postponedFrom,
+              postponedFrom:
+                status !== 'active' ? (t.date ?? t.postponedFrom) : t.postponedFrom,
               abandonedAt:
                 status === 'abandoned' ? new Date().toISOString() : t.abandonedAt,
               deletedAt: status === 'trashed' ? new Date().toISOString() : t.deletedAt,
@@ -215,11 +246,14 @@ export function TaskDashboard() {
           : t,
       ),
     );
+    appendHistory(status, id, { fromDate: task?.date ?? selectedDate });
+  };
   if (active === 'projects')
     return (
       <ProjectPanel
         items={workspaceProjects}
         tasks={tasks}
+        daily={daily}
         onChange={setWorkspaceProjects}
       />
     );
@@ -230,9 +264,21 @@ export function TaskDashboard() {
         projects={workspaceProjects}
         daily={daily}
         dailyHistory={dailyHistory}
+        history={history}
+        closeRecords={closeRecords}
+        selectedDate={selectedDate}
       />
     );
-  if (active === 'settings') return <HistoryPanel tasks={tasks} onUpdate={update} />;
+  if (active === 'settings')
+    return (
+      <HistoryPanel
+        tasks={tasks}
+        history={history}
+        closeRecords={closeRecords}
+        dailyHistory={dailyHistory}
+        onUpdate={update}
+      />
+    );
   return (
     <div className="dashboard">
       <Surface className="metric-strip">
@@ -373,10 +419,18 @@ export function TaskDashboard() {
         dailyActual={dailyActual}
         tomorrow={tomorrow}
         onCloseDay={(form) => {
+          const events: HistoryEvent[] = [];
           setTasks((current) =>
             current.map((task) => {
               const action = form.get(`action-${task.id}`);
               if (!action || task.completed) return task;
+              events.push({
+                id: crypto.randomUUID(),
+                taskId: task.id,
+                type: `close_${action}`,
+                occurredAt: new Date().toISOString(),
+                payload: { fromDate: selectedDate },
+              });
               if (action === 'tomorrow')
                 return {
                   ...task,
@@ -405,6 +459,24 @@ export function TaskDashboard() {
                 : task;
             }),
           );
+          setHistory((current) => [...events, ...current]);
+          const projectMinutes = Object.fromEntries(
+            workspaceProjects.map((project) => [
+              project.id,
+              shown
+                .filter((task) => task.projectId === project.id)
+                .reduce((total, task) => total + (task.actualDurationMinutes ?? 0), 0),
+            ]),
+          );
+          setCloseRecords((current) => [
+            ...current.filter((record) => record.date !== selectedDate),
+            {
+              id: crypto.randomUUID(),
+              date: selectedDate,
+              closedAt: new Date().toISOString(),
+              projectMinutes,
+            },
+          ]);
           closeDialog.current?.close();
         }}
       />

@@ -1,8 +1,9 @@
 'use client';
 import { useState } from 'react';
+import { isSameMonth, isSameWeek, parseISO } from 'date-fns';
 import { Surface } from '@/components/ui/surface';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/daily-panel';
-import type { Project, Task } from '@/types/domain';
+import type { CloseRecord, HistoryEvent, Project, Task } from '@/types/domain';
 
 const minutes = (value: number) =>
   value < 60
@@ -14,32 +15,76 @@ export function ReviewPanel({
   projects,
   daily,
   dailyHistory,
+  history,
+  closeRecords,
+  selectedDate,
 }: {
   tasks: Task[];
   projects: Project[];
   daily: Daily[];
   dailyHistory: DailyHistoryEntry[];
+  history: HistoryEvent[];
+  closeRecords: CloseRecord[];
+  selectedDate: string;
 }) {
   const [period, setPeriod] = useState<'week' | 'month'>('week');
-  const relevant = tasks.filter((task) => task.status !== 'trashed');
+  const reference = parseISO(selectedDate);
+  const inPeriod = (date: string) =>
+    period === 'week'
+      ? isSameWeek(parseISO(date), reference, { weekStartsOn: 1 })
+      : isSameMonth(parseISO(date), reference);
+  const relevant = tasks.filter(
+    (task) =>
+      task.status !== 'trashed' &&
+      inPeriod(task.date ?? task.postponedFrom ?? task.createdAt.slice(0, 10)),
+  );
   const completed = relevant.filter((task) => task.completed).length;
   const taskActual = relevant.reduce(
     (total, task) => total + (task.actualDurationMinutes ?? 0),
     0,
   );
-  const dailyActual = daily.reduce((total, item) => total + item.actual, 0);
+  const dailyActual =
+    dailyHistory
+      .filter((entry) => inPeriod(entry.date))
+      .reduce((total, entry) => total + entry.actual, 0) +
+    (dailyHistory.some((entry) => entry.date === selectedDate)
+      ? 0
+      : daily.reduce((total, item) => total + item.actual, 0));
   const planned = relevant.reduce(
     (total, task) => total + (task.plannedDurationMinutes ?? 0),
     0,
   );
   const totalActual = taskActual + dailyActual;
-  const dailyDone = daily.filter(
-    (item) => item.completed || item.children.some((child) => child.completed),
-  ).length;
+  const periodDailyHistory = dailyHistory.filter((entry) => inPeriod(entry.date));
+  const dailyDone = periodDailyHistory.length
+    ? periodDailyHistory.filter((entry) => entry.completed).length
+    : daily.filter(
+        (item) => item.completed || item.children.some((child) => child.completed),
+      ).length;
+  const dailyTotal = periodDailyHistory.length
+    ? periodDailyHistory.length
+    : daily.length;
   const flow = [
-    ['移期', relevant.filter((task) => task.status === 'rescheduled').length],
-    ['放弃', relevant.filter((task) => task.status === 'abandoned').length],
-    ['进入待安排', relevant.filter((task) => task.status === 'backlog').length],
+    [
+      '移期',
+      history.filter(
+        (event) =>
+          event.type === 'rescheduled' && inPeriod(event.occurredAt.slice(0, 10)),
+      ).length,
+    ],
+    [
+      '放弃',
+      history.filter(
+        (event) =>
+          event.type === 'abandoned' && inPeriod(event.occurredAt.slice(0, 10)),
+      ).length,
+    ],
+    [
+      '进入待安排',
+      history.filter(
+        (event) => event.type === 'backlog' && inPeriod(event.occurredAt.slice(0, 10)),
+      ).length,
+    ],
   ] as const;
   return (
     <div className="review-panel">
@@ -88,30 +133,35 @@ export function ReviewPanel({
         <section>
           <h3>各项目投入</h3>
           <div className="project-bars">
-            {projects
-              .filter((project) => project.status === 'active')
-              .map((project) => {
-                const value = relevant
+            {projects.map((project) => {
+              const value =
+                closeRecords
+                  .filter((record) => inPeriod(record.date))
+                  .reduce(
+                    (total, record) => total + (record.projectMinutes[project.id] ?? 0),
+                    0,
+                  ) ||
+                relevant
                   .filter((task) => task.projectId === project.id)
                   .reduce(
                     (total, task) => total + (task.actualDurationMinutes ?? 0),
                     0,
                   );
-                return (
-                  <Bar
-                    key={project.id}
-                    label={project.name}
-                    value={minutes(value)}
-                    percent={totalActual ? Math.round((value / totalActual) * 100) : 0}
-                  />
-                );
-              })}
+              return (
+                <Bar
+                  key={project.id}
+                  label={project.name}
+                  value={minutes(value)}
+                  percent={totalActual ? Math.round((value / totalActual) * 100) : 0}
+                />
+              );
+            })}
           </div>
         </section>
         <section>
           <h3>Daily 完成情况</h3>
           <p>
-            {dailyDone}/{daily.length} 已完成 · {minutes(dailyActual)}
+            {dailyDone}/{dailyTotal} 已完成 · {minutes(dailyActual)}
           </p>
           <p>已记录 {dailyHistory.length} 条 Daily 历史</p>
         </section>

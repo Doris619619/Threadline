@@ -7,6 +7,7 @@ import { Surface } from '@/components/ui/surface';
 
 export type Daily = {
   id: string;
+  projectId: string;
   project: string;
   color: string;
   title: string;
@@ -18,6 +19,7 @@ export type Daily = {
 export const seedDaily: Daily[] = [
   {
     id: 'listen',
+    projectId: 'life',
     project: '健身',
     color: '#e9a04b',
     title: '听力训练',
@@ -32,6 +34,7 @@ export const seedDaily: Daily[] = [
   },
   {
     id: 'vocab',
+    projectId: 'course',
     project: '六级',
     color: '#8b7cf6',
     title: '背单词',
@@ -45,6 +48,7 @@ export const seedDaily: Daily[] = [
   },
   {
     id: 'weekly',
+    projectId: 'work',
     project: 'GitHub',
     color: '#4f8cff',
     title: '发布周报',
