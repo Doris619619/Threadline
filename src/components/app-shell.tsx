@@ -1,3 +1,7 @@
+/**
+ * @fileoverview 应用外壳组件，包含侧边栏导航、个人资料和全局日期切换头部。
+ */
+
 'use client';
 
 import {

@@ -1,3 +1,7 @@
+/**
+ * @fileoverview 任务工作台组件，提供仪表盘、任务列表、今日日程和弹窗交互。
+ */
+
 'use client';
 
 import { MoreHorizontal, Plus, Trash2 } from 'lucide-react';
@@ -425,10 +429,13 @@ export function TaskDashboard() {
             </button>
           </header>
           <div className="timeline-head">
-            <span>时间</span>
-            <span>项目</span>
-            <span>任务</span>
-            <span>预计 / 实际</span>
+            <span className="timeline-col-time">时间</span>
+            <span className="timeline-col-check"></span>
+            <span className="timeline-col-project">项目</span>
+            <span className="timeline-col-title">任务</span>
+            <span className="timeline-col-planned">预计</span>
+            <span className="timeline-col-actual">实际</span>
+            <span className="timeline-col-actions"></span>
           </div>
           {timed.map((task) => (
             <TaskLine
@@ -747,6 +754,9 @@ function PlanningQueue({
 function numberOrUndefined(value: FormDataEntryValue | null) {
   return value === null || value === '' ? undefined : Number(value);
 }
+/**
+ * 任务单行组件（支持时间线视图与无时间待办快速视图）。
+ */
 function TaskLine({
   task,
   onUpdate,
@@ -766,34 +776,40 @@ function TaskLine({
   const timed = Boolean(task.plannedStartTime);
   return (
     <div
-      className={`${timed ? 'timeline-row' : 'quick-task-row'}${task.completed ? 'completed' : ''}`}
+      className={`${timed ? 'timeline-row' : 'quick-task-row'}${task.completed ? ' completed' : ''}`}
     >
-      <time>
-        {task.plannedStartTime}
-        {task.plannedEndTime && `–${task.plannedEndTime}`}
-      </time>
-      <Checkbox
-        aria-label={`完成${task.title}`}
-        checked={task.completed}
-        onChange={(e) =>
-          onUpdate({
-            ...task,
-            completed: e.target.checked,
-            completedAt: e.target.checked ? new Date().toISOString() : undefined,
-          })
-        }
-      />
+      {timed ? (
+        <time className="timeline-time">
+          {task.plannedStartTime}
+          {task.plannedEndTime && `–${task.plannedEndTime}`}
+        </time>
+      ) : null}
+      <div className="task-check-wrap">
+        <Checkbox
+          aria-label={`完成${task.title}`}
+          checked={task.completed}
+          onChange={(e) =>
+            onUpdate({
+              ...task,
+              completed: e.target.checked,
+              completedAt: e.target.checked ? new Date().toISOString() : undefined,
+            })
+          }
+        />
+      </div>
       <ProjectTag name={project.name} color={project.color} />
-      <button className="task-title" onClick={onEdit}>
+      <button className="task-title" onClick={onEdit} title={task.title}>
         {task.title}
       </button>
       {timed && (
-        <span className="duration">
-          <small>预计</small>
-          {formatMinutes(task.plannedDurationMinutes)}
-          <small>实际</small>
-          {formatMinutes(task.actualDurationMinutes)}
-        </span>
+        <>
+          <span className="task-duration task-duration-planned">
+            {formatMinutes(task.plannedDurationMinutes)}
+          </span>
+          <span className="task-duration task-duration-actual">
+            {formatMinutes(task.actualDurationMinutes)}
+          </span>
+        </>
       )}
       <div className="task-actions">
         <button aria-label={`${task.title}更多操作`}>
