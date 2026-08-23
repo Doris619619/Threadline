@@ -4,7 +4,7 @@
 
 'use client';
 
-import { MoreHorizontal, Plus, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { addDays, format } from 'date-fns';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -88,6 +88,52 @@ function formatMinutes(value?: number) {
     ? `${value}min`
     : `${Math.floor(value / 60)}h${value % 60 ? `${value % 60}min` : ''}`;
 }
+
+/**
+ * 解析用户输入的持续时间字符串（如 30, 30min, 1h, 1.5h, 1h20min, —）。
+ */
+function parseDurationInput(value: string): number | undefined {
+  const clean = value.trim().toLowerCase();
+  if (!clean || clean === '—' || clean === '-' || clean === '0' || clean === '0min') {
+    return undefined;
+  }
+  const hourMinMatch = clean.match(
+    /^(\d+(?:\.\d+)?)\s*h(?:our)?s?\s*(\d+)?(?:\s*m(?:in)?s?)?$/,
+  );
+  if (hourMinMatch) {
+    const hours = parseFloat(hourMinMatch[1]);
+    const mins = hourMinMatch[2] ? parseInt(hourMinMatch[2], 10) : 0;
+    return Math.round(hours * 60 + mins);
+  }
+  const minMatch = clean.match(/^(\d+)\s*(?:m|min|mins|minute|minutes)?$/);
+  if (minMatch) {
+    return parseInt(minMatch[1], 10);
+  }
+  return undefined;
+}
+
+/**
+ * 解析用户输入的时间范围（如 08:30, 0830, 08:30-10:00, 15:10–16:10, 1510-1610）。
+ */
+function parseTimeInput(value: string): { start?: string; end?: string; duration?: number } {
+  const clean = value.trim();
+  if (!clean) return {};
+  const parts = clean.split(/[-–~至到\s]+/).filter(Boolean);
+  if (parts.length === 1) {
+    const start = normalizeTime(parts[0]);
+    return { start };
+  }
+  if (parts.length >= 2) {
+    const start = normalizeTime(parts[0]);
+    const end = normalizeTime(parts[1]);
+    if (start && end && end >= start) {
+      const duration = calculateDuration(start, end);
+      return { start, end, duration };
+    }
+    return { start, end };
+  }
+  return {};
+}
 function normalizeTime(value: string) {
   const clean = value.trim();
   const parsed = /^\d{3,4}$/.test(clean)
@@ -160,6 +206,7 @@ export function TaskDashboard() {
   );
   const [editing, setEditing] = useState<Task | undefined>();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [taskDialogMode, setTaskDialogMode] = useState<'normal' | 'unscheduled'>('normal');
   const [rescheduling, setRescheduling] = useState<Task | undefined>();
   const closeDialog = useRef<HTMLDialogElement>(null);
   const hydrated =
@@ -202,8 +249,9 @@ export function TaskDashboard() {
     (item) => item.completed || item.children.some((child) => child.completed),
   ).length;
   const isDayClosed = closeRecords.some((record) => record.date === selectedDate);
-  const open = (task?: Task) => {
+  const open = (task?: Task, mode: 'normal' | 'unscheduled' = 'normal') => {
     setEditing(task);
+    setTaskDialogMode(mode);
     setTaskDialogOpen(true);
   };
   const update = (task: Task) =>
@@ -403,7 +451,7 @@ export function TaskDashboard() {
         <Surface className="schedule-panel">
           <header>
             <h2>今日日程</h2>
-            <button className="add-link" onClick={() => open()}>
+            <button className="add-link" onClick={() => open(undefined, 'normal')}>
               <Plus size={19} /> 添加
             </button>
           </header>
@@ -421,7 +469,7 @@ export function TaskDashboard() {
               key={task.id}
               task={task}
               onUpdate={update}
-              onEdit={() => open(task)}
+              onEdit={() => open(task, 'normal')}
               onMove={move}
               onReschedule={() => setRescheduling(task)}
               projects={workspaceProjects}
@@ -432,7 +480,7 @@ export function TaskDashboard() {
           <Surface className="quick-panel">
             <header>
               <h2>无时间待办</h2>
-              <button className="add-link" onClick={() => open()}>
+              <button className="add-link" onClick={() => open(undefined, 'unscheduled')}>
                 <Plus size={19} /> 添加
               </button>
             </header>
@@ -445,7 +493,7 @@ export function TaskDashboard() {
                     key={task.id}
                     task={task}
                     onUpdate={update}
-                    onEdit={() => open(task)}
+                    onEdit={() => open(task, 'unscheduled')}
                     onMove={move}
                     onReschedule={() => setRescheduling(task)}
                     projects={workspaceProjects}
@@ -505,6 +553,7 @@ export function TaskDashboard() {
       </button>
       <TaskDialog
         open={taskDialogOpen}
+        mode={taskDialogMode}
         editing={editing}
         projects={workspaceProjects}
         onSave={save}
@@ -780,16 +829,86 @@ function TaskLine({
 }) {
   const project = projects.find((p) => p.id === task.projectId) ?? projectSeed[4];
   const timed = Boolean(task.plannedStartTime);
+  const [editingField, setEditingField] = useState<
+    'time' | 'project' | 'title' | 'planned' | 'actual' | undefined
+  >();
+
+  const saveTime = (input: string) => {
+    const { start, end, duration } = parseTimeInput(input);
+    onUpdate({
+      ...task,
+      plannedStartTime: start,
+      plannedEndTime: end,
+      plannedDurationMinutes: duration ?? task.plannedDurationMinutes,
+      updatedAt: new Date().toISOString(),
+    });
+    setEditingField(undefined);
+  };
+
+  const saveTitle = (input: string) => {
+    const trimmed = input.trim();
+    if (trimmed && trimmed !== task.title) {
+      onUpdate({
+        ...task,
+        title: trimmed,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+    setEditingField(undefined);
+  };
+
+  const savePlanned = (input: string) => {
+    const duration = parseDurationInput(input);
+    onUpdate({
+      ...task,
+      plannedDurationMinutes: duration,
+      updatedAt: new Date().toISOString(),
+    });
+    setEditingField(undefined);
+  };
+
+  const saveActual = (input: string) => {
+    const duration = parseDurationInput(input);
+    onUpdate({
+      ...task,
+      actualDurationMinutes: duration,
+      updatedAt: new Date().toISOString(),
+    });
+    setEditingField(undefined);
+  };
+
+  const timeDisplay = task.plannedStartTime
+    ? `${task.plannedStartTime}${task.plannedEndTime ? `–${task.plannedEndTime}` : ''}`
+    : '';
+
   return (
     <div
       className={`${timed ? 'timeline-row' : 'quick-task-row'}${task.completed ? ' completed' : ''}`}
     >
       {timed ? (
-        <time className="timeline-time">
-          {task.plannedStartTime}
-          {task.plannedEndTime && `–${task.plannedEndTime}`}
-        </time>
+        editingField === 'time' ? (
+          <input
+            className="tl-inline-input timeline-time-input"
+            defaultValue={timeDisplay}
+            placeholder="08:30"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') saveTime(e.currentTarget.value);
+              if (e.key === 'Escape') setEditingField(undefined);
+            }}
+            onBlur={(e) => saveTime(e.currentTarget.value)}
+          />
+        ) : (
+          <time
+            className="timeline-time tl-clickable-cell"
+            onClick={() => setEditingField('time')}
+            title="点击直接修改时间（支持 08:30 或 08:30-10:00）"
+          >
+            {timeDisplay}
+          </time>
+        )
       ) : null}
+
       <div className="task-check-wrap">
         <Checkbox
           aria-label={`完成${task.title}`}
@@ -803,25 +922,129 @@ function TaskLine({
           }
         />
       </div>
-      <ProjectTag name={project.name} color={project.color} />
-      <button className="task-title" onClick={onEdit} title={task.title}>
-        {task.title}
-      </button>
+
+      {editingField === 'project' ? (
+        <select
+          className="tl-inline-select project-inline-select"
+          defaultValue={task.projectId}
+          autoFocus
+          onChange={(e) => {
+            onUpdate({
+              ...task,
+              projectId: e.target.value,
+              updatedAt: new Date().toISOString(),
+            });
+            setEditingField(undefined);
+          }}
+          onBlur={() => setEditingField(undefined)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setEditingField(undefined);
+          }}
+        >
+          {projects
+            .filter((p) => p.status === 'active' || p.id === task.projectId)
+            .map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+        </select>
+      ) : (
+        <span
+          className="tl-clickable-cell"
+          onClick={() => setEditingField('project')}
+          title="点击切换所属项目"
+        >
+          <ProjectTag name={project.name} color={project.color} />
+        </span>
+      )}
+
+      {editingField === 'title' ? (
+        <input
+          className="tl-inline-input task-title-input"
+          defaultValue={task.title}
+          autoFocus
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') saveTitle(e.currentTarget.value);
+            if (e.key === 'Escape') setEditingField(undefined);
+          }}
+          onBlur={(e) => saveTitle(e.currentTarget.value)}
+        />
+      ) : (
+        <span
+          className="task-title tl-clickable-cell"
+          onClick={() => setEditingField('title')}
+          title={task.title}
+        >
+          {task.title}
+        </span>
+      )}
+
       {timed && (
         <>
-          <span className="task-duration task-duration-planned">
-            {formatMinutes(task.plannedDurationMinutes)}
-          </span>
-          <span className="task-duration task-duration-actual">
-            {formatMinutes(task.actualDurationMinutes)}
-          </span>
+          {editingField === 'planned' ? (
+            <input
+              className="tl-inline-input task-duration-input"
+              defaultValue={
+                task.plannedDurationMinutes !== undefined
+                  ? `${task.plannedDurationMinutes}min`
+                  : ''
+              }
+              placeholder="45min"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') savePlanned(e.currentTarget.value);
+                if (e.key === 'Escape') setEditingField(undefined);
+              }}
+              onBlur={(e) => savePlanned(e.currentTarget.value)}
+            />
+          ) : (
+            <span
+              className="task-duration task-duration-planned tl-clickable-cell"
+              onClick={() => setEditingField('planned')}
+              title="点击直接修改预计时长（如 45min 或 1h）"
+            >
+              {formatMinutes(task.plannedDurationMinutes)}
+            </span>
+          )}
+
+          {editingField === 'actual' ? (
+            <input
+              className="tl-inline-input task-duration-input"
+              defaultValue={
+                task.actualDurationMinutes !== undefined
+                  ? `${task.actualDurationMinutes}min`
+                  : ''
+              }
+              placeholder="30min"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') saveActual(e.currentTarget.value);
+                if (e.key === 'Escape') setEditingField(undefined);
+              }}
+              onBlur={(e) => saveActual(e.currentTarget.value)}
+            />
+          ) : (
+            <span
+              className="task-duration task-duration-actual tl-clickable-cell"
+              onClick={() => setEditingField('actual')}
+              title="点击直接输入实际时长（如 30min 或 1h20min）"
+            >
+              {formatMinutes(task.actualDurationMinutes)}
+            </span>
+          )}
         </>
       )}
+
       <div className="task-actions">
         <button aria-label={`${task.title}更多操作`}>
           <MoreHorizontal size={17} />
         </button>
         <div>
+          <button onClick={onEdit}>
+            <Pencil size={13} />
+            详细编辑
+          </button>
           <button onClick={onReschedule}>移期</button>
           <button onClick={() => onMove(task.id, 'backlog')}>待安排</button>
           <button onClick={() => onMove(task.id, 'abandoned')}>放弃</button>
@@ -888,12 +1111,14 @@ function RescheduleDialog({
 }
 function TaskDialog({
   open,
+  mode = 'normal',
   editing,
   projects,
   onSave,
   onClose,
 }: {
   open: boolean;
+  mode?: 'normal' | 'unscheduled';
   editing?: Task;
   projects: Project[];
   onSave: (data: FormData) => string | undefined;
@@ -901,13 +1126,23 @@ function TaskDialog({
 }) {
   const [error, setError] = useState<string>();
   if (!open) return null;
+  const isUnscheduled = mode === 'unscheduled' && !editing?.plannedStartTime;
+
   return (
     <div className="task-dialog-backdrop" role="presentation">
       <section
         className="task-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label={editing ? '编辑任务' : '添加任务'}
+        aria-label={
+          editing
+            ? isUnscheduled
+              ? '修改无时间待办'
+              : '编辑任务'
+            : isUnscheduled
+              ? '添加无时间待办'
+              : '添加任务'
+        }
       >
         <form
           action={(data) => {
@@ -917,8 +1152,24 @@ function TaskDialog({
         >
           <header>
             <div>
-              <p>{editing ? '编辑任务' : '快速新建'}</p>
-              <h2>{editing ? '修改任务' : '添加任务'}</h2>
+              <p>
+                {editing
+                  ? isUnscheduled
+                    ? '编辑无时间待办'
+                    : '编辑任务'
+                  : isUnscheduled
+                    ? '无时间待办'
+                    : '快速新建'}
+              </p>
+              <h2>
+                {editing
+                  ? isUnscheduled
+                    ? '修改待办事项'
+                    : '修改任务'
+                  : isUnscheduled
+                    ? '添加无时间待办'
+                    : '添加任务'}
+              </h2>
             </div>
             <button type="button" onClick={onClose} aria-label="关闭">
               ×
@@ -926,58 +1177,89 @@ function TaskDialog({
           </header>
           <label>
             任务名称
-            <Input name="title" defaultValue={editing?.title} required />
+            <Input
+              name="title"
+              defaultValue={editing?.title}
+              placeholder="准备要做的事情"
+              required
+              autoFocus
+            />
           </label>
-          <div className="task-form-grid">
-            <label>
-              项目
-              <select name="project" defaultValue={editing?.projectId ?? 'other'}>
-                {projects
-                  .filter(
-                    (project) =>
-                      project.status === 'active' || project.id === editing?.projectId,
-                  )
-                  .map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label>
-              开始时间
-              <Input
-                name="start"
-                defaultValue={editing?.plannedStartTime}
-                placeholder="1420 或 14:20"
-              />
-            </label>
-            <label>
-              结束时间
-              <Input
-                name="end"
-                defaultValue={editing?.plannedEndTime}
-                placeholder="可选"
-              />
-            </label>
-            <label>
-              预计时长（分钟）
-              <Input
-                name="planned"
-                type="number"
-                defaultValue={editing?.plannedDurationMinutes}
-              />
-            </label>
-            <label>
-              实际时长（分钟）
-              <Input
-                name="actual"
-                type="number"
-                defaultValue={editing?.actualDurationMinutes}
-              />
-            </label>
-          </div>
-          <p>开始和结束同时填写时自动计算预计时长；不支持跨午夜。</p>
+
+          {isUnscheduled ? (
+            <div className="task-form-grid" style={{ gridTemplateColumns: '1fr' }}>
+              <label>
+                项目
+                <select name="project" defaultValue={editing?.projectId ?? 'other'}>
+                  {projects
+                    .filter(
+                      (project) =>
+                        project.status === 'active' || project.id === editing?.projectId,
+                    )
+                    .map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </div>
+          ) : (
+            <div className="task-form-grid">
+              <label>
+                项目
+                <select name="project" defaultValue={editing?.projectId ?? 'other'}>
+                  {projects
+                    .filter(
+                      (project) =>
+                        project.status === 'active' || project.id === editing?.projectId,
+                    )
+                    .map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label>
+                开始时间
+                <Input
+                  name="start"
+                  defaultValue={editing?.plannedStartTime}
+                  placeholder="1420 或 14:20"
+                />
+              </label>
+              <label>
+                结束时间
+                <Input
+                  name="end"
+                  defaultValue={editing?.plannedEndTime}
+                  placeholder="可选"
+                />
+              </label>
+              <label>
+                预计时长（分钟）
+                <Input
+                  name="planned"
+                  type="number"
+                  defaultValue={editing?.plannedDurationMinutes}
+                />
+              </label>
+              <label>
+                实际时长（分钟）
+                <Input
+                  name="actual"
+                  type="number"
+                  defaultValue={editing?.actualDurationMinutes}
+                />
+              </label>
+            </div>
+          )}
+
+          {!isUnscheduled && (
+            <p>开始和结束同时填写时自动计算预计时长；不支持跨午夜。</p>
+          )}
+
           {error && (
             <p className="form-error" role="alert">
               {error}

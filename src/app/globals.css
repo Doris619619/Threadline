@@ -226,15 +226,15 @@ button,
 .tl-sidebar-item {
   display: flex;
   width: 100%;
-  min-height: 42px;
+  min-height: 38px;
   align-items: center;
-  gap: 12px;
-  padding: 0 16px;
+  gap: 8px;
+  padding: 0 10px;
   color: var(--text-secondary);
   background: transparent;
   border: 0;
   border-radius: var(--radius-md);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   text-align: left;
   cursor: pointer;
@@ -285,7 +285,7 @@ button,
 
 .tl-window {
   display: grid;
-  grid-template-columns: 210px minmax(0, 1fr);
+  grid-template-columns: 160px minmax(0, 1fr);
   min-height: calc(100dvh - 28px);
   margin: 14px;
   overflow: hidden;
@@ -300,14 +300,14 @@ button,
   position: absolute;
   z-index: 1;
   top: 14px;
-  left: 16px;
+  left: 14px;
   display: flex;
-  gap: 8px;
+  gap: 7px;
 }
 
 .tl-window-controls i {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   background: #ff5f57;
   border-radius: 50%;
 }
@@ -323,15 +323,15 @@ button,
 .tl-sidebar {
   display: flex;
   flex-direction: column;
-  padding: 56px 16px 20px;
+  padding: 46px 10px 16px;
   border-right: 1px solid var(--border);
   background: #fbfcfd;
 }
 
 .tl-brand {
-  margin: 0 12px 28px;
+  margin: 0 6px 20px;
   color: var(--text-primary);
-  font-size: 1.125rem;
+  font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   text-decoration: none;
@@ -346,23 +346,24 @@ button,
 .tl-profile {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin-top: auto;
-  padding: 10px 6px 4px;
+  padding: 8px 4px 0;
   color: var(--text-secondary);
 }
 
 .tl-avatar {
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   place-items: center;
   color: white;
   background: linear-gradient(145deg, #42536b, #9bb1d0);
   border: 2px solid var(--surface-secondary);
   border-radius: 50%;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 .tl-profile b,
@@ -372,19 +373,22 @@ button,
 
 .tl-profile b {
   color: var(--text-primary);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 600;
+  line-height: 1.2;
 }
 
 .tl-profile small {
-  margin-top: 2px;
-  font-size: 0.6875rem;
+  margin-top: 1px;
+  font-size: 0.625rem;
   color: var(--text-tertiary);
+  white-space: nowrap;
 }
 
 .tl-profile svg {
   margin-left: auto;
   color: var(--text-tertiary);
+  flex-shrink: 0;
 }
 
 .tl-main {
@@ -556,11 +560,14 @@ button,
 }
 
 .task-title {
+  display: block;
+  min-width: 0;
+  width: 100%;
   overflow: hidden;
   color: var(--text-primary);
   background: none;
   border: 0;
-  padding: 0;
+  padding: 2px 4px;
   font-size: 0.875rem;
   font-weight: 500;
   text-align: left;
@@ -572,6 +579,62 @@ button,
 
 .task-title:hover {
   color: var(--accent);
+}
+
+.tl-clickable-cell {
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.tl-clickable-cell:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-secondary));
+  color: var(--accent);
+}
+
+.tl-inline-input {
+  width: 100%;
+  min-height: 26px;
+  height: 26px;
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.tl-inline-input.timeline-time-input {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  padding: 0 4px;
+}
+
+.tl-inline-input.task-duration-input {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  padding: 0 4px;
+}
+
+.tl-inline-select {
+  min-height: 26px;
+  height: 26px;
+  padding: 0 4px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+  outline: none;
+  cursor: pointer;
 }
 
 .completed .task-title {
@@ -623,7 +686,7 @@ button,
   right: 0;
   top: 100%;
   display: none;
-  width: 90px;
+  width: 96px;
   padding: 4px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -690,10 +753,10 @@ button,
 
 .timeline-head {
   display: grid;
-  grid-template-columns: 88px 26px auto minmax(80px, 1fr) 56px 56px 24px;
+  grid-template-columns: 78px 22px max-content minmax(0, 1fr) 52px 52px 20px;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: 6px;
+  padding: 7px 10px;
   color: var(--text-tertiary);
   background: var(--surface-secondary);
   border-radius: var(--radius-sm);
@@ -705,15 +768,16 @@ button,
 .timeline-col-planned,
 .timeline-col-actual {
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .timeline-row {
   display: grid;
-  grid-template-columns: 88px 26px auto minmax(80px, 1fr) 56px 56px 24px;
+  grid-template-columns: 78px 22px max-content minmax(0, 1fr) 52px 52px 20px;
   align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 6px 10px;
+  gap: 6px;
+  min-height: 40px;
+  padding: 4px 10px;
   border-bottom: 1px solid var(--border-subtle);
   transition: background-color 140ms ease;
 }
@@ -728,17 +792,24 @@ button,
 }
 
 .timeline-time {
+  display: block;
   font-size: 0.8125rem;
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  padding: 2px 3px;
 }
 
 .task-duration {
+  display: block;
+  width: 100%;
   font-size: 0.8125rem;
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  text-align: right;
+  padding: 2px 2px;
+  box-sizing: border-box;
 }
 
 .task-duration-planned,
@@ -843,18 +914,42 @@ button,
 }
 
 .daily-children {
+  position: relative;
   display: grid;
-  gap: 4px;
-  margin: 4px 0 4px 16px;
-  padding-left: 16px;
+  gap: 3px;
+  margin: 4px 0 4px 11px;
+  padding-left: 17px;
+}
+
+.daily-children::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -4px;
+  bottom: 14px;
+  width: 1.5px;
+  background: color-mix(in srgb, var(--border) 80%, var(--text-tertiary) 20%);
+  border-radius: 1px;
 }
 
 .daily-child-row {
+  position: relative;
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   min-height: 28px;
+}
+
+.daily-child-row::before {
+  content: '';
+  position: absolute;
+  left: -17px;
+  top: 50%;
+  width: 12px;
+  height: 1.5px;
+  background: color-mix(in srgb, var(--border) 80%, var(--text-tertiary) 20%);
+  border-radius: 1px;
 }
 
 .daily-child-name {

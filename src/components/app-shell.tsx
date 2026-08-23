@@ -59,7 +59,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav aria-label="主导航">
           {navigation.map(({ id, label, icon: Icon }) => (
             <SidebarItem key={id} active={active === id} onClick={() => setActive(id)}>
-              <Icon aria-hidden="true" size={22} />
+              <Icon aria-hidden="true" size={18} />
               {label}
             </SidebarItem>
           ))}
