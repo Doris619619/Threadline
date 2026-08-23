@@ -13,7 +13,7 @@ Threadline 是个人任务工作台，提供桌面浏览器、iPhone PWA 和 Win
 - `supabase/migrations/`：数据库 schema、约束与 RLS。
 - `src-tauri/`：Windows Tauri 2 壳层与打包配置。
 
-修改时必须保留 Web/PWA 的既有能力、视觉与业务行为；不得为桌面端复制或重写整套前端。涉及 Next.js 或 Tauri 行为时，应先查阅项目已安装版本的官方文档与当前实现。
+修改时可以根据任务需要重写整套前端，包括为桌面端建立新的前端实现；重写前后都必须明确架构边界、同步维护 README/docs，并完成与影响范围相称的验证。涉及 Next.js 或 Tauri 行为时，应先查阅项目已安装版本的官方文档与当前实现。
 
 ## 强制工作规范
 
