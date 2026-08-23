@@ -5,6 +5,7 @@ import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 export function usePersistentState<T>(
   key: string,
   initialValue: T | (() => T),
+  normalize?: (value: T) => T,
 ): [T, Dispatch<SetStateAction<T>>, boolean] {
   const [value, setValue] = useState<T>(initialValue);
   const [hydrated, setHydrated] = useState(false);
@@ -14,7 +15,8 @@ export function usePersistentState<T>(
       const raw = window.localStorage.getItem(key);
       if (raw) {
         try {
-          setValue(JSON.parse(raw) as T);
+          const parsed = JSON.parse(raw) as T;
+          setValue(normalize ? normalize(parsed) : parsed);
         } catch {
           window.localStorage.removeItem(key);
         }
@@ -22,7 +24,7 @@ export function usePersistentState<T>(
       setHydrated(true);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [key]);
+  }, [key, normalize]);
 
   useEffect(() => {
     if (hydrated) window.localStorage.setItem(key, JSON.stringify(value));

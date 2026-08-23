@@ -102,6 +102,8 @@ function isTrashExpired(task: Task) {
     new Date(task.deletedAt!).getTime() < Date.now() - 30 * 24 * 60 * 60 * 1000
   );
 }
+const withoutExpiredTasks = (items: Task[]) =>
+  items.filter((task) => !isTrashExpired(task));
 function createDailyInstance(date: string, templates: Daily[]): Daily[] {
   if (date === today) return structuredClone(templates);
   return templates.map((item) => ({
@@ -115,8 +117,10 @@ function createDailyInstance(date: string, templates: Daily[]): Daily[] {
 
 export function TaskDashboard() {
   const { active, selectedDate } = useWorkspaceView();
-  const [tasks, setTasks] = usePersistentState('threadline.tasks.v1', () =>
-    initialTasks.filter((task) => !isTrashExpired(task)),
+  const [tasks, setTasks] = usePersistentState(
+    'threadline.tasks.v1',
+    () => withoutExpiredTasks(initialTasks),
+    withoutExpiredTasks,
   );
   const [workspaceProjects, setWorkspaceProjects] = usePersistentState(
     'threadline.projects.v1',

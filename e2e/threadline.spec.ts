@@ -138,6 +138,28 @@ test('deletes a task and restores it from trash', async ({ page }) => {
   await expect(page.getByText('回收站为空。')).toBeVisible();
 });
 
+test('purges trash entries older than thirty days on reload', async ({ page }) => {
+  await page.evaluate(() => {
+    const tasks = JSON.parse(
+      window.localStorage.getItem('threadline.tasks.v1') ?? '[]',
+    );
+    tasks.push({
+      id: 'expired-task',
+      projectId: 'other',
+      title: '过期删除任务',
+      completed: false,
+      status: 'trashed',
+      deletedAt: '2026-07-01T00:00:00.000Z',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      updatedAt: '2026-07-01T00:00:00.000Z',
+    });
+    window.localStorage.setItem('threadline.tasks.v1', JSON.stringify(tasks));
+  });
+  await page.reload();
+  await page.getByRole('button', { name: '设置', exact: true }).click();
+  await expect(page.getByText('过期删除任务')).toHaveCount(0);
+});
+
 test('closes today and moves unfinished work into planning', async ({ page }) => {
   await page.getByRole('button', { name: '结束今天', exact: true }).click();
   const dialog = page.getByRole('dialog');
