@@ -150,6 +150,12 @@ export function TaskDashboard() {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const closeDialog = useRef<HTMLDialogElement>(null);
   const shown = tasks.filter((t) => t.status === 'active' && t.date === selectedDate);
+  const movedFromSelectedDate = tasks.filter(
+    (task) =>
+      task.status === 'active' &&
+      task.date !== selectedDate &&
+      task.postponedFrom === selectedDate,
+  );
   const daily =
     dailyByDate[selectedDate] ?? createDailyInstance(selectedDate, dailyTemplates);
   const tomorrow = format(
@@ -162,6 +168,7 @@ export function TaskDashboard() {
   const quick = shown.filter((t) => !t.plannedStartTime);
   const backlog = tasks.filter((t) => t.status === 'backlog');
   const done = shown.filter((t) => t.completed).length;
+  const normalTaskTotal = shown.length + movedFromSelectedDate.length;
   const actual = shown.reduce((sum, t) => sum + (t.actualDurationMinutes ?? 0), 0);
   const dailyActual = daily.reduce((sum, item) => sum + item.actual, 0);
   const dailyDone = daily.filter(
@@ -298,7 +305,7 @@ export function TaskDashboard() {
           value={
             <>
               <em>{done}</em>
-              <small>/ {shown.length}</small>
+              <small>/ {normalTaskTotal}</small>
             </>
           }
         />

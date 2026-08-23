@@ -199,6 +199,19 @@ test('keeps closeout records in the history view', async ({ page }) => {
   await expect(page.getByText('完成听力训练', { exact: true })).toBeVisible();
 });
 
+test('keeps postponed work in the original date task denominator', async ({ page }) => {
+  await page.getByRole('button', { name: '结束今天', exact: true }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: '确认结束今天', exact: true })
+    .click();
+  await expect(page.locator('.metric-strip .tl-stat').first()).toContainText(
+    /2\s*\/\s*8/,
+  );
+  await page.getByRole('button', { name: '后一天' }).click();
+  await expect(page.getByRole('checkbox', { name: '完成邮件处理' })).toBeVisible();
+});
+
 test('shows task and daily data in weekly review', async ({ page }) => {
   await page.getByRole('button', { name: '复盘', exact: true }).click();
   await expect(page.getByRole('heading', { name: '周复盘' })).toBeVisible();
