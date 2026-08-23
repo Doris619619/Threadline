@@ -170,6 +170,17 @@ test('closes today and moves unfinished work into planning', async ({ page }) =>
   await expect(planning.getByLabel('邮件处理 DDL')).toBeVisible();
 });
 
+test('keeps closeout records in the history view', async ({ page }) => {
+  await page.getByRole('button', { name: '结束今天', exact: true }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: '确认结束今天', exact: true })
+    .click();
+  await page.getByRole('button', { name: '设置', exact: true }).click();
+  await expect(page.getByText('Daily 与收尾历史')).toBeVisible();
+  await expect(page.getByText('结束今天', { exact: true })).toBeVisible();
+});
+
 test('shows task and daily data in weekly review', async ({ page }) => {
   await page.getByRole('button', { name: '复盘', exact: true }).click();
   await expect(page.getByRole('heading', { name: '周复盘' })).toBeVisible();

@@ -401,7 +401,7 @@ export function TaskDashboard() {
         projects={workspaceProjects}
         onUpdate={update}
         onMove={move}
-        onArrange={(id) =>
+        onArrange={(id) => {
           setTasks((current) =>
             current.map((task) =>
               task.id === id
@@ -413,8 +413,9 @@ export function TaskDashboard() {
                   }
                 : task,
             ),
-          )
-        }
+          );
+          appendHistory('scheduled', id, { toDate: selectedDate });
+        }}
       />
       <button className="finish-day" onClick={() => closeDialog.current?.showModal()}>
         结束今天
@@ -440,12 +441,17 @@ export function TaskDashboard() {
             current.map((task) => {
               const action = form.get(`action-${task.id}`);
               if (!action || task.completed) return task;
+              const target = String(form.get(`date-${task.id}`) ?? '');
               events.push({
                 id: crypto.randomUUID(),
                 taskId: task.id,
                 type: `close_${action}`,
                 occurredAt: new Date().toISOString(),
-                payload: { fromDate: selectedDate },
+                payload: {
+                  fromDate: selectedDate,
+                  ...(action === 'tomorrow' ? { toDate: tomorrow } : {}),
+                  ...(action === 'date' && target ? { toDate: target } : {}),
+                },
               });
               if (action === 'tomorrow')
                 return {
@@ -463,7 +469,6 @@ export function TaskDashboard() {
                   status: 'abandoned',
                   abandonedAt: new Date().toISOString(),
                 };
-              const target = String(form.get(`date-${task.id}`) ?? '');
               return target
                 ? {
                     ...task,
