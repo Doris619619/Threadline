@@ -1,10 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { LocalStorageWorkspaceRepository } from '@/lib/repository';
+import {
+  LocalStorageStateRepository,
+  LocalStorageWorkspaceRepository,
+} from '@/lib/repository';
 import { seedWorkspace } from '@/lib/seed';
 
 describe('Threadline foundation', () => {
   it('uses a required TypeScript test environment', () => {
     expect(process.env.NODE_ENV).toBe('test');
+  });
+});
+
+describe('persistent state repository', () => {
+  it('keeps UI state behind a repository boundary', async () => {
+    const repository = new LocalStorageStateRepository();
+    await repository.write('threadline.test.state', { selectedDate: '2026-08-23' });
+    await expect(repository.read<{ selectedDate: string }>('threadline.test.state')).resolves.toEqual({
+      selectedDate: '2026-08-23',
+    });
+    await repository.remove('threadline.test.state');
+    await expect(repository.read('threadline.test.state')).resolves.toBeUndefined();
   });
 });
 

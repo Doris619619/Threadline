@@ -343,6 +343,11 @@
   font-weight: 700;
   cursor: pointer;
 }
+.finish-day:disabled {
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+  cursor: not-allowed;
+}
 .close-metrics {
   display: grid;
   gap: 6px;
@@ -423,7 +428,7 @@
 }
 .project-row {
   display: grid;
-  grid-template-columns: 140px 65px minmax(0, 1fr) auto;
+  grid-template-columns: 140px 65px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 10px;
   min-height: 54px;
@@ -636,10 +641,10 @@
     flex-direction: column;
   }
   .project-row {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
   }
   .project-row span {
-    grid-column: span 2;
+    grid-column: span 3;
   }
   .project-row small {
     display: none;

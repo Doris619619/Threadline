@@ -1,6 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
+import { createPersistentStateRepository } from '@/lib/repository';
 
 export function usePersistentState<T>(
   key: string,
@@ -10,6 +18,7 @@ export function usePersistentState<T>(
   const [value, setValue] = useState<T>(initialValue);
   const [hydrated, setHydrated] = useState(false);
   const changedBeforeHydration = useRef(false);
+  const repository = useMemo(() => createPersistentStateRepository(), []);
 
   const setPersistentValue: Dispatch<SetStateAction<T>> = (next) => {
     if (!hydrated) changedBeforeHydration.current = true;
@@ -17,24 +26,24 @@ export function usePersistentState<T>(
   };
 
   useEffect(() => {
+    let active = true;
     const timer = window.setTimeout(() => {
-      const raw = window.localStorage.getItem(key);
-      if (raw && !changedBeforeHydration.current) {
-        try {
-          const parsed = JSON.parse(raw) as T;
-          setValue(normalize ? normalize(parsed) : parsed);
-        } catch {
-          window.localStorage.removeItem(key);
-        }
-      }
-      setHydrated(true);
+      void repository.read<T>(key).then((stored) => {
+        if (!active) return;
+        if (stored !== undefined && !changedBeforeHydration.current)
+          setValue(normalize ? normalize(stored) : stored);
+        setHydrated(true);
+      });
     }, 0);
-    return () => window.clearTimeout(timer);
-  }, [key, normalize]);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [key, normalize, repository]);
 
   useEffect(() => {
-    if (hydrated) window.localStorage.setItem(key, JSON.stringify(value));
-  }, [hydrated, key, value]);
+    if (hydrated) void repository.write(key, value);
+  }, [hydrated, key, repository, value]);
 
   return [value, setPersistentValue, hydrated];
 }

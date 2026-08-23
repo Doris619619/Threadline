@@ -216,6 +216,7 @@ test('closes today and moves unfinished work into planning', async ({ page }) =>
   const planning = page.locator('.planning-queue');
   await expect(planning).toContainText('邮件处理');
   await expect(planning.getByLabel('邮件处理 DDL')).toBeVisible();
+  await expect(page.getByRole('button', { name: '今日已结束' })).toBeDisabled();
 });
 
 test('keeps closeout records in the history view', async ({ page }) => {
@@ -228,6 +229,9 @@ test('keeps closeout records in the history view', async ({ page }) => {
   await expect(page.getByText('Daily 与收尾历史')).toBeVisible();
   await expect(page.getByText('结束今天', { exact: true })).toBeVisible();
   await expect(page.getByText('完成听力训练', { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('cell', { name: '收尾：移至明天' }).first(),
+  ).toBeVisible();
 });
 
 test('keeps postponed work in the original date task denominator', async ({ page }) => {

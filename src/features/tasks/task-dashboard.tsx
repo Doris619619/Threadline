@@ -197,6 +197,7 @@ export function TaskDashboard() {
   const dailyDone = daily.filter(
     (item) => item.completed || item.children.some((child) => child.completed),
   ).length;
+  const isDayClosed = closeRecords.some((record) => record.date === selectedDate);
   const open = (task?: Task) => {
     setEditing(task);
     setTaskDialogOpen(true);
@@ -482,8 +483,12 @@ export function TaskDashboard() {
           appendHistory('scheduled', id, { toDate: selectedDate });
         }}
       />
-      <button className="finish-day" onClick={() => closeDialog.current?.showModal()}>
-        结束今天
+      <button
+        className="finish-day"
+        disabled={isDayClosed}
+        onClick={() => closeDialog.current?.showModal()}
+      >
+        {isDayClosed ? '今日已结束' : '结束今天'}
       </button>
       <TaskDialog
         open={taskDialogOpen}

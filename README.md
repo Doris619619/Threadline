@@ -20,7 +20,7 @@ Copy-Item .env.example .env.local
 pnpm dev
 ```
 
-访问 `http://localhost:3000`。未提供 Supabase 环境变量时，界面使用本地 seed 数据；这使 UI 演示和自动化测试不依赖远端服务。
+访问 `http://localhost:3000`。未提供 Supabase 环境变量时，界面使用本地 seed 数据；UI 的持久化读写通过 `PersistentStateRepository` 端口进入浏览器存储，因此替换为远端实现时不需要改动业务组件。
 
 ## Supabase
 
@@ -32,6 +32,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 ```
 
 执行 `supabase/migrations/202608230001_initial_threadline.sql` 创建数据表。迁移包含 `owner_id`、约束、索引与基于 `auth.uid()` 的 RLS policy；客户端不能读取或修改其他用户的数据。
+
+`src/lib/supabase-workspace-repository.ts` 已将 Project、Task、Daily、历史和收尾记录逐表映射到该 schema。配置完成并建立登录态后，可用该 Repository 替换本地实现；业务组件不直接依赖 Supabase SDK。
 
 ## 验证
 

@@ -9,6 +9,10 @@ const eventLabel: Record<string, string> = {
   backlog: '待安排',
   abandoned: '放弃',
   scheduled: '已安排',
+  close_tomorrow: '收尾：移至明天',
+  close_date: '收尾：指定日期',
+  close_backlog: '收尾：待安排',
+  close_abandoned: '收尾：放弃',
 };
 
 export function HistoryPanel({
@@ -71,7 +75,7 @@ export function HistoryPanel({
                     {tasks.find((task) => task.id === event.taskId)?.title ??
                       '今日收尾'}
                   </td>
-                  <td>{eventLabel[event.type] ?? event.type.replace('close_', '收尾：')}</td>
+                  <td>{eventLabel[event.type] ?? event.type}</td>
                   <td>{event.payload?.fromDate ?? event.occurredAt.slice(0, 10)}</td>
                   <td>{event.payload?.toDate ?? '—'}</td>
                 </tr>
