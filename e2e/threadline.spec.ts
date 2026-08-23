@@ -92,6 +92,23 @@ test('creates a fresh Daily instance for another date', async ({ page }) => {
   await expect(page.getByRole('checkbox', { name: '完成 Daily 背单词' })).toBeChecked();
 });
 
+test('creates a task on the selected future date', async ({ page }) => {
+  await page.getByRole('button', { name: '后一天' }).click();
+  await page
+    .locator('.quick-panel')
+    .getByRole('button', { name: '添加', exact: true })
+    .click();
+  await page.getByLabel('任务名称').fill('未来日期任务');
+  await page.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: '未来日期任务', exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: '前一天' }).click();
+  await expect(
+    page.getByRole('button', { name: '未来日期任务', exact: true }),
+  ).toHaveCount(0);
+});
+
 test('creates a Daily definition that appears on following dates', async ({ page }) => {
   await page.getByLabel('新 Daily 名称').fill('晚间复盘');
   await page.getByRole('button', { name: /添加 Daily/ }).click();
