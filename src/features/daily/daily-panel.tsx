@@ -65,11 +65,13 @@ export type DailyHistoryEntry = {
 export function DailyPanel({
   items,
   history,
+  date,
   onChange,
   onRecord,
 }: {
   items: Daily[];
   history: DailyHistoryEntry[];
+  date: string;
   onChange: (items: Daily[]) => void;
   onRecord: (entry: DailyHistoryEntry) => void;
 }) {
@@ -78,7 +80,7 @@ export function DailyPanel({
   const record = (daily: Daily) =>
     onRecord({
       dailyId: daily.id,
-      date: '2026-08-23',
+      date,
       completed: daily.completed || daily.children.some((child) => child.completed),
       actual: daily.actual,
       result: daily.result,
@@ -92,7 +94,7 @@ export function DailyPanel({
         const complete =
           daily.completed || daily.children.some((child) => child.completed);
         const recordedToday = history.some(
-          (entry) => entry.dailyId === daily.id && entry.date === '2026-08-23',
+          (entry) => entry.dailyId === daily.id && entry.date === date,
         );
         return (
           <section className="daily-group" key={daily.id}>

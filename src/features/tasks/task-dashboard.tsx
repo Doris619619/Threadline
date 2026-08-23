@@ -2,6 +2,7 @@
 
 import { MoreHorizontal, Plus, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { addDays, format } from 'date-fns';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { ProjectTag } from '@/components/ui/project-tag';
@@ -19,6 +20,7 @@ import { ProjectPanel } from '@/features/projects/project-panel';
 import { ReviewPanel } from '@/features/reviews/review-panel';
 import { HistoryPanel } from '@/features/history/history-panel';
 import { useWorkspaceView } from '@/components/app-shell';
+import { usePersistentState } from '@/hooks/use-persistent-state';
 import type { Project, Task, TaskStatus } from '@/types/domain';
 
 const today = '2026-08-23';
@@ -96,17 +98,30 @@ function isTrashExpired(task: Task) {
 }
 
 export function TaskDashboard() {
-  const { active } = useWorkspaceView();
-  const [tasks, setTasks] = useState(() =>
+  const { active, selectedDate } = useWorkspaceView();
+  const [tasks, setTasks] = usePersistentState('threadline.tasks.v1', () =>
     initialTasks.filter((task) => !isTrashExpired(task)),
   );
-  const [workspaceProjects, setWorkspaceProjects] = useState(projectSeed);
-  const [daily, setDaily] = useState<Daily[]>(seedDaily);
-  const [dailyHistory, setDailyHistory] = useState<DailyHistoryEntry[]>([]);
+  const [workspaceProjects, setWorkspaceProjects] = usePersistentState(
+    'threadline.projects.v1',
+    projectSeed,
+  );
+  const [daily, setDaily] = usePersistentState<Daily[]>(
+    'threadline.daily.v1',
+    seedDaily,
+  );
+  const [dailyHistory, setDailyHistory] = usePersistentState<DailyHistoryEntry[]>(
+    'threadline.daily-history.v1',
+    [],
+  );
   const [editing, setEditing] = useState<Task | undefined>();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const closeDialog = useRef<HTMLDialogElement>(null);
-  const shown = tasks.filter((t) => t.status === 'active' && t.date === today);
+  const shown = tasks.filter((t) => t.status === 'active' && t.date === selectedDate);
+  const tomorrow = format(
+    addDays(new Date(`${selectedDate}T00:00:00`), 1),
+    'yyyy-MM-dd',
+  );
   const timed = shown
     .filter((t) => t.plannedStartTime)
     .sort((a, b) => a.plannedStartTime!.localeCompare(b.plannedStartTime!));
@@ -301,6 +316,7 @@ export function TaskDashboard() {
         <DailyPanel
           items={daily}
           history={dailyHistory}
+          date={selectedDate}
           onChange={setDaily}
           onRecord={(entry) => setDailyHistory((current) => [entry, ...current])}
         />
@@ -317,7 +333,7 @@ export function TaskDashboard() {
                 ? {
                     ...task,
                     status: 'active',
-                    date: today,
+                    date: selectedDate,
                     updatedAt: new Date().toISOString(),
                   }
                 : task,
@@ -342,6 +358,7 @@ export function TaskDashboard() {
         dailyDone={dailyDone}
         dailyCount={daily.length}
         dailyActual={dailyActual}
+        tomorrow={tomorrow}
         onCloseDay={(form) => {
           setTasks((current) =>
             current.map((task) => {
@@ -350,10 +367,10 @@ export function TaskDashboard() {
               if (action === 'tomorrow')
                 return {
                   ...task,
-                  date: '2026-08-24',
+                  date: tomorrow,
                   status: 'active',
-                  postponedFrom: today,
-                  postponedTo: '2026-08-24',
+                  postponedFrom: selectedDate,
+                  postponedTo: tomorrow,
                 };
               if (action === 'backlog')
                 return { ...task, status: 'backlog', date: undefined };
@@ -369,7 +386,7 @@ export function TaskDashboard() {
                     ...task,
                     date: target,
                     status: 'active',
-                    postponedFrom: today,
+                    postponedFrom: selectedDate,
                     postponedTo: target,
                   }
                 : task;
@@ -388,6 +405,7 @@ function CloseDialog({
   dailyDone,
   dailyCount,
   dailyActual,
+  tomorrow,
   onCloseDay,
 }: {
   dialog: React.RefObject<HTMLDialogElement | null>;
@@ -396,6 +414,7 @@ function CloseDialog({
   dailyDone: number;
   dailyCount: number;
   dailyActual: number;
+  tomorrow: string;
   onCloseDay: (data: FormData) => void;
 }) {
   const unfinished = tasks.filter((task) => !task.completed);
@@ -447,7 +466,7 @@ function CloseDialog({
                 <option value="backlog">待安排</option>
                 <option value="abandoned">放弃</option>
               </select>
-              <Input name={`date-${task.id}`} type="date" defaultValue="2026-08-24" />
+              <Input name={`date-${task.id}`} type="date" defaultValue={tomorrow} />
             </div>
           ))
         )}

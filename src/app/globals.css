@@ -1211,9 +1211,12 @@ button,
   .tl-header h1 {
     font-size: 1.625rem;
   }
-  .tl-header p,
-  .tl-date > button:not(:last-child) {
+  .tl-header p {
     display: none;
+  }
+  .tl-date button {
+    width: 28px;
+    height: 28px;
   }
   .tl-date time {
     font-size: 0.8125rem;

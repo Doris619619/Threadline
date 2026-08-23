@@ -63,6 +63,18 @@ test('completion can be toggled without a dialog', async ({ page }) => {
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
+test('persists task changes and navigates across dates', async ({ page }) => {
+  const task = page.getByRole('checkbox', { name: '完成邮件处理' });
+  await task.check();
+  await page.reload();
+  await expect(page.getByRole('checkbox', { name: '完成邮件处理' })).toBeChecked();
+  await page.getByRole('button', { name: '后一天' }).click();
+  await expect(page.getByText('2026-08-24　周一')).toBeVisible();
+  await expect(page.getByText('还没有待安排事项。')).toBeVisible();
+  await page.getByRole('button', { name: '前一天' }).click();
+  await expect(page.getByRole('checkbox', { name: '完成邮件处理' })).toBeChecked();
+});
+
 test('moves an item through planning and returns it to today', async ({ page }) => {
   await page.getByRole('button', { name: '邮件处理更多操作' }).click();
   await page.getByRole('button', { name: '待安排', exact: true }).click();

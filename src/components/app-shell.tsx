@@ -10,6 +10,8 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { createContext, useContext, useState } from 'react';
+import { addDays, format } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
 import { SidebarItem } from '@/components/ui/sidebar-item';
 
 const navigation = [
@@ -20,12 +22,25 @@ const navigation = [
   { id: 'review', label: '复盘', icon: ClipboardList },
   { id: 'settings', label: '设置', icon: Settings },
 ];
-const WorkspaceViewContext = createContext<{ active: string }>({ active: 'home' });
+type WorkspaceView = {
+  active: string;
+  selectedDate: string;
+};
+const WorkspaceViewContext = createContext<WorkspaceView>({
+  active: 'home',
+  selectedDate: '2026-08-23',
+});
 export const useWorkspaceView = () => useContext(WorkspaceViewContext);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [active, setActive] = useState('home');
+  const [selectedDate, setSelectedDate] = useState('2026-08-23');
   const activeLabel = navigation.find((item) => item.id === active)?.label;
+  const shiftDate = (amount: number) =>
+    setSelectedDate((current) =>
+      format(addDays(new Date(`${current}T00:00:00`), amount), 'yyyy-MM-dd'),
+    );
+  const weekday = format(new Date(`${selectedDate}T00:00:00`), 'EE', { locale: zhCN });
   return (
     <div className="tl-window">
       <div className="tl-window-controls" aria-hidden="true">
@@ -65,15 +80,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </p>
           </div>
           <div className="tl-date">
-            <button aria-label="前一天">‹</button>
-            <time dateTime="2026-08-23">2026-08-23　周日</time>
-            <button aria-label="后一天">›</button>
-            <button aria-label="选择日期">
+            <button aria-label="前一天" onClick={() => shiftDate(-1)}>
+              ‹
+            </button>
+            <time dateTime={selectedDate}>
+              {selectedDate}　{weekday}
+            </time>
+            <button aria-label="后一天" onClick={() => shiftDate(1)}>
+              ›
+            </button>
+            <button
+              aria-label="选择日期"
+              onClick={() =>
+                (
+                  document.getElementById(
+                    'workspace-date-picker',
+                  ) as HTMLInputElement | null
+                )?.showPicker()
+              }
+            >
               <CalendarDays size={20} />
             </button>
+            <input
+              id="workspace-date-picker"
+              aria-label="工作区日期"
+              className="sr-only"
+              type="date"
+              value={selectedDate}
+              onChange={(event) => setSelectedDate(event.target.value)}
+            />
           </div>
         </header>
-        <WorkspaceViewContext.Provider value={{ active }}>
+        <WorkspaceViewContext.Provider value={{ active, selectedDate }}>
           {children}
         </WorkspaceViewContext.Provider>
       </main>
