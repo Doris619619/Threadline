@@ -481,12 +481,33 @@ export function TaskDashboard() {
             }),
           );
           setHistory((current) => [...events, ...current]);
+          setDailyHistory((current) => [
+            ...daily
+              .filter(
+                (item) =>
+                  !current.some(
+                    (entry) => entry.dailyId === item.id && entry.date === selectedDate,
+                  ),
+              )
+              .map((item) => ({
+                dailyId: item.id,
+                date: selectedDate,
+                completed:
+                  item.completed || item.children.some((child) => child.completed),
+                actual: item.actual,
+                result: item.result,
+              })),
+            ...current,
+          ]);
           const projectMinutes = Object.fromEntries(
             workspaceProjects.map((project) => [
               project.id,
               shown
                 .filter((task) => task.projectId === project.id)
-                .reduce((total, task) => total + (task.actualDurationMinutes ?? 0), 0),
+                .reduce((total, task) => total + (task.actualDurationMinutes ?? 0), 0) +
+                daily
+                  .filter((item) => item.projectId === project.id)
+                  .reduce((total, item) => total + item.actual, 0),
             ]),
           );
           setCloseRecords((current) => [
