@@ -89,6 +89,9 @@ export function DailyPanel({
   const [newTitle, setNewTitle] = useState('');
   const [projectId, setProjectId] = useState('other');
   const [childTitles, setChildTitles] = useState<Record<string, string>>({});
+  const [editingId, setEditingId] = useState<string>();
+  const [editingTitle, setEditingTitle] = useState('');
+  const [editingProjectId, setEditingProjectId] = useState('other');
   const update = (id: string, fn: (daily: Daily) => Daily) =>
     onChange(items.map((item) => (item.id === id ? fn(item) : item)));
   const record = (daily: Daily) =>
@@ -124,9 +127,62 @@ export function DailyPanel({
                   }))
                 }
               />
-              <ProjectTag name={daily.project} color={daily.color} />
-              <b>{daily.title}</b>
-              <small>Daily</small>
+              {editingId === daily.id ? (
+                <>
+                  <select
+                    aria-label={`${daily.title}所属项目`}
+                    value={editingProjectId}
+                    onChange={(event) => setEditingProjectId(event.target.value)}
+                  >
+                    {projects
+                      .filter((project) => project.status === 'active')
+                      .map((project) => (
+                        <option key={project.id} value={project.id}>
+                          {project.name}
+                        </option>
+                      ))}
+                  </select>
+                  <Input
+                    aria-label={`${daily.title}名称`}
+                    value={editingTitle}
+                    onChange={(event) => setEditingTitle(event.target.value)}
+                  />
+                  <button
+                    onClick={() => {
+                      const project = projects.find((item) => item.id === editingProjectId);
+                      if (!editingTitle.trim() || !project) return;
+                      update(daily.id, (item) => ({
+                        ...item,
+                        title: editingTitle.trim(),
+                        projectId: project.id,
+                        project: project.name,
+                        color: project.color,
+                      }));
+                      setEditingId(undefined);
+                    }}
+                  >
+                    保存
+                  </button>
+                </>
+              ) : (
+                <>
+                  <ProjectTag name={daily.project} color={daily.color} />
+                  <b>{daily.title}</b>
+                  <span className="daily-parent-actions">
+                    <small>Daily</small>
+                    <button
+                      aria-label={`编辑 Daily ${daily.title}`}
+                      onClick={() => {
+                        setEditingId(daily.id);
+                        setEditingTitle(daily.title);
+                        setEditingProjectId(daily.projectId);
+                      }}
+                    >
+                      编辑
+                    </button>
+                  </span>
+                </>
+              )}
             </div>
             {daily.children.length > 0 && (
               <div className="daily-children">

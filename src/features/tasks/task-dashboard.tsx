@@ -882,7 +882,10 @@ function TaskDialog({
               项目
               <select name="project" defaultValue={editing?.projectId ?? 'other'}>
                 {projects
-                  .filter((project) => project.status === 'active')
+                  .filter(
+                    (project) =>
+                      project.status === 'active' || project.id === editing?.projectId,
+                  )
                   .map((project) => (
                     <option key={project.id} value={project.id}>
                       {project.name}

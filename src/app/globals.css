@@ -748,6 +748,34 @@
   color: var(--text-secondary);
   font-size: 0.75rem;
 }
+.daily-parent select {
+  min-width: 0;
+  min-height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: var(--surface);
+  font-size: 0.74rem;
+}
+.daily-parent .tl-input {
+  min-width: 0;
+  min-height: 30px;
+  font-size: 0.78rem;
+}
+.daily-parent > button,
+.daily-parent-actions button {
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  background: transparent;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.daily-parent-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
 .daily-children {
   display: grid;
   gap: 4px;
