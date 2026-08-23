@@ -117,32 +117,40 @@ function createDailyInstance(date: string, templates: Daily[]): Daily[] {
 
 export function TaskDashboard() {
   const { active, selectedDate } = useWorkspaceView();
-  const [tasks, setTasks] = usePersistentState(
+  const [tasks, setTasks, tasksHydrated] = usePersistentState(
     'threadline.tasks.v1',
     () => withoutExpiredTasks(initialTasks),
     withoutExpiredTasks,
   );
-  const [workspaceProjects, setWorkspaceProjects] = usePersistentState(
+  const [workspaceProjects, setWorkspaceProjects, projectsHydrated] = usePersistentState(
     'threadline.projects.v1',
     projectSeed,
   );
-  const [dailyByDate, setDailyByDate] = usePersistentState<Record<string, Daily[]>>(
+  const [dailyByDate, setDailyByDate, dailyByDateHydrated] = usePersistentState<
+    Record<string, Daily[]>
+  >(
     'threadline.daily-by-date.v1',
     { [today]: seedDaily },
   );
-  const [dailyTemplates, setDailyTemplates] = usePersistentState<Daily[]>(
+  const [dailyTemplates, setDailyTemplates, dailyTemplatesHydrated] = usePersistentState<
+    Daily[]
+  >(
     'threadline.daily-templates.v1',
     seedDaily,
   );
-  const [dailyHistory, setDailyHistory] = usePersistentState<DailyHistoryEntry[]>(
+  const [dailyHistory, setDailyHistory, dailyHistoryHydrated] = usePersistentState<
+    DailyHistoryEntry[]
+  >(
     'threadline.daily-history.v1',
     [],
   );
-  const [history, setHistory] = usePersistentState<HistoryEvent[]>(
+  const [history, setHistory, historyHydrated] = usePersistentState<HistoryEvent[]>(
     'threadline.history.v1',
     [],
   );
-  const [closeRecords, setCloseRecords] = usePersistentState<CloseRecord[]>(
+  const [closeRecords, setCloseRecords, closeRecordsHydrated] = usePersistentState<
+    CloseRecord[]
+  >(
     'threadline.close-records.v1',
     [],
   );
@@ -150,6 +158,20 @@ export function TaskDashboard() {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [rescheduling, setRescheduling] = useState<Task | undefined>();
   const closeDialog = useRef<HTMLDialogElement>(null);
+  const hydrated =
+    tasksHydrated &&
+    projectsHydrated &&
+    dailyByDateHydrated &&
+    dailyTemplatesHydrated &&
+    dailyHistoryHydrated &&
+    historyHydrated &&
+    closeRecordsHydrated;
+  if (!hydrated)
+    return (
+      <Surface className="workspace-loading">
+        <p>正在载入工作台…</p>
+      </Surface>
+    );
   const shown = tasks.filter((t) => t.status === 'active' && t.date === selectedDate);
   const movedFromSelectedDate = tasks.filter(
     (task) =>
@@ -429,10 +451,12 @@ export function TaskDashboard() {
           }
           onAdd={(item) => {
             setDailyTemplates((current) => [...current, item]);
-            setDailyByDate((current) => ({
-              ...current,
-              [selectedDate]: [...daily, item],
-            }));
+            setDailyByDate((current) => {
+              const existing =
+                current[selectedDate] ??
+                createDailyInstance(selectedDate, dailyTemplates);
+              return { ...current, [selectedDate]: [...existing, item] };
+            });
           }}
           onRecord={(entry) => setDailyHistory((current) => [entry, ...current])}
         />

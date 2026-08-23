@@ -30,6 +30,13 @@
   display: grid;
   gap: 22px;
 }
+.workspace-loading {
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
 .metric-strip {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -1309,8 +1316,12 @@ button,
   .tl-header {
     padding: 0 4px 16px;
   }
+  .tl-header > div:first-child {
+    flex: 0 0 auto;
+  }
   .tl-header h1 {
-    font-size: 1.625rem;
+    font-size: 1.45rem;
+    white-space: nowrap;
   }
   .tl-header p {
     display: none;
@@ -1320,7 +1331,9 @@ button,
     height: 28px;
   }
   .tl-date time {
-    font-size: 0.8125rem;
+    padding-right: 3px;
+    padding-left: 3px;
+    font-size: 0.75rem;
   }
   .tl-workspace-placeholder {
     min-height: 480px;

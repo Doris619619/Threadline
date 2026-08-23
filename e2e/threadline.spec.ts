@@ -137,10 +137,10 @@ test('creates Daily under a selected project with a subtask', async ({ page }) =
   await page.getByLabel('新 Daily 所属项目').selectOption('work');
   await page.getByRole('button', { name: '+ 添加 Daily' }).click();
   await expect(page.getByText('阅读训练', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '编辑 Daily 阅读训练' }).click();
   await page.getByLabel('阅读训练新子任务').fill('整理笔记');
   await page.getByRole('button', { name: '+ 子任务' }).last().click();
   await expect(page.getByRole('checkbox', { name: '完成 整理笔记' })).toBeVisible();
-  await page.getByRole('button', { name: '编辑 Daily 阅读训练' }).click();
   await page.getByLabel('阅读训练名称').fill('晨间阅读');
   await page.getByRole('button', { name: '保存', exact: true }).click();
   await expect(page.getByText('晨间阅读', { exact: true })).toBeVisible();
