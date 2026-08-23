@@ -75,6 +75,23 @@ test('persists task changes and navigates across dates', async ({ page }) => {
   await expect(page.getByRole('checkbox', { name: '完成邮件处理' })).toBeChecked();
 });
 
+test('creates a fresh Daily instance for another date', async ({ page }) => {
+  await expect(
+    page.getByRole('checkbox', { name: '完成 Daily 听力训练' }),
+  ).toBeChecked();
+  await page.getByRole('button', { name: '后一天' }).click();
+  await expect(
+    page.getByRole('checkbox', { name: '完成 Daily 听力训练' }),
+  ).not.toBeChecked();
+  await page.getByRole('checkbox', { name: '完成 新词' }).check();
+  await page.getByRole('button', { name: '前一天' }).click();
+  await expect(
+    page.getByRole('checkbox', { name: '完成 Daily 背单词' }),
+  ).not.toBeChecked();
+  await page.getByRole('button', { name: '后一天' }).click();
+  await expect(page.getByRole('checkbox', { name: '完成 Daily 背单词' })).toBeChecked();
+});
+
 test('moves an item through planning and returns it to today', async ({ page }) => {
   await page.getByRole('button', { name: '邮件处理更多操作' }).click();
   await page.getByRole('button', { name: '待安排', exact: true }).click();
