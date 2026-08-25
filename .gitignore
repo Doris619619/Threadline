@@ -3,12 +3,14 @@ node_modules/
 .next/
 .next-tauri/
 out/
+dist/
 .tmp/
 coverage/
 *.tsbuildinfo
 playwright-report/
 test-results/
 .pnpm-store/
+src-tauri/target/
 
 # local environment files
 .env.local

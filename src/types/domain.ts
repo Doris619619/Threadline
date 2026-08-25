@@ -1,3 +1,7 @@
+/**
+ * @fileoverview 领域模型定义，包含任务、项目、Daily 模板与实例、荧光笔笔迹数据结构。
+ */
+
 export type Id = string;
 export type TaskStatus = 'active' | 'rescheduled' | 'backlog' | 'abandoned' | 'trashed';
 export type ProjectStatus = 'active' | 'archived';
@@ -70,4 +74,19 @@ export type CloseRecord = {
   date: string;
   closedAt: string;
   projectMinutes: Record<Id, number>;
+};
+
+export type AnnotationPoint = {
+  x: number; // 相对宿主容器宽度的比例 0 ~ 1
+  y: number; // 相对宿主容器高度的比例 0 ~ 1
+};
+
+export type AnnotationStroke = {
+  id: Id;
+  points: AnnotationPoint[];
+  color: string;
+  strokeWidth: number; // 相对笔刷基准像素
+  createdAt: string;
+  targetScope: 'today' | 'global'; // 作用域，便于页面区分
+  targetTaskId?: Id; // 关联的任务ID（可选）
 };
