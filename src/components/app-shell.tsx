@@ -1,3 +1,7 @@
+/**
+ * @fileoverview 应用外壳组件，包含侧边栏导航、个人资料和全局日期切换头部。
+ */
+
 'use client';
 
 import {
@@ -55,7 +59,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav aria-label="主导航">
           {navigation.map(({ id, label, icon: Icon }) => (
             <SidebarItem key={id} active={active === id} onClick={() => setActive(id)}>
-              <Icon aria-hidden="true" size={22} />
+              <Icon aria-hidden="true" size={18} />
               {label}
             </SidebarItem>
           ))}
