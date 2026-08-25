@@ -5,13 +5,19 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
 /**
- * 用浏览器原生 DataTransfer 派发 HTML 拖放事件，覆盖 React 落点状态和载荷处理。
+ * 用真实鼠标指针拖动明确的任务拖拽柄，覆盖桌面 WebView2 使用的 Pointer Events 路径。
  */
-async function dispatchTaskDrop(page: Page, source: Locator, target: Locator) {
-  const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
-  await source.dispatchEvent('dragstart', { dataTransfer });
-  await target.dispatchEvent('dragover', { dataTransfer });
-  await target.dispatchEvent('drop', { dataTransfer });
+async function dragTaskWithMouse(page: Page, source: Locator, target: Locator) {
+  const sourceBox = await source.boundingBox();
+  const targetBox = await target.boundingBox();
+  if (!sourceBox || !targetBox) throw new Error('任务拖拽源或落点不可见。');
+
+  await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, {
+    steps: 12,
+  });
+  await page.mouse.up();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -29,7 +35,11 @@ test.describe('desktop task drag scheduling', () => {
     const quickTask = page.locator('.quick-task-row').filter({ hasText: '取快递' });
     const schedulePanel = page.locator('.schedule-panel');
 
-    await dispatchTaskDrop(page, quickTask, schedulePanel);
+    await dragTaskWithMouse(
+      page,
+      quickTask.getByRole('button', { name: '拖动取快递' }),
+      schedulePanel,
+    );
 
     const pendingTask = schedulePanel.locator('.timeline-row').filter({ hasText: '取快递' });
     await expect(pendingTask).toBeVisible();
@@ -55,7 +65,11 @@ test.describe('desktop task drag scheduling', () => {
 
   test('moves a scheduled task back to quick tasks and clears scheduling state', async ({ page }) => {
     const scheduledTask = page.locator('.timeline-row').filter({ hasText: '邮件处理' });
-    await dispatchTaskDrop(page, scheduledTask, page.locator('.quick-panel'));
+    await dragTaskWithMouse(
+      page,
+      scheduledTask.getByRole('button', { name: /拖动邮件处理/ }),
+      page.locator('.quick-panel'),
+    );
 
     await expect(page.locator('.quick-task-row').filter({ hasText: '邮件处理' })).toBeVisible();
     await expect(page.locator('.timeline-row').filter({ hasText: '邮件处理' })).toHaveCount(0);
@@ -66,13 +80,14 @@ test.describe('desktop task drag scheduling', () => {
 
   test('locks drag only while an annotation tool is active', async ({ page }) => {
     const quickTask = page.locator('.quick-task-row').filter({ hasText: '取快递' });
-    await expect(quickTask).toHaveAttribute('draggable', 'true');
+    const dragHandle = quickTask.getByRole('button', { name: '拖动取快递' });
+    await expect(dragHandle).toBeEnabled();
 
     await page.getByRole('button', { name: '荧光笔' }).click();
-    await expect(quickTask).toHaveAttribute('draggable', 'false');
+    await expect(dragHandle).toBeDisabled();
 
     await page.getByRole('button', { name: '选择模式' }).click();
-    await expect(quickTask).toHaveAttribute('draggable', 'true');
+    await expect(dragHandle).toBeEnabled();
   });
 });
 
