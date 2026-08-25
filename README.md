@@ -103,4 +103,4 @@ docs/                    PRD、目标、工程协作规范与 PR 撰写规范
 
 ## 协作约定
 
-提交代码前请阅读 [工程协作规范](docs/%E5%B7%A5%E7%A8%8B%E5%8D%8F%E4%BD%9C%E8%A7%84%E8%8C%83.md)。它要求维护文件与函数说明、清晰拆分职责、按规定创建分支、同步维护 README/docs，并在每次修改完成后创建 Git commit。提交标题必须使用 `<type>(<scope>)：<summary>`，例如 `fix(cloud)：修正ROS2话题与驱动配置`。创建或更新 Pull Request 时，正文须按 [PR撰写规范](docs/PR撰写规范.md) 的 `Summary / 背景 / 改动 / 影响 / 验证 / 材料` 结构书写。
+提交代码前请阅读 [工程协作规范](docs/%E5%B7%A5%E7%A8%8B%E5%8D%8F%E4%BD%9C%E8%A7%84%E8%8C%83.md)。它要求维护文件与函数说明、清晰拆分职责、按规定创建分支、同步维护 README/docs，并在每次修改完成后创建 Git commit。提交标题必须使用 `<type>(<scope>)：<summary>`，例如 `fix(cloud)：修正ROS2话题与驱动配置`。创建或更新 Pull Request 时，正文须按 [PR撰写规范](docs/PR撰写规范.md) 的 `Summary / 背景 / 改动（逻辑） / 改动（代码） / 影响 / 验证 / 材料` 结构书写。
