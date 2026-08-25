@@ -15,8 +15,8 @@
         "title": "Threadline",
         "width": 1440,
         "height": 960,
-        "minWidth": 1024,
-        "minHeight": 700,
+        "minWidth": 48,
+        "minHeight": 48,
         "resizable": true,
         "fullscreen": false
       }

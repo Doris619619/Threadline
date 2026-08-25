@@ -297,12 +297,201 @@ button,
 }
 
 .tl-window-controls {
+  display: none;
+}
+
+.tl-desktop-controls {
   position: absolute;
-  z-index: 1;
-  top: 14px;
-  left: 14px;
+  z-index: 12;
+  top: 0;
+  right: 0;
+  left: 0;
   display: flex;
-  gap: 7px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 36px;
+  padding: 8px 12px 0 72px;
+  pointer-events: none;
+}
+
+.tl-desktop-controls.is-compact {
+  padding-left: 12px;
+}
+
+.tl-drag-region {
+  position: absolute;
+  inset: 0 180px 0 72px;
+  pointer-events: auto;
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+.tl-desktop-controls.is-compact .tl-drag-region {
+  inset: 0 180px 0 12px;
+}
+
+.tl-mode-switch,
+.tl-window-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: auto;
+}
+
+.tl-mode-btn,
+.tl-window-action {
+  display: grid;
+  width: 26px;
+  height: 22px;
+  place-items: center;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tl-mode-btn:hover,
+.tl-window-action:hover {
+  color: var(--text-primary);
+  background: var(--surface-secondary);
+}
+
+.tl-mode-btn.is-active {
+  color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.tl-window-close:hover {
+  color: #fff;
+  background: #ff5f57;
+}
+
+.tl-window.mode-mini-today {
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 100dvh;
+  margin: 0;
+  border-radius: var(--radius-md);
+}
+
+.tl-window.mode-mini-today .tl-main {
+  padding-top: 42px;
+}
+
+.tl-window.mode-floating-icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  min-height: 52px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: linear-gradient(145deg, #4f8cff, #8b7cf6);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: 0 8px 24px rgba(79, 140, 255, 0.45);
+  cursor: pointer;
+}
+
+.tl-floating-icon-mark {
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.tl-header.is-mini h1 {
+  font-size: 1rem;
+}
+
+.dashboard-annotatable {
+  position: relative;
+}
+
+.dashboard-columns.is-mini-today {
+  grid-template-columns: 1fr;
+}
+
+.schedule-panel.is-drop-target,
+.quick-panel.is-drop-target {
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+  background: color-mix(in srgb, var(--accent-muted) 55%, transparent);
+}
+
+.annotation-tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 4px;
+  padding-right: 8px;
+  border-right: 1px solid var(--border-subtle);
+}
+
+.annotation-tool-btn {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.annotation-tool-btn:hover,
+.annotation-tool-btn.is-active {
+  color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.tl-annotation-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.tl-annotation-layer.is-active {
+  pointer-events: auto;
+}
+
+.tl-annotation-layer.tool-highlight.is-active {
+  cursor: crosshair;
+}
+
+.tl-annotation-layer.tool-eraser.is-active {
+  cursor: cell;
+}
+
+.tl-annotation-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.task-row-draggable {
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease,
+    opacity 140ms ease;
+}
+
+.task-row-draggable:not(.is-drag-disabled):hover {
+  background: color-mix(in srgb, var(--surface-secondary) 80%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent-muted);
+}
+
+.task-row-draggable.is-dragging {
+  opacity: 0.45;
+  box-shadow: var(--shadow-window);
+}
+
+.timeline-time.is-pending-time {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .tl-window-controls i {
@@ -988,6 +1177,7 @@ button,
   align-items: center;
   justify-content: space-between;
   position: relative;
+  z-index: 9;
 }
 
 .schedule-panel-actions {
@@ -1816,6 +2006,11 @@ button,
   .quick-panel {
     padding: 16px;
   }
+  .timeline-col-planned,
+  .timeline-col-actual,
+  .task-duration {
+    font-size: 0.7rem;
+  }
 }
 
 @media (max-width: 760px) {
@@ -1827,6 +2022,9 @@ button,
     border-radius: 0;
   }
   .tl-window-controls {
+    display: none;
+  }
+  .tl-desktop-controls {
     display: none;
   }
   .tl-sidebar {

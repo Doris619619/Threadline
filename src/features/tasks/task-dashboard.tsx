@@ -4,9 +4,10 @@
 
 'use client';
 
-import { Check, GripVertical, MoreHorizontal, Pencil, Plus, Trash2, X } from 'lucide-react';
-import { useRef, useState, useEffect } from 'react';
+import { Check, Eraser, GripVertical, Highlighter, MoreHorizontal, MousePointer2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { addDays, format } from 'date-fns';
+import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { ProjectTag } from '@/components/ui/project-tag';
@@ -24,8 +25,10 @@ import { ProjectPanel } from '@/features/projects/project-panel';
 import { ReviewPanel } from '@/features/reviews/review-panel';
 import { HistoryPanel } from '@/features/history/history-panel';
 import { useWorkspaceView } from '@/components/app-shell';
+import { useDesktopWindow } from '@/lib/desktop-window-context';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import type {
+  AnnotationStroke,
   CloseRecord,
   HistoryEvent,
   Project,
@@ -167,6 +170,7 @@ function createDailyInstance(date: string, templates: Daily[]): Daily[] {
 
 export function TaskDashboard() {
   const { active, selectedDate } = useWorkspaceView();
+  const { isMiniToday, isFloatingIcon } = useDesktopWindow();
   const [tasks, setTasks, tasksHydrated] = usePersistentState(
     'threadline.tasks.v1',
     () => withoutExpiredTasks(initialTasks),
@@ -204,6 +208,14 @@ export function TaskDashboard() {
     'threadline.close-records.v1',
     [],
   );
+  const [annotationStrokes, setAnnotationStrokes, annotationHydrated] = usePersistentState<
+    AnnotationStroke[]
+  >('threadline.annotations.v1', []);
+  const [annotationTool, setAnnotationTool] = useState<AnnotationTool>('none');
+  const [pendingTimeEntryIds, setPendingTimeEntryIds] = useState<string[]>([]);
+  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<'schedule' | 'quick' | null>(null);
+  const [autoFocusTimeTaskId, setAutoFocusTimeTaskId] = useState<string | null>(null);
 
   const [addingTimedRow, setAddingTimedRow] = useState(false);
   const [newTimedTime, setNewTimedTime] = useState('');
@@ -211,6 +223,7 @@ export function TaskDashboard() {
   const [newTimedProjectId, setNewTimedProjectId] = useState('work');
   const [newTimedTitle, setNewTimedTitle] = useState('');
   const [newTimedPlanned, setNewTimedPlanned] = useState('');
+  const [newTimedActual, setNewTimedActual] = useState('');
   const [isAddingTimedProject, setIsAddingTimedProject] = useState(false);
   const [newTimedProjectName, setNewTimedProjectName] = useState('');
   const timedProjectPickerRef = useRef<HTMLDivElement>(null);
@@ -250,6 +263,7 @@ export function TaskDashboard() {
     }
     const { start, end, duration } = parseTimeInput(newTimedTime);
     const plannedDuration = parseDurationInput(newTimedPlanned) ?? duration;
+    const actualDuration = parseDurationInput(newTimedActual);
     const newTask: Task = {
       id: crypto.randomUUID(),
       projectId: newTimedProjectId,
@@ -258,6 +272,7 @@ export function TaskDashboard() {
       plannedStartTime: start || (newTimedTime.trim() ? newTimedTime.trim() : '08:30'),
       plannedEndTime: end,
       plannedDurationMinutes: plannedDuration,
+      actualDurationMinutes: actualDuration,
       completed: newTimedCompleted,
       completedAt: newTimedCompleted ? new Date().toISOString() : undefined,
       status: 'active',
@@ -269,6 +284,7 @@ export function TaskDashboard() {
     setNewTimedTime('');
     setNewTimedTitle('');
     setNewTimedPlanned('');
+    setNewTimedActual('');
     setNewTimedCompleted(false);
     setAddingTimedRow(false);
   };
@@ -323,6 +339,30 @@ export function TaskDashboard() {
   const [taskDialogMode, setTaskDialogMode] = useState<'normal' | 'unscheduled'>('normal');
   const [rescheduling, setRescheduling] = useState<Task | undefined>();
   const closeDialog = useRef<HTMLDialogElement>(null);
+
+  const clearPendingTimeEntry = useCallback((taskId: string) => {
+    setPendingTimeEntryIds((current) => current.filter((id) => id !== taskId));
+  }, []);
+
+  useEffect(() => {
+    if (annotationTool === 'none') return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setAnnotationTool('none');
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [annotationTool]);
+
+  useEffect(() => {
+    if (!tasksHydrated) return;
+    const activeIds = new Set(
+      tasks
+        .filter((item) => item.status === 'active' && item.date === selectedDate)
+        .map((item) => item.id),
+    );
+    setPendingTimeEntryIds((current) => current.filter((id) => activeIds.has(id)));
+  }, [tasks, selectedDate, tasksHydrated]);
+
   const hydrated =
     tasksHydrated &&
     projectsHydrated &&
@@ -330,7 +370,8 @@ export function TaskDashboard() {
     dailyTemplatesHydrated &&
     dailyHistoryHydrated &&
     historyHydrated &&
-    closeRecordsHydrated;
+    closeRecordsHydrated &&
+    annotationHydrated;
   if (!hydrated)
     return (
       <Surface className="workspace-loading">
@@ -351,9 +392,20 @@ export function TaskDashboard() {
     'yyyy-MM-dd',
   );
   const timed = shown
-    .filter((t) => t.plannedStartTime)
-    .sort((a, b) => a.plannedStartTime!.localeCompare(b.plannedStartTime!));
-  const quick = shown.filter((t) => !t.plannedStartTime);
+    .filter(
+      (t) => Boolean(t.plannedStartTime) || pendingTimeEntryIds.includes(t.id),
+    )
+    .sort((a, b) => {
+      if (a.plannedStartTime && b.plannedStartTime) {
+        return a.plannedStartTime.localeCompare(b.plannedStartTime);
+      }
+      if (a.plannedStartTime) return -1;
+      if (b.plannedStartTime) return 1;
+      return 0;
+    });
+  const quick = shown.filter(
+    (t) => !t.plannedStartTime && !pendingTimeEntryIds.includes(t.id),
+  );
   const backlog = tasks.filter((t) => t.status === 'backlog');
   const done = shown.filter((t) => t.completed).length;
   const normalTaskTotal = shown.length + movedFromSelectedDate.length;
@@ -363,13 +415,77 @@ export function TaskDashboard() {
     (item) => item.completed || item.children.some((child) => child.completed),
   ).length;
   const isDayClosed = closeRecords.some((record) => record.date === selectedDate);
+  const interactionLocked = annotationTool !== 'none' || draggingTaskId !== null;
+
+  const toggleAnnotationTool = (tool: AnnotationTool) => {
+    setAnnotationTool((current) => (current === tool ? 'none' : tool));
+  };
+
+  const update = (task: Task) =>
+    setTasks((current) => current.map((item) => (item.id === task.id ? task : item)));
+
+  const handleTaskDragStart = (taskId: string) => {
+    if (interactionLocked) return;
+    setDraggingTaskId(taskId);
+  };
+
+  const handleTaskDragEnd = () => {
+    setDraggingTaskId(null);
+    setDropTarget(null);
+  };
+
+  const handleScheduleDragOver = (event: React.DragEvent) => {
+    if (interactionLocked) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDropTarget('schedule');
+  };
+
+  const handleScheduleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    setDropTarget(null);
+    const taskId = event.dataTransfer.getData('text/task-id');
+    if (!taskId) return;
+    const task = shown.find((item) => item.id === taskId);
+    if (!task) return;
+    if (!task.plannedStartTime) {
+      setPendingTimeEntryIds((current) =>
+        current.includes(taskId) ? current : [...current, taskId],
+      );
+      setAutoFocusTimeTaskId(taskId);
+    }
+    setDraggingTaskId(null);
+  };
+
+  const handleQuickDragOver = (event: React.DragEvent) => {
+    if (interactionLocked) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDropTarget('quick');
+  };
+
+  const handleQuickDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    setDropTarget(null);
+    const taskId = event.dataTransfer.getData('text/task-id');
+    if (!taskId) return;
+    const task = shown.find((item) => item.id === taskId);
+    if (!task) return;
+    setPendingTimeEntryIds((current) => current.filter((id) => id !== taskId));
+    update({
+      ...task,
+      plannedStartTime: undefined,
+      plannedEndTime: undefined,
+      updatedAt: new Date().toISOString(),
+    });
+    setDraggingTaskId(null);
+  };
+
   const open = (task?: Task, mode: 'normal' | 'unscheduled' = 'normal') => {
     setEditing(task);
     setTaskDialogMode(mode);
     setTaskDialogOpen(true);
   };
-  const update = (task: Task) =>
-    setTasks((current) => current.map((item) => (item.id === task.id ? task : item)));
   const save = (form: FormData): string | undefined => {
     const title = String(form.get('title') ?? '').trim();
     const startRaw = String(form.get('start') ?? '');
@@ -437,6 +553,12 @@ export function TaskDashboard() {
     ]);
   const move = (id: string, status: TaskStatus) => {
     const task = tasks.find((item) => item.id === id);
+    if (status === 'trashed') {
+      setAnnotationStrokes((current) =>
+        current.filter((stroke) => stroke.targetTaskId !== id),
+      );
+      setPendingTimeEntryIds((current) => current.filter((item) => item !== id));
+    }
     setTasks((current) =>
       current.map((t) =>
         t.id === id
@@ -515,8 +637,10 @@ export function TaskDashboard() {
         onUpdate={update}
       />
     );
+  if (isFloatingIcon) return null;
   return (
-    <div className="dashboard">
+    <div className="dashboard dashboard-annotatable">
+      {!isMiniToday && (
       <Surface className="metric-strip">
         <StatItem
           label="普通任务"
@@ -561,14 +685,49 @@ export function TaskDashboard() {
           }
         />
       </Surface>
+      )}
       <div
-        className="dashboard-columns"
+        className={`dashboard-columns${isMiniToday ? ' is-mini-today' : ''}`}
         style={{ '--schedule-ratio': `${scheduleRatio}fr` } as React.CSSProperties}
       >
-        <Surface className="schedule-panel">
+        <Surface
+          className={`schedule-panel${dropTarget === 'schedule' ? ' is-drop-target' : ''}`}
+          onDragOver={handleScheduleDragOver}
+          onDragLeave={() => setDropTarget(null)}
+          onDrop={handleScheduleDrop}
+        >
           <header className="schedule-panel-header">
             <h2>今日日程</h2>
             <div className="schedule-panel-actions">
+              <div className="annotation-tools" role="group" aria-label="批注工具">
+                <button
+                  type="button"
+                  className={`annotation-tool-btn${annotationTool === 'none' ? ' is-active' : ''}`}
+                  aria-label="选择模式"
+                  title="选择模式"
+                  onClick={() => setAnnotationTool('none')}
+                >
+                  <MousePointer2 size={15} />
+                </button>
+                <button
+                  type="button"
+                  className={`annotation-tool-btn${annotationTool === 'highlight' ? ' is-active' : ''}`}
+                  aria-label="荧光笔"
+                  title="荧光笔（Esc 退出）"
+                  onClick={() => toggleAnnotationTool('highlight')}
+                >
+                  <Highlighter size={15} />
+                </button>
+                <button
+                  type="button"
+                  className={`annotation-tool-btn${annotationTool === 'eraser' ? ' is-active' : ''}`}
+                  aria-label="橡皮擦"
+                  title="橡皮擦（Esc 退出）"
+                  onClick={() => toggleAnnotationTool('eraser')}
+                >
+                  <Eraser size={15} />
+                </button>
+              </div>
               <button
                 className="add-link"
                 onClick={() => {
@@ -578,6 +737,7 @@ export function TaskDashboard() {
               >
                 <Plus size={19} /> 添加
               </button>
+              {!isMiniToday && (
               <button
                 type="button"
                 className={`schedule-resize-handle ${isResizingSchedule ? 'is-resizing' : ''}`}
@@ -586,6 +746,7 @@ export function TaskDashboard() {
               >
                 <GripVertical size={16} />
               </button>
+              )}
             </div>
           </header>
           <div className="timeline-head">
@@ -607,6 +768,15 @@ export function TaskDashboard() {
               onReschedule={() => setRescheduling(task)}
               projects={workspaceProjects}
               onAddProject={createProjectDirectly}
+              draggable={!interactionLocked}
+              isDragging={draggingTaskId === task.id}
+              autoFocusTime={autoFocusTimeTaskId === task.id}
+              onTimeFocused={() => setAutoFocusTimeTaskId(null)}
+              onPendingTimeCommitted={() => clearPendingTimeEntry(task.id)}
+              interactionLocked={interactionLocked}
+              onDragStart={() => handleTaskDragStart(task.id)}
+              onDragEnd={handleTaskDragEnd}
+              inSchedulePanel
             />
           ))}
 
@@ -716,7 +886,16 @@ export function TaskDashboard() {
                   if (e.key === 'Escape') setAddingTimedRow(false);
                 }}
               />
-              <span className="task-duration">—</span>
+              <input
+                className="tl-inline-input task-duration-input"
+                placeholder="实际耗时"
+                value={newTimedActual}
+                onChange={(e) => setNewTimedActual(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleConfirmAddTimed();
+                  if (e.key === 'Escape') setAddingTimedRow(false);
+                }}
+              />
               <div className="tl-inline-actions-cell">
                 <button
                   type="button"
@@ -738,8 +917,14 @@ export function TaskDashboard() {
             </div>
           )}
         </Surface>
+        {!isMiniToday && (
         <div className="side-column">
-          <Surface className="quick-panel">
+          <Surface
+            className={`quick-panel${dropTarget === 'quick' ? ' is-drop-target' : ''}`}
+            onDragOver={handleQuickDragOver}
+            onDragLeave={() => setDropTarget(null)}
+            onDrop={handleQuickDrop}
+          >
             <header>
               <h2>无时间待办</h2>
               <button
@@ -766,6 +951,11 @@ export function TaskDashboard() {
                     onReschedule={() => setRescheduling(task)}
                     projects={workspaceProjects}
                     onAddProject={createProjectDirectly}
+                    draggable={!interactionLocked}
+                    isDragging={draggingTaskId === task.id}
+                    interactionLocked={interactionLocked}
+                    onDragStart={() => handleTaskDragStart(task.id)}
+                    onDragEnd={handleTaskDragEnd}
                   />
                 ))
               )}
@@ -898,7 +1088,9 @@ export function TaskDashboard() {
             onRecord={(entry) => setDailyHistory((current) => [entry, ...current])}
           />
         </div>
+        )}
       </div>
+      {!isMiniToday && (
       <PlanningQueue
         tasks={backlog}
         projects={workspaceProjects}
@@ -920,6 +1112,8 @@ export function TaskDashboard() {
           appendHistory('scheduled', id, { toDate: selectedDate });
         }}
       />
+      )}
+      {!isMiniToday && (
       <button
         className="finish-day"
         disabled={isDayClosed}
@@ -927,6 +1121,14 @@ export function TaskDashboard() {
       >
         {isDayClosed ? '今日已结束' : '结束今天'}
       </button>
+      )}
+      <AnnotationLayer
+        activeTool={annotationTool}
+        strokes={annotationStrokes}
+        onChangeStrokes={setAnnotationStrokes}
+        scope="today"
+        disabled={false}
+      />
       <TaskDialog
         open={taskDialogOpen}
         mode={taskDialogMode}
@@ -1196,6 +1398,15 @@ function TaskLine({
   onReschedule,
   projects,
   onAddProject,
+  draggable = false,
+  isDragging = false,
+  autoFocusTime = false,
+  onTimeFocused,
+  onPendingTimeCommitted,
+  interactionLocked = false,
+  onDragStart,
+  onDragEnd,
+  inSchedulePanel = false,
 }: {
   task: Task;
   onUpdate: (t: Task) => void;
@@ -1204,15 +1415,31 @@ function TaskLine({
   onReschedule: () => void;
   projects: Project[];
   onAddProject?: (name: string) => Project | void;
+  draggable?: boolean;
+  isDragging?: boolean;
+  autoFocusTime?: boolean;
+  onTimeFocused?: () => void;
+  onPendingTimeCommitted?: () => void;
+  interactionLocked?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
+  inSchedulePanel?: boolean;
 }) {
   const project = projects.find((p) => p.id === task.projectId) ?? projectSeed[4];
-  const timed = Boolean(task.plannedStartTime);
+  const timed = inSchedulePanel || Boolean(task.plannedStartTime);
+  const canDrag = draggable && !interactionLocked;
   const [editingField, setEditingField] = useState<
     'time' | 'project' | 'title' | 'planned' | 'actual' | undefined
   >();
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const projectPickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!autoFocusTime) return;
+    setEditingField('time');
+    onTimeFocused?.();
+  }, [autoFocusTime, onTimeFocused]);
 
   useEffect(() => {
     if (editingField !== 'project') return;
@@ -1253,6 +1480,7 @@ function TaskLine({
       plannedDurationMinutes: duration ?? task.plannedDurationMinutes,
       updatedAt: new Date().toISOString(),
     });
+    if (start) onPendingTimeCommitted?.();
     setEditingField(undefined);
   };
 
@@ -1292,9 +1520,24 @@ function TaskLine({
     ? `${task.plannedStartTime}${task.plannedEndTime ? `–${task.plannedEndTime}` : ''}`
     : '';
 
+  const stopDragOnControl = (event: React.DragEvent) => {
+    event.stopPropagation();
+  };
+
   return (
     <div
-      className={`${timed ? 'timeline-row' : 'quick-task-row'}${task.completed ? ' completed' : ''}`}
+      className={`${timed ? 'timeline-row' : 'quick-task-row'} task-row-draggable${task.completed ? ' completed' : ''}${isDragging ? ' is-dragging' : ''}${!canDrag ? ' is-drag-disabled' : ''}`}
+      draggable={canDrag && !editingField}
+      onDragStart={(event) => {
+        if (!canDrag || editingField) {
+          event.preventDefault();
+          return;
+        }
+        event.dataTransfer.setData('text/task-id', task.id);
+        event.dataTransfer.effectAllowed = 'move';
+        onDragStart?.();
+      }}
+      onDragEnd={() => onDragEnd?.()}
     >
       {timed ? (
         editingField === 'time' ? (
@@ -1303,6 +1546,8 @@ function TaskLine({
             defaultValue={timeDisplay}
             placeholder="08:30"
             autoFocus
+            draggable={false}
+            onDragStart={stopDragOnControl}
             onKeyDown={(e) => {
               if (e.key === 'Enter') saveTime(e.currentTarget.value);
               if (e.key === 'Escape') setEditingField(undefined);
@@ -1311,11 +1556,11 @@ function TaskLine({
           />
         ) : (
           <time
-            className="timeline-time tl-clickable-cell"
-            onClick={() => setEditingField('time')}
+            className={`timeline-time tl-clickable-cell${!task.plannedStartTime ? ' is-pending-time' : ''}`}
+            onClick={() => !interactionLocked && setEditingField('time')}
             title="点击直接修改时间（支持 08:30 或 08:30-10:00）"
           >
-            {timeDisplay}
+            {timeDisplay || '—'}
           </time>
         )
       ) : null}
