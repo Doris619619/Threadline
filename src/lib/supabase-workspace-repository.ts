@@ -1,3 +1,7 @@
+/**
+ * @fileoverview 将 Threadline 领域工作区数据映射到受 RLS 保护的 Supabase 表。
+ */
+
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type {
   Project,
@@ -18,6 +22,7 @@ type DbTask = {
   project_id: string;
   title: string;
   scheduled_date: string | null;
+  schedule_pending_time: boolean;
   planned_start_time: string | null;
   planned_end_time: string | null;
   planned_duration_minutes: number | null;
@@ -96,6 +101,9 @@ function assertOk<T>(
 export class SupabaseWorkspaceRepository implements WorkspaceRepository {
   constructor(private readonly client: SupabaseClient) {}
 
+  /**
+   * 读取当前用户的完整工作区，并将数据库空值转换为可选领域字段。
+   */
   async read(): Promise<WorkspaceData> {
     const [projects, tasks, definitions, instances, subtasks, subtaskInstances, history, closes] =
       await Promise.all([
@@ -133,6 +141,7 @@ export class SupabaseWorkspaceRepository implements WorkspaceRepository {
         projectId: row.project_id,
         title: row.title,
         date: optional(row.scheduled_date),
+        schedulePendingTime: row.schedule_pending_time,
         plannedStartTime: optional(row.planned_start_time),
         plannedEndTime: optional(row.planned_end_time),
         plannedDurationMinutes: optional(row.planned_duration_minutes),
@@ -193,6 +202,9 @@ export class SupabaseWorkspaceRepository implements WorkspaceRepository {
     };
   }
 
+  /**
+   * 将完整工作区写回 Supabase；待填时间状态随任务一并持久化。
+   */
   async write(data: WorkspaceData): Promise<void> {
     await Promise.all([
       this.client.from('projects').upsert(
@@ -211,6 +223,7 @@ export class SupabaseWorkspaceRepository implements WorkspaceRepository {
           project_id: item.projectId,
           title: item.title,
           scheduled_date: item.date ?? null,
+          schedule_pending_time: item.schedulePendingTime ?? false,
           planned_start_time: item.plannedStartTime ?? null,
           planned_end_time: item.plannedEndTime ?? null,
           planned_duration_minutes: item.plannedDurationMinutes ?? null,

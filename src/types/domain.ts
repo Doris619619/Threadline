@@ -18,6 +18,8 @@ export type Task = {
   projectId: Id;
   title: string;
   date?: string;
+  /** 已拖入今日日程但尚未填写开始时间；显示在日程最上方。 */
+  schedulePendingTime?: boolean;
   plannedStartTime?: string;
   plannedEndTime?: string;
   plannedDurationMinutes?: number;

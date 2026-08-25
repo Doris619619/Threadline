@@ -5,7 +5,7 @@
 'use client';
 
 import { Check, Eraser, GripVertical, Highlighter, MoreHorizontal, MousePointer2, Pencil, Plus, Trash2, X } from 'lucide-react';
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { addDays, format } from 'date-fns';
 import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -212,8 +212,8 @@ export function TaskDashboard() {
     AnnotationStroke[]
   >('threadline.annotations.v1', []);
   const [annotationTool, setAnnotationTool] = useState<AnnotationTool>('none');
-  const [pendingTimeEntryIds, setPendingTimeEntryIds] = useState<string[]>([]);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  const draggingTaskIdRef = useRef<string | null>(null);
   const [dropTarget, setDropTarget] = useState<'schedule' | 'quick' | null>(null);
   const [autoFocusTimeTaskId, setAutoFocusTimeTaskId] = useState<string | null>(null);
 
@@ -340,10 +340,6 @@ export function TaskDashboard() {
   const [rescheduling, setRescheduling] = useState<Task | undefined>();
   const closeDialog = useRef<HTMLDialogElement>(null);
 
-  const clearPendingTimeEntry = useCallback((taskId: string) => {
-    setPendingTimeEntryIds((current) => current.filter((id) => id !== taskId));
-  }, []);
-
   useEffect(() => {
     if (annotationTool === 'none') return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -352,16 +348,6 @@ export function TaskDashboard() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [annotationTool]);
-
-  useEffect(() => {
-    if (!tasksHydrated) return;
-    const activeIds = new Set(
-      tasks
-        .filter((item) => item.status === 'active' && item.date === selectedDate)
-        .map((item) => item.id),
-    );
-    setPendingTimeEntryIds((current) => current.filter((id) => activeIds.has(id)));
-  }, [tasks, selectedDate, tasksHydrated]);
 
   const hydrated =
     tasksHydrated &&
@@ -393,9 +379,12 @@ export function TaskDashboard() {
   );
   const timed = shown
     .filter(
-      (t) => Boolean(t.plannedStartTime) || pendingTimeEntryIds.includes(t.id),
+      (t) => Boolean(t.plannedStartTime) || t.schedulePendingTime,
     )
     .sort((a, b) => {
+      if (a.schedulePendingTime !== b.schedulePendingTime) {
+        return a.schedulePendingTime ? -1 : 1;
+      }
       if (a.plannedStartTime && b.plannedStartTime) {
         return a.plannedStartTime.localeCompare(b.plannedStartTime);
       }
@@ -404,7 +393,7 @@ export function TaskDashboard() {
       return 0;
     });
   const quick = shown.filter(
-    (t) => !t.plannedStartTime && !pendingTimeEntryIds.includes(t.id),
+    (t) => !t.plannedStartTime && !t.schedulePendingTime,
   );
   const backlog = tasks.filter((t) => t.status === 'backlog');
   const done = shown.filter((t) => t.completed).length;
@@ -415,7 +404,7 @@ export function TaskDashboard() {
     (item) => item.completed || item.children.some((child) => child.completed),
   ).length;
   const isDayClosed = closeRecords.some((record) => record.date === selectedDate);
-  const interactionLocked = annotationTool !== 'none' || draggingTaskId !== null;
+  const annotationInteractionLocked = annotationTool !== 'none';
 
   const toggleAnnotationTool = (tool: AnnotationTool) => {
     setAnnotationTool((current) => (current === tool ? 'none' : tool));
@@ -424,60 +413,98 @@ export function TaskDashboard() {
   const update = (task: Task) =>
     setTasks((current) => current.map((item) => (item.id === task.id ? task : item)));
 
+  /**
+   * 记录拖拽源以呈现视觉反馈；不锁定落点，避免阻断原生 drop 事件。
+   */
   const handleTaskDragStart = (taskId: string) => {
-    if (interactionLocked) return;
+    if (annotationInteractionLocked) return;
+    draggingTaskIdRef.current = taskId;
     setDraggingTaskId(taskId);
   };
 
+  /**
+   * 无论任务是否落入有效区域，都清理本次原生拖拽的临时视觉状态。
+   */
   const handleTaskDragEnd = () => {
+    draggingTaskIdRef.current = null;
     setDraggingTaskId(null);
     setDropTarget(null);
   };
 
+  /**
+   * 从标准或自定义拖拽载荷读取任务 ID，并兼容 WebView 未回传载荷的情况。
+   */
+  const getDraggedTaskId = (event: React.DragEvent) =>
+    event.dataTransfer.getData('text/task-id') ||
+    event.dataTransfer.getData('text/plain') ||
+    draggingTaskIdRef.current;
+
+  /**
+   * 允许非批注状态下的任务落入日程面板；preventDefault 是浏览器接受 drop 的前提。
+   */
   const handleScheduleDragOver = (event: React.DragEvent) => {
-    if (interactionLocked) return;
+    if (annotationInteractionLocked) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
     setDropTarget('schedule');
   };
 
+  /**
+   * 将同一条无时间任务持久化为待填时间状态，并将时间输入聚焦给用户。
+   */
   const handleScheduleDrop = (event: React.DragEvent) => {
+    if (annotationInteractionLocked) return;
     event.preventDefault();
     setDropTarget(null);
-    const taskId = event.dataTransfer.getData('text/task-id');
+    const taskId = getDraggedTaskId(event);
     if (!taskId) return;
     const task = shown.find((item) => item.id === taskId);
     if (!task) return;
-    if (!task.plannedStartTime) {
-      setPendingTimeEntryIds((current) =>
-        current.includes(taskId) ? current : [...current, taskId],
-      );
+    if (!task.plannedStartTime && !task.schedulePendingTime) {
+      update({
+        ...task,
+        schedulePendingTime: true,
+        plannedStartTime: undefined,
+        plannedEndTime: undefined,
+        plannedDurationMinutes: undefined,
+        updatedAt: new Date().toISOString(),
+      });
       setAutoFocusTimeTaskId(taskId);
     }
+    draggingTaskIdRef.current = null;
     setDraggingTaskId(null);
   };
 
+  /**
+   * 允许非批注状态下的任务落入无时间待办面板；preventDefault 保证 drop 可触发。
+   */
   const handleQuickDragOver = (event: React.DragEvent) => {
-    if (interactionLocked) return;
+    if (annotationInteractionLocked) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
     setDropTarget('quick');
   };
 
+  /**
+   * 取消任务的待填或已填写排程时间，但保留任务身份与其他业务字段。
+   */
   const handleQuickDrop = (event: React.DragEvent) => {
+    if (annotationInteractionLocked) return;
     event.preventDefault();
     setDropTarget(null);
-    const taskId = event.dataTransfer.getData('text/task-id');
+    const taskId = getDraggedTaskId(event);
     if (!taskId) return;
     const task = shown.find((item) => item.id === taskId);
     if (!task) return;
-    setPendingTimeEntryIds((current) => current.filter((id) => id !== taskId));
     update({
       ...task,
+      schedulePendingTime: false,
       plannedStartTime: undefined,
       plannedEndTime: undefined,
+      plannedDurationMinutes: undefined,
       updatedAt: new Date().toISOString(),
     });
+    draggingTaskIdRef.current = null;
     setDraggingTaskId(null);
   };
 
@@ -557,7 +584,6 @@ export function TaskDashboard() {
       setAnnotationStrokes((current) =>
         current.filter((stroke) => stroke.targetTaskId !== id),
       );
-      setPendingTimeEntryIds((current) => current.filter((item) => item !== id));
     }
     setTasks((current) =>
       current.map((t) =>
@@ -768,12 +794,11 @@ export function TaskDashboard() {
               onReschedule={() => setRescheduling(task)}
               projects={workspaceProjects}
               onAddProject={createProjectDirectly}
-              draggable={!interactionLocked}
+              draggable={!annotationInteractionLocked}
               isDragging={draggingTaskId === task.id}
               autoFocusTime={autoFocusTimeTaskId === task.id}
               onTimeFocused={() => setAutoFocusTimeTaskId(null)}
-              onPendingTimeCommitted={() => clearPendingTimeEntry(task.id)}
-              interactionLocked={interactionLocked}
+              interactionLocked={annotationInteractionLocked}
               onDragStart={() => handleTaskDragStart(task.id)}
               onDragEnd={handleTaskDragEnd}
               inSchedulePanel
@@ -951,9 +976,9 @@ export function TaskDashboard() {
                     onReschedule={() => setRescheduling(task)}
                     projects={workspaceProjects}
                     onAddProject={createProjectDirectly}
-                    draggable={!interactionLocked}
+                    draggable={!annotationInteractionLocked}
                     isDragging={draggingTaskId === task.id}
-                    interactionLocked={interactionLocked}
+                    interactionLocked={annotationInteractionLocked}
                     onDragStart={() => handleTaskDragStart(task.id)}
                     onDragEnd={handleTaskDragEnd}
                   />
@@ -1388,7 +1413,7 @@ function numberOrUndefined(value: FormDataEntryValue | null) {
   return value === null || value === '' ? undefined : Number(value);
 }
 /**
- * 任务单行组件（支持时间线视图与无时间待办快速视图，支持单字段行内编辑与快速创建新项目）。
+ * 任务单行组件（支持时间线视图、无时间待办与持久化的待填时间状态）。
  */
 function TaskLine({
   task,
@@ -1402,7 +1427,6 @@ function TaskLine({
   isDragging = false,
   autoFocusTime = false,
   onTimeFocused,
-  onPendingTimeCommitted,
   interactionLocked = false,
   onDragStart,
   onDragEnd,
@@ -1419,7 +1443,6 @@ function TaskLine({
   isDragging?: boolean;
   autoFocusTime?: boolean;
   onTimeFocused?: () => void;
-  onPendingTimeCommitted?: () => void;
   interactionLocked?: boolean;
   onDragStart?: () => void;
   onDragEnd?: () => void;
@@ -1437,8 +1460,11 @@ function TaskLine({
 
   useEffect(() => {
     if (!autoFocusTime) return;
-    setEditingField('time');
-    onTimeFocused?.();
+    const frame = window.requestAnimationFrame(() => {
+      setEditingField('time');
+      onTimeFocused?.();
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [autoFocusTime, onTimeFocused]);
 
   useEffect(() => {
@@ -1471,6 +1497,9 @@ function TaskLine({
     setEditingField(undefined);
   };
 
+  /**
+   * 保存时间输入；空输入保留待填状态，合法开始时间则完成排程并移除待填标记。
+   */
   const saveTime = (input: string) => {
     const { start, end, duration } = parseTimeInput(input);
     onUpdate({
@@ -1478,9 +1507,9 @@ function TaskLine({
       plannedStartTime: start,
       plannedEndTime: end,
       plannedDurationMinutes: duration ?? task.plannedDurationMinutes,
+      schedulePendingTime: start ? false : task.schedulePendingTime,
       updatedAt: new Date().toISOString(),
     });
-    if (start) onPendingTimeCommitted?.();
     setEditingField(undefined);
   };
 
@@ -1534,6 +1563,7 @@ function TaskLine({
           return;
         }
         event.dataTransfer.setData('text/task-id', task.id);
+        event.dataTransfer.setData('text/plain', task.id);
         event.dataTransfer.effectAllowed = 'move';
         onDragStart?.();
       }}
