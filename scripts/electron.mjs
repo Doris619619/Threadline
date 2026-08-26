@@ -97,6 +97,6 @@ if (command === 'renderer') {
   await runDevelopmentShell();
 } else {
   throw new Error(
-    'Usage: pnpm desktop:renderer | desktop:electron:dev | desktop:build:dir | desktop:electron:build',
+    'Usage: pnpm desktop:renderer | desktop:dev | desktop:build:dir | desktop:electron:build',
   );
 }

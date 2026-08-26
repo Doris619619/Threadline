@@ -18,3 +18,13 @@ Threadline 是个人任务工作台，提供桌面浏览器、iPhone PWA 和 Win
 ## 强制工作规范
 
 在创建、修改、删除或提交仓库文件前，必须完整阅读并严格遵守 [docs/工程协作规范.md](docs/%E5%B7%A5%E7%A8%8B%E5%8D%8F%E4%BD%9C%E8%A7%84%E8%8C%83.md)。其中的文件与函数说明、职责拆分、分支命名、README/docs 同步维护、提交规范及 Pull Request 正文要求，均为强制要求。代写或更新 PR 时，还必须遵守 [docs/PR撰写规范.md](docs/PR撰写规范.md) 中的结构与风格。
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
