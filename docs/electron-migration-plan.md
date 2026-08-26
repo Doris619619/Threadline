@@ -13,21 +13,21 @@
 
 本文件是迁移的唯一 living document。每个 Phase 开始时标记为 `In Progress`；完成时必须在该 Phase 的最终 commit 中同步状态、实际验证命令及结果、commit 和 deviations。没有偏差时明确记录 `None`。长期记录只保留可在干净环境复现的工程问题，不记录本机 PID、瞬时端口占用、缓存路径或临时日志。
 
-| 阶段 | 状态 | Commit | 验证结果 | Deviations |
-|---|---|---|---|---|
-| Plan baseline | Done | `docs(desktop)：记录 Electron 迁移实施计划与阶段状态` | 审核通过 | None |
-| Phase 0 | Not Started | — | — | — |
-| Phase 1 | Not Started | — | — | — |
-| Phase 2 | Not Started | — | — | — |
-| Phase 3 | Not Started | — | — | — |
-| Phase 4 | Not Started | — | — | — |
-| Phase 5 | Not Started | — | — | — |
-| Phase 6 | Not Started | — | — | — |
-| Phase 7 | Not Started | — | — | — |
-| Phase 8 | Not Started | — | — | — |
-| Phase 9 | Not Started | — | — | — |
-| Phase 10 | Not Started | — | — | — |
-| Phase 11 | Not Started | — | — | — |
+| 阶段          | 状态        | Commit                                                | 验证结果                                                                                                                                                    | Deviations                                                                                                             |
+| ------------- | ----------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Plan baseline | Done        | `docs(desktop)：记录 Electron 迁移实施计划与阶段状态` | 审核通过                                                                                                                                                    | None                                                                                                                   |
+| Phase 0       | Done        | `chore(build)：建立 hoisted 依赖布局与可复现测试基线` | pnpm 11.19.0、hoisted linker、frozen install、Next 解析、lint、typecheck、11 个 unit tests 与 Web build 通过；隔离 E2E 为 31 passed / 18 failed / 3 skipped | 隔离 E2E 暴露既有任务/Daily 创建与持久化失败，Phase 9 前须修复；全局 Prettier 存在 39 个既有格式问题，改动文件单独检查 |
+| Phase 1       | Not Started | —                                                     | —                                                                                                                                                           | —                                                                                                                      |
+| Phase 2       | Not Started | —                                                     | —                                                                                                                                                           | —                                                                                                                      |
+| Phase 3       | Not Started | —                                                     | —                                                                                                                                                           | —                                                                                                                      |
+| Phase 4       | Not Started | —                                                     | —                                                                                                                                                           | —                                                                                                                      |
+| Phase 5       | Not Started | —                                                     | —                                                                                                                                                           | —                                                                                                                      |
+| Phase 6       | Not Started | —                                                     | —                                                                                                                                                           | —                                                                                                                      |
+| Phase 7       | Not Started | —                                                     | —                                                                                                                                                           | —                                                                                                                      |
+| Phase 8       | Not Started | —                                                     | —                                                                                                                                                           | —                                                                                                                      |
+| Phase 9       | Not Started | —                                                     | —                                                                                                                                                           | —                                                                                                                      |
+| Phase 10      | Not Started | —                                                     | —                                                                                                                                                           | —                                                                                                                      |
+| Phase 11      | Not Started | —                                                     | —                                                                                                                                                           | —                                                                                                                      |
 
 ## 不可变架构决策
 
@@ -113,6 +113,8 @@ git diff --exit-code -- pnpm-lock.yaml
 ```
 
 Commit：`chore(build)：建立 hoisted 依赖布局与可复现测试基线`
+
+**Phase 0 结果（2026-08-26）**：`pnpm config get nodeLinker` 返回 `hoisted`，`pnpm install --frozen-lockfile`、Next 根解析、`pnpm lint`、`pnpm typecheck`、`pnpm test`（11 passed）和 `pnpm build` 均通过。`THREADLINE_E2E_PORT=3117 pnpm test:e2e` 确认 Playwright 创建独立 Next 服务器，但得到 31 passed、18 failed、3 skipped；失败集中在任务/Daily 创建、拖放与 reload 持久化断言，必须在 Phase 9 前解决。`pnpm format:check` 报告 39 个既有格式问题；本次改动文件单独通过 Prettier。
 
 ### Phase 1：提取框架无关窗口策略
 
