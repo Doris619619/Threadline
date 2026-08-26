@@ -1,17 +1,10 @@
 /**
- * @fileoverview 工作台首页入口，挂载桌面窗口形态 Provider 与任务仪表盘。
+ * @fileoverview 工作台首页入口，在业务 Provider 前按 Electron role 分流。
  */
 
-import { DesktopWindowProvider } from '@/lib/desktop-window-context';
-import { AppShell } from '@/components/app-shell';
-import { TaskDashboard } from '@/features/tasks/task-dashboard';
+import { ThreadlineRoot } from '@/components/threadline-root';
 
+/** 渲染由 role 分流后的业务主窗口或 Edge 轻量窗口。 */
 export default function Home() {
-  return (
-    <DesktopWindowProvider>
-      <AppShell>
-        <TaskDashboard />
-      </AppShell>
-    </DesktopWindowProvider>
-  );
+  return <ThreadlineRoot />;
 }

@@ -2,7 +2,16 @@
 
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useRef, type MutableRefObject, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type MutableRefObject,
+  type ReactNode,
+} from 'react';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import {
   normalizeCompactWindowState,
@@ -18,6 +27,7 @@ import {
   isTauriEnvironment,
   listenDesktopWindowGeometry,
 } from '@/lib/tauri-window';
+import { getMainDesktopBridge } from '@/lib/desktop-bridge';
 
 const SECOND_INSTANCE_ACTIVATED_EVENT = 'threadline://second-instance-activated';
 
@@ -32,6 +42,7 @@ type DesktopWindowContextValue = {
   isWorkstation: boolean;
   isCompact: boolean;
   isEdgeCollapsed: boolean;
+  isDesktopReady: boolean;
 };
 
 type LatestWindowState = {
@@ -52,7 +63,9 @@ export function useDesktopWindow(): DesktopWindowContextValue {
 
 /** 将旧 v2 floating-icon 安全迁移为 full，防止非法主模式导致空白页。 */
 function normalizeViewMode(value: unknown): DesktopViewMode {
-  return value === 'mini-today' || value === 'workstation' || value === 'full' ? value : 'full';
+  return value === 'mini-today' || value === 'workstation' || value === 'full'
+    ? value
+    : 'full';
 }
 
 /** 仅允许紧凑视图作为 edge tab 恢复来源。 */
@@ -69,15 +82,39 @@ function releaseApplyingFlag(applyingRef: MutableRefObject<boolean>): void {
 
 /** 提供单主窗口三态切换，使用 v3 key 与旧 v2 window-state 完全隔离。 */
 export function DesktopWindowProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState, modeHydrated] = usePersistentState<DesktopViewMode>('threadline.desktop-mode.v3', 'full', normalizeViewMode);
-  const [presentation, setPresentation, presentationHydrated] = usePersistentState<CompactPresentation>('threadline.desktop-compact-presentation.v3', 'expanded', (value) => value === 'edge-collapsed' ? value : 'expanded');
-  const [lastCompactMode, setLastCompactMode, compactHydrated] = usePersistentState<CompactViewMode>('threadline.desktop-last-compact-mode.v3', 'mini-today', normalizeCompactMode);
-  const [windowStates, setWindowStates, statesHydrated] = usePersistentState<Partial<Record<DesktopViewMode, WindowStateConfig>>>('threadline.desktop-window-states.v3', {}, normalizeWindowStates);
+  const [mode, setModeState, modeHydrated] = usePersistentState<DesktopViewMode>(
+    'threadline.desktop-mode.v3',
+    'full',
+    normalizeViewMode,
+  );
+  const [presentation, setPresentation, presentationHydrated] =
+    usePersistentState<CompactPresentation>(
+      'threadline.desktop-compact-presentation.v3',
+      'expanded',
+      (value) => (value === 'edge-collapsed' ? value : 'expanded'),
+    );
+  const [lastCompactMode, setLastCompactMode, compactHydrated] =
+    usePersistentState<CompactViewMode>(
+      'threadline.desktop-last-compact-mode.v3',
+      'mini-today',
+      normalizeCompactMode,
+    );
+  const [windowStates, setWindowStates, statesHydrated] = usePersistentState<
+    Partial<Record<DesktopViewMode, WindowStateConfig>>
+  >('threadline.desktop-window-states.v3', {}, normalizeWindowStates);
   const applyingRef = useRef(false);
   const startupAppliedRef = useRef(false);
+  const requestIdRef = useRef(0);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const latestStateRef = useRef<LatestWindowState>({ mode, presentation, lastCompactMode, windowStates });
-  const hydrated = modeHydrated && presentationHydrated && compactHydrated && statesHydrated;
+  const latestStateRef = useRef<LatestWindowState>({
+    mode,
+    presentation,
+    lastCompactMode,
+    windowStates,
+  });
+  const hydrated =
+    modeHydrated && presentationHydrated && compactHydrated && statesHydrated;
+  const [isDesktopReady, setIsDesktopReady] = useState(false);
 
   useEffect(() => {
     latestStateRef.current = { mode, presentation, lastCompactMode, windowStates };
@@ -97,21 +134,32 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
   }, [mode, presentation, setWindowStates]);
 
   /** 同一个 Tauri 主窗口即时变形成目标 view。 */
-  const setMode = useCallback(async (next: DesktopViewMode) => {
-    if (next === mode && presentation === 'expanded') return;
+  const setMode = useCallback(
+    async (next: DesktopViewMode) => {
+      if (next === mode && presentation === 'expanded') return;
 
-    await persistCurrentState();
-    applyingRef.current = true;
-    if (next !== 'full') setLastCompactMode(next);
-    setPresentation('expanded');
-    setModeState(next);
+      await persistCurrentState();
+      applyingRef.current = true;
+      if (next !== 'full') setLastCompactMode(next);
+      setPresentation('expanded');
+      setModeState(next);
 
-    try {
-      await applyDesktopWindowView(next, 'expanded', windowStates);
-    } finally {
-      releaseApplyingFlag(applyingRef);
-    }
-  }, [mode, persistCurrentState, presentation, setLastCompactMode, setModeState, setPresentation, windowStates]);
+      try {
+        await applyDesktopWindowView(next, 'expanded', windowStates);
+      } finally {
+        releaseApplyingFlag(applyingRef);
+      }
+    },
+    [
+      mode,
+      persistCurrentState,
+      presentation,
+      setLastCompactMode,
+      setModeState,
+      setPresentation,
+      windowStates,
+    ],
+  );
 
   /** 将当前紧凑 view 收起为右侧 edge tab，不改变业务 view mode。 */
   const collapseCompactView = useCallback(async () => {
@@ -154,13 +202,56 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     }
   }, [mode, presentation, setWindowStates]);
 
-  /** 水合完成后只恢复一次窗口；后续 geometry 持久化绝不触发原生 apply。 */
+  /**
+   * 水合完成后只恢复一次窗口；Electron 必须由此 handshake 后才首次 reveal，
+   * 后续 geometry 持久化绝不触发原生 apply。
+   */
   useEffect(() => {
     if (!hydrated || startupAppliedRef.current) return;
 
     startupAppliedRef.current = true;
-    void applyDesktopWindowView(mode, presentation, windowStates);
-  }, [hydrated, mode, presentation, windowStates]);
+    const bridge = getMainDesktopBridge();
+    if (!bridge) {
+      void applyDesktopWindowView(mode, presentation, windowStates).finally(() => {
+        setIsDesktopReady(true);
+      });
+      return;
+    }
+
+    const requestId = ++requestIdRef.current;
+    void bridge
+      .hydrateDesktopState({
+        requestId,
+        mode,
+        presentation,
+        lastCompactMode,
+        windowStates,
+      })
+      .then((result) => {
+        if (result.requestId !== requestId) return;
+        setModeState(result.mode);
+        setPresentation(result.presentation);
+        setWindowStates((current) => ({
+          ...current,
+          [result.mode]: result.geometry,
+        }));
+      })
+      .catch(() => {
+        // Main 的 watchdog 会安全显示 Full；Renderer 保持持久化状态供下一次启动恢复。
+      })
+      .finally(() => {
+        setIsDesktopReady(true);
+      });
+  }, [
+    hydrated,
+    lastCompactMode,
+    mode,
+    presentation,
+    setModeState,
+    setPresentation,
+    setWindowStates,
+    windowStates,
+  ]);
 
   /** 仅在用户移动或缩放时写回 geometry，不反向改变窗口。 */
   useEffect(() => {
@@ -183,36 +274,49 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     if (!isTauriEnvironment()) return;
 
     let unlisten: (() => void) | undefined;
-    void import('@tauri-apps/api/event').then(({ listen }) => listen(SECOND_INSTANCE_ACTIVATED_EVENT, () => {
-      const current = latestStateRef.current;
-      if (current.presentation === 'edge-collapsed') {
-        void restoreCompactView();
-        return;
-      }
+    void import('@tauri-apps/api/event').then(({ listen }) =>
+      listen(SECOND_INSTANCE_ACTIVATED_EVENT, () => {
+        const current = latestStateRef.current;
+        if (current.presentation === 'edge-collapsed') {
+          void restoreCompactView();
+          return;
+        }
 
-      applyingRef.current = true;
-      void applyDesktopWindowView(current.mode, current.presentation, current.windowStates).finally(() => {
-        releaseApplyingFlag(applyingRef);
-      });
-    }).then((cleanup) => {
-      unlisten = cleanup;
-    }));
+        applyingRef.current = true;
+        void applyDesktopWindowView(
+          current.mode,
+          current.presentation,
+          current.windowStates,
+        ).finally(() => {
+          releaseApplyingFlag(applyingRef);
+        });
+      }).then((cleanup) => {
+        unlisten = cleanup;
+      }),
+    );
 
     return () => {
       unlisten?.();
     };
   }, [restoreCompactView]);
 
-  return <DesktopWindowContext.Provider value={{
-    mode,
-    presentation,
-    setMode,
-    collapseCompactView,
-    restoreCompactView,
-    resetWindowStates,
-    isMiniToday: mode === 'mini-today',
-    isWorkstation: mode === 'workstation',
-    isCompact: mode !== 'full',
-    isEdgeCollapsed: presentation === 'edge-collapsed',
-  }}>{children}</DesktopWindowContext.Provider>;
+  return (
+    <DesktopWindowContext.Provider
+      value={{
+        mode,
+        presentation,
+        setMode,
+        collapseCompactView,
+        restoreCompactView,
+        resetWindowStates,
+        isMiniToday: mode === 'mini-today',
+        isWorkstation: mode === 'workstation',
+        isCompact: mode !== 'full',
+        isEdgeCollapsed: presentation === 'edge-collapsed',
+        isDesktopReady,
+      }}
+    >
+      {children}
+    </DesktopWindowContext.Provider>
+  );
 }

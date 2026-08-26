@@ -1,11 +1,42 @@
 /**
- * @fileoverview 为 Electron Renderer 暴露最小、无 Node 权限的桌面环境标识。
+ * @fileoverview 为 Electron Renderer 暴露按窗口角色区分的窄 IPC 接口，不泄漏通用 ipcRenderer。
  */
 
-import { contextBridge } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
 
-/** 向 Main renderer 暴露 Phase 2 骨架标识；Phase 3 会替换为类型化 role bridge。 */
-contextBridge.exposeInMainWorld('threadlineDesktop', {
-  environment: 'electron',
-  role: 'main',
-});
+const EDGE_ROLE_ARGUMENT = '--threadline-role=edge-tab';
+const role = process.argv.includes(EDGE_ROLE_ARGUMENT) ? 'edge-tab' : 'main';
+
+/** 订阅受限 Main 事件并返回只移除此监听器的清理函数。 */
+function subscribe(
+  channel: 'desktop:geometry-changed' | 'desktop:presentation-rollback',
+  listener: (payload: unknown) => void,
+): () => void {
+  const handler = (_event: Electron.IpcRendererEvent, payload: unknown) =>
+    listener(payload);
+  ipcRenderer.on(channel, handler);
+  return () => ipcRenderer.removeListener(channel, handler);
+}
+
+const bridge =
+  role === 'edge-tab'
+    ? {
+        environment: 'electron' as const,
+        role,
+        restoreMain: () => ipcRenderer.invoke('desktop:restore-main'),
+      }
+    : {
+        environment: 'electron' as const,
+        role,
+        hydrateDesktopState: (payload: unknown) =>
+          ipcRenderer.invoke('desktop:hydrate', payload),
+        transitionWindow: (payload: unknown) =>
+          ipcRenderer.invoke('desktop:transition', payload),
+        bringToFront: () => ipcRenderer.invoke('desktop:bring-to-front'),
+        onNativeGeometryChanged: (listener: (payload: unknown) => void) =>
+          subscribe('desktop:geometry-changed', listener),
+        onPresentationRollback: (listener: (payload: unknown) => void) =>
+          subscribe('desktop:presentation-rollback', listener),
+      };
+
+contextBridge.exposeInMainWorld('threadlineDesktop', bridge);
