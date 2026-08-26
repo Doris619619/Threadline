@@ -57,6 +57,7 @@ let latestRequestId = 0;
 let nativeRevision = 0;
 let suppressGeometryUntil = 0;
 let userGeometryTimer: ReturnType<typeof setTimeout> | undefined;
+let intentionallyClosingEdge = false;
 let latestState: DesktopHydrationPayload = {
   requestId: 0,
   mode: 'full',
@@ -322,6 +323,41 @@ function revealMain(): void {
   if (edgeWindow && !edgeWindow.isDestroyed()) edgeWindow.hide();
 }
 
+/** 以 Main 为最终安全 surface；仅在 Main 可见后才销毁已故障的 Edge。 */
+async function ensureVisibleSurface(reason: string): Promise<NativeApplyResult> {
+  if (!mainWindow || mainWindow.isDestroyed()) await createMainWindow();
+  const mode = latestState.lastCompactMode ?? 'mini-today';
+  const geometry = normalizeBounds(mode, latestState.windowStates[mode]);
+  latestState = {
+    ...latestState,
+    mode,
+    presentation: 'expanded',
+  };
+  applyMainNativeState(mode, geometry);
+  await waitForMainReadyToShow();
+  revealMain();
+  mainWindow?.webContents.send('desktop:presentation-rollback', { mode, reason });
+  if (edgeWindow && !edgeWindow.isDestroyed()) {
+    intentionallyClosingEdge = true;
+    edgeWindow.destroy();
+    intentionallyClosingEdge = false;
+  }
+  return {
+    requestId: latestRequestId,
+    mode,
+    presentation: 'expanded',
+    geometry,
+    visibleSurface: 'main',
+    fallback: true,
+    reason,
+  };
+}
+
+/** 将 Edge 的非主动关闭、渲染失败或显示器变化安全回退到可见 Main。 */
+function recoverFromEdgeFailure(reason: string): void {
+  void ensureVisibleSurface(reason).catch(exitAfterStartupFailure);
+}
+
 /** 加载并 reveal 固定尺寸 Edge；失败由调用方回退 Main。 */
 async function revealEdge(): Promise<void> {
   if (!edgeWindow || edgeWindow.isDestroyed()) {
@@ -333,6 +369,19 @@ async function revealEdge(): Promise<void> {
       skipTaskbar: false,
       width: EDGE_TAB_SIZE.width,
       height: EDGE_TAB_SIZE.height,
+    });
+    edgeWindow.webContents.on('did-fail-load', () =>
+      recoverFromEdgeFailure('edge-load-failed'),
+    );
+    edgeWindow.webContents.on('render-process-gone', () =>
+      recoverFromEdgeFailure('edge-renderer-crashed'),
+    );
+    edgeWindow.on('unresponsive', () => recoverFromEdgeFailure('edge-unresponsive'));
+    edgeWindow.on('closed', () => {
+      edgeWindow = undefined;
+      if (!intentionallyClosingEdge && (!mainWindow || !mainWindow.isVisible())) {
+        recoverFromEdgeFailure('edge-closed');
+      }
     });
     await edgeWindow.loadURL(getRendererUrl('edge-tab'));
   }
@@ -380,17 +429,7 @@ async function applyDesktopState(
         reason: fallbackReason,
       };
     } catch {
-      await waitForMainReadyToShow();
-      revealMain();
-      return {
-        requestId: payload.requestId,
-        mode,
-        presentation: 'expanded',
-        geometry,
-        visibleSurface: 'main',
-        fallback: true,
-        reason: 'edge-startup-failed',
-      };
+      return ensureVisibleSurface('edge-startup-failed');
     }
   }
   await waitForMainReadyToShow();
@@ -513,6 +552,21 @@ app.whenReady().then(async () => {
     registerRendererProtocol();
     registerDesktopIpc();
     await createMainWindow();
+    screen.on('display-removed', () => {
+      if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
+        recoverFromEdgeFailure('edge-display-removed');
+      }
+    });
+    screen.on('display-metrics-changed', () => {
+      if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
+        recoverFromEdgeFailure('edge-display-changed');
+      }
+    });
+    screen.on('display-added', () => {
+      if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
+        recoverFromEdgeFailure('edge-display-added');
+      }
+    });
     startupWatchdog = setTimeout(
       () =>
         void revealSafeFull('startup-handshake-timeout').catch(exitAfterStartupFailure),

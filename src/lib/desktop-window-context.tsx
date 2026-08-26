@@ -369,6 +369,17 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     };
   }, [persistCurrentState, setWindowStates]);
 
+  /** 接收 Edge 故障回退，将 Renderer persisted presentation 同步为 Main 已恢复的 expanded。 */
+  useEffect(() => {
+    const bridge = getMainDesktopBridge();
+    if (!bridge) return;
+    return bridge.onPresentationRollback(({ mode: restoredMode }) => {
+      setModeState(restoredMode);
+      setLastCompactMode(restoredMode === 'workstation' ? 'workstation' : 'mini-today');
+      setPresentation('expanded');
+    });
+  }, [setLastCompactMode, setModeState, setPresentation]);
+
   /** 第二次启动时由 Rust 唤醒主窗口；edge tab 恢复最近紧凑视图，其余状态保持不变。 */
   useEffect(() => {
     if (!isTauriEnvironment()) return;
