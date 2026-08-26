@@ -120,6 +120,42 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     latestStateRef.current = { mode, presentation, lastCompactMode, windowStates };
   }, [lastCompactMode, mode, presentation, windowStates]);
 
+  /**
+   * Electron transition 只发送 Renderer 的期望 snapshot；Main 回传 canonical native state。
+   * 返回 false 表示当前为 Web/Tauri，由调用方保持既有适配器路径。
+   */
+  const requestElectronTransition = useCallback(
+    async (
+      nextMode: DesktopViewMode,
+      nextPresentation: CompactPresentation,
+      nextLastCompactMode: CompactViewMode,
+      nextWindowStates: Partial<Record<DesktopViewMode, WindowStateConfig>>,
+    ): Promise<boolean> => {
+      const bridge = getMainDesktopBridge();
+      if (!bridge) return false;
+
+      const requestId = ++requestIdRef.current;
+      const result = await bridge.transitionWindow({
+        requestId,
+        mode: nextMode,
+        presentation: nextPresentation,
+        lastCompactMode: nextLastCompactMode,
+        windowStates: nextWindowStates,
+      });
+      if (result.requestId !== requestId) return true;
+
+      setModeState(result.mode);
+      setPresentation(result.presentation);
+      setLastCompactMode(result.mode === 'full' ? nextLastCompactMode : result.mode);
+      setWindowStates((current) => ({
+        ...current,
+        [result.mode]: result.geometry,
+      }));
+      return true;
+    },
+    [setLastCompactMode, setModeState, setPresentation, setWindowStates],
+  );
+
   /** 保存展开中 view 的合法 geometry；edge tab 固定尺寸和最小化哨兵值都不污染紧凑视图。 */
   const persistCurrentState = useCallback(async () => {
     if (applyingRef.current || presentation === 'edge-collapsed') return;
@@ -138,6 +174,18 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     async (next: DesktopViewMode) => {
       if (next === mode && presentation === 'expanded') return;
 
+      const nextLastCompactMode = next === 'full' ? lastCompactMode : next;
+      if (
+        await requestElectronTransition(
+          next,
+          'expanded',
+          nextLastCompactMode,
+          windowStates,
+        )
+      ) {
+        return;
+      }
+
       await persistCurrentState();
       applyingRef.current = true;
       if (next !== 'full') setLastCompactMode(next);
@@ -152,8 +200,10 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     },
     [
       mode,
+      lastCompactMode,
       persistCurrentState,
       presentation,
+      requestElectronTransition,
       setLastCompactMode,
       setModeState,
       setPresentation,
@@ -165,6 +215,10 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
   const collapseCompactView = useCallback(async () => {
     if (mode === 'full') return;
 
+    if (await requestElectronTransition(mode, 'edge-collapsed', mode, windowStates)) {
+      return;
+    }
+
     await persistCurrentState();
     applyingRef.current = true;
     setLastCompactMode(mode);
@@ -175,10 +229,28 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     } finally {
       releaseApplyingFlag(applyingRef);
     }
-  }, [mode, persistCurrentState, setLastCompactMode, setPresentation, windowStates]);
+  }, [
+    mode,
+    persistCurrentState,
+    requestElectronTransition,
+    setLastCompactMode,
+    setPresentation,
+    windowStates,
+  ]);
 
   /** 从 edge tab 悬停恢复其最近紧凑 view，并重新执行原生可见性校验。 */
   const restoreCompactView = useCallback(async () => {
+    if (
+      await requestElectronTransition(
+        lastCompactMode,
+        'expanded',
+        lastCompactMode,
+        windowStates,
+      )
+    ) {
+      return;
+    }
+
     applyingRef.current = true;
     setModeState(lastCompactMode);
     setPresentation('expanded');
@@ -188,10 +260,20 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     } finally {
       releaseApplyingFlag(applyingRef);
     }
-  }, [lastCompactMode, setModeState, setPresentation, windowStates]);
+  }, [
+    lastCompactMode,
+    requestElectronTransition,
+    setModeState,
+    setPresentation,
+    windowStates,
+  ]);
 
   /** 清空 v3 geometry 并对当前形态重新应用默认安全规格。 */
   const resetWindowStates = useCallback(async () => {
+    if (await requestElectronTransition(mode, presentation, lastCompactMode, {})) {
+      return;
+    }
+
     applyingRef.current = true;
     setWindowStates({});
 
@@ -200,7 +282,7 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     } finally {
       releaseApplyingFlag(applyingRef);
     }
-  }, [mode, presentation, setWindowStates]);
+  }, [lastCompactMode, mode, presentation, requestElectronTransition, setWindowStates]);
 
   /**
    * 水合完成后只恢复一次窗口；Electron 必须由此 handshake 后才首次 reveal，
@@ -255,6 +337,24 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
 
   /** 仅在用户移动或缩放时写回 geometry，不反向改变窗口。 */
   useEffect(() => {
+    const bridge = getMainDesktopBridge();
+    if (bridge) {
+      let saveTimer: ReturnType<typeof setTimeout> | undefined;
+      return bridge.onNativeGeometryChanged((event) => {
+        if (event.origin !== 'user') return;
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+          setWindowStates((current) => ({
+            ...current,
+            [event.mode]:
+              event.mode === 'full'
+                ? event.geometry
+                : normalizeCompactWindowState(event.mode, event.geometry),
+          }));
+        }, 180);
+      });
+    }
+
     let unlisten: () => void = () => undefined;
     void listenDesktopWindowGeometry(() => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -267,7 +367,7 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       unlisten();
     };
-  }, [persistCurrentState]);
+  }, [persistCurrentState, setWindowStates]);
 
   /** 第二次启动时由 Rust 唤醒主窗口；edge tab 恢复最近紧凑视图，其余状态保持不变。 */
   useEffect(() => {

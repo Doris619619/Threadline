@@ -54,6 +54,9 @@ let edgeWindow: BrowserWindow | undefined;
 let mainReadyToShow = false;
 let startupWatchdog: ReturnType<typeof setTimeout> | undefined;
 let latestRequestId = 0;
+let nativeRevision = 0;
+let suppressGeometryUntil = 0;
+let userGeometryTimer: ReturnType<typeof setTimeout> | undefined;
 let latestState: DesktopHydrationPayload = {
   requestId: 0,
   mode: 'full',
@@ -264,7 +267,39 @@ function applyMainNativeState(
     mode === 'full' ? 800 : geometry.width,
     mode === 'full' ? 560 : geometry.height,
   );
+  suppressGeometryUntil = Date.now() + 320;
   mainWindow.setBounds(geometry);
+}
+
+/** 将真实用户移动或缩放后的 canonical bounds 防抖回传给 Main Renderer。 */
+function publishUserGeometry(): void {
+  if (
+    !mainWindow ||
+    mainWindow.isDestroyed() ||
+    !mainWindow.isVisible() ||
+    latestState.presentation === 'edge-collapsed' ||
+    Date.now() < suppressGeometryUntil
+  ) {
+    return;
+  }
+  if (userGeometryTimer) clearTimeout(userGeometryTimer);
+  userGeometryTimer = setTimeout(() => {
+    if (!mainWindow || mainWindow.isDestroyed() || Date.now() < suppressGeometryUntil)
+      return;
+    const bounds = mainWindow.getBounds();
+    nativeRevision += 1;
+    mainWindow.webContents.send('desktop:geometry-changed', {
+      geometry: {
+        width: bounds.width,
+        height: bounds.height,
+        x: bounds.x,
+        y: bounds.y,
+      },
+      mode: latestState.mode,
+      origin: 'user',
+      nativeRevision,
+    });
+  }, 180);
 }
 
 /** 安全显示 Main，然后才隐藏 Edge，保持至少一个可见 surface 的切换不变量。 */
@@ -448,6 +483,8 @@ async function createMainWindow(): Promise<void> {
     if (!window.isDestroyed() && !window.isVisible())
       void revealSafeFull('main-renderer-crashed').catch(exitAfterStartupFailure);
   });
+  window.on('move', publishUserGeometry);
+  window.on('resize', publishUserGeometry);
   window.on('closed', () => {
     mainWindow = undefined;
   });
