@@ -4,6 +4,8 @@
 
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const [command] = process.argv.slice(2);
@@ -49,12 +51,21 @@ function packageApplication(argumentsList) {
     '-p',
     'electron/tsconfig.json',
   ]);
-  run(process.execPath, [
-    'node_modules/electron-builder/out/cli/cli.js',
-    '--config',
-    'electron-builder.config.cjs',
-    ...argumentsList,
-  ]);
+  const collectorStore = mkdtempSync(join(tmpdir(), 'threadline-builder-store-'));
+  try {
+    run(
+      process.execPath,
+      [
+        'node_modules/electron-builder/out/cli/cli.js',
+        '--config',
+        'electron-builder.config.cjs',
+        ...argumentsList,
+      ],
+      { ...process.env, PNPM_CONFIG_STORE_DIR: collectorStore },
+    );
+  } finally {
+    rmSync(collectorStore, { force: true, recursive: true });
+  }
 }
 
 /** 启动本地 Next dev server 后运行 Electron；退出 Electron 时一并回收开发服务器。 */

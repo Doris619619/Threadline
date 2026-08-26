@@ -71,6 +71,11 @@ let latestState: DesktopHydrationPayload = {
   windowStates: {},
 };
 
+/** 返回开发与打包应用都可读取的统一 Threadline 窗口图标。 */
+function getWindowIconPath(): string {
+  return join(app.getAppPath(), 'electron', 'assets', 'icon.ico');
+}
+
 protocol.registerSchemesAsPrivileged([
   {
     scheme: APP_PROTOCOL,
@@ -81,7 +86,7 @@ protocol.registerSchemesAsPrivileged([
 app.setAppUserModelId(APP_USER_MODEL_ID);
 app.setName(PRODUCT_NAME);
 
-if (!app.requestSingleInstanceLock()) app.quit();
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
 /** 返回打包应用中静态 Next export 的绝对目录。 */
 function getRendererDirectory(): string {
@@ -158,6 +163,8 @@ function createWindow(
 ): BrowserWindow {
   const window = new BrowserWindow({
     show: false,
+    icon: getWindowIconPath(),
+    skipTaskbar: false,
     ...options,
     webPreferences: {
       preload: join(__dirname, 'preload.cjs'),
@@ -631,42 +638,53 @@ function exitAfterStartupFailure(error: unknown): void {
   app.exit(1);
 }
 
-app.whenReady().then(async () => {
-  try {
-    registerRendererProtocol();
-    registerDesktopIpc();
-    await createMainWindow();
-    screen.on('display-removed', () => {
-      if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
-        recoverFromEdgeFailure('edge-display-removed');
-      }
-    });
-    screen.on('display-metrics-changed', () => {
-      if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
-        recoverFromEdgeFailure('edge-display-changed');
-      }
-    });
-    screen.on('display-added', () => {
-      if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
-        recoverFromEdgeFailure('edge-display-added');
-      }
-    });
-    startupWatchdog = setTimeout(
-      () =>
-        void revealSafeFull('startup-handshake-timeout').catch(exitAfterStartupFailure),
-      STARTUP_TIMEOUT_MS,
-    );
-  } catch (error) {
-    exitAfterStartupFailure(error);
-  }
-});
+/** 仅在取得单实例锁后注册启动与生命周期监听器。 */
+function bootstrapApplication(): void {
+  app.whenReady().then(async () => {
+    try {
+      registerRendererProtocol();
+      registerDesktopIpc();
+      await createMainWindow();
+      screen.on('display-removed', () => {
+        if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
+          recoverFromEdgeFailure('edge-display-removed');
+        }
+      });
+      screen.on('display-metrics-changed', () => {
+        if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
+          recoverFromEdgeFailure('edge-display-changed');
+        }
+      });
+      screen.on('display-added', () => {
+        if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
+          recoverFromEdgeFailure('edge-display-added');
+        }
+      });
+      startupWatchdog = setTimeout(
+        () =>
+          void revealSafeFull('startup-handshake-timeout').catch(
+            exitAfterStartupFailure,
+          ),
+        STARTUP_TIMEOUT_MS,
+      );
+    } catch (error) {
+      exitAfterStartupFailure(error);
+    }
+  });
 
-app.on('second-instance', () => {
-  void activateExistingInstance().catch(exitAfterStartupFailure);
-});
+  app.on('second-instance', () => {
+    void activateExistingInstance().catch(exitAfterStartupFailure);
+  });
 
-app.on('before-quit', () => {
-  isQuitting = true;
-});
+  app.on('before-quit', () => {
+    isQuitting = true;
+  });
 
-app.on('window-all-closed', () => app.exit(0));
+  app.on('window-all-closed', () => app.exit(0));
+}
+
+if (hasSingleInstanceLock) {
+  bootstrapApplication();
+} else {
+  app.quit();
+}

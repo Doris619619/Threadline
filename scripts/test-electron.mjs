@@ -33,6 +33,24 @@ async function waitFor(predicate, description, timeoutMs = 8_000) {
   throw new Error(`Timed out: ${description}`);
 }
 
+/** 断言第二实例在单实例锁拒绝后自行退出，而不启动第二个 BrowserWindow。 */
+function waitForProcessExit(process, timeoutMs = 8_000) {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      process.kill();
+      reject(new Error('Timed out: second Electron instance must exit'));
+    }, timeoutMs);
+    process.once('error', (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+    process.once('exit', (code) => {
+      clearTimeout(timeout);
+      resolve(code);
+    });
+  });
+}
+
 /** 启动独占的 Next production server，避免复用不兼容的开发服务。 */
 async function startRendererServer() {
   const server = spawn(
@@ -61,6 +79,24 @@ try {
   });
   const page = await application.firstWindow();
   await page.waitForFunction(() => window.threadlineDesktop?.role === 'main');
+  const secondInstance = spawn(
+    process.execPath,
+    [
+      'node_modules/electron/cli.js',
+      '.',
+      `--user-data-dir=${userDataDirectory}`,
+      '--no-sandbox',
+    ],
+    {
+      env: { ...process.env, THREADLINE_ELECTRON_RENDERER_URL: rendererUrl },
+      stdio: 'ignore',
+    },
+  );
+  assert.equal(await waitForProcessExit(secondInstance), 0);
+  assert.equal(
+    (await inspectWindows(application)).filter((window) => window.visible).length,
+    1,
+  );
   await page.getByRole('button', { name: '迷你今日', exact: true }).click();
   await page.getByTestId('mini-today-panel').waitFor();
   await page.getByRole('button', { name: '工作站', exact: true }).click();

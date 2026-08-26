@@ -1,6 +1,7 @@
 # 文件用途：定义 Threadline 工作区的 pnpm 安装布局和受审核依赖构建脚本策略。
 
 nodeLinker: hoisted
+storeDir: .pnpm-store
 
 allowBuilds:
   electron: true

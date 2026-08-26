@@ -6,7 +6,13 @@ module.exports = {
   directories: {
     output: 'release',
   },
-  files: ['dist-electron/**/*', '.next-electron/**/*', 'package.json'],
+  files: [
+    'dist-electron/**/*',
+    '.next-electron/**/*',
+    'electron/assets/**/*',
+    'package.json',
+    '!.pnpm-store/**/*',
+  ],
   asar: true,
   win: {
     target: [{ target: 'nsis', arch: ['x64'] }],
