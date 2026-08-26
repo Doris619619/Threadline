@@ -13,11 +13,12 @@
     "windows": [
       {
         "title": "Threadline",
-        "width": 1440,
-        "height": 960,
-        "minWidth": 48,
-        "minHeight": 48,
+        "width": 1280,
+        "height": 840,
+        "minWidth": 320,
+        "minHeight": 360,
         "resizable": true,
+        "decorations": true,
         "fullscreen": false
       }
     ],

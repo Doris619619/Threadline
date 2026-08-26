@@ -1,83 +1,73 @@
 /**
- * @fileoverview 桌面窗口控件：形态切换（Full / Mini / Floating）与最小化、最大化、关闭。
+ * @fileoverview 桌面窗口模式菜单；用文字化入口切换完整、迷你与悬浮三种形态。
  */
 
 'use client';
 
-import { Circle, LayoutGrid, Minus, PanelTop, Square, X } from 'lucide-react';
+import { ChevronDown, CircleDot, Monitor, PanelTop } from 'lucide-react';
+import { useState } from 'react';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
-import {
-  closeTauriWindow,
-  minimizeTauriWindow,
-  startTauriDragging,
-  toggleMaximizeTauriWindow,
-  type DesktopWindowMode,
-} from '@/lib/tauri-window';
+import type { DesktopWindowMode } from '@/lib/tauri-window';
 
-const modeOptions: { id: DesktopWindowMode; label: string; icon: typeof LayoutGrid }[] = [
-  { id: 'full', label: '完整工作台', icon: LayoutGrid },
-  { id: 'mini-today', label: '迷你今日', icon: PanelTop },
-  { id: 'floating-icon', label: '悬浮图标', icon: Circle },
+const modeOptions: {
+  id: DesktopWindowMode;
+  label: string;
+  description: string;
+  icon: typeof Monitor;
+}[] = [
+  { id: 'full', label: '完整工作台', description: '查看今天、待办与 Daily', icon: Monitor },
+  { id: 'mini-today', label: '迷你今日', description: '置顶查看今日日程', icon: PanelTop },
+  { id: 'floating-icon', label: '悬浮图标', description: '收起为桌面入口', icon: CircleDot },
 ];
 
 /**
- * 渲染窗口形态切换与原生窗口操作按钮；header 区域支持拖拽移动窗口。
+ * 显示可发现的窗口模式菜单；选择后调用桌面窗口桥接切换形态。
  */
-export function DesktopWindowControls({ compact = false }: { compact?: boolean }) {
+export function DesktopWindowModeMenu() {
   const { mode, setMode } = useDesktopWindow();
+  const [open, setOpen] = useState(false);
+  const current = modeOptions.find((option) => option.id === mode) ?? modeOptions[0];
+
+  const chooseMode = async (next: DesktopWindowMode) => {
+    setOpen(false);
+    await setMode(next);
+  };
 
   return (
-    <div className={`tl-desktop-controls${compact ? ' is-compact' : ''}`}>
-      <div
-        className="tl-drag-region"
-        onMouseDown={() => void startTauriDragging()}
-        title="拖动窗口"
-        aria-hidden={compact}
-      />
-      <div className="tl-mode-switch" role="group" aria-label="窗口形态">
-        {modeOptions.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            className={`tl-mode-btn${mode === id ? ' is-active' : ''}`}
-            aria-label={label}
-            aria-pressed={mode === id}
-            title={label}
-            onClick={() => void setMode(id)}
-          >
-            <Icon size={14} />
-          </button>
-        ))}
-      </div>
-      <div className="tl-window-actions" role="group" aria-label="窗口操作">
-        <button
-          type="button"
-          className="tl-window-action tl-window-minimize"
-          aria-label="最小化"
-          title="最小化"
-          onClick={() => void minimizeTauriWindow()}
-        >
-          <Minus size={12} />
-        </button>
-        <button
-          type="button"
-          className="tl-window-action tl-window-maximize"
-          aria-label="最大化"
-          title="最大化"
-          onClick={() => void toggleMaximizeTauriWindow()}
-        >
-          <Square size={11} />
-        </button>
-        <button
-          type="button"
-          className="tl-window-action tl-window-close"
-          aria-label="关闭"
-          title="关闭"
-          onClick={() => void closeTauriWindow()}
-        >
-          <X size={12} />
-        </button>
-      </div>
+    <div className="tl-mode-menu">
+      <button
+        type="button"
+        className="tl-mode-menu-trigger"
+        aria-label="窗口模式"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={() => setOpen((currentOpen) => !currentOpen)}
+      >
+        <current.icon aria-hidden="true" size={16} />
+        <span>窗口模式</span>
+        <ChevronDown aria-hidden="true" size={14} />
+      </button>
+      {open && (
+        <div className="tl-mode-menu-popover" role="menu" aria-label="窗口模式">
+          <p>当前：{current.label}</p>
+          {modeOptions.map(({ id, label, description, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              role="menuitemradio"
+              aria-checked={mode === id}
+              className={mode === id ? 'is-active' : ''}
+              onClick={() => void chooseMode(id)}
+            >
+              <Icon aria-hidden="true" size={17} />
+              <span>
+                <b>{label}</b>
+                <small>{description}</small>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

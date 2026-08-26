@@ -1,6 +1,5 @@
 /**
- * @fileoverview 桌面多窗口形态定义与 Tauri 窗口尺寸/位置桥接工具。
- * 支持 Full（完整工作台）、Mini Today（迷你今日日程）、Floating Icon（悬浮图标）三种模式及状态记忆。
+ * @fileoverview Tauri 桌面窗口桥接，负责三态窗口的原生装饰、尺寸、位置与置顶行为。
  */
 
 export type DesktopWindowMode = 'full' | 'mini-today' | 'floating-icon';
@@ -13,29 +12,54 @@ export interface WindowStateConfig {
 }
 
 export const DEFAULT_WINDOW_CONFIGS: Record<DesktopWindowMode, WindowStateConfig> = {
-  full: {
-    width: 1200,
-    height: 820,
-  },
-  'mini-today': {
-    width: 380,
-    height: 620,
-  },
-  'floating-icon': {
-    width: 52,
-    height: 52,
-  },
+  full: { width: 1280, height: 840 },
+  'mini-today': { width: 392, height: 600 },
+  'floating-icon': { width: 72, height: 72 },
 };
 
+export const FLOATING_ICON_SIZES = [56, 72, 88] as const;
+
 /**
- * 检查当前是否在 Tauri 桌面运行时环境中。
+ * 过滤悬浮图标的持久化尺寸，历史误存的工作台宽高不会再让图标窗口变成长条。
  */
-export function isTauriEnvironment(): boolean {
-  return typeof window !== 'undefined' && Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
+export function normalizeFloatingWindowState(
+  state?: WindowStateConfig,
+): WindowStateConfig {
+  const fallback = DEFAULT_WINDOW_CONFIGS['floating-icon'];
+  const isSupportedSize = FLOATING_ICON_SIZES.includes(
+    state?.width as (typeof FLOATING_ICON_SIZES)[number],
+  );
+  const size = isSupportedSize && state && state.height === state.width ? state.width : fallback.width;
+  return {
+    width: size,
+    height: size,
+    ...(typeof state?.x === 'number' && typeof state?.y === 'number'
+      ? { x: state.x, y: state.y }
+      : {}),
+  };
 }
 
 /**
- * 设置 Tauri 窗口大小与位置，并处理置顶与无边框属性。
+ * 执行单项原生窗口设置；某项权限或平台能力不可用时记录警告，但不阻断尺寸等关键后续设置。
+ */
+async function applyWindowAction(name: string, action: () => Promise<void>): Promise<void> {
+  try {
+    await action();
+  } catch (error) {
+    console.warn(`[TauriWindowBridge] ${name} error:`, error);
+  }
+}
+
+/** 检查当前页面是否运行在 Tauri WebView 中。 */
+export function isTauriEnvironment(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__)
+  );
+}
+
+/**
+ * 将窗口切换到指定形态；完整与迷你使用系统标题栏，悬浮图标保持无边框。
  */
 export async function applyDesktopWindowMode(
   mode: DesktopWindowMode,
@@ -44,54 +68,55 @@ export async function applyDesktopWindowMode(
   if (!isTauriEnvironment()) return;
 
   try {
-    const { getCurrentWindow, LogicalSize, LogicalPosition } = await import('@tauri-apps/api/window');
+    const { getCurrentWindow, LogicalPosition, LogicalSize } = await import('@tauri-apps/api/window');
     const appWindow = getCurrentWindow();
+    const isFloating = mode === 'floating-icon';
+    const isMini = mode === 'mini-today';
+    const target = isFloating
+      ? normalizeFloatingWindowState(savedStates?.['floating-icon'])
+      : savedStates?.[mode] ?? DEFAULT_WINDOW_CONFIGS[mode];
 
-    const targetConfig = savedStates?.[mode] ?? DEFAULT_WINDOW_CONFIGS[mode];
-
-    if (mode === 'floating-icon') {
-      await appWindow.setAlwaysOnTop(true);
-      await appWindow.setDecorations(false);
-      await appWindow.setShadow(false);
-      await appWindow.setSize(new LogicalSize(targetConfig.width, targetConfig.height));
-      if (typeof targetConfig.x === 'number' && typeof targetConfig.y === 'number') {
-        await appWindow.setPosition(new LogicalPosition(targetConfig.x, targetConfig.y));
-      }
-    } else if (mode === 'mini-today') {
-      await appWindow.setAlwaysOnTop(true);
-      await appWindow.setDecorations(false);
-      await appWindow.setShadow(true);
-      await appWindow.setSize(new LogicalSize(targetConfig.width, targetConfig.height));
-      if (typeof targetConfig.x === 'number' && typeof targetConfig.y === 'number') {
-        await appWindow.setPosition(new LogicalPosition(targetConfig.x, targetConfig.y));
-      }
-    } else {
-      // full 模式
-      await appWindow.setAlwaysOnTop(false);
-      await appWindow.setDecorations(false); // 保持统一定制 header 风格
-      await appWindow.setShadow(true);
-      await appWindow.setSize(new LogicalSize(targetConfig.width, targetConfig.height));
-      if (typeof targetConfig.x === 'number' && typeof targetConfig.y === 'number') {
-        await appWindow.setPosition(new LogicalPosition(targetConfig.x, targetConfig.y));
-      }
+    await applyWindowAction('unmaximize', () => appWindow.unmaximize());
+    await applyWindowAction('set always on top', () => appWindow.setAlwaysOnTop(isFloating || isMini));
+    await applyWindowAction('set decorations', () => appWindow.setDecorations(!isFloating));
+    await applyWindowAction('set shadow', () => appWindow.setShadow(!isFloating));
+    await applyWindowAction('set resizable', () => appWindow.setResizable(!isFloating));
+    await applyWindowAction('set maximizable', () => appWindow.setMaximizable(mode === 'full'));
+    await applyWindowAction('set minimum size', () =>
+      appWindow.setMinSize(
+        isFloating
+          ? new LogicalSize(target.width, target.height)
+          : new LogicalSize(isMini ? 320 : 960, isMini ? 360 : 640),
+      ),
+    );
+    await applyWindowAction('set maximum size', () =>
+      appWindow.setMaxSize(isFloating ? new LogicalSize(target.width, target.height) : null),
+    );
+    await applyWindowAction('set size', () =>
+      appWindow.setSize(new LogicalSize(target.width, target.height)),
+    );
+    if (typeof target.x === 'number' && typeof target.y === 'number') {
+      const position = new LogicalPosition(target.x, target.y);
+      await applyWindowAction('set position', () =>
+        appWindow.setPosition(position),
+      );
     }
   } catch (error) {
     console.warn('[TauriWindowBridge] applyDesktopWindowMode error:', error);
   }
 }
 
-/**
- * 获取当前窗口尺寸与位置以供持久化保存。
- */
+/** 读取当前原生窗口的逻辑尺寸与外框位置，供每种形态独立保存。 */
 export async function getCurrentWindowState(): Promise<WindowStateConfig | null> {
   if (!isTauriEnvironment()) return null;
   try {
     const { getCurrentWindow } = await import('@tauri-apps/api/window');
     const appWindow = getCurrentWindow();
-    const size = await appWindow.innerSize();
-    const position = await appWindow.outerPosition();
-    const factor = await appWindow.scaleFactor();
-
+    const [size, position, factor] = await Promise.all([
+      appWindow.innerSize(),
+      appWindow.outerPosition(),
+      appWindow.scaleFactor(),
+    ]);
     return {
       width: Math.round(size.width / factor),
       height: Math.round(size.height / factor),
@@ -104,9 +129,7 @@ export async function getCurrentWindowState(): Promise<WindowStateConfig | null>
   }
 }
 
-/**
- * 开始原生拖拽窗口
- */
+/** 开始无边框悬浮图标的原生窗口拖动。 */
 export async function startTauriDragging(): Promise<void> {
   if (!isTauriEnvironment()) return;
   try {
@@ -118,46 +141,46 @@ export async function startTauriDragging(): Promise<void> {
 }
 
 /**
- * 最小化窗口
+ * 临时放大悬浮窗口以展示右键菜单；关闭后恢复用户保存的图标规格。
  */
-export async function minimizeTauriWindow(): Promise<void> {
+export async function setFloatingContextMenuOpen(
+  open: boolean,
+  savedState?: WindowStateConfig,
+): Promise<void> {
   if (!isTauriEnvironment()) return;
   try {
-    const { getCurrentWindow } = await import('@tauri-apps/api/window');
-    await getCurrentWindow().minimize();
+    const { getCurrentWindow, LogicalSize } = await import('@tauri-apps/api/window');
+    const appWindow = getCurrentWindow();
+    const iconSize = normalizeFloatingWindowState(savedState).width;
+    const size = open ? new LogicalSize(264, 216) : new LogicalSize(iconSize, iconSize);
+    await appWindow.setMinSize(size);
+    await appWindow.setMaxSize(size);
+    await appWindow.setSize(size);
   } catch (error) {
-    console.warn('[TauriWindowBridge] minimize error:', error);
+    console.warn('[TauriWindowBridge] setFloatingContextMenuOpen error:', error);
   }
 }
 
 /**
- * 最大化 / 还原窗口
+ * 订阅移动与缩放事件。非 Tauri 环境返回空取消函数，便于浏览器预览复用。
  */
-export async function toggleMaximizeTauriWindow(): Promise<void> {
-  if (!isTauriEnvironment()) return;
+export async function listenDesktopWindowGeometry(
+  onChange: () => void,
+): Promise<() => void> {
+  if (!isTauriEnvironment()) return () => undefined;
   try {
     const { getCurrentWindow } = await import('@tauri-apps/api/window');
     const appWindow = getCurrentWindow();
-    const isMax = await appWindow.isMaximized();
-    if (isMax) {
-      await appWindow.unmaximize();
-    } else {
-      await appWindow.maximize();
-    }
+    const [unlistenMove, unlistenResize] = await Promise.all([
+      appWindow.onMoved(onChange),
+      appWindow.onResized(onChange),
+    ]);
+    return () => {
+      unlistenMove();
+      unlistenResize();
+    };
   } catch (error) {
-    console.warn('[TauriWindowBridge] toggleMaximize error:', error);
-  }
-}
-
-/**
- * 关闭窗口
- */
-export async function closeTauriWindow(): Promise<void> {
-  if (!isTauriEnvironment()) return;
-  try {
-    const { getCurrentWindow } = await import('@tauri-apps/api/window');
-    await getCurrentWindow().close();
-  } catch (error) {
-    console.warn('[TauriWindowBridge] close error:', error);
+    console.warn('[TauriWindowBridge] listenDesktopWindowGeometry error:', error);
+    return () => undefined;
   }
 }
