@@ -22,6 +22,7 @@ const APP_USER_MODEL_ID = 'com.doris619619.threadline';
 const PRODUCT_NAME = 'Threadline';
 const DEFAULT_RENDERER_URL = 'http://127.0.0.1:3118';
 const STARTUP_TIMEOUT_MS = 8_000;
+const EDGE_REVEAL_TIMEOUT_MS = 8_000;
 type DesktopViewMode = 'full' | 'mini-today' | 'workstation';
 type CompactViewMode = Exclude<DesktopViewMode, 'full'>;
 type CompactPresentation = 'expanded' | 'edge-collapsed';
@@ -61,6 +62,7 @@ let suppressGeometryUntil = 0;
 let userGeometryTimer: ReturnType<typeof setTimeout> | undefined;
 let intentionallyClosingEdge = false;
 let rebuildingMain = false;
+let isQuitting = false;
 let latestState: DesktopHydrationPayload = {
   requestId: 0,
   mode: 'full',
@@ -149,7 +151,7 @@ function protectRendererNavigation(window: BrowserWindow): void {
   });
 }
 
-/** 创建受保护 BrowserWindow；角色只通过 preload 的 additionalArguments 传递。 */
+/** 创建受保护 BrowserWindow；角色由受信任 Renderer URL 中的只读标记传递。 */
 function createWindow(
   role: WindowRole,
   options: Electron.BrowserWindowConstructorOptions,
@@ -162,7 +164,6 @@ function createWindow(
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      additionalArguments: [`--threadline-role=${role}`],
     },
   });
   protectRendererNavigation(window);
@@ -363,6 +364,7 @@ async function ensureVisibleSurface(reason: string): Promise<NativeApplyResult> 
 
 /** 将 Edge 的非主动关闭、渲染失败或显示器变化安全回退到可见 Main。 */
 function recoverFromEdgeFailure(reason: string): void {
+  if (isQuitting) return;
   void ensureVisibleSurface(reason).catch(exitAfterStartupFailure);
 }
 
@@ -382,6 +384,7 @@ async function activateExistingInstance(): Promise<void> {
 
 /** Edge 可见时静默重建崩溃或关闭的 Main；否则恢复安全 Main 或退出。 */
 function recoverFromMainFailure(reason: string): void {
+  if (isQuitting) return;
   if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
     if (rebuildingMain) return;
     rebuildingMain = true;
@@ -427,11 +430,31 @@ async function revealEdge(): Promise<void> {
     edgeWindow.on('unresponsive', () => recoverFromEdgeFailure('edge-unresponsive'));
     edgeWindow.on('closed', () => {
       edgeWindow = undefined;
-      if (!intentionallyClosingEdge && (!mainWindow || !mainWindow.isVisible())) {
+      if (
+        !isQuitting &&
+        !intentionallyClosingEdge &&
+        (!mainWindow || !mainWindow.isVisible())
+      ) {
         recoverFromEdgeFailure('edge-closed');
       }
     });
-    await edgeWindow.loadURL(getRendererUrl('edge-tab'));
+    const window = edgeWindow;
+    const edgeReady = new Promise<void>((resolveReady, rejectReady) => {
+      const timeout = setTimeout(
+        () => rejectReady(new Error('Edge reveal timed out')),
+        EDGE_REVEAL_TIMEOUT_MS,
+      );
+      window.once('ready-to-show', () => {
+        clearTimeout(timeout);
+        resolveReady();
+      });
+      window.once('closed', () => {
+        clearTimeout(timeout);
+        rejectReady(new Error('Edge closed before reveal'));
+      });
+    });
+    await window.loadURL(getRendererUrl('edge-tab'));
+    await edgeReady;
   }
   const area = screen.getPrimaryDisplay().workArea;
   edgeWindow.setBounds({
@@ -584,11 +607,12 @@ async function createMainWindow(): Promise<void> {
   window.on('resize', publishUserGeometry);
   window.on('close', () => {
     userRequestedClose = true;
+    if (!rebuildingMain) isQuitting = true;
   });
   window.on('closed', () => {
     if (mainWindow === window) mainWindow = undefined;
     mainReadyToShow = false;
-    if (rebuildingMain) return;
+    if (isQuitting || rebuildingMain) return;
     if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
       recoverFromMainFailure('main-closed-while-edge-visible');
     } else if (userRequestedClose) {
@@ -641,4 +665,8 @@ app.on('second-instance', () => {
   void activateExistingInstance().catch(exitAfterStartupFailure);
 });
 
-app.on('window-all-closed', () => app.quit());
+app.on('before-quit', () => {
+  isQuitting = true;
+});
+
+app.on('window-all-closed', () => app.exit(0));

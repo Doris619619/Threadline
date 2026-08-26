@@ -4,8 +4,10 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 
-const EDGE_ROLE_ARGUMENT = '--threadline-role=edge-tab';
-const role = process.argv.includes(EDGE_ROLE_ARGUMENT) ? 'edge-tab' : 'main';
+const role =
+  new URL(window.location.href).searchParams.get('threadline-role') === 'edge-tab'
+    ? 'edge-tab'
+    : 'main';
 
 /** 订阅受限 Main 事件并返回只移除此监听器的清理函数。 */
 function subscribe(

@@ -27,7 +27,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "playwright": "playwright",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:electron": "pnpm desktop:compile && pnpm build && node scripts/test-electron.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

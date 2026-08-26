@@ -13,8 +13,9 @@ const e2eBaseUrl = `http://127.0.0.1:${e2ePort}`;
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
-  fullyParallel: true,
-  workers: 4,
+  // 业务状态使用同一 origin 的 localStorage；跨用例并行会互相清空或覆盖持久化数据。
+  fullyParallel: false,
+  workers: 1,
   use: { baseURL: e2eBaseUrl, trace: 'retain-on-failure' },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
