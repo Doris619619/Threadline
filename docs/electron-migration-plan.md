@@ -17,7 +17,7 @@
 | ------------- | ----------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | Plan baseline | Done        | `docs(desktop)：记录 Electron 迁移实施计划与阶段状态` | 审核通过                                                                                                                                                    | None                                                                                                                   |
 | Phase 0       | Done        | `chore(build)：建立 hoisted 依赖布局与可复现测试基线` | pnpm 11.19.0、hoisted linker、frozen install、Next 解析、lint、typecheck、11 个 unit tests 与 Web build 通过；隔离 E2E 为 31 passed / 18 failed / 3 skipped | 隔离 E2E 暴露既有任务/Daily 创建与持久化失败，Phase 9 前须修复；全局 Prettier 存在 39 个既有格式问题，改动文件单独检查 |
-| Phase 1       | Not Started | —                                                     | —                                                                                                                                                           | —                                                                                                                      |
+| Phase 1       | Done        | `refactor(desktop)：提取跨壳窗口状态与几何策略`       | typecheck 通过；desktop policy tests 13 passed；变更文件 Prettier 与 diff check 通过                                                                        | None                                                                                                                   |
 | Phase 2       | Not Started | —                                                     | —                                                                                                                                                           | —                                                                                                                      |
 | Phase 3       | Not Started | —                                                     | —                                                                                                                                                           | —                                                                                                                      |
 | Phase 4       | Not Started | —                                                     | —                                                                                                                                                           | —                                                                                                                      |
@@ -122,6 +122,8 @@ Commit：`chore(build)：建立 hoisted 依赖布局与可复现测试基线`
 - 保持 Full/Mini/Workstation 与 logical-pixel 语义，补齐多显示器、DPI、负坐标、最小化哨兵值和越界 geometry 测试。
 
 Commit：`refactor(desktop)：提取跨壳窗口状态与几何策略`
+
+**Phase 1 结果（2026-08-26）**：窗口模式、geometry 归一化、显示器可见性与 safe-bounds 已从 Tauri 适配器提取到 `src/lib/desktop-window-policy.ts`。Tauri 适配器仅保留原生 API 映射，现有 Provider 改为直接依赖纯策略；策略测试扩展为 13 个通过用例。无行为偏差。
 
 ### Phase 2：Electron 壳、hoisted 二次门禁与可打包骨架
 

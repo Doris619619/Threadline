@@ -5,16 +5,18 @@
 import { createContext, useCallback, useContext, useEffect, useRef, type MutableRefObject, type ReactNode } from 'react';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import {
-  applyDesktopWindowView,
-  getCurrentWindowState,
-  isTauriEnvironment,
-  listenDesktopWindowGeometry,
   normalizeCompactWindowState,
   normalizeWindowStates,
   type CompactPresentation,
   type CompactViewMode,
   type DesktopViewMode,
   type WindowStateConfig,
+} from '@/lib/desktop-window-policy';
+import {
+  applyDesktopWindowView,
+  getCurrentWindowState,
+  isTauriEnvironment,
+  listenDesktopWindowGeometry,
 } from '@/lib/tauri-window';
 
 const SECOND_INSTANCE_ACTIVATED_EVENT = 'threadline://second-instance-activated';
