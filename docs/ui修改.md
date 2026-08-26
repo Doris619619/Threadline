@@ -417,7 +417,7 @@ Daily Group
 适合长期阅读
 ```
 
-这是一个 **Windows Tauri 桌面应用**。
+这是一个 **Windows Electron 桌面应用**。
 
 请认真检查：
 
@@ -620,7 +620,7 @@ Responsive Design
 * 改数据结构
 * 改任务逻辑
 * 改 Daily 业务规则
-* 改 Tauri 架构
+* 改 Electron 桌面壳架构
 * 改现有数据
 * 重写整个项目
 

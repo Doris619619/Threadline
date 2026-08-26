@@ -1,19 +1,24 @@
 {
   "name": "threadline",
   "version": "0.1.0",
+  "description": "个人任务工作台的 Web、PWA 与 Windows Electron 桌面应用。",
   "private": true,
   "type": "module",
+  "main": "dist-electron/main.cjs",
   "packageManager": "pnpm@11.19.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.12.0"
   },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "tauri": "node scripts/tauri.mjs",
-    "desktop:dev": "pnpm tauri dev",
-    "desktop:build": "pnpm tauri build",
+    "desktop:dev": "node scripts/electron.mjs dev",
+    "desktop:build": "node scripts/electron.mjs package",
+    "desktop:compile": "tsc -p electron/tsconfig.json",
+    "desktop:renderer": "node scripts/electron.mjs renderer",
+    "desktop:build:dir": "node scripts/electron.mjs package-dir",
+    "desktop:electron:build": "node scripts/electron.mjs package",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
@@ -21,12 +26,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "playwright": "playwright",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:electron": "pnpm desktop:compile && pnpm build && node scripts/test-electron.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
     "@tanstack/react-query": "^5.101.4",
-    "@tauri-apps/api": "^2.11.1",
     "date-fns": "^4.4.0",
     "lucide-react": "^1.33.0",
     "next": "^16.3.2",
@@ -38,13 +43,14 @@
   "devDependencies": {
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.3.3",
-    "@tauri-apps/cli": "^2.11.4",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitest/coverage-v8": "^4.1.11",
+    "electron": "44.0.0",
+    "electron-builder": "26.15.3",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.3.2",
     "jsdom": "^30.0.1",

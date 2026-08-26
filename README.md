@@ -7,7 +7,7 @@
 ## 产品与运行形态
 
 - **Web / PWA**：Next.js App Router 应用，支持浏览器访问和 iPhone 添加到主屏后的离线应用壳。
-- **Windows 桌面版**：Tauri 2 打包同一套前端，运行时使用 WebView2；不维护第二套 UI 或业务逻辑。
+- **Windows 桌面版**：Electron 打包同一套前端；不维护第二套 UI 或业务逻辑。
 - **数据层**：未配置 Supabase 时使用本地 seed 与浏览器持久化；配置 Supabase 并建立登录态后可使用受 RLS 保护的远端仓储。
 
 核心流程包括任务规划与执行、Daily 父子任务联动、待安排和移期、回收站恢复、每日收尾，以及今日/本周复盘。
@@ -44,22 +44,25 @@ pnpm test:e2e
 
 ## Windows 桌面版
 
-桌面版使用 Tauri 2，复用同一套 Next.js 前端。需要 Node.js 22+、pnpm 11+、Rust stable（MSVC 工具链）、Visual Studio C++ Build Tools、Windows SDK 和 WebView2 Runtime。
+桌面版使用 Electron 44，复用同一套 Next.js 前端。需要 Node.js `>=22.12.0` 与 pnpm `11.19.0`；不需要 Rust 或 WebView2 工具链。
 
 ```bash
 pnpm desktop:dev
+pnpm desktop:compile
+pnpm desktop:renderer
+pnpm desktop:build:dir
 pnpm desktop:build
 ```
 
-`desktop:dev` 会自行探测 MSVC、启动 Next.js 开发服务器并打开 Threadline 窗口。`desktop:build` 仅在 Tauri 构建过程中启用 Next.js static export，产物位于 `src-tauri/target/release/bundle/`；原有的 `pnpm build` 与 `pnpm start` 仍保持 Next.js Web/PWA 生产模式。
+`desktop:dev` 会启动隔离的 Next.js 开发服务器并打开 Electron 窗口。`desktop:renderer` 只生成 `.next-electron` 静态前端；`desktop:build:dir` 生成 unpacked Windows x64 应用；`desktop:build` 生成 NSIS 安装包。原有的 `pnpm build` 与 `pnpm start` 仍保持 Next.js Web/PWA 生产模式。
 
 Windows 普通用户优先使用构建生成的 NSIS 安装器：
 
 ```text
-src-tauri/target/release/bundle/nsis/Threadline_<version>_x64-setup.exe
+release/Threadline_<version>_x64-setup.exe
 ```
 
-该文件适合上传到 GitHub Releases；`src-tauri/target/release/threadline.exe` 是裸可执行文件，通常不作为默认下载项。构建产物已被 Git 忽略，不会随源码提交。
+该文件适合上传到 GitHub Releases；`release/win-unpacked/Threadline.exe` 仅用于本地验收，通常不作为默认下载项。构建产物已被 Git 忽略，不会随源码提交。Windows 进程、快捷方式、Main/Edge 窗口统一使用 `com.doris619619.threadline` 的 AppUserModelID，以保持任务栏分组和单实例激活一致。
 
 ## Supabase
 
@@ -90,7 +93,8 @@ supabase/migrations/     PostgreSQL schema 与 RLS
 e2e/                     Playwright 端到端测试
 tests/                   Vitest 单元测试
 public/                  Manifest、图标与 Service Worker
-src-tauri/               Tauri 2 Windows 桌面壳、权限与打包配置
+electron/                Electron Main、Preload、protocol 与 Windows 打包资产
+electron-builder.config.cjs Windows x64 NSIS 打包配置
 docs/                    PRD、目标、工程协作规范、桌面交互与 PR 撰写规范
 ```
 

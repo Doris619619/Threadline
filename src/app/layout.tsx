@@ -1,6 +1,9 @@
+/**
+ * @fileoverview 定义 Threadline 根文档；业务与 PWA 运行时由 role 分流后的 Main 组件挂载。
+ */
+
 import type { Metadata } from 'next';
 import './globals.css';
-import { PwaRegistrar } from '@/components/pwa-registrar';
 
 export const metadata: Metadata = {
   title: 'Threadline · 我的工作台',
@@ -13,10 +16,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="zh-CN">
-      <body>
-        <PwaRegistrar />
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

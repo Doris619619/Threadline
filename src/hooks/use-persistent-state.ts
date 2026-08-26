@@ -25,11 +25,23 @@ export function usePersistentState<T>(
   const [value, setValue] = useState<T>(initialValue);
   const [hydrated, setHydrated] = useState(false);
   const changedBeforeHydration = useRef(false);
+  const valueRef = useRef(value);
   const repository = useMemo(() => createPersistentStateRepository(), []);
 
+  useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
+
+  /** 在已 hydration 后同步提交本次状态变更，避免紧接 reload 时丢失用户操作。 */
   const setPersistentValue: Dispatch<SetStateAction<T>> = (next) => {
     if (!hydrated) changedBeforeHydration.current = true;
-    setValue(next);
+    const resolved =
+      typeof next === 'function'
+        ? (next as (previous: T) => T)(valueRef.current)
+        : next;
+    valueRef.current = resolved;
+    if (hydrated) void repository.write(key, resolved);
+    setValue(resolved);
   };
 
   useEffect(() => {

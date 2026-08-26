@@ -1,11 +1,11 @@
 import type { NextConfig } from 'next';
 
-const isTauriBuild = process.env.TAURI_ENV_PLATFORM === 'windows';
+const isElectronBuild = process.env.ELECTRON_BUILD === 'true';
 
 const nextConfig: NextConfig = {
-  // Tauri sets this variable for its build hook. Keeping static export scoped to
-  // that hook preserves the existing `pnpm build && pnpm start` Web/PWA flow.
-  ...(isTauriBuild ? { output: 'export', distDir: '.next-tauri' } : {}),
+  // Electron export remains isolated so the normal Next Web/PWA server flow
+  // keeps its server rendering behavior.
+  ...(isElectronBuild ? { output: 'export', distDir: '.next-electron' } : {}),
   reactStrictMode: true,
   allowedDevOrigins: ['127.0.0.1'],
 };

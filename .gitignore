@@ -1,7 +1,9 @@
 # dependencies and generated builds
 node_modules/
 .next/
-.next-tauri/
+.next-electron/
+dist-electron/
+release/
 out/
 dist/
 .tmp/
@@ -10,7 +12,6 @@ coverage/
 playwright-report/
 test-results/
 .pnpm-store/
-src-tauri/target/
 
 # local environment files
 .env.local
