@@ -23,6 +23,13 @@
 
 edge tab 固定在当前窗口所在显示器的工作区右边缘，使用 Tauri `currentMonitor().workArea` 并转换为 logical pixel，避免多显示器和 DPI 缩放下的单屏硬编码。
 
+## 原生窗口恢复与单实例
+
+- 只在状态水合完成时恢复一次原生窗口；用户移动/缩放产生的 geometry 写回不会反向触发窗口 apply，避免持续跳动。
+- 展开窗口恢复前会以 `availableMonitors()` 的 logical work area 校验可见矩形。`-32000` 最小化哨兵、已拔除显示器、DPI 变化或只露出极小边缘时，完整工作台居中回退，迷你今日和工作站回退到当前工作区右上方并保留 24px 边距。
+- 最小化期间不持久化 geometry。每次启动、三态切换、edge tab 恢复和第二次启动都会先取消最小化、显示并聚焦窗口，再执行可见性保护。
+- Windows 使用官方 `tauri-plugin-single-instance`。重复启动不会创建第二个应用；既有窗口会被唤醒。若它处于 edge tab，前端收到 `threadline://second-instance-activated` 后恢复最近的紧凑视图；若已展开，则保留当前视图。
+
 ## 持久化与尺寸保护
 
 - v3 key：`threadline.desktop-mode.v3`、`threadline.desktop-window-states.v3`、`threadline.desktop-last-compact-mode.v3`、`threadline.desktop-compact-presentation.v3`。
