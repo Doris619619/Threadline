@@ -18,6 +18,8 @@ import { pathToFileURL } from 'node:url';
 
 const APP_PROTOCOL = 'threadline';
 const APP_HOST = 'app';
+const APP_USER_MODEL_ID = 'com.doris619619.threadline';
+const PRODUCT_NAME = 'Threadline';
 const DEFAULT_RENDERER_URL = 'http://127.0.0.1:3118';
 const STARTUP_TIMEOUT_MS = 8_000;
 type DesktopViewMode = 'full' | 'mini-today' | 'workstation';
@@ -58,6 +60,7 @@ let nativeRevision = 0;
 let suppressGeometryUntil = 0;
 let userGeometryTimer: ReturnType<typeof setTimeout> | undefined;
 let intentionallyClosingEdge = false;
+let rebuildingMain = false;
 let latestState: DesktopHydrationPayload = {
   requestId: 0,
   mode: 'full',
@@ -72,6 +75,11 @@ protocol.registerSchemesAsPrivileged([
     privileges: { secure: true, standard: true, supportFetchAPI: true },
   },
 ]);
+
+app.setAppUserModelId(APP_USER_MODEL_ID);
+app.setName(PRODUCT_NAME);
+
+if (!app.requestSingleInstanceLock()) app.quit();
 
 /** 返回打包应用中静态 Next export 的绝对目录。 */
 function getRendererDirectory(): string {
@@ -358,6 +366,46 @@ function recoverFromEdgeFailure(reason: string): void {
   void ensureVisibleSurface(reason).catch(exitAfterStartupFailure);
 }
 
+/** 激活已有实例的当前 surface；只有状态异常时才重建并显示 Main。 */
+async function activateExistingInstance(): Promise<void> {
+  if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
+    edgeWindow.show();
+    edgeWindow.focus();
+    return;
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    revealMain();
+    return;
+  }
+  await ensureVisibleSurface('second-instance-main-unavailable');
+}
+
+/** Edge 可见时静默重建崩溃或关闭的 Main；否则恢复安全 Main 或退出。 */
+function recoverFromMainFailure(reason: string): void {
+  if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
+    if (rebuildingMain) return;
+    rebuildingMain = true;
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.destroy();
+    mainWindow = undefined;
+    mainReadyToShow = false;
+    void createMainWindow()
+      .catch(exitAfterStartupFailure)
+      .finally(() => {
+        rebuildingMain = false;
+      });
+    return;
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.reload();
+    mainWindow.once('ready-to-show', () => {
+      mainReadyToShow = true;
+      void revealSafeFull(reason).catch(exitAfterStartupFailure);
+    });
+  } else {
+    void ensureVisibleSurface(reason).catch(exitAfterStartupFailure);
+  }
+}
+
 /** 加载并 reveal 固定尺寸 Edge；失败由调用方回退 Main。 */
 async function revealEdge(): Promise<void> {
   if (!edgeWindow || edgeWindow.isDestroyed()) {
@@ -525,17 +573,29 @@ async function createMainWindow(): Promise<void> {
     minHeight: 560,
   });
   mainWindow = window;
+  let userRequestedClose = false;
   window.once('ready-to-show', () => {
     mainReadyToShow = true;
   });
   window.webContents.on('render-process-gone', () => {
-    if (!window.isDestroyed() && !window.isVisible())
-      void revealSafeFull('main-renderer-crashed').catch(exitAfterStartupFailure);
+    if (!window.isDestroyed()) recoverFromMainFailure('main-renderer-crashed');
   });
   window.on('move', publishUserGeometry);
   window.on('resize', publishUserGeometry);
+  window.on('close', () => {
+    userRequestedClose = true;
+  });
   window.on('closed', () => {
-    mainWindow = undefined;
+    if (mainWindow === window) mainWindow = undefined;
+    mainReadyToShow = false;
+    if (rebuildingMain) return;
+    if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
+      recoverFromMainFailure('main-closed-while-edge-visible');
+    } else if (userRequestedClose) {
+      app.quit();
+    } else {
+      recoverFromMainFailure('main-closed-unexpectedly');
+    }
   });
   await window.loadURL(getRendererUrl('main'));
 }
@@ -575,6 +635,10 @@ app.whenReady().then(async () => {
   } catch (error) {
     exitAfterStartupFailure(error);
   }
+});
+
+app.on('second-instance', () => {
+  void activateExistingInstance().catch(exitAfterStartupFailure);
 });
 
 app.on('window-all-closed', () => app.quit());
