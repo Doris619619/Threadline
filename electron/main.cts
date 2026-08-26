@@ -260,12 +260,22 @@ function applyMainNativeState(
 ): void {
   if (!mainWindow || mainWindow.isDestroyed())
     throw new Error('Main window is unavailable');
+  const compactLimits =
+    mode === 'mini-today'
+      ? { minWidth: 340, minHeight: 420, maxWidth: 560, maxHeight: 820 }
+      : mode === 'workstation'
+        ? { minWidth: 260, minHeight: 220, maxWidth: 360, maxHeight: 640 }
+        : undefined;
   mainWindow.setAlwaysOnTop(mode !== 'full');
-  mainWindow.setResizable(mode === 'full');
+  mainWindow.setResizable(true);
   mainWindow.setMaximizable(mode === 'full');
   mainWindow.setMinimumSize(
-    mode === 'full' ? 800 : geometry.width,
-    mode === 'full' ? 560 : geometry.height,
+    compactLimits?.minWidth ?? 800,
+    compactLimits?.minHeight ?? 560,
+  );
+  mainWindow.setMaximumSize(
+    compactLimits?.maxWidth ?? 0,
+    compactLimits?.maxHeight ?? 0,
   );
   suppressGeometryUntil = Date.now() + 320;
   mainWindow.setBounds(geometry);
