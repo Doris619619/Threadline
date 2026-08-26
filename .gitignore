@@ -2,6 +2,9 @@
 node_modules/
 .next/
 .next-tauri/
+.next-electron/
+dist-electron/
+release/
 out/
 dist/
 .tmp/
