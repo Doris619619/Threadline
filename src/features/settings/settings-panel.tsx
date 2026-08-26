@@ -29,14 +29,15 @@ export function SettingsPanel({ historyContent }: { historyContent: ReactNode })
           <header>
             <div>
               <h2>Windows 桌面窗口</h2>
-              <p>完整工作台与迷你今日使用系统标题栏；悬浮图标始终置顶。</p>
+              <p>完整工作台、迷你今日与工作站共用同一个主窗口；紧凑视图可收起为右侧入口。</p>
             </div>
-            <span>当前：{mode === 'full' ? '完整工作台' : mode === 'mini-today' ? '迷你今日' : '悬浮图标'}</span>
+            <span>当前：{mode === 'full' ? '完整工作台' : mode === 'mini-today' ? '迷你今日' : '工作站'}</span>
           </header>
           <dl>
             <div><dt>完整工作台</dt><dd>显示首页、日程、项目、统计、复盘与设置。</dd></div>
-            <div><dt>迷你今日</dt><dd>只显示今日已排程任务，不显示项目和 Daily。</dd></div>
-            <div><dt>悬浮图标</dt><dd>单击恢复，拖动移动，右键可调整图标大小。</dd></div>
+            <div><dt>迷你今日</dt><dd>置顶快速查看今日日程与无时间待办，可直接维护工作站。</dd></div>
+            <div><dt>工作站</dt><dd>置顶显示当前推进的任务引用；移除和清空均不会删除原任务。</dd></div>
+            <div><dt>右侧悬浮标</dt><dd>不是第四种窗口模式，而是迷你今日或工作站的收起状态；悬停自动展开。</dd></div>
           </dl>
           <button type="button" className="tl-button tl-button--secondary" onClick={() => void resetWindowStates()}>
             <RotateCcw size={16} aria-hidden="true" /> 重置窗口尺寸与位置
