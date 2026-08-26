@@ -8,9 +8,9 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import {
   applyDesktopWindowMode,
-  DEFAULT_WINDOW_CONFIGS,
   getCurrentWindowState,
   listenDesktopWindowGeometry,
+  normalizeFloatingWindowState,
   setFloatingContextMenuOpen,
   type DesktopWindowMode,
   type WindowStateConfig,
@@ -56,17 +56,27 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
   const mountedRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const ignoreFloatingMenuGeometryRef = useRef(false);
+  const applyingModeRef = useRef(false);
   const [floatingContextOpen, setFloatingContextOpenState] = useState(false);
 
-  /** 保存当前窗口的尺寸与位置；悬浮态也保存图标位置和尺寸。 */
+  /** 保存当前窗口尺寸和位置；切换期间不记录中间态，悬浮态仅保存位置与合法图标规格。 */
   const persistCurrentState = useCallback(async () => {
-    if (ignoreFloatingMenuGeometryRef.current) return;
+    if (ignoreFloatingMenuGeometryRef.current || applyingModeRef.current) return;
     const geometry = await getCurrentWindowState();
     if (!geometry) return;
-    setWindowStates((current) => ({ ...current, [mode]: geometry }));
+    setWindowStates((current) => {
+      if (mode === 'floating-icon') {
+        const icon = normalizeFloatingWindowState(current['floating-icon']);
+        return {
+          ...current,
+          'floating-icon': { ...icon, x: geometry.x, y: geometry.y },
+        };
+      }
+      return { ...current, [mode]: geometry };
+    });
   }, [mode, setWindowStates]);
 
-  /** 先写入旧形态，再将 Tauri 窗口切换到目标形态。 */
+  /** 先保存旧形态，再以受保护的原子切换应用目标原生窗口规格。 */
   const setMode = useCallback(
     async (next: DesktopWindowMode) => {
       if (next === mode) return;
@@ -78,10 +88,25 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
         ignoreFloatingMenuGeometryRef.current = false;
         setFloatingContextOpenState(false);
       }
+      const nextStates =
+        next === 'floating-icon'
+          ? {
+              ...windowStates,
+              'floating-icon': normalizeFloatingWindowState(windowStates['floating-icon']),
+            }
+          : windowStates;
+      applyingModeRef.current = true;
+      setWindowStates(nextStates);
       setModeState(next);
-      await applyDesktopWindowMode(next, windowStates);
+      try {
+        await applyDesktopWindowMode(next, nextStates);
+      } finally {
+        window.setTimeout(() => {
+          applyingModeRef.current = false;
+        }, 250);
+      }
     },
-    [mode, persistCurrentState, setModeBeforeFloating, setModeState, windowStates],
+    [mode, persistCurrentState, setModeBeforeFloating, setModeState, setWindowStates, windowStates],
   );
 
   /** 从悬浮图标恢复用户上次使用的完整或迷你形态。 */
@@ -93,7 +118,7 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
   const setFloatingSize = useCallback(
     async (size: number) => {
       const next = Math.max(56, Math.min(88, size));
-      const current = windowStates['floating-icon'] ?? DEFAULT_WINDOW_CONFIGS['floating-icon'];
+      const current = normalizeFloatingWindowState(windowStates['floating-icon']);
       const nextStates = {
         ...windowStates,
         'floating-icon': { ...current, width: next, height: next },

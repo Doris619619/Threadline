@@ -17,6 +17,39 @@ export const DEFAULT_WINDOW_CONFIGS: Record<DesktopWindowMode, WindowStateConfig
   'floating-icon': { width: 72, height: 72 },
 };
 
+export const FLOATING_ICON_SIZES = [56, 72, 88] as const;
+
+/**
+ * 过滤悬浮图标的持久化尺寸，历史误存的工作台宽高不会再让图标窗口变成长条。
+ */
+export function normalizeFloatingWindowState(
+  state?: WindowStateConfig,
+): WindowStateConfig {
+  const fallback = DEFAULT_WINDOW_CONFIGS['floating-icon'];
+  const isSupportedSize = FLOATING_ICON_SIZES.includes(
+    state?.width as (typeof FLOATING_ICON_SIZES)[number],
+  );
+  const size = isSupportedSize && state && state.height === state.width ? state.width : fallback.width;
+  return {
+    width: size,
+    height: size,
+    ...(typeof state?.x === 'number' && typeof state?.y === 'number'
+      ? { x: state.x, y: state.y }
+      : {}),
+  };
+}
+
+/**
+ * 执行单项原生窗口设置；某项权限或平台能力不可用时记录警告，但不阻断尺寸等关键后续设置。
+ */
+async function applyWindowAction(name: string, action: () => Promise<void>): Promise<void> {
+  try {
+    await action();
+  } catch (error) {
+    console.warn(`[TauriWindowBridge] ${name} error:`, error);
+  }
+}
+
 /** 检查当前页面是否运行在 Tauri WebView 中。 */
 export function isTauriEnvironment(): boolean {
   return (
@@ -37,25 +70,36 @@ export async function applyDesktopWindowMode(
   try {
     const { getCurrentWindow, LogicalPosition, LogicalSize } = await import('@tauri-apps/api/window');
     const appWindow = getCurrentWindow();
-    const target = savedStates?.[mode] ?? DEFAULT_WINDOW_CONFIGS[mode];
     const isFloating = mode === 'floating-icon';
     const isMini = mode === 'mini-today';
+    const target = isFloating
+      ? normalizeFloatingWindowState(savedStates?.['floating-icon'])
+      : savedStates?.[mode] ?? DEFAULT_WINDOW_CONFIGS[mode];
 
-    await appWindow.unmaximize();
-    await appWindow.setAlwaysOnTop(isFloating || isMini);
-    await appWindow.setDecorations(!isFloating);
-    await appWindow.setShadow(!isFloating);
-    await appWindow.setResizable(!isFloating);
-    await appWindow.setMaximizable(mode === 'full');
-    await appWindow.setMinSize(
-      isFloating
-        ? new LogicalSize(target.width, target.height)
-        : new LogicalSize(isMini ? 320 : 960, isMini ? 360 : 640),
+    await applyWindowAction('unmaximize', () => appWindow.unmaximize());
+    await applyWindowAction('set always on top', () => appWindow.setAlwaysOnTop(isFloating || isMini));
+    await applyWindowAction('set decorations', () => appWindow.setDecorations(!isFloating));
+    await applyWindowAction('set shadow', () => appWindow.setShadow(!isFloating));
+    await applyWindowAction('set resizable', () => appWindow.setResizable(!isFloating));
+    await applyWindowAction('set maximizable', () => appWindow.setMaximizable(mode === 'full'));
+    await applyWindowAction('set minimum size', () =>
+      appWindow.setMinSize(
+        isFloating
+          ? new LogicalSize(target.width, target.height)
+          : new LogicalSize(isMini ? 320 : 960, isMini ? 360 : 640),
+      ),
     );
-    await appWindow.setMaxSize(isFloating ? new LogicalSize(target.width, target.height) : null);
-    await appWindow.setSize(new LogicalSize(target.width, target.height));
+    await applyWindowAction('set maximum size', () =>
+      appWindow.setMaxSize(isFloating ? new LogicalSize(target.width, target.height) : null),
+    );
+    await applyWindowAction('set size', () =>
+      appWindow.setSize(new LogicalSize(target.width, target.height)),
+    );
     if (typeof target.x === 'number' && typeof target.y === 'number') {
-      await appWindow.setPosition(new LogicalPosition(target.x, target.y));
+      const position = new LogicalPosition(target.x, target.y);
+      await applyWindowAction('set position', () =>
+        appWindow.setPosition(position),
+      );
     }
   } catch (error) {
     console.warn('[TauriWindowBridge] applyDesktopWindowMode error:', error);
@@ -107,7 +151,7 @@ export async function setFloatingContextMenuOpen(
   try {
     const { getCurrentWindow, LogicalSize } = await import('@tauri-apps/api/window');
     const appWindow = getCurrentWindow();
-    const iconSize = savedState?.width ?? DEFAULT_WINDOW_CONFIGS['floating-icon'].width;
+    const iconSize = normalizeFloatingWindowState(savedState).width;
     const size = open ? new LogicalSize(264, 216) : new LogicalSize(iconSize, iconSize);
     await appWindow.setMinSize(size);
     await appWindow.setMaxSize(size);

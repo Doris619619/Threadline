@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "enables the default permissions",
+  "description": "Enables default and three-state desktop window controls for the main window.",
   "windows": [
     "main"
   ],
@@ -9,9 +9,13 @@
     "core:default",
     "core:window:allow-set-size",
     "core:window:allow-set-position",
-    "core:window:allow-set-always-on-top",
-    "core:window:allow-set-decorations",
-    "core:window:allow-set-shadow",
+    "core:window:allow-set-always-on-top",
+    "core:window:allow-set-decorations",
+    "core:window:allow-set-shadow",
+    "core:window:allow-set-resizable",
+    "core:window:allow-set-maximizable",
+    "core:window:allow-set-min-size",
+    "core:window:allow-set-max-size",
     "core:window:allow-start-dragging",
     "core:window:allow-minimize",
     "core:window:allow-maximize",
