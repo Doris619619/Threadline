@@ -26,7 +26,7 @@
 | Phase 7       | Done        | `feat(windows)：统一单实例生命周期与任务栏应用身份`                                             | lint、typecheck、13 个 unit tests、Main/Preload compile 通过                                                                                                              | None                                                                                                                   |
 | Phase 8       | Done        | `refactor(web)：解除 PWA 与 Tauri 环境探测耦合`                                                 | lint、typecheck、13 个 unit tests、Web build、desktop renderer export 与 Main/Preload compile 通过                                                                        | None                                                                                                                   |
 | Phase 9       | Done        | `test(desktop)：覆盖 Electron 启动切换与故障恢复`                                               | typecheck、lint、Vitest（13 passed）、Electron window smoke、desktop/mobile 浏览器 E2E（52 passed，3 个 desktop-only skipped）通过                                        | Electron smoke 的测试 user-data 改用系统临时目录，防止 Chromium 锁文件被 Next 构建扫描；生产沙箱配置不变               |
-| Phase 10      | Not Started | —                                                                                               | —                                                                                                                                                                         | —                                                                                                                      |
+| Phase 10      | Done        | `build(windows)：配置 Threadline NSIS 安装与发布产物`                                           | Windows x64 unpacked app、181,861,699-byte NSIS installer、临时目录静默安装/启动/卸载均通过                                                                               | 官方 artifact 下载仅在当前会话临时使用本机代理；跨版本升级和手工任务栏固定未在自动化环境验证                           |
 | Phase 11      | Not Started | —                                                                                               | —                                                                                                                                                                         | —                                                                                                                      |
 
 ## 不可变架构决策
@@ -221,6 +221,10 @@ Commit：`test(desktop)：覆盖 Electron 启动切换与故障恢复`
 - Main/Edge 必须归入一个 Threadline 任务栏组，固定快捷方式再次启动命中同一实例。
 
 Commit：`build(windows)：配置 Threadline NSIS 安装与发布产物`
+
+**Phase 10 结果（2026-08-26）**：electron-builder 已配置统一的 `appId`、`productName`、正式 ICO、Windows x64 NSIS、用户级可选安装、开始菜单/桌面快捷方式、`release/` 输出目录和 `Threadline_${version}_${arch}-setup.${ext}` 命名。`pnpm desktop:build:dir` 与 `pnpm desktop:electron:build` 均生成 Windows x64 unpacked app，后者生成 `Threadline_0.1.0_x64-setup.exe`（181,861,699 bytes）。在干净临时目录中，安装器静默安装返回 0、产出 `Threadline.exe` 与卸载器、应用可启动、卸载返回 0 且应用文件移除。
+
+**Phase 10 deviations（2026-08-26）**：Electron 官方 artifact 直连网络超时时，仅在当前 PowerShell 的官方下载/打包流程临时设置 `HTTP_PROXY` 与 `HTTPS_PROXY` 为 `http://127.0.0.1:7890`；先验证 Electron 官方 GitHub Release artifact 返回 HTTP 200，仍使用官方来源与默认 checksum 校验，并在每条流程结束后清除变量，未形成项目永久依赖。当前 pnpm store SQLite 索引无法打开时，electron-builder 的 pnpm 依赖收集会失败；本次仅将生成的 modules metadata 临时指向干净索引以完成同一套 pnpm collector，随后恢复，未改锁文件或仓库配置。跨版本覆盖升级、手工任务栏固定和真实多窗口任务栏分组仍需在交互式干净 Windows 用户环境复验。
 
 ### Phase 11：删除 Tauri 并完成文档交接
 

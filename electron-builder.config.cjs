@@ -10,7 +10,7 @@ module.exports = {
   asar: true,
   win: {
     target: [{ target: 'nsis', arch: ['x64'] }],
-    icon: 'src-tauri/icons/icon.ico',
+    icon: 'electron/assets/icon.ico',
   },
   nsis: {
     oneClick: false,

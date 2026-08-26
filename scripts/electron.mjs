@@ -53,8 +53,6 @@ function packageApplication(argumentsList) {
     'node_modules/electron-builder/out/cli/cli.js',
     '--config',
     'electron-builder.config.cjs',
-    '--win',
-    '--x64',
     ...argumentsList,
   ]);
 }
@@ -90,9 +88,9 @@ async function runDevelopmentShell() {
 if (command === 'renderer') {
   buildRenderer();
 } else if (command === 'package-dir') {
-  packageApplication(['--dir']);
+  packageApplication(['--win', '--x64', '--dir']);
 } else if (command === 'package') {
-  packageApplication([]);
+  packageApplication(['--win', 'nsis', '--x64']);
 } else if (command === 'dev') {
   await runDevelopmentShell();
 } else {
