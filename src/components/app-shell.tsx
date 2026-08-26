@@ -2,47 +2,211 @@
 
 'use client';
 
-import { CalendarDays, ChartNoAxesCombined, ClipboardList, FolderKanban, Home, Settings, Sparkles } from 'lucide-react';
+import {
+  CalendarDays,
+  ChartNoAxesCombined,
+  ClipboardList,
+  FolderKanban,
+  Home,
+  Settings,
+  Sparkles,
+} from 'lucide-react';
 import { createContext, useContext, useRef, useState } from 'react';
 import { addDays, format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { SidebarItem } from '@/components/ui/sidebar-item';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
-import { startTauriDragging } from '@/lib/tauri-window';
 
 const navigation = [
-  { id: 'home', label: '首页', icon: Home, description: '安排、执行、记录今天' }, { id: 'schedule', label: '日程', icon: CalendarDays, description: '按时间查看今天的任务' }, { id: 'projects', label: '项目', icon: FolderKanban, description: '管理长期事项与任务归属' }, { id: 'stats', label: '统计', icon: ChartNoAxesCombined, description: '了解投入时间与完成趋势' }, { id: 'review', label: '复盘', icon: ClipboardList, description: '回顾完成、遗留与下一步' }, { id: 'settings', label: '设置', icon: Settings, description: '桌面窗口、历史与回收站' },
+  { id: 'home', label: '首页', icon: Home, description: '安排、执行、记录今天' },
+  {
+    id: 'schedule',
+    label: '日程',
+    icon: CalendarDays,
+    description: '按时间查看今天的任务',
+  },
+  {
+    id: 'projects',
+    label: '项目',
+    icon: FolderKanban,
+    description: '管理长期事项与任务归属',
+  },
+  {
+    id: 'stats',
+    label: '统计',
+    icon: ChartNoAxesCombined,
+    description: '了解投入时间与完成趋势',
+  },
+  {
+    id: 'review',
+    label: '复盘',
+    icon: ClipboardList,
+    description: '回顾完成、遗留与下一步',
+  },
+  {
+    id: 'settings',
+    label: '设置',
+    icon: Settings,
+    description: '桌面窗口、历史与回收站',
+  },
 ] as const;
 export type WorkspaceViewId = (typeof navigation)[number]['id'];
 type WorkspaceView = { active: WorkspaceViewId; selectedDate: string };
-const WorkspaceViewContext = createContext<WorkspaceView>({ active: 'home', selectedDate: '2026-08-23' });
+const WorkspaceViewContext = createContext<WorkspaceView>({
+  active: 'home',
+  selectedDate: '2026-08-23',
+});
 /** 读取完整工作台导航状态与当前工作日期。 */
 export const useWorkspaceView = () => useContext(WorkspaceViewContext);
 
-/** 提供只在顶部窄条触发的原生窗口拖动，内容区保留给任务操作与拖放。 */
+/** 提供紧凑视图标题栏与模式控制；Electron 使用原生 frame，无需 Renderer 拖动 API。 */
 function CompactWindowHeader() {
-  const { isMiniToday, setMode, collapseCompactView } = useDesktopWindow(); const dragStartRef = useRef<{ x: number; y: number } | undefined>(undefined);
-  /** 指针移动超过容差后交给 Tauri，避免点击控制按钮时误拖动窗口。 */
-  const onPointerMove = (event: React.PointerEvent<HTMLElement>) => { const start = dragStartRef.current; if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 5) { dragStartRef.current = undefined; void startTauriDragging(); } };
-  return <header className="compact-window-header" onPointerDown={(event) => { if (event.target === event.currentTarget) dragStartRef.current = { x: event.clientX, y: event.clientY }; }} onPointerMove={onPointerMove} onPointerUp={() => { dragStartRef.current = undefined; }}><span className="compact-window-title">{isMiniToday ? '迷你今日' : '工作站'}</span><div className="compact-window-actions"><button type="button" onClick={() => void setMode(isMiniToday ? 'workstation' : 'mini-today')}>{isMiniToday ? '工作站' : '今日'}</button><button type="button" onClick={() => void collapseCompactView()}>收起</button></div></header>;
+  const { isMiniToday, setMode, collapseCompactView } = useDesktopWindow();
+  return (
+    <header className="compact-window-header">
+      <span className="compact-window-title">
+        {isMiniToday ? '迷你今日' : '工作站'}
+      </span>
+      <div className="compact-window-actions">
+        <button
+          type="button"
+          onClick={() => void setMode(isMiniToday ? 'workstation' : 'mini-today')}
+        >
+          {isMiniToday ? '工作站' : '今日'}
+        </button>
+        <button type="button" onClick={() => void collapseCompactView()}>
+          收起
+        </button>
+      </div>
+    </header>
+  );
 }
 
 /** 展示右侧窄标签；悬停有短容差后恢复最近紧凑视图。 */
 function EdgeTab() {
-  const { mode, restoreCompactView } = useDesktopWindow(); const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const { mode, restoreCompactView } = useDesktopWindow();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   /** 仅连续悬停后恢复，防止鼠标掠过屏幕右缘反复弹窗。 */
-  const onPointerEnter = () => { timerRef.current = setTimeout(() => void restoreCompactView(), 260); };
-  return <button type="button" className="edge-tab" aria-label={`展开${mode === 'workstation' ? '工作站' : '迷你今日'}`} onPointerEnter={onPointerEnter} onPointerLeave={() => { if (timerRef.current) clearTimeout(timerRef.current); }} onClick={() => void restoreCompactView()}><span>{mode === 'workstation' ? '工作站' : '迷你今日'}</span><small>展开</small></button>;
+  const onPointerEnter = () => {
+    timerRef.current = setTimeout(() => void restoreCompactView(), 260);
+  };
+  return (
+    <button
+      type="button"
+      className="edge-tab"
+      aria-label={`展开${mode === 'workstation' ? '工作站' : '迷你今日'}`}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={() => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+      }}
+      onClick={() => void restoreCompactView()}
+    >
+      <span>{mode === 'workstation' ? '工作站' : '迷你今日'}</span>
+      <small>展开</small>
+    </button>
+  );
 }
 
 /** 根据 desktop presentation 渲染完整壳层、compact 壳层或 edge tab。 */
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const [active, setActive] = useState<WorkspaceViewId>('home'); const [selectedDate, setSelectedDate] = useState('2026-08-23'); const { isCompact, isEdgeCollapsed, setMode } = useDesktopWindow(); const activeItem = navigation.find((item) => item.id === active) ?? navigation[0];
+  const [active, setActive] = useState<WorkspaceViewId>('home');
+  const [selectedDate, setSelectedDate] = useState('2026-08-23');
+  const { isCompact, isEdgeCollapsed, setMode } = useDesktopWindow();
+  const activeItem = navigation.find((item) => item.id === active) ?? navigation[0];
   /** 切换当前工作日期。 */
-  const shiftDate = (amount: number) => setSelectedDate((current) => format(addDays(new Date(`${current}T00:00:00`), amount), 'yyyy-MM-dd'));
-  const weekday = format(new Date(`${selectedDate}T00:00:00`), 'EE', { locale: zhCN }); if (isEdgeCollapsed) return <EdgeTab />;
-  return <div className={`tl-window mode-${isCompact ? 'compact' : 'full'}`}>
-    {!isCompact && <aside className="tl-sidebar"><a className="tl-brand" href="#main-content">我的工作台</a><nav aria-label="主导航">{navigation.map(({ id, label, icon: Icon }) => <SidebarItem key={id} active={active === id} onClick={() => setActive(id)}><Icon aria-hidden="true" size={18} />{label}</SidebarItem>)}</nav><div className="tl-profile"><div className="tl-avatar" aria-hidden="true">柠</div><span><b>柠檬同学</b><small>专注 · 高效 · 成长</small></span><Sparkles aria-hidden="true" size={16} /></div></aside>}
-    <main id="main-content" className="tl-main">{isCompact ? <CompactWindowHeader /> : <header className="tl-header"><div><h1>{activeItem.label === '首页' ? '我的工作台' : activeItem.label}</h1><p>{activeItem.description}</p></div><div className="tl-header-actions"><div className="tl-date"><button aria-label="前一天" onClick={() => shiftDate(-1)}>‹</button><time dateTime={selectedDate}>{selectedDate}　{weekday}</time><button aria-label="后一天" onClick={() => shiftDate(1)}>›</button><button aria-label="选择日期" onClick={() => (document.getElementById('workspace-date-picker') as HTMLInputElement | null)?.showPicker()}><CalendarDays size={20} /></button><input id="workspace-date-picker" aria-label="工作区日期" className="sr-only" type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} /></div><div className="full-window-entries"><button type="button" onClick={() => void setMode('mini-today')}>迷你今日</button><button type="button" onClick={() => void setMode('workstation')}>工作站</button></div></div></header>}<WorkspaceViewContext.Provider value={{ active, selectedDate }}>{children}</WorkspaceViewContext.Provider></main>
-  </div>;
+  const shiftDate = (amount: number) =>
+    setSelectedDate((current) =>
+      format(addDays(new Date(`${current}T00:00:00`), amount), 'yyyy-MM-dd'),
+    );
+  const weekday = format(new Date(`${selectedDate}T00:00:00`), 'EE', { locale: zhCN });
+  if (isEdgeCollapsed) return <EdgeTab />;
+  return (
+    <div className={`tl-window mode-${isCompact ? 'compact' : 'full'}`}>
+      {!isCompact && (
+        <aside className="tl-sidebar">
+          <a className="tl-brand" href="#main-content">
+            我的工作台
+          </a>
+          <nav aria-label="主导航">
+            {navigation.map(({ id, label, icon: Icon }) => (
+              <SidebarItem
+                key={id}
+                active={active === id}
+                onClick={() => setActive(id)}
+              >
+                <Icon aria-hidden="true" size={18} />
+                {label}
+              </SidebarItem>
+            ))}
+          </nav>
+          <div className="tl-profile">
+            <div className="tl-avatar" aria-hidden="true">
+              柠
+            </div>
+            <span>
+              <b>柠檬同学</b>
+              <small>专注 · 高效 · 成长</small>
+            </span>
+            <Sparkles aria-hidden="true" size={16} />
+          </div>
+        </aside>
+      )}
+      <main id="main-content" className="tl-main">
+        {isCompact ? (
+          <CompactWindowHeader />
+        ) : (
+          <header className="tl-header">
+            <div>
+              <h1>{activeItem.label === '首页' ? '我的工作台' : activeItem.label}</h1>
+              <p>{activeItem.description}</p>
+            </div>
+            <div className="tl-header-actions">
+              <div className="tl-date">
+                <button aria-label="前一天" onClick={() => shiftDate(-1)}>
+                  ‹
+                </button>
+                <time dateTime={selectedDate}>
+                  {selectedDate}　{weekday}
+                </time>
+                <button aria-label="后一天" onClick={() => shiftDate(1)}>
+                  ›
+                </button>
+                <button
+                  aria-label="选择日期"
+                  onClick={() =>
+                    (
+                      document.getElementById(
+                        'workspace-date-picker',
+                      ) as HTMLInputElement | null
+                    )?.showPicker()
+                  }
+                >
+                  <CalendarDays size={20} />
+                </button>
+                <input
+                  id="workspace-date-picker"
+                  aria-label="工作区日期"
+                  className="sr-only"
+                  type="date"
+                  value={selectedDate}
+                  onChange={(event) => setSelectedDate(event.target.value)}
+                />
+              </div>
+              <div className="full-window-entries">
+                <button type="button" onClick={() => void setMode('mini-today')}>
+                  迷你今日
+                </button>
+                <button type="button" onClick={() => void setMode('workstation')}>
+                  工作站
+                </button>
+              </div>
+            </div>
+          </header>
+        )}
+        <WorkspaceViewContext.Provider value={{ active, selectedDate }}>
+          {children}
+        </WorkspaceViewContext.Provider>
+      </main>
+    </div>
+  );
 }
