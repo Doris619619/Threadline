@@ -9,11 +9,9 @@ export default defineConfig([
   ...nextTypescript,
   globalIgnores([
     '.next/**',
-    '.next-tauri/**',
     '.next-electron/**',
     'dist-electron/**',
     'node_modules/**',
-    'src-tauri/target/**',
     'coverage/**',
     'playwright-report/**',
   ]),
