@@ -24,6 +24,8 @@ import {
 import { ProjectPanel } from '@/features/projects/project-panel';
 import { ReviewPanel } from '@/features/reviews/review-panel';
 import { HistoryPanel } from '@/features/history/history-panel';
+import { SettingsPanel } from '@/features/settings/settings-panel';
+import { StatsPanel } from '@/features/stats/stats-panel';
 import { useWorkspaceView } from '@/components/app-shell';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import { usePersistentState } from '@/hooks/use-persistent-state';
@@ -702,7 +704,17 @@ export function TaskDashboard() {
         onChange={setWorkspaceProjects}
       />
     );
-  if (active === 'stats' || active === 'review')
+  if (active === 'stats')
+    return (
+      <StatsPanel
+        tasks={tasks}
+        projects={workspaceProjects}
+        daily={daily}
+        dailyHistory={dailyHistory}
+        selectedDate={selectedDate}
+      />
+    );
+  if (active === 'review')
     return (
       <ReviewPanel
         tasks={tasks}
@@ -716,18 +728,29 @@ export function TaskDashboard() {
     );
   if (active === 'settings')
     return (
-      <HistoryPanel
-        tasks={tasks}
-        history={history}
-        closeRecords={closeRecords}
-        dailyHistory={dailyHistory}
-        onUpdate={update}
+      <SettingsPanel
+        historyContent={
+          <HistoryPanel
+            tasks={tasks}
+            history={history}
+            closeRecords={closeRecords}
+            dailyHistory={dailyHistory}
+            onUpdate={update}
+          />
+        }
       />
     );
   if (isFloatingIcon) return null;
+  const isSchedulePage = active === 'schedule';
   return (
-    <div className="dashboard dashboard-annotatable">
-      {!isMiniToday && (
+    <div className={`dashboard dashboard-annotatable${isSchedulePage ? ' schedule-workspace' : ''}`} data-testid={isSchedulePage ? 'schedule-panel' : 'home-panel'}>
+      {isSchedulePage && !isMiniToday && (
+        <div className="schedule-workspace-intro">
+          <span>今日安排</span>
+          <p>待填时间任务固定在最上方；拖动任务可在日程和无时间待办之间移动。</p>
+        </div>
+      )}
+      {!isMiniToday && !isSchedulePage && (
       <Surface className="metric-strip">
         <StatItem
           label="普通任务"
@@ -1009,7 +1032,7 @@ export function TaskDashboard() {
             </div>
           )}
         </Surface>
-        {!isMiniToday && (
+        {!isMiniToday && !isSchedulePage && (
         <div className="side-column">
           <Surface
             className={`quick-panel${dropTarget === 'quick' ? ' is-drop-target' : ''}`}
@@ -1184,7 +1207,7 @@ export function TaskDashboard() {
         </div>
         )}
       </div>
-      {!isMiniToday && (
+      {!isMiniToday && !isSchedulePage && (
       <PlanningQueue
         tasks={backlog}
         projects={workspaceProjects}
@@ -1207,7 +1230,7 @@ export function TaskDashboard() {
         }}
       />
       )}
-      {!isMiniToday && (
+      {!isMiniToday && !isSchedulePage && (
       <button
         className="finish-day"
         disabled={isDayClosed}
@@ -1680,7 +1703,11 @@ function TaskLine({
         />
       </div>
 
-      <div style={{ position: 'relative', display: 'inline-block' }} ref={projectPickerRef}>
+      <div
+        className="task-project-cell"
+        style={{ position: 'relative' }}
+        ref={projectPickerRef}
+      >
         {editingField === 'project' ? (
           <div className="project-picker-popover">
             <div className="project-picker-list">

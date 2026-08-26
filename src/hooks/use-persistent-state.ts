@@ -1,3 +1,7 @@
+/**
+ * @fileoverview 为浏览器本地状态提供可恢复的异步持久化读取。
+ */
+
 'use client';
 
 import {
@@ -10,6 +14,9 @@ import {
 } from 'react';
 import { createPersistentStateRepository } from '@/lib/repository';
 
+/**
+ * 读取本地持久化状态；读取失败时保留初始值并仍然完成水合，避免工作台永久停留在加载态。
+ */
 export function usePersistentState<T>(
   key: string,
   initialValue: T | (() => T),
@@ -28,12 +35,17 @@ export function usePersistentState<T>(
   useEffect(() => {
     let active = true;
     const timer = window.setTimeout(() => {
-      void repository.read<T>(key).then((stored) => {
-        if (!active) return;
-        if (stored !== undefined && !changedBeforeHydration.current)
-          setValue(normalize ? normalize(stored) : stored);
-        setHydrated(true);
-      });
+      void repository
+        .read<T>(key)
+        .then((stored) => {
+          if (!active) return;
+          if (stored !== undefined && !changedBeforeHydration.current)
+            setValue(normalize ? normalize(stored) : stored);
+          setHydrated(true);
+        })
+        .catch(() => {
+          if (active) setHydrated(true);
+        });
     }, 0);
     return () => {
       active = false;
