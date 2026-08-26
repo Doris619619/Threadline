@@ -1,187 +1,39 @@
-/**
- * @fileoverview 桌面窗口状态 Provider，保存三态几何信息、悬浮前形态并同步 Tauri 原生窗口。
- */
+/** @fileoverview 桌面视图状态 Provider，隔离主视图、紧凑收起态与原生窗口 geometry。 */
 
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, type ReactNode } from 'react';
 import { usePersistentState } from '@/hooks/use-persistent-state';
-import {
-  applyDesktopWindowMode,
-  getCurrentWindowState,
-  listenDesktopWindowGeometry,
-  normalizeFloatingWindowState,
-  setFloatingContextMenuOpen,
-  type DesktopWindowMode,
-  type WindowStateConfig,
-} from '@/lib/tauri-window';
+import { applyDesktopWindowView, getCurrentWindowState, listenDesktopWindowGeometry, normalizeCompactWindowState, normalizeWindowStates, type CompactPresentation, type CompactViewMode, type DesktopViewMode, type WindowStateConfig } from '@/lib/tauri-window';
 
-type DesktopWindowContextValue = {
-  mode: DesktopWindowMode;
-  setMode: (mode: DesktopWindowMode) => Promise<void>;
-  restoreFromFloating: () => Promise<void>;
-  setFloatingSize: (size: number) => Promise<void>;
-  floatingContextOpen: boolean;
-  setFloatingContextOpen: (open: boolean) => Promise<void>;
-  resetWindowStates: () => Promise<void>;
-  isMiniToday: boolean;
-  isFloatingIcon: boolean;
-  isFull: boolean;
-};
-
+type DesktopWindowContextValue = { mode: DesktopViewMode; presentation: CompactPresentation; setMode: (mode: DesktopViewMode) => Promise<void>; collapseCompactView: () => Promise<void>; restoreCompactView: () => Promise<void>; resetWindowStates: () => Promise<void>; isMiniToday: boolean; isWorkstation: boolean; isCompact: boolean; isEdgeCollapsed: boolean; };
 const DesktopWindowContext = createContext<DesktopWindowContextValue | null>(null);
 
-/** 读取当前桌面窗口状态；必须在 DesktopWindowProvider 内使用。 */
-export function useDesktopWindow(): DesktopWindowContextValue {
-  const context = useContext(DesktopWindowContext);
-  if (!context) throw new Error('useDesktopWindow 必须在 DesktopWindowProvider 内使用');
-  return context;
-}
+/** 读取当前桌面视图状态；必须位于 DesktopWindowProvider 内。 */
+export function useDesktopWindow(): DesktopWindowContextValue { const context = useContext(DesktopWindowContext); if (!context) throw new Error('useDesktopWindow 必须在 DesktopWindowProvider 内使用'); return context; }
+/** 将旧 v2 floating-icon 安全迁移为 full，防止非法主模式导致空白页。 */
+function normalizeViewMode(value: unknown): DesktopViewMode { return value === 'mini-today' || value === 'workstation' || value === 'full' ? value : 'full'; }
+/** 仅允许紧凑视图作为 edge tab 恢复来源。 */
+function normalizeCompactMode(value: unknown): CompactViewMode { return value === 'workstation' ? 'workstation' : 'mini-today'; }
 
-/**
- * 提供三态窗口状态，并将每种形态的尺寸位置分别持久化到本地配置。
- */
+/** 提供单主窗口三态切换，使用 v3 key 与旧 v2 window-state 完全隔离。 */
 export function DesktopWindowProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = usePersistentState<DesktopWindowMode>(
-    'threadline.desktop-mode.v2',
-    'full',
-  );
-  const [windowStates, setWindowStates] = usePersistentState<
-    Partial<Record<DesktopWindowMode, WindowStateConfig>>
-  >('threadline.desktop-window-states.v2', {});
-  const [modeBeforeFloating, setModeBeforeFloating] = usePersistentState<DesktopWindowMode>(
-    'threadline.desktop-mode-before-floating.v2',
-    'full',
-  );
-  const mountedRef = useRef(false);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const ignoreFloatingMenuGeometryRef = useRef(false);
-  const applyingModeRef = useRef(false);
-  const [floatingContextOpen, setFloatingContextOpenState] = useState(false);
-
-  /** 保存当前窗口尺寸和位置；切换期间不记录中间态，悬浮态仅保存位置与合法图标规格。 */
-  const persistCurrentState = useCallback(async () => {
-    if (ignoreFloatingMenuGeometryRef.current || applyingModeRef.current) return;
-    const geometry = await getCurrentWindowState();
-    if (!geometry) return;
-    setWindowStates((current) => {
-      if (mode === 'floating-icon') {
-        const icon = normalizeFloatingWindowState(current['floating-icon']);
-        return {
-          ...current,
-          'floating-icon': { ...icon, x: geometry.x, y: geometry.y },
-        };
-      }
-      return { ...current, [mode]: geometry };
-    });
-  }, [mode, setWindowStates]);
-
-  /** 先保存旧形态，再以受保护的原子切换应用目标原生窗口规格。 */
-  const setMode = useCallback(
-    async (next: DesktopWindowMode) => {
-      if (next === mode) return;
-      await persistCurrentState();
-      if (next === 'floating-icon' && mode !== 'floating-icon') {
-        setModeBeforeFloating(mode);
-      }
-      if (next !== 'floating-icon') {
-        ignoreFloatingMenuGeometryRef.current = false;
-        setFloatingContextOpenState(false);
-      }
-      const nextStates =
-        next === 'floating-icon'
-          ? {
-              ...windowStates,
-              'floating-icon': normalizeFloatingWindowState(windowStates['floating-icon']),
-            }
-          : windowStates;
-      applyingModeRef.current = true;
-      setWindowStates(nextStates);
-      setModeState(next);
-      try {
-        await applyDesktopWindowMode(next, nextStates);
-      } finally {
-        window.setTimeout(() => {
-          applyingModeRef.current = false;
-        }, 250);
-      }
-    },
-    [mode, persistCurrentState, setModeBeforeFloating, setModeState, setWindowStates, windowStates],
-  );
-
-  /** 从悬浮图标恢复用户上次使用的完整或迷你形态。 */
-  const restoreFromFloating = useCallback(async () => {
-    await setMode(modeBeforeFloating === 'floating-icon' ? 'full' : modeBeforeFloating);
-  }, [modeBeforeFloating, setMode]);
-
-  /** 设置悬浮图标的正方形尺寸，并立即按新的尺寸重新应用悬浮窗口。 */
-  const setFloatingSize = useCallback(
-    async (size: number) => {
-      const next = Math.max(56, Math.min(88, size));
-      const current = normalizeFloatingWindowState(windowStates['floating-icon']);
-      const nextStates = {
-        ...windowStates,
-        'floating-icon': { ...current, width: next, height: next },
-      };
-      setWindowStates(nextStates);
-      if (mode === 'floating-icon') {
-        ignoreFloatingMenuGeometryRef.current = false;
-        setFloatingContextOpenState(false);
-        await applyDesktopWindowMode('floating-icon', nextStates);
-      }
-    },
-    [mode, setWindowStates, windowStates],
-  );
-
-  /** 在悬浮图标与右键菜单需要的临时窗口规格之间切换，不写入图标尺寸记录。 */
-  const setFloatingContextOpen = useCallback(
-    async (open: boolean) => {
-      if (mode !== 'floating-icon') return;
-      ignoreFloatingMenuGeometryRef.current = open;
-      setFloatingContextOpenState(open);
-      await setFloatingContextMenuOpen(open, windowStates['floating-icon']);
-    },
-    [mode, windowStates],
-  );
-
-  /** 重置三种形态的位置和尺寸，并将当前形态恢复为其默认窗口规格。 */
-  const resetWindowStates = useCallback(async () => {
-    setWindowStates({});
-    await applyDesktopWindowMode(mode, {});
-  }, [mode, setWindowStates]);
-
-  useEffect(() => {
-    if (mountedRef.current) return;
-    mountedRef.current = true;
-    void applyDesktopWindowMode(mode, windowStates);
-  }, [mode, windowStates]);
-
-  useEffect(() => {
-    let unlisten: () => void = () => {};
-    void listenDesktopWindowGeometry(() => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(() => void persistCurrentState(), 180);
-    }).then((cleanup) => {
-      unlisten = cleanup;
-    });
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      unlisten();
-    };
-  }, [persistCurrentState]);
-
-  const value: DesktopWindowContextValue = {
-    mode,
-    setMode,
-    restoreFromFloating,
-    setFloatingSize,
-    floatingContextOpen,
-    setFloatingContextOpen,
-    resetWindowStates,
-    isMiniToday: mode === 'mini-today',
-    isFloatingIcon: mode === 'floating-icon',
-    isFull: mode === 'full',
-  };
-
-  return <DesktopWindowContext.Provider value={value}>{children}</DesktopWindowContext.Provider>;
+  const [mode, setModeState, modeHydrated] = usePersistentState<DesktopViewMode>('threadline.desktop-mode.v3', 'full', normalizeViewMode);
+  const [presentation, setPresentation, presentationHydrated] = usePersistentState<CompactPresentation>('threadline.desktop-compact-presentation.v3', 'expanded', (value) => value === 'edge-collapsed' ? value : 'expanded');
+  const [lastCompactMode, setLastCompactMode, compactHydrated] = usePersistentState<CompactViewMode>('threadline.desktop-last-compact-mode.v3', 'mini-today', normalizeCompactMode);
+  const [windowStates, setWindowStates, statesHydrated] = usePersistentState<Partial<Record<DesktopViewMode, WindowStateConfig>>>('threadline.desktop-window-states.v3', {}, normalizeWindowStates);
+  const applyingRef = useRef(false); const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  /** 保存展开中 view 的合法 geometry；edge tab 固定尺寸不污染紧凑视图。 */
+  const persistCurrentState = useCallback(async () => { if (applyingRef.current || presentation === 'edge-collapsed') return; const geometry = await getCurrentWindowState(); if (!geometry) return; setWindowStates((current) => ({ ...current, [mode]: mode === 'full' ? geometry : normalizeCompactWindowState(mode, geometry) })); }, [mode, presentation, setWindowStates]);
+  /** 同一个 Tauri 主窗口即时变形成目标 view。 */
+  const setMode = useCallback(async (next: DesktopViewMode) => { if (next === mode && presentation === 'expanded') return; await persistCurrentState(); applyingRef.current = true; if (next !== 'full') setLastCompactMode(next); setPresentation('expanded'); setModeState(next); try { await applyDesktopWindowView(next, 'expanded', windowStates); } finally { window.setTimeout(() => { applyingRef.current = false; }, 260); } }, [mode, persistCurrentState, presentation, setLastCompactMode, setModeState, setPresentation, windowStates]);
+  /** 将当前紧凑 view 收起为右侧 edge tab，不改变业务 view mode。 */
+  const collapseCompactView = useCallback(async () => { if (mode === 'full') return; await persistCurrentState(); applyingRef.current = true; setLastCompactMode(mode); setPresentation('edge-collapsed'); try { await applyDesktopWindowView(mode, 'edge-collapsed', windowStates); } finally { window.setTimeout(() => { applyingRef.current = false; }, 220); } }, [mode, persistCurrentState, setLastCompactMode, setPresentation, windowStates]);
+  /** 从 edge tab 悬停恢复其最近紧凑 view。 */
+  const restoreCompactView = useCallback(async () => { applyingRef.current = true; setModeState(lastCompactMode); setPresentation('expanded'); try { await applyDesktopWindowView(lastCompactMode, 'expanded', windowStates); } finally { window.setTimeout(() => { applyingRef.current = false; }, 260); } }, [lastCompactMode, setModeState, setPresentation, windowStates]);
+  /** 清空 v3 geometry 并对当前形态重新应用默认安全规格。 */
+  const resetWindowStates = useCallback(async () => { setWindowStates({}); await applyDesktopWindowView(mode, presentation, {}); }, [mode, presentation, setWindowStates]);
+  useEffect(() => { if (modeHydrated && presentationHydrated && compactHydrated && statesHydrated) void applyDesktopWindowView(mode, presentation, windowStates); }, [compactHydrated, mode, modeHydrated, presentation, presentationHydrated, statesHydrated, windowStates]);
+  useEffect(() => { let unlisten: () => void = () => undefined; void listenDesktopWindowGeometry(() => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); saveTimerRef.current = setTimeout(() => void persistCurrentState(), 180); }).then((cleanup) => { unlisten = cleanup; }); return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); unlisten(); }; }, [persistCurrentState]);
+  return <DesktopWindowContext.Provider value={{ mode, presentation, setMode, collapseCompactView, restoreCompactView, resetWindowStates, isMiniToday: mode === 'mini-today', isWorkstation: mode === 'workstation', isCompact: mode !== 'full', isEdgeCollapsed: presentation === 'edge-collapsed' }}>{children}</DesktopWindowContext.Provider>;
 }

@@ -22,8 +22,24 @@ async function dragTaskWithMouse(page: Page, source: Locator, target: Locator) {
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
+    // 每个用例以固定 seed 开始，避免并行浏览器的前一用例污染任务、Daily 和日期断言。
+    for (const key of [
+      'threadline.tasks.v1',
+      'threadline.projects.v1',
+      'threadline.daily-by-date.v1',
+      'threadline.daily-templates.v1',
+      'threadline.daily-history.v1',
+      'threadline.history.v1',
+      'threadline.close-records.v1',
+      'threadline.annotations.v1',
+      'threadline.workstation.v1',
+    ]) window.localStorage.removeItem(key);
     window.localStorage.removeItem('threadline.desktop-mode.v2');
     window.localStorage.removeItem('threadline.desktop-mode-before-floating.v2');
+    window.localStorage.removeItem('threadline.desktop-mode.v3');
+    window.localStorage.removeItem('threadline.desktop-window-states.v3');
+    window.localStorage.removeItem('threadline.desktop-last-compact-mode.v3');
+    window.localStorage.removeItem('threadline.desktop-compact-presentation.v3');
   });
   await page.goto('/');
   await page.getByRole('heading', { name: '我的工作台' }).waitFor();
@@ -56,18 +72,39 @@ test('gives every sidebar destination a distinct working page', async ({ page })
   await expect(page.getByText('Windows 桌面窗口')).toBeVisible();
 });
 
-test('uses a visible window-mode menu and a project-free mini today view', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', '三态窗口仅承诺 Windows 桌面端。');
-  await page.getByRole('button', { name: '窗口模式' }).click();
-  await expect(page.getByRole('menu', { name: '窗口模式' })).toBeVisible();
-  await page.getByRole('menuitemradio', { name: /迷你今日/ }).click();
-  await expect(page.getByRole('heading', { name: '今日任务' })).toBeVisible();
-  await expect(page.locator('.mode-mini-today .timeline-row').first()).toBeVisible();
-  await expect(page.locator('.mode-mini-today .side-column')).toHaveCount(0);
-  await expect(page.locator('.mode-mini-today .task-project-cell').first()).toBeHidden();
-  await page.getByRole('button', { name: '窗口模式' }).click();
-  await page.getByRole('menuitemradio', { name: /完整工作台/ }).click();
-  await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();
+test('uses direct three-state entries and keeps workstation membership independent from tasks', async ({ page }) => {
+  await expect(page.getByRole('button', { name: '迷你今日', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '工作站', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '窗口模式' })).toHaveCount(0);
+
+  await page.getByRole('button', { name: '迷你今日', exact: true }).click();
+  await expect(page.getByTestId('mini-today-panel')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '今日日程' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '无时间待办' })).toBeVisible();
+  await page.getByRole('button', { name: '加入工作站邮件处理' }).click();
+  await page.getByRole('button', { name: '工作站', exact: true }).click();
+  await expect(page.getByTestId('workstation-panel')).toContainText('邮件处理');
+  await page.getByRole('button', { name: '从工作站移除邮件处理' }).click();
+  await expect(page.getByTestId('workstation-panel')).not.toContainText('邮件处理');
+  await page.getByRole('button', { name: '打开完整工作台' }).click();
+  await expect(page.getByRole('checkbox', { name: '完成邮件处理' })).toBeVisible();
+});
+
+test('clears only workstation references and restores the compact view from edge tab', async ({ page }) => {
+  await page.getByRole('button', { name: '工作站', exact: true }).click();
+  await page.getByRole('button', { name: '今日', exact: true }).click();
+  await page.getByRole('button', { name: '加入工作站邮件处理' }).click();
+  await page.getByRole('button', { name: '工作站', exact: true }).click();
+  await page.getByRole('button', { name: '清空', exact: true }).click();
+  await expect(page.getByTestId('workstation-panel')).not.toContainText('邮件处理');
+  await page.getByRole('button', { name: '打开完整工作台' }).click();
+  await expect(page.getByRole('checkbox', { name: '完成邮件处理' })).toBeVisible();
+  await page.getByRole('button', { name: '迷你今日', exact: true }).click();
+  await page.getByRole('button', { name: '收起', exact: true }).click();
+  const edgeTab = page.getByRole('button', { name: '展开迷你今日' });
+  await expect(edgeTab).toBeVisible();
+  await edgeTab.hover();
+  await expect(page.getByTestId('mini-today-panel')).toBeVisible();
 });
 
 test.describe('desktop task drag scheduling', () => {

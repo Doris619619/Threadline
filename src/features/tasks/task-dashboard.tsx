@@ -29,6 +29,7 @@ import { StatsPanel } from '@/features/stats/stats-panel';
 import { useWorkspaceView } from '@/components/app-shell';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import { usePersistentState } from '@/hooks/use-persistent-state';
+import { MiniTodayPanel, WorkstationPanel } from '@/features/tasks/compact-workspace';
 import type {
   AnnotationStroke,
   CloseRecord,
@@ -173,7 +174,7 @@ function createDailyInstance(date: string, templates: Daily[]): Daily[] {
 
 export function TaskDashboard() {
   const { active, selectedDate } = useWorkspaceView();
-  const { isMiniToday, isFloatingIcon } = useDesktopWindow();
+  const { isMiniToday, isWorkstation } = useDesktopWindow();
   const [tasks, setTasks, tasksHydrated] = usePersistentState(
     'threadline.tasks.v1',
     () => withoutExpiredTasks(initialTasks),
@@ -214,6 +215,11 @@ export function TaskDashboard() {
   const [annotationStrokes, setAnnotationStrokes, annotationHydrated] = usePersistentState<
     AnnotationStroke[]
   >('threadline.annotations.v1', []);
+  const [workstationTaskIds, setWorkstationTaskIds, workstationHydrated] = usePersistentState<string[]>(
+    'threadline.workstation.v1',
+    [],
+    (value) => Array.isArray(value) ? [...new Set(value.filter((id) => typeof id === 'string'))] : [],
+  );
   const [annotationTool, setAnnotationTool] = useState<AnnotationTool>('none');
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const draggingTaskIdRef = useRef<string | null>(null);
@@ -275,7 +281,8 @@ export function TaskDashboard() {
       projectId: newTimedProjectId,
       title: newTimedTitle.trim(),
       date: selectedDate,
-      plannedStartTime: start || (newTimedTime.trim() ? newTimedTime.trim() : '08:30'),
+      plannedStartTime: start,
+      schedulePendingTime: !start,
       plannedEndTime: end,
       plannedDurationMinutes: plannedDuration,
       actualDurationMinutes: actualDuration,
@@ -363,7 +370,8 @@ export function TaskDashboard() {
     dailyHistoryHydrated &&
     historyHydrated &&
     closeRecordsHydrated &&
-    annotationHydrated;
+    annotationHydrated &&
+    workstationHydrated;
   if (!hydrated)
     return (
       <Surface className="workspace-loading">
@@ -418,6 +426,20 @@ export function TaskDashboard() {
 
   const update = (task: Task) =>
     setTasks((current) => current.map((item) => (item.id === task.id ? task : item)));
+
+  /** 切换任务在工作站内的引用，不触碰原任务、日期、完成状态或优先级。 */
+  const toggleWorkstationTask = (taskId: string) =>
+    setWorkstationTaskIds((current) => current.includes(taskId) ? current.filter((id) => id !== taskId) : [...current, taskId]);
+
+  /** 清空工作站仅清空引用集合，绝不删除或变更任务记录。 */
+  const clearWorkstation = () => setWorkstationTaskIds([]);
+
+  /** 调整引用集合顺序；Task 本身的 priority 和字段完全保持不变。 */
+  const reorderWorkstation = (sourceId: string, targetId: string) => setWorkstationTaskIds((current) => {
+    const sourceIndex = current.indexOf(sourceId); const targetIndex = current.indexOf(targetId);
+    if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return current;
+    const next = [...current]; next.splice(sourceIndex, 1); next.splice(targetIndex, 0, sourceId); return next;
+  });
 
   /**
    * 将无时间任务移动到日程，保留同一条记录并设为持久化的待填时间状态。
@@ -647,6 +669,7 @@ export function TaskDashboard() {
       setAnnotationStrokes((current) =>
         current.filter((stroke) => stroke.targetTaskId !== id),
       );
+      setWorkstationTaskIds((current) => current.filter((taskId) => taskId !== id));
     }
     setTasks((current) =>
       current.map((t) =>
@@ -694,6 +717,10 @@ export function TaskDashboard() {
     setRescheduling(undefined);
     return undefined;
   };
+  if (isMiniToday)
+    return <MiniTodayPanel timed={timed} quick={quick} projects={workspaceProjects} workstationTaskIds={workstationTaskIds} onUpdateTask={update} onToggleWorkstation={toggleWorkstationTask} onClearWorkstation={clearWorkstation} onReorderWorkstation={reorderWorkstation} />;
+  if (isWorkstation)
+    return <WorkstationPanel tasks={tasks.filter((task) => task.status !== 'trashed')} projects={workspaceProjects} workstationTaskIds={workstationTaskIds} onToggleWorkstation={toggleWorkstationTask} onClearWorkstation={clearWorkstation} onReorderWorkstation={reorderWorkstation} />;
   if (active === 'projects')
     return (
       <ProjectPanel
@@ -740,7 +767,6 @@ export function TaskDashboard() {
         }
       />
     );
-  if (isFloatingIcon) return null;
   const isSchedulePage = active === 'schedule';
   return (
     <div className={`dashboard dashboard-annotatable${isSchedulePage ? ' schedule-workspace' : ''}`} data-testid={isSchedulePage ? 'schedule-panel' : 'home-panel'}>
@@ -891,6 +917,8 @@ export function TaskDashboard() {
               onDragStart={() => handleTaskDragStart(task.id)}
               onDragEnd={handleTaskDragEnd}
               onPointerDragStart={(event) => handlePointerDragStart(task.id, event)}
+              inWorkstation={workstationTaskIds.includes(task.id)}
+              onToggleWorkstation={toggleWorkstationTask}
               inSchedulePanel
             />
           ))}
@@ -1073,6 +1101,8 @@ export function TaskDashboard() {
                     onDragStart={() => handleTaskDragStart(task.id)}
                     onDragEnd={handleTaskDragEnd}
                     onPointerDragStart={(event) => handlePointerDragStart(task.id, event)}
+                    inWorkstation={workstationTaskIds.includes(task.id)}
+                    onToggleWorkstation={toggleWorkstationTask}
                   />
                 ))
               )}
@@ -1524,6 +1554,8 @@ function TaskLine({
   onDragEnd,
   onPointerDragStart,
   inSchedulePanel = false,
+  inWorkstation = false,
+  onToggleWorkstation,
 }: {
   task: Task;
   onUpdate: (t: Task) => void;
@@ -1541,6 +1573,8 @@ function TaskLine({
   onDragEnd?: () => void;
   onPointerDragStart?: (event: React.PointerEvent<HTMLButtonElement>) => void;
   inSchedulePanel?: boolean;
+  inWorkstation?: boolean;
+  onToggleWorkstation?: (taskId: string) => void;
 }) {
   const project = projects.find((p) => p.id === task.projectId) ?? projectSeed[4];
   const timed = inSchedulePanel || Boolean(task.plannedStartTime);
@@ -1868,6 +1902,7 @@ function TaskLine({
       )}
 
       <div className="task-actions">
+        {onToggleWorkstation && <button type="button" className={`task-workstation-action${inWorkstation ? ' is-active' : ''}`} aria-label={`${inWorkstation ? '从工作站移除' : '加入工作站'}${task.title}`} title={inWorkstation ? '从工作站移除' : '加入工作站'} onClick={() => onToggleWorkstation(task.id)}><Plus size={15} /></button>}
         <button aria-label={`${task.title}更多操作`}>
           <MoreHorizontal size={17} />
         </button>
