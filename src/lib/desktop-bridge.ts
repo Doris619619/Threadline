@@ -21,13 +21,26 @@ export type DesktopHydrationPayload = {
 
 export type DesktopTransitionCommand = DesktopHydrationPayload;
 
+/** Main 裁决的桌面状态不携带 Renderer requestId，避免命令关联与权威状态版本混用。 */
+export type CanonicalDesktopState = Omit<DesktopHydrationPayload, 'requestId'>;
+
 export type NativeApplyResult = {
   requestId: number;
+  stateRevision: number;
   mode: DesktopViewMode;
   presentation: CompactPresentation;
   geometry: WindowStateConfig;
   visibleSurface: 'main' | 'edge';
   fallback: boolean;
+  reason?: string;
+};
+
+/** Main 主动广播的完整桌面状态；Renderer 按 stateRevision 单调应用。 */
+export type NativeDesktopStateChanged = CanonicalDesktopState & {
+  stateRevision: number;
+  geometry: WindowStateConfig;
+  visibleSurface: 'main' | 'edge';
+  origin: 'renderer-command' | 'edge-restore' | 'second-instance' | 'recovery';
   reason?: string;
 };
 
@@ -56,6 +69,10 @@ export type ThreadlineDesktopBridge =
         command: DesktopTransitionCommand,
       ) => Promise<NativeApplyResult>;
       bringToFront: () => Promise<NativeApplyResult>;
+      acknowledgeNativeState: (stateRevision: number) => Promise<void>;
+      onNativeStateChanged: (
+        listener: (event: NativeDesktopStateChanged) => void,
+      ) => Unsubscribe;
       onNativeGeometryChanged: (
         listener: (event: NativeGeometryChanged) => void,
       ) => Unsubscribe;

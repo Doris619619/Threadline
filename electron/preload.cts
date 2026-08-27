@@ -11,7 +11,10 @@ const role =
 
 /** 订阅受限 Main 事件并返回只移除此监听器的清理函数。 */
 function subscribe(
-  channel: 'desktop:geometry-changed' | 'desktop:presentation-rollback',
+  channel:
+    | 'desktop:geometry-changed'
+    | 'desktop:presentation-rollback'
+    | 'desktop:state-changed',
   listener: (payload: unknown) => void,
 ): () => void {
   const handler = (_event: Electron.IpcRendererEvent, payload: unknown) =>
@@ -35,6 +38,10 @@ const bridge =
         transitionWindow: (payload: unknown) =>
           ipcRenderer.invoke('desktop:transition', payload),
         bringToFront: () => ipcRenderer.invoke('desktop:bring-to-front'),
+        acknowledgeNativeState: (stateRevision: number) =>
+          ipcRenderer.invoke('desktop:state-applied', stateRevision),
+        onNativeStateChanged: (listener: (payload: unknown) => void) =>
+          subscribe('desktop:state-changed', listener),
         onNativeGeometryChanged: (listener: (payload: unknown) => void) =>
           subscribe('desktop:geometry-changed', listener),
         onPresentationRollback: (listener: (payload: unknown) => void) =>

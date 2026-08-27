@@ -114,6 +114,53 @@ try {
       (window) => window.visible && window.url.includes('threadline-role=edge-tab'),
     ),
   );
+  const edgePage = application
+    .windows()
+    .find((window) => window.url().includes('threadline-role=edge-tab'));
+  assert.ok(edgePage, 'Edge renderer page must be attached to Playwright');
+  await edgePage.getByRole('button', { name: '展开最近的紧凑工作台' }).click();
+  await page.getByTestId('workstation-panel').waitFor();
+  await waitFor(
+    async () =>
+      (await inspectWindows(application)).filter((window) => window.visible).length ===
+        1 &&
+      (await inspectWindows(application)).some(
+        (window) => window.visible && window.url.includes('threadline-role=main'),
+      ),
+    'Edge restore must reveal synchronized Main',
+  );
+  await page.getByRole('button', { name: '收起', exact: true }).click();
+  await waitFor(
+    async () =>
+      (await inspectWindows(application)).some(
+        (window) => window.visible && window.url.includes('threadline-role=edge-tab'),
+      ),
+    'Edge must be visible before second-instance restore',
+  );
+  const edgeSecondInstance = spawn(
+    process.execPath,
+    [
+      'node_modules/electron/cli.js',
+      '.',
+      `--user-data-dir=${userDataDirectory}`,
+      '--no-sandbox',
+    ],
+    {
+      env: { ...process.env, THREADLINE_ELECTRON_RENDERER_URL: rendererUrl },
+      stdio: 'ignore',
+    },
+  );
+  assert.equal(await waitForProcessExit(edgeSecondInstance), 0);
+  await page.getByTestId('workstation-panel').waitFor();
+  await waitFor(
+    async () =>
+      (await inspectWindows(application)).filter((window) => window.visible).length ===
+        1 &&
+      (await inspectWindows(application)).some(
+        (window) => window.visible && window.url.includes('threadline-role=main'),
+      ),
+    'second instance must restore the latest compact Main from Edge',
+  );
   console.log('Electron window smoke test passed.');
 } catch (error) {
   exitCode = 1;
