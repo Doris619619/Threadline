@@ -11,11 +11,11 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "next build && node scripts/generate-csp.mjs .next",
+    "start": "node scripts/web-server.mjs",
     "desktop:dev": "node scripts/electron.mjs dev",
     "desktop:build": "node scripts/electron.mjs package",
-    "desktop:compile": "tsc -p electron/tsconfig.json",
+    "desktop:compile": "node scripts/build-electron.mjs",
     "desktop:renderer": "node scripts/electron.mjs renderer",
     "desktop:build:dir": "node scripts/electron.mjs package-dir",
     "desktop:electron:build": "node scripts/electron.mjs package",
@@ -41,6 +41,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@electron/fuses": "1.8.0",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
@@ -51,6 +52,7 @@
     "@vitest/coverage-v8": "^4.1.11",
     "electron": "44.0.0",
     "electron-builder": "26.15.3",
+    "esbuild": "0.27.0",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.3.2",
     "jsdom": "^30.0.1",

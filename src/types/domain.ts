@@ -83,12 +83,24 @@ export type AnnotationPoint = {
   y: number; // 相对宿主容器高度的比例 0 ~ 1
 };
 
-export type AnnotationStroke = {
+type AnnotationStrokeBase = {
   id: Id;
   points: AnnotationPoint[];
   color: string;
   strokeWidth: number; // 相对笔刷基准像素
   createdAt: string;
-  targetScope: 'today' | 'global'; // 作用域，便于页面区分
   targetTaskId?: Id; // 关联的任务ID（可选）
 };
+
+/** 日期笔迹只能显示在明确的本地业务日；targetTaskId 保留为未来任务级批注的领域关联。 */
+export type DateAnnotationStroke = AnnotationStrokeBase & {
+  targetScope: 'date';
+  targetDate: string;
+};
+
+/** 全局笔迹不绑定某一天，但仍可选择性关联任务。 */
+export type GlobalAnnotationStroke = AnnotationStrokeBase & {
+  targetScope: 'global';
+};
+
+export type AnnotationStroke = DateAnnotationStroke | GlobalAnnotationStroke;

@@ -14,6 +14,7 @@ module.exports = {
     '!.pnpm-store/**/*',
   ],
   asar: true,
+  afterPack: './scripts/after-pack.cjs',
   win: {
     target: [{ target: 'nsis', arch: ['x64'] }],
     icon: 'electron/assets/icon.ico',

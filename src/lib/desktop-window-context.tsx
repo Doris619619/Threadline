@@ -77,6 +77,7 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     Partial<Record<DesktopViewMode, WindowStateConfig>>
   >('threadline.desktop-window-states.v3', {}, normalizeWindowStates);
   const requestIdRef = useRef(0);
+  const appliedStateRevisionRef = useRef(0);
   const startupAppliedRef = useRef(false);
   const [isDesktopReady, setIsDesktopReady] = useState(
     () => typeof window !== 'undefined' && !getMainDesktopBridge(),
@@ -109,6 +110,10 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
         windowStates: nextWindowStates,
       });
       if (result.requestId !== requestId) return;
+      appliedStateRevisionRef.current = Math.max(
+        appliedStateRevisionRef.current,
+        result.stateRevision,
+      );
       setModeState(result.mode);
       setPresentation(result.presentation);
       setLastCompactMode(
@@ -166,6 +171,10 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
       })
       .then((result) => {
         if (result.requestId === requestId) {
+          appliedStateRevisionRef.current = Math.max(
+            appliedStateRevisionRef.current,
+            result.stateRevision,
+          );
           setModeState(result.mode);
           setPresentation(result.presentation);
           setWindowStates((current) => ({
@@ -185,6 +194,30 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     setWindowStates,
     windowStates,
   ]);
+
+  /** 仅接受 Main 单调递增的权威状态；写入完成后回传对应 revision 的 acknowledgement。 */
+  useEffect(() => {
+    const bridge = getMainDesktopBridge();
+    if (!bridge) return;
+    return bridge.onNativeStateChanged((event) => {
+      if (event.stateRevision <= appliedStateRevisionRef.current) {
+        void bridge.acknowledgeNativeState(event.stateRevision);
+        return;
+      }
+      appliedStateRevisionRef.current = event.stateRevision;
+      setModeState(event.mode);
+      setPresentation(event.presentation);
+      setLastCompactMode(
+        event.mode === 'workstation' ? 'workstation' : event.lastCompactMode,
+      );
+      setWindowStates((current) => ({
+        ...current,
+        ...event.windowStates,
+        [event.mode]: event.geometry,
+      }));
+      void bridge.acknowledgeNativeState(event.stateRevision);
+    });
+  }, [setLastCompactMode, setModeState, setPresentation, setWindowStates]);
 
   /** 仅保存 Main 标记为用户行为的 canonical geometry，不产生反向 transition。 */
   useEffect(() => {

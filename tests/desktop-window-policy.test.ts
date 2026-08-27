@@ -82,6 +82,26 @@ describe('desktop window policy', () => {
     ).toEqual(state);
   });
 
+  /** 150% DPI 同样只比较逻辑像素，确保原生 Main 复用 policy 后不会发生物理像素漂移。 */
+  it('preserves valid 150 percent DPI logical coordinates', () => {
+    const logicalWorkAreaAt150Percent: LogicalWorkArea = {
+      x: 0,
+      y: 0,
+      width: 1280,
+      height: 720,
+    };
+    const state = { width: 300, height: 420, x: 956, y: 24 };
+
+    expect(
+      resolveSafeWindowState(
+        'workstation',
+        state,
+        [logicalWorkAreaAt150Percent],
+        logicalWorkAreaAt150Percent,
+      ),
+    ).toEqual(state);
+  });
+
   /** 紧凑视图尺寸必须被独立夹取，不能让非法持久化值影响原生壳。 */
   it('normalizes compact dimensions while preserving valid logical coordinates', () => {
     expect(

@@ -6,4 +6,5 @@ storeDir: .pnpm-store
 allowBuilds:
   electron: true
   electron-winstaller: false
+  esbuild: true
   unrs-resolver: true

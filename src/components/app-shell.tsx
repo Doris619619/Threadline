@@ -12,10 +12,11 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { createContext, useContext, useRef, useState } from 'react';
-import { addDays, format } from 'date-fns';
+import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { SidebarItem } from '@/components/ui/sidebar-item';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
+import { addLocalDateDays, getLocalDateKey, parseLocalDateKey } from '@/lib/local-date';
 
 const navigation = [
   { id: 'home', label: '首页', icon: Home, description: '安排、执行、记录今天' },
@@ -54,7 +55,7 @@ export type WorkspaceViewId = (typeof navigation)[number]['id'];
 type WorkspaceView = { active: WorkspaceViewId; selectedDate: string };
 const WorkspaceViewContext = createContext<WorkspaceView>({
   active: 'home',
-  selectedDate: '2026-08-23',
+  selectedDate: getLocalDateKey(),
 });
 /** 读取完整工作台导航状态与当前工作日期。 */
 export const useWorkspaceView = () => useContext(WorkspaceViewContext);
@@ -110,15 +111,13 @@ function EdgeTab() {
 /** 根据 desktop presentation 渲染完整壳层、compact 壳层或 edge tab。 */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [active, setActive] = useState<WorkspaceViewId>('home');
-  const [selectedDate, setSelectedDate] = useState('2026-08-23');
+  const [selectedDate, setSelectedDate] = useState<string>(getLocalDateKey);
   const { isCompact, isEdgeCollapsed, setMode } = useDesktopWindow();
   const activeItem = navigation.find((item) => item.id === active) ?? navigation[0];
   /** 切换当前工作日期。 */
   const shiftDate = (amount: number) =>
-    setSelectedDate((current) =>
-      format(addDays(new Date(`${current}T00:00:00`), amount), 'yyyy-MM-dd'),
-    );
-  const weekday = format(new Date(`${selectedDate}T00:00:00`), 'EE', { locale: zhCN });
+    setSelectedDate((current) => addLocalDateDays(current, amount));
+  const weekday = format(parseLocalDateKey(selectedDate), 'EE', { locale: zhCN });
   if (isEdgeCollapsed) return <EdgeTab />;
   return (
     <div className={`tl-window mode-${isCompact ? 'compact' : 'full'}`}>

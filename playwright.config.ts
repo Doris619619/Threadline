@@ -16,13 +16,17 @@ export default defineConfig({
   // 业务状态使用同一 origin 的 localStorage；跨用例并行会互相清空或覆盖持久化数据。
   fullyParallel: false,
   workers: 1,
-  use: { baseURL: e2eBaseUrl, trace: 'retain-on-failure' },
+  use: {
+    baseURL: e2eBaseUrl,
+    timezoneId: 'Asia/Shanghai',
+    trace: 'retain-on-failure',
+  },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile', use: { ...devices['iPhone 13'] } },
   ],
   webServer: {
-    command: `node node_modules/next/dist/bin/next start --port ${e2ePort}`,
+    command: `node scripts/web-server.mjs --port ${e2ePort}`,
     url: e2eBaseUrl,
     reuseExistingServer: false,
   },

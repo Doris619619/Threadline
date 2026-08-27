@@ -12,9 +12,20 @@ import {
   screen,
   type IpcMainInvokeEvent,
 } from 'electron';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, normalize, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import {
+  DEFAULT_WINDOW_CONFIGS,
+  EDGE_TAB_SIZE,
+  normalizeWindowStates,
+  resolveSafeWindowState,
+  type DesktopViewMode,
+  type CompactViewMode,
+  type CompactPresentation,
+  type LogicalWorkArea,
+  type WindowStateConfig,
+} from '../src/lib/desktop-window-policy.js';
 
 const APP_PROTOCOL = 'threadline';
 const APP_HOST = 'app';
@@ -23,11 +34,7 @@ const PRODUCT_NAME = 'Threadline';
 const DEFAULT_RENDERER_URL = 'http://127.0.0.1:3118';
 const STARTUP_TIMEOUT_MS = 8_000;
 const EDGE_REVEAL_TIMEOUT_MS = 8_000;
-type DesktopViewMode = 'full' | 'mini-today' | 'workstation';
-type CompactViewMode = Exclude<DesktopViewMode, 'full'>;
-type CompactPresentation = 'expanded' | 'edge-collapsed';
 type WindowRole = 'main' | 'edge-tab';
-type WindowStateConfig = { width: number; height: number; x?: number; y?: number };
 type DesktopHydrationPayload = {
   requestId: number;
   mode: DesktopViewMode;
@@ -35,8 +42,10 @@ type DesktopHydrationPayload = {
   lastCompactMode: CompactViewMode;
   windowStates: Partial<Record<DesktopViewMode, WindowStateConfig>>;
 };
+type CanonicalDesktopState = Omit<DesktopHydrationPayload, 'requestId'>;
 type NativeApplyResult = {
   requestId: number;
+  stateRevision: number;
   mode: DesktopViewMode;
   presentation: CompactPresentation;
   geometry: WindowStateConfig;
@@ -45,31 +54,25 @@ type NativeApplyResult = {
   reason?: string;
 };
 
-const DEFAULT_WINDOW_CONFIGS: Record<DesktopViewMode, WindowStateConfig> = {
-  full: { width: 1280, height: 840 },
-  'mini-today': { width: 420, height: 660 },
-  workstation: { width: 300, height: 420 },
-};
-const EDGE_TAB_SIZE = { width: 42, height: 146 };
-
 let mainWindow: BrowserWindow | undefined;
 let edgeWindow: BrowserWindow | undefined;
 let mainReadyToShow = false;
 let startupWatchdog: ReturnType<typeof setTimeout> | undefined;
-let latestRequestId = 0;
-let nativeRevision = 0;
+let stateRevision = 0;
+const stateAcknowledgements = new Map<number, () => void>();
 let suppressGeometryUntil = 0;
 let userGeometryTimer: ReturnType<typeof setTimeout> | undefined;
 let intentionallyClosingEdge = false;
 let rebuildingMain = false;
+let reconcilingDisplays = false;
 let isQuitting = false;
-let latestState: DesktopHydrationPayload = {
-  requestId: 0,
+let latestState: CanonicalDesktopState = {
   mode: 'full',
   presentation: 'expanded',
   lastCompactMode: 'mini-today',
   windowStates: {},
 };
+let rendererCspManifest: { routes?: Record<string, { header?: string }> } | undefined;
 
 /** 返回开发与打包应用都可读取的统一 Threadline 窗口图标。 */
 function getWindowIconPath(): string {
@@ -91,6 +94,21 @@ const hasSingleInstanceLock = app.requestSingleInstanceLock();
 /** 返回打包应用中静态 Next export 的绝对目录。 */
 function getRendererDirectory(): string {
   return join(app.getAppPath(), '.next-electron');
+}
+
+/** 读取构建时扫描生成的 CSP manifest；缺失 manifest 视为打包错误而不是放宽策略。 */
+function getRendererCspHeader(requestUrl: string): string {
+  if (!rendererCspManifest) {
+    rendererCspManifest = JSON.parse(
+      readFileSync(join(getRendererDirectory(), 'threadline-csp.json'), 'utf8'),
+    ) as { routes?: Record<string, { header?: string }> };
+  }
+  const pathname = new URL(requestUrl).pathname;
+  const header =
+    rendererCspManifest.routes?.[pathname]?.header ??
+    rendererCspManifest.routes?.['/']?.header;
+  if (!header) throw new Error(`Missing CSP policy for renderer route: ${pathname}`);
+  return header;
 }
 
 /** 返回唯一允许的开发或生产 Renderer URL，并按窗口角色添加只读标记。 */
@@ -128,7 +146,14 @@ function registerRendererProtocol(): void {
   protocol.handle(APP_PROTOCOL, async (request) => {
     const assetPath = resolveRendererAsset(request.url);
     if (!existsSync(assetPath)) return new Response('Not found', { status: 404 });
-    return net.fetch(pathToFileURL(assetPath).toString());
+    const response = await net.fetch(pathToFileURL(assetPath).toString());
+    const headers = new Headers(response.headers);
+    headers.set('Content-Security-Policy', getRendererCspHeader(request.url));
+    return new Response(response.body, {
+      headers,
+      status: response.status,
+      statusText: response.statusText,
+    });
   });
 }
 
@@ -177,68 +202,30 @@ function createWindow(
   return window;
 }
 
-/** 读取当前显示器工作区，并将 bounds 限制在可见的 logical pixel 范围。 */
-function getSafeBounds(
-  mode: DesktopViewMode,
-  requested?: WindowStateConfig,
-): WindowStateConfig {
-  const fallback = DEFAULT_WINDOW_CONFIGS[mode];
-  const candidate = requested ?? fallback;
-  const display = screen.getDisplayMatching({
-    x: Number.isFinite(candidate.x) ? (candidate.x as number) : 0,
-    y: Number.isFinite(candidate.y) ? (candidate.y as number) : 0,
-    width: candidate.width,
-    height: candidate.height,
-  });
-  const area = display.workArea;
-  const width = Math.round(
-    Math.min(Math.max(1, candidate.width), Math.max(1, area.width - 48)),
-  );
-  const height = Math.round(
-    Math.min(Math.max(1, candidate.height), Math.max(1, area.height - 48)),
-  );
-  const x = Number.isFinite(candidate.x)
-    ? Math.round(
-        Math.min(
-          area.x + area.width - width - 24,
-          Math.max(area.x + 24, candidate.x as number),
-        ),
-      )
-    : Math.round(area.x + (area.width - width) / 2);
-  const y = Number.isFinite(candidate.y)
-    ? Math.round(
-        Math.min(
-          area.y + area.height - height - 24,
-          Math.max(area.y + 24, candidate.y as number),
-        ),
-      )
-    : Math.round(area.y + (area.height - height) / 2);
-  return { width, height, x, y };
+/** 将 Electron display 映射为 renderer policy 使用的统一 logical work area。 */
+function getLogicalWorkAreas(): LogicalWorkArea[] {
+  return screen.getAllDisplays().map((display) => display.workArea);
 }
 
-/** 将紧凑模式限制为既定可交互尺寸范围。 */
-function normalizeBounds(
+/** 复用唯一 geometry policy，保证 Main、Renderer、DPI 和屏幕移除后的裁决一致。 */
+function resolveNativeBounds(
   mode: DesktopViewMode,
   requested?: WindowStateConfig,
 ): WindowStateConfig {
-  const bounds = getSafeBounds(mode, requested);
-  if (mode === 'mini-today')
-    return {
-      ...bounds,
-      width: Math.min(560, Math.max(340, bounds.width)),
-      height: Math.min(820, Math.max(420, bounds.height)),
-    };
-  if (mode === 'workstation')
-    return {
-      ...bounds,
-      width: Math.min(360, Math.max(260, bounds.width)),
-      height: Math.min(640, Math.max(220, bounds.height)),
-    };
-  return {
-    ...bounds,
-    width: Math.max(800, bounds.width),
-    height: Math.max(560, bounds.height),
-  };
+  const normalized =
+    normalizeWindowStates({ [mode]: requested })[mode] ?? DEFAULT_WINDOW_CONFIGS[mode];
+  const matchingDisplay = screen.getDisplayMatching({
+    width: normalized.width,
+    height: normalized.height,
+    x: normalized.x ?? 0,
+    y: normalized.y ?? 0,
+  });
+  return resolveSafeWindowState(
+    mode,
+    normalized,
+    getLogicalWorkAreas(),
+    matchingDisplay.workArea,
+  );
 }
 
 /** 仅接受窄 contract 的 JSON-compatible hydration payload。 */
@@ -255,7 +242,34 @@ function parseHydrationPayload(value: unknown): DesktopHydrationPayload | undefi
     return undefined;
   if (!candidate.windowStates || typeof candidate.windowStates !== 'object')
     return undefined;
+  const allowedKeys = new Set(['full', 'mini-today', 'workstation']);
+  for (const [mode, geometry] of Object.entries(candidate.windowStates)) {
+    if (!allowedKeys.has(mode) || !isValidWindowState(geometry)) return undefined;
+  }
   return candidate as DesktopHydrationPayload;
+}
+
+/** 拒绝非有限数、异常位置和不可见尺寸，避免嵌套 IPC geometry 绕过顶层校验。 */
+function isValidWindowState(value: unknown): value is WindowStateConfig {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const geometry = value as Record<string, unknown>;
+  if (typeof geometry.width !== 'number' || typeof geometry.height !== 'number')
+    return false;
+  if (!Number.isFinite(geometry.width) || !Number.isFinite(geometry.height))
+    return false;
+  if (geometry.width < 1 || geometry.width > 10_000) return false;
+  if (geometry.height < 1 || geometry.height > 10_000) return false;
+  for (const axis of ['x', 'y'] as const) {
+    if (geometry[axis] === undefined) continue;
+    if (
+      !Number.isFinite(geometry[axis]) ||
+      Math.abs(geometry[axis] as number) > 100_000
+    )
+      return false;
+  }
+  return Object.keys(geometry).every((key) =>
+    ['width', 'height', 'x', 'y'].includes(key),
+  );
 }
 
 /** 返回 sender 所属的已知窗口角色，并同时校验其当前受信任 URL。 */
@@ -314,7 +328,7 @@ function publishUserGeometry(): void {
     if (!mainWindow || mainWindow.isDestroyed() || Date.now() < suppressGeometryUntil)
       return;
     const bounds = mainWindow.getBounds();
-    nativeRevision += 1;
+    stateRevision += 1;
     mainWindow.webContents.send('desktop:geometry-changed', {
       geometry: {
         width: bounds.width,
@@ -324,7 +338,7 @@ function publishUserGeometry(): void {
       },
       mode: latestState.mode,
       origin: 'user',
-      nativeRevision,
+      nativeRevision: stateRevision,
     });
   }, 180);
 }
@@ -343,23 +357,29 @@ function revealMain(): void {
 async function ensureVisibleSurface(reason: string): Promise<NativeApplyResult> {
   if (!mainWindow || mainWindow.isDestroyed()) await createMainWindow();
   const mode = latestState.lastCompactMode ?? 'mini-today';
-  const geometry = normalizeBounds(mode, latestState.windowStates[mode]);
+  const geometry = resolveNativeBounds(mode, latestState.windowStates[mode]);
   latestState = {
     ...latestState,
     mode,
     presentation: 'expanded',
   };
+  stateRevision += 1;
   applyMainNativeState(mode, geometry);
   await waitForMainReadyToShow();
+  try {
+    await publishCanonicalState(geometry, 'main', 'recovery', reason);
+  } catch {
+    // Renderer 无响应时仍需显示 Main，确保至少一个 surface 可见。
+  }
   revealMain();
-  mainWindow?.webContents.send('desktop:presentation-rollback', { mode, reason });
   if (edgeWindow && !edgeWindow.isDestroyed()) {
     intentionallyClosingEdge = true;
     edgeWindow.destroy();
     intentionallyClosingEdge = false;
   }
   return {
-    requestId: latestRequestId,
+    requestId: 0,
+    stateRevision,
     mode,
     presentation: 'expanded',
     geometry,
@@ -378,8 +398,16 @@ function recoverFromEdgeFailure(reason: string): void {
 /** 激活已有实例的当前 surface；只有状态异常时才重建并显示 Main。 */
 async function activateExistingInstance(): Promise<void> {
   if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
-    edgeWindow.show();
-    edgeWindow.focus();
+    await applyDesktopState(
+      {
+        ...latestState,
+        requestId: 0,
+        mode: latestState.lastCompactMode,
+        presentation: 'expanded',
+      },
+      undefined,
+      'second-instance',
+    );
     return;
   }
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -463,7 +491,16 @@ async function revealEdge(): Promise<void> {
     await window.loadURL(getRendererUrl('edge-tab'));
     await edgeReady;
   }
-  const area = screen.getPrimaryDisplay().workArea;
+  const mainBounds =
+    mainWindow && !mainWindow.isDestroyed() ? mainWindow.getBounds() : undefined;
+  const matchingBounds =
+    mainBounds ??
+    resolveNativeBounds(latestState.mode, latestState.windowStates[latestState.mode]);
+  const area = screen.getDisplayMatching({
+    ...matchingBounds,
+    x: matchingBounds.x ?? 0,
+    y: matchingBounds.y ?? 0,
+  }).workArea;
   edgeWindow.setBounds({
     x: area.x + area.width - EDGE_TAB_SIZE.width,
     y: Math.round(area.y + Math.max(32, (area.height - EDGE_TAB_SIZE.height) / 2)),
@@ -475,30 +512,107 @@ async function revealEdge(): Promise<void> {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
 }
 
+/** 在显示器增删、DPI 或 work area 变化后，对 Main 与 Edge 复用同一 geometry policy。 */
+async function reconcileDisplayState(reason: string): Promise<void> {
+  if (reconcilingDisplays || isQuitting) return;
+  reconcilingDisplays = true;
+  try {
+    const mode = latestState.mode;
+    const geometry = resolveNativeBounds(mode, latestState.windowStates[mode]);
+    latestState = {
+      ...latestState,
+      windowStates: { ...latestState.windowStates, [mode]: geometry },
+    };
+    stateRevision += 1;
+    applyMainNativeState(mode, geometry);
+    const edgeVisible = Boolean(
+      edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible(),
+    );
+    if (edgeVisible) await revealEdge();
+    await waitForMainReadyToShow();
+    try {
+      await publishCanonicalState(
+        geometry,
+        edgeVisible ? 'edge' : 'main',
+        'recovery',
+        reason,
+      );
+    } catch {
+      await ensureVisibleSurface('display-state-sync-timeout');
+    }
+  } finally {
+    reconcilingDisplays = false;
+  }
+}
+
 /** 等待 Main renderer ready-to-show；watchdog 可在此之前强制安全显示。 */
 function waitForMainReadyToShow(): Promise<void> {
   if (mainReadyToShow) return Promise.resolve();
   return new Promise((resolveReady) => mainWindow?.once('ready-to-show', resolveReady));
 }
 
+/** 广播 Main 裁决状态并等待 Renderer 完成同步；超时由调用方回退到安全 surface。 */
+function publishCanonicalState(
+  geometry: WindowStateConfig,
+  visibleSurface: 'main' | 'edge',
+  origin: 'renderer-command' | 'edge-restore' | 'second-instance' | 'recovery',
+  reason?: string,
+): Promise<void> {
+  if (!mainWindow || mainWindow.isDestroyed())
+    return Promise.reject(new Error('Main window is unavailable'));
+  const revision = stateRevision;
+  return new Promise((resolveAcknowledged, rejectAcknowledged) => {
+    const timeout = setTimeout(() => {
+      stateAcknowledgements.delete(revision);
+      rejectAcknowledged(
+        new Error(`Desktop state acknowledgement timed out: ${revision}`),
+      );
+    }, 1_500);
+    stateAcknowledgements.set(revision, () => {
+      clearTimeout(timeout);
+      resolveAcknowledged();
+    });
+    mainWindow?.webContents.send('desktop:state-changed', {
+      ...latestState,
+      geometry,
+      visibleSurface,
+      stateRevision: revision,
+      origin,
+      reason,
+    });
+  });
+}
+
 /** 应用经校验的 Renderer 期望状态，并返回 Main 最终裁决的 canonical native state。 */
 async function applyDesktopState(
   payload: DesktopHydrationPayload,
   fallbackReason?: string,
+  origin:
+    | 'renderer-command'
+    | 'edge-restore'
+    | 'second-instance'
+    | 'recovery' = 'renderer-command',
 ): Promise<NativeApplyResult> {
   const mode =
     payload.presentation === 'edge-collapsed' && payload.mode === 'full'
       ? payload.lastCompactMode
       : payload.mode;
-  const geometry = normalizeBounds(mode, payload.windowStates[mode]);
+  const geometry = resolveNativeBounds(mode, payload.windowStates[mode]);
   const wantsEdge = payload.presentation === 'edge-collapsed' && mode !== 'full';
-  latestState = { ...payload, mode };
+  latestState = {
+    mode,
+    presentation: payload.presentation,
+    lastCompactMode: payload.lastCompactMode,
+    windowStates: payload.windowStates,
+  };
+  stateRevision += 1;
   applyMainNativeState(mode, geometry);
   if (wantsEdge) {
     try {
       await revealEdge();
       return {
         requestId: payload.requestId,
+        stateRevision,
         mode,
         presentation: 'edge-collapsed',
         geometry,
@@ -511,9 +625,17 @@ async function applyDesktopState(
     }
   }
   await waitForMainReadyToShow();
+  if (origin !== 'renderer-command') {
+    try {
+      await publishCanonicalState(geometry, 'main', origin, fallbackReason);
+    } catch {
+      return ensureVisibleSurface('renderer-state-sync-timeout');
+    }
+  }
   revealMain();
   return {
     requestId: payload.requestId,
+    stateRevision,
     mode,
     presentation: 'expanded',
     geometry,
@@ -524,19 +646,15 @@ async function applyDesktopState(
 }
 
 /** 在无效 payload 或 handshake 超时后安全显示 Full，杜绝隐身后台进程。 */
-async function revealSafeFull(
-  reason: string,
-  requestId = latestRequestId + 1,
-): Promise<NativeApplyResult> {
+async function revealSafeFull(reason: string): Promise<NativeApplyResult> {
   const payload: DesktopHydrationPayload = {
-    requestId,
+    requestId: 0,
     mode: 'full',
     presentation: 'expanded',
     lastCompactMode: 'mini-today',
     windowStates: {},
   };
-  latestRequestId = Math.max(latestRequestId, requestId);
-  return applyDesktopState(payload, reason);
+  return applyDesktopState(payload, reason, 'recovery');
 }
 
 /** 注册 URL、窗口角色、payload schema 与 revision 四重校验的 IPC handlers。 */
@@ -546,20 +664,6 @@ function registerDesktopIpc(): void {
       throw new Error('Rejected desktop hydrate sender');
     const state = parseHydrationPayload(payload);
     if (!state) return revealSafeFull('invalid-hydration-payload');
-    if (state.requestId < latestRequestId)
-      return {
-        requestId: state.requestId,
-        mode: latestState.mode,
-        presentation: latestState.presentation,
-        geometry: normalizeBounds(
-          latestState.mode,
-          latestState.windowStates[latestState.mode],
-        ),
-        visibleSurface: edgeWindow?.isVisible() ? 'edge' : 'main',
-        fallback: true,
-        reason: 'stale-request',
-      } satisfies NativeApplyResult;
-    latestRequestId = state.requestId;
     if (startupWatchdog) clearTimeout(startupWatchdog);
     return applyDesktopState(state);
   });
@@ -567,9 +671,7 @@ function registerDesktopIpc(): void {
     if (!isTrustedSender(event, 'main'))
       throw new Error('Rejected desktop transition sender');
     const state = parseHydrationPayload(payload);
-    if (!state || state.requestId < latestRequestId)
-      throw new Error('Rejected desktop transition');
-    latestRequestId = state.requestId;
+    if (!state) throw new Error('Rejected desktop transition');
     return applyDesktopState(state);
   });
   ipcMain.handle('desktop:bring-to-front', async (event) => {
@@ -577,19 +679,37 @@ function registerDesktopIpc(): void {
       throw new Error('Rejected desktop focus sender');
     return applyDesktopState({
       ...latestState,
-      requestId: ++latestRequestId,
+      requestId: 0,
       presentation: 'expanded',
     });
   });
   ipcMain.handle('desktop:restore-main', async (event) => {
     if (!isTrustedSender(event, 'edge-tab'))
       throw new Error('Rejected edge restore sender');
-    return applyDesktopState({
-      ...latestState,
-      requestId: ++latestRequestId,
-      mode: latestState.lastCompactMode,
-      presentation: 'expanded',
-    });
+    return applyDesktopState(
+      {
+        ...latestState,
+        requestId: 0,
+        mode: latestState.lastCompactMode,
+        presentation: 'expanded',
+      },
+      undefined,
+      'edge-restore',
+    );
+  });
+  ipcMain.handle('desktop:state-applied', async (event, revision: unknown) => {
+    if (
+      !isTrustedSender(event, 'main') ||
+      typeof revision !== 'number' ||
+      !Number.isSafeInteger(revision) ||
+      revision < 1
+    )
+      throw new Error('Rejected desktop state acknowledgement');
+    const acknowledge = stateAcknowledgements.get(revision);
+    if (acknowledge) {
+      stateAcknowledgements.delete(revision);
+      acknowledge();
+    }
   });
 }
 
@@ -645,21 +765,23 @@ function bootstrapApplication(): void {
       registerRendererProtocol();
       registerDesktopIpc();
       await createMainWindow();
-      screen.on('display-removed', () => {
-        if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
-          recoverFromEdgeFailure('edge-display-removed');
-        }
-      });
-      screen.on('display-metrics-changed', () => {
-        if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
-          recoverFromEdgeFailure('edge-display-changed');
-        }
-      });
-      screen.on('display-added', () => {
-        if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
-          recoverFromEdgeFailure('edge-display-added');
-        }
-      });
+      screen.on(
+        'display-removed',
+        () =>
+          void reconcileDisplayState('display-removed').catch(exitAfterStartupFailure),
+      );
+      screen.on(
+        'display-metrics-changed',
+        () =>
+          void reconcileDisplayState('display-metrics-changed').catch(
+            exitAfterStartupFailure,
+          ),
+      );
+      screen.on(
+        'display-added',
+        () =>
+          void reconcileDisplayState('display-added').catch(exitAfterStartupFailure),
+      );
       startupWatchdog = setTimeout(
         () =>
           void revealSafeFull('startup-handshake-timeout').catch(

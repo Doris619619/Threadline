@@ -41,16 +41,13 @@ function buildRenderer() {
     ...process.env,
     ELECTRON_BUILD: 'true',
   });
+  run(process.execPath, ['scripts/generate-csp.mjs', '.next-electron']);
 }
 
 /** 编译 Main/Preload 并让 electron-builder 生成指定 Windows 产物。 */
 function packageApplication(argumentsList) {
   buildRenderer();
-  run(process.execPath, [
-    'node_modules/typescript/bin/tsc',
-    '-p',
-    'electron/tsconfig.json',
-  ]);
+  run(process.execPath, ['scripts/build-electron.mjs']);
   const collectorStore = mkdtempSync(join(tmpdir(), 'threadline-builder-store-'));
   try {
     run(
