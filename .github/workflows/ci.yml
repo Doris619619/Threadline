@@ -16,7 +16,7 @@ jobs:
           version: 11.19.0
       - uses: actions/setup-node@v5
         with:
-          node-version: 22.12.0
+          node-version: 22.13.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
@@ -35,7 +35,7 @@ jobs:
           version: 11.19.0
       - uses: actions/setup-node@v5
         with:
-          node-version: 22.12.0
+          node-version: 22.13.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm desktop:compile
