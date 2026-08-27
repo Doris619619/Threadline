@@ -54,7 +54,7 @@ pnpm desktop:build:dir
 pnpm desktop:build
 ```
 
-`desktop:dev` 会启动隔离的 Next.js 开发服务器并打开 Electron 窗口。`desktop:renderer` 只生成 `.next-electron` 静态前端；`desktop:build:dir` 生成 unpacked Windows x64 应用；`desktop:build` 生成 NSIS 安装包。原有的 `pnpm build` 与 `pnpm start` 仍保持 Next.js Web/PWA 生产模式。
+`desktop:compile` 会先检查 Electron 类型，再以 `esbuild` 将 Main 与 Preload 输出为 `dist-electron/*.cjs`；两者保持 CommonJS。`desktop:dev` 会启动隔离的 Next.js 开发服务器并打开 Electron 窗口。`desktop:renderer` 只生成 `.next-electron` 静态前端；`desktop:build:dir` 生成 unpacked Windows x64 应用；`desktop:build` 生成 NSIS 安装包。原有的 `pnpm build` 与 `pnpm start` 仍保持 Next.js Web/PWA 生产模式。
 
 Windows 普通用户优先使用构建生成的 NSIS 安装器：
 

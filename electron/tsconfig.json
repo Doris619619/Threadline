@@ -6,10 +6,8 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "noEmit": false,
-    "outDir": "../dist-electron",
-    "rootDir": ".",
+    "noEmit": true,
     "declaration": false
   },
-  "include": ["*.cts"]
+  "include": ["*.cts", "../src/lib/desktop-window-policy.ts"]
 }
