@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ProjectTag } from '@/components/ui/project-tag';
 import { Surface } from '@/components/ui/surface';
+import { getLocalDateKey } from '@/lib/local-date';
 import type { Project, Task } from '@/types/domain';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/daily-panel';
 
@@ -36,7 +37,7 @@ export function ProjectPanel({
         name: name.trim(),
         color,
         status: 'active',
-        createdAt: new Date().toISOString(),
+        createdAt: getLocalDateKey(),
       },
     ]);
     setName('');
@@ -185,14 +186,16 @@ export function ProjectPanel({
               {selectedTasks.reduce(
                 (total, task) => total + (task.actualDurationMinutes ?? 0),
                 0,
-              ) + selectedDailyHistory.reduce((total, entry) => total + entry.actual, 0)}
+              ) +
+                selectedDailyHistory.reduce((total, entry) => total + entry.actual, 0)}
               min
             </strong>
           </header>
           <p>
             普通任务 {selectedTasks.filter((task) => task.completed).length}/
             {selectedTasks.length}
-            {' · '}Daily {selectedDaily.length} 个定义 / {selectedDailyHistory.length} 条历史
+            {' · '}Daily {selectedDaily.length} 个定义 / {selectedDailyHistory.length}{' '}
+            条历史
           </p>
           <h3>最近任务</h3>
           {selectedTasks.length ? (

@@ -26,7 +26,13 @@ export function usePersistentState<T>(
   const [hydrated, setHydrated] = useState(false);
   const changedBeforeHydration = useRef(false);
   const valueRef = useRef(value);
+  const normalizeRef = useRef(normalize);
   const repository = useMemo(() => createPersistentStateRepository(), []);
+
+  // 调用方常为轻量数据清洗传入 inline normalizer；更新引用不能让 hydration effect 重跑。
+  useEffect(() => {
+    normalizeRef.current = normalize;
+  }, [normalize]);
 
   useEffect(() => {
     valueRef.current = value;
@@ -52,7 +58,7 @@ export function usePersistentState<T>(
         .then((stored) => {
           if (!active) return;
           if (stored !== undefined && !changedBeforeHydration.current)
-            setValue(normalize ? normalize(stored) : stored);
+            setValue(normalizeRef.current ? normalizeRef.current(stored) : stored);
           setHydrated(true);
         })
         .catch(() => {
@@ -63,7 +69,7 @@ export function usePersistentState<T>(
       active = false;
       window.clearTimeout(timer);
     };
-  }, [key, normalize, repository]);
+  }, [key, repository]);
 
   useEffect(() => {
     if (hydrated) void repository.write(key, value);

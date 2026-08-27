@@ -16,7 +16,11 @@ export default defineConfig({
   // 业务状态使用同一 origin 的 localStorage；跨用例并行会互相清空或覆盖持久化数据。
   fullyParallel: false,
   workers: 1,
-  use: { baseURL: e2eBaseUrl, trace: 'retain-on-failure' },
+  use: {
+    baseURL: e2eBaseUrl,
+    timezoneId: 'Asia/Shanghai',
+    trace: 'retain-on-failure',
+  },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile', use: { ...devices['iPhone 13'] } },

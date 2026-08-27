@@ -6,7 +6,6 @@
 
 import { Check, Eraser, GripVertical, Highlighter, MoreHorizontal, MousePointer2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
-import { addDays, format } from 'date-fns';
 import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -29,6 +28,7 @@ import { StatsPanel } from '@/features/stats/stats-panel';
 import { useWorkspaceView } from '@/components/app-shell';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import { usePersistentState } from '@/hooks/use-persistent-state';
+import { addLocalDateDays, getLocalDateKey } from '@/lib/local-date';
 import { MiniTodayPanel, WorkstationPanel } from '@/features/tasks/compact-workspace';
 import type {
   AnnotationStroke,
@@ -39,32 +39,33 @@ import type {
   TaskStatus,
 } from '@/types/domain';
 
-const today = '2026-08-23';
 type TaskDropZone = 'schedule' | 'quick';
-const projectSeed: Project[] = [
-  { id: 'work', name: '工作', color: '#4f8cff', status: 'active', createdAt: today },
-  { id: 'course', name: '课程', color: '#8b7cf6', status: 'active', createdAt: today },
-  {
-    id: 'research',
-    name: 'AI研究',
-    color: '#38a774',
-    status: 'active',
-    createdAt: today,
-  },
-  { id: 'life', name: '生活', color: '#e9a04b', status: 'active', createdAt: today },
-  { id: 'other', name: '其他', color: '#8793a7', status: 'active', createdAt: today },
-];
-const initialTasks: Task[] = [
-  makeTask('email', 'work', '邮件处理', '08:30', undefined, 40),
-  makeTask('stats', 'course', '统计课预习', '10:45', undefined, 60),
-  makeTask('paper', 'course', '领域论文', '12:00', '13:30', 90, 56, true),
-  makeTask('demo', 'research', '跑 Demo', '14:20', undefined, 45),
-  makeTask('meeting', 'work', '会议记录', '15:10', '16:10', 60, 58, true),
-  makeTask('gym', 'life', '健身', '17:00', undefined, 60),
-  makeTask('adapter', 'other', '买转换插头'),
-  makeTask('pickup', 'life', '取快递'),
-];
+/** 创建首次打开工作台时可编辑的内置项目，并把创建日绑定到用户本地日期。 */
+function createProjectSeed(today = getLocalDateKey()): Project[] {
+  return [
+    { id: 'work', name: '工作', color: '#4f8cff', status: 'active', createdAt: today },
+    { id: 'course', name: '课程', color: '#8b7cf6', status: 'active', createdAt: today },
+    { id: 'research', name: 'AI研究', color: '#38a774', status: 'active', createdAt: today },
+    { id: 'life', name: '生活', color: '#e9a04b', status: 'active', createdAt: today },
+    { id: 'other', name: '其他', color: '#8793a7', status: 'active', createdAt: today },
+  ];
+}
+/** 创建首次打开时的演示任务，使任务的业务日期和元数据始终属于本地当天。 */
+function createInitialTasks(today = getLocalDateKey()): Task[] {
+  return [
+    makeTask(today, 'email', 'work', '邮件处理', '08:30', undefined, 40),
+    makeTask(today, 'stats', 'course', '统计课预习', '10:45', undefined, 60),
+    makeTask(today, 'paper', 'course', '领域论文', '12:00', '13:30', 90, 56, true),
+    makeTask(today, 'demo', 'research', '跑 Demo', '14:20', undefined, 45),
+    makeTask(today, 'meeting', 'work', '会议记录', '15:10', '16:10', 60, 58, true),
+    makeTask(today, 'gym', 'life', '健身', '17:00', undefined, 60),
+    makeTask(today, 'adapter', 'other', '买转换插头'),
+    makeTask(today, 'pickup', 'life', '取快递'),
+  ];
+}
+/** 创建一条内置任务，并让业务日期和 created/updated 元数据保持同一日期语义。 */
 function makeTask(
+  today: string,
   id: string,
   projectId: string,
   title: string,
@@ -161,8 +162,9 @@ function isTrashExpired(task: Task) {
 }
 const withoutExpiredTasks = (items: Task[]) =>
   items.filter((task) => !isTrashExpired(task));
+/** 为选中日期生成 Daily 实例；当天保留模板演示状态，其他日期从未完成状态开始。 */
 function createDailyInstance(date: string, templates: Daily[]): Daily[] {
-  if (date === today) return structuredClone(templates);
+  if (date === getLocalDateKey()) return structuredClone(templates);
   return templates.map((item) => ({
     ...item,
     actual: 0,
@@ -177,18 +179,18 @@ export function TaskDashboard() {
   const { isMiniToday, isWorkstation } = useDesktopWindow();
   const [tasks, setTasks, tasksHydrated] = usePersistentState(
     'threadline.tasks.v1',
-    () => withoutExpiredTasks(initialTasks),
+    () => withoutExpiredTasks(createInitialTasks()),
     withoutExpiredTasks,
   );
   const [workspaceProjects, setWorkspaceProjects, projectsHydrated] = usePersistentState(
     'threadline.projects.v1',
-    projectSeed,
+    createProjectSeed,
   );
   const [dailyByDate, setDailyByDate, dailyByDateHydrated] = usePersistentState<
     Record<string, Daily[]>
   >(
     'threadline.daily-by-date.v1',
-    { [today]: seedDaily },
+    () => ({ [getLocalDateKey()]: seedDaily }),
   );
   const [dailyTemplates, setDailyTemplates, dailyTemplatesHydrated] = usePersistentState<
     Daily[]
@@ -262,7 +264,7 @@ export function TaskDashboard() {
       name: trimmed,
       color: randomColor,
       status: 'active',
-      createdAt: new Date().toISOString().slice(0, 10),
+      createdAt: getLocalDateKey(),
     };
     setWorkspaceProjects((current) => [...current, newProj]);
     return newProj;
@@ -387,10 +389,7 @@ export function TaskDashboard() {
   );
   const daily =
     dailyByDate[selectedDate] ?? createDailyInstance(selectedDate, dailyTemplates);
-  const tomorrow = format(
-    addDays(new Date(`${selectedDate}T00:00:00`), 1),
-    'yyyy-MM-dd',
-  );
+  const tomorrow = addLocalDateDays(selectedDate, 1);
   const timed = shown
     .filter(
       (t) => Boolean(t.plannedStartTime) || t.schedulePendingTime,
@@ -618,7 +617,7 @@ export function TaskDashboard() {
     const automatic = calculateDuration(start, end);
     const planned = automatic ?? numberOrUndefined(form.get('planned'));
     const base =
-      editing ?? makeTask(crypto.randomUUID(), String(form.get('project')), title);
+      editing ?? makeTask(getLocalDateKey(), crypto.randomUUID(), String(form.get('project')), title);
     update({
       ...base,
       title,
@@ -1494,7 +1493,7 @@ function PlanningQueue({
       ) : (
         tasks.map((task) => {
           const project =
-            projects.find((item) => item.id === task.projectId) ?? projectSeed[4];
+            projects.find((item) => item.id === task.projectId) ?? createProjectSeed()[4];
           return (
             <div className="queue-row" key={task.id}>
               <ProjectTag name={project.name} color={project.color} />
@@ -1576,7 +1575,7 @@ function TaskLine({
   inWorkstation?: boolean;
   onToggleWorkstation?: (taskId: string) => void;
 }) {
-  const project = projects.find((p) => p.id === task.projectId) ?? projectSeed[4];
+  const project = projects.find((p) => p.id === task.projectId) ?? createProjectSeed()[4];
   const timed = inSchedulePanel || Boolean(task.plannedStartTime);
   const canDrag = draggable && !interactionLocked;
   const [editingField, setEditingField] = useState<

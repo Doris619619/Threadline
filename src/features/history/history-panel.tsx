@@ -1,6 +1,7 @@
 'use client';
 import { RotateCcw } from 'lucide-react';
 import { Surface } from '@/components/ui/surface';
+import { getLocalDateKey } from '@/lib/local-date';
 import type { DailyHistoryEntry } from '@/features/daily/daily-panel';
 import type { CloseRecord, HistoryEvent, Task } from '@/types/domain';
 
@@ -65,7 +66,7 @@ export function HistoryPanel({
                         ? '待安排'
                         : '已移期'}
                   </td>
-                  <td>{task.postponedFrom ?? '2026-08-23'}</td>
+                  <td>{task.postponedFrom ?? getLocalDateKey()}</td>
                   <td>{task.postponedTo ?? '—'}</td>
                 </tr>
               ))}
@@ -136,7 +137,7 @@ export function HistoryPanel({
                   onUpdate({
                     ...task,
                     status: 'active',
-                    date: '2026-08-23',
+                    date: getLocalDateKey(),
                     deletedAt: undefined,
                   })
                 }

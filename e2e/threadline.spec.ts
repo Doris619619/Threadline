@@ -4,6 +4,8 @@
 
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
+const frozenLocalNow = '2026-08-23T12:00:00+08:00';
+
 /**
  * 用真实鼠标指针拖动明确的任务拖拽柄，覆盖桌面 WebView2 使用的 Pointer Events 路径。
  */
@@ -29,31 +31,50 @@ async function dragTaskWithMouse(page: Page, source: Locator, target: Locator) {
 
 test.beforeEach(async ({ page }) => {
   const seedKey = `threadline.e2e.seeded.${test.info().testId}`;
-  await page.addInitScript((key) => {
-    // addInitScript 会在 reload 时再次运行；用 sessionStorage 确保只清理本用例首次导航。
-    if (window.sessionStorage.getItem(key)) return;
-    window.sessionStorage.setItem(key, 'true');
-    // 每个 browser context 以固定 seed 开始，避免前一用例污染任务、Daily 和日期断言。
-    for (const key of [
-      'threadline.tasks.v1',
-      'threadline.projects.v1',
-      'threadline.daily-by-date.v1',
-      'threadline.daily-templates.v1',
-      'threadline.daily-history.v1',
-      'threadline.history.v1',
-      'threadline.close-records.v1',
-      'threadline.annotations.v1',
-      'threadline.workstation.v1',
-      'threadline.workspace.v1',
-    ])
-      window.localStorage.removeItem(key);
-    window.localStorage.removeItem('threadline.desktop-mode.v2');
-    window.localStorage.removeItem('threadline.desktop-mode-before-floating.v2');
-    window.localStorage.removeItem('threadline.desktop-mode.v3');
-    window.localStorage.removeItem('threadline.desktop-window-states.v3');
-    window.localStorage.removeItem('threadline.desktop-last-compact-mode.v3');
-    window.localStorage.removeItem('threadline.desktop-compact-presentation.v3');
-  }, seedKey);
+  await page.addInitScript(
+    ({ key, now }) => {
+      const RealDate = Date;
+      const fixedTime = new RealDate(now).getTime();
+
+      /** 让 E2E 以明确的上海本地时间运行，生产代码仍读取真实用户本地时间。 */
+      class FrozenDate extends RealDate {
+        constructor(value?: string | number | Date) {
+          super(arguments.length === 0 ? fixedTime : value);
+        }
+
+        static now() {
+          return fixedTime;
+        }
+      }
+      // 应用启动前替换浏览器全局 Date，覆盖 seed、日期导航和新建数据时间。
+      window.Date = FrozenDate as DateConstructor;
+
+      // addInitScript 会在 reload 时再次运行；用 sessionStorage 确保只清理本用例首次导航。
+      if (window.sessionStorage.getItem(key)) return;
+      window.sessionStorage.setItem(key, 'true');
+      // 每个 browser context 以固定 seed 开始，避免前一用例污染任务、Daily 和日期断言。
+      for (const key of [
+        'threadline.tasks.v1',
+        'threadline.projects.v1',
+        'threadline.daily-by-date.v1',
+        'threadline.daily-templates.v1',
+        'threadline.daily-history.v1',
+        'threadline.history.v1',
+        'threadline.close-records.v1',
+        'threadline.annotations.v1',
+        'threadline.workstation.v1',
+        'threadline.workspace.v1',
+      ])
+        window.localStorage.removeItem(key);
+      window.localStorage.removeItem('threadline.desktop-mode.v2');
+      window.localStorage.removeItem('threadline.desktop-mode-before-floating.v2');
+      window.localStorage.removeItem('threadline.desktop-mode.v3');
+      window.localStorage.removeItem('threadline.desktop-window-states.v3');
+      window.localStorage.removeItem('threadline.desktop-last-compact-mode.v3');
+      window.localStorage.removeItem('threadline.desktop-compact-presentation.v3');
+    },
+    { key: seedKey, now: frozenLocalNow },
+  );
   await page.goto('/');
   await page.getByRole('heading', { name: '我的工作台' }).waitFor();
   await expect(page.locator('.dashboard')).toBeVisible({ timeout: 10_000 });
