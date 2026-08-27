@@ -207,12 +207,9 @@ test.describe('desktop task drag scheduling', () => {
     page,
   }) => {
     const scheduledTask = page.locator('.timeline-row').filter({ hasText: '邮件处理' });
-    await dragTaskWithMouse(
-      page,
-      scheduledTask.getByRole('button', { name: /拖动邮件处理/ }),
-      page.locator('.quick-panel'),
-    );
-
+    const scheduledHandle = scheduledTask.getByRole('button', { name: /拖动邮件处理/ });
+    await scheduledHandle.scrollIntoViewIfNeeded();
+    await dragTaskWithMouse(page, scheduledHandle, page.locator('.quick-panel'));
     await expect(
       page.locator('.quick-task-row').filter({ hasText: '邮件处理' }),
     ).toBeVisible();
@@ -328,8 +325,10 @@ test('keeps drawn date annotations on their original day after navigation and re
 
 test('uses the selected highlighter color for cursor, saved strokes, and reload preference', async ({
   page,
-}) => {
-  await page.getByRole('button', { name: '颜色：蓝' }).click();
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '荧光笔绘制使用桌面鼠标路径。');
+  await page.getByRole('button', { name: /选择颜色/ }).click();
+  await page.getByRole('radio', { name: '蓝色' }).click();
   const canvas = page.locator('.tl-annotation-layer');
   await expect(canvas).toHaveCSS('cursor', /highlighter\.svg/);
   const box = await canvas.boundingBox();
@@ -343,10 +342,35 @@ test('uses the selected highlighter color for cursor, saved strokes, and reload 
     .first();
   await expect(stroke).toHaveAttribute('stroke', 'rgba(82, 170, 255, 0.38)');
   await page.reload();
-  await expect(page.getByRole('button', { name: '颜色：蓝' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+  await expect(page.getByRole('button', { name: '选择颜色，当前蓝色' })).toBeVisible();
+
+  await page.getByRole('button', { name: '选择颜色，当前蓝色' }).click();
+  await page.getByRole('radio', { name: '黄色' }).click();
+  await expect(page.getByRole('button', { name: '荧光笔' })).toHaveClass(/is-active/);
+  await page.mouse.move(box.x + 55, box.y + 120);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 150, box.y + 145, { steps: 4 });
+  await page.mouse.up();
+  await expect(
+    page.locator('.tl-annotation-layer path[data-annotation-date]').last(),
+  ).toHaveAttribute('stroke', 'rgba(255, 225, 53, 0.42)');
+  await page.reload();
+  await expect(page.getByRole('button', { name: '选择颜色，当前黄色' })).toBeVisible();
+});
+
+test('keeps the task editor larger than the compact project selector', async ({
+  page,
+}) => {
+  const schedule = page.locator('.schedule-panel');
+  await schedule.getByRole('button', { name: '添加', exact: true }).click();
+  const taskInput = schedule.getByPlaceholder('任务名称（按 Enter 保存）');
+  const projectSelect = schedule.locator('.project-inline-select');
+  const taskBox = await taskInput.boundingBox();
+  const projectBox = await projectSelect.boundingBox();
+  if (!taskBox || !projectBox) throw new Error('新增日程字段不可见。');
+  expect(taskBox.width).toBeGreaterThanOrEqual(180);
+  expect(projectBox.width).toBeLessThanOrEqual(72);
+  await expect(schedule).toHaveCSS('overflow-x', 'auto');
 });
 
 test('creates a fresh Daily instance for another date', async ({ page }) => {

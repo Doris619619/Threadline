@@ -130,6 +130,29 @@ try {
     (await inspectWindows(application)).filter((window) => window.visible).length,
     1,
   );
+  assert.equal(
+    await page
+      .locator('.full-window-chrome')
+      .evaluate((element) =>
+        getComputedStyle(element).getPropertyValue('-webkit-app-region'),
+      ),
+    'drag',
+    'frameless Full chrome must provide a continuous drag region',
+  );
+  await page.getByRole('button', { name: '最小化窗口' }).click();
+  await waitFor(
+    async () =>
+      application.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows().some((window) => window.isMinimized()),
+      ),
+    'Full window must minimize through the restricted Renderer action',
+  );
+  await application.evaluate(({ BrowserWindow }) => {
+    BrowserWindow.getAllWindows()
+      .find((window) => !window.isDestroyed())
+      ?.restore();
+  });
+  await page.waitForFunction(() => document.visibilityState === 'visible');
   await page.getByRole('button', { name: '迷你今日', exact: true }).click();
   await page.getByTestId('mini-today-panel').waitFor();
   assert.equal(
@@ -144,18 +167,11 @@ try {
   const miniMain = (await inspectWindows(application)).find(
     (window) => window.visible && window.url.includes('threadline-role=main'),
   );
-  const primaryWorkArea = await application.evaluate(({ screen }) =>
-    screen.getPrimaryDisplay().workAreaSize,
-  );
-  assert.deepEqual(
-    miniMain?.bounds && {
-      width: miniMain.bounds.width,
-      height: miniMain.bounds.height,
-    },
-    {
-      width: Math.min(500, Math.max(1, primaryWorkArea.width - 48)),
-      height: Math.min(800, Math.max(1, primaryWorkArea.height - 48)),
-    },
+  assert.ok(miniMain, 'Mini mode must keep the Main BrowserWindow visible');
+  assert.equal(miniMain.bounds.width, 518);
+  assert.ok(
+    miniMain.bounds.height >= 760 && miniMain.bounds.height <= 822,
+    'Mini height must use the target range or a work-area-clamped value',
   );
   await page.getByRole('button', { name: '工作站', exact: true }).click();
   await page.getByTestId('workstation-panel').waitFor();

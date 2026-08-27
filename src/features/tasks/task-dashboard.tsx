@@ -8,7 +8,6 @@ import {
   Check,
   Eraser,
   GripVertical,
-  Highlighter,
   MoreHorizontal,
   MousePointer2,
   Pencil,
@@ -18,6 +17,10 @@ import {
 } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
+import {
+  AnnotationColorPicker,
+  HIGHLIGHT_COLOR_PRESETS,
+} from '@/components/annotation-color-picker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { ProjectTag } from '@/components/ui/project-tag';
@@ -56,13 +59,6 @@ import type {
 } from '@/types/domain';
 
 type TaskDropZone = 'schedule' | 'quick';
-const HIGHLIGHT_COLOR_PRESETS = [
-  { id: 'yellow', label: '黄', value: 'rgba(255, 225, 53, 0.42)' },
-  { id: 'pink', label: '粉', value: 'rgba(255, 116, 161, 0.38)' },
-  { id: 'blue', label: '蓝', value: 'rgba(82, 170, 255, 0.38)' },
-  { id: 'green', label: '绿', value: 'rgba(96, 210, 146, 0.38)' },
-  { id: 'purple', label: '紫', value: 'rgba(178, 125, 255, 0.36)' },
-] as const;
 
 /** 只接受内置荧光笔色，避免损坏的 localStorage 影响 SVG 或 CSS 属性。 */
 function normalizeHighlightColor(value: unknown): string {
@@ -604,11 +600,31 @@ export function TaskDashboard() {
   /**
    * 从当前鼠标坐标识别任务可落入的面板，供 Windows WebView2 的 Pointer Events 拖拽使用。
    */
-  const getDropZoneAtPointer = (event: React.PointerEvent) => {
-    const element = document.elementFromPoint(event.clientX, event.clientY);
+  const getDropZoneAtPoint = (clientX: number, clientY: number) => {
+    const element = document.elementFromPoint(clientX, clientY);
     const zone = element?.closest<HTMLElement>('[data-task-drop-zone]')?.dataset
       .taskDropZone;
     return zone === 'schedule' || zone === 'quick' ? zone : null;
+  };
+
+  /** 从 React PointerEvent 读取最终屏幕坐标，统一交给按点命中的落点解析器。 */
+  const getDropZoneAtPointer = (event: React.PointerEvent) =>
+    getDropZoneAtPoint(event.clientX, event.clientY);
+
+  /** 完成一次明确拖拽柄的移动；命中面板后只改变任务排程状态。 */
+  const finishPointerDrag = (pointerId: number, clientX: number, clientY: number) => {
+    const activePointerDrag = pointerDragRef.current;
+    const fallbackTaskId = draggingTaskIdRef.current;
+    const taskId = activePointerDrag?.taskId ?? fallbackTaskId;
+    if (!taskId || (activePointerDrag && pointerId !== activePointerDrag.pointerId))
+      return;
+    const target = getDropZoneAtPoint(clientX, clientY);
+    if (target === 'schedule') moveTaskToSchedule(taskId);
+    if (target === 'quick') moveTaskToQuick(taskId);
+    pointerDragRef.current = undefined;
+    draggingTaskIdRef.current = null;
+    setDraggingTaskId(null);
+    setDropTarget(null);
   };
 
   /**
@@ -628,7 +644,19 @@ export function TaskDashboard() {
     event.currentTarget.setPointerCapture(event.pointerId);
     const nextPointerDrag = { taskId, pointerId: event.pointerId };
     pointerDragRef.current = nextPointerDrag;
+    draggingTaskIdRef.current = taskId;
     setDraggingTaskId(taskId);
+
+    /** 在滚动容器接管事件时，仍从窗口捕获阶段完成本次拖拽。 */
+    const finishFromWindow = (nativeEvent: PointerEvent) => {
+      finishPointerDrag(
+        nativeEvent.pointerId,
+        nativeEvent.clientX,
+        nativeEvent.clientY,
+      );
+      window.removeEventListener('pointerup', finishFromWindow, true);
+    };
+    window.addEventListener('pointerup', finishFromWindow, true);
   };
 
   /**
@@ -645,14 +673,7 @@ export function TaskDashboard() {
    * 松开鼠标后按落点移动原任务；没有有效落点时只清理临时拖拽状态。
    */
   const handlePointerDragEnd = (event: React.PointerEvent) => {
-    const activePointerDrag = pointerDragRef.current;
-    if (!activePointerDrag || event.pointerId !== activePointerDrag.pointerId) return;
-    const target = getDropZoneAtPointer(event);
-    if (target === 'schedule') moveTaskToSchedule(activePointerDrag.taskId);
-    if (target === 'quick') moveTaskToQuick(activePointerDrag.taskId);
-    pointerDragRef.current = undefined;
-    setDraggingTaskId(null);
-    setDropTarget(null);
+    finishPointerDrag(event.pointerId, event.clientX, event.clientY);
   };
 
   /**
@@ -973,7 +994,6 @@ export function TaskDashboard() {
         style={{ '--schedule-ratio': `${scheduleRatio}fr` } as React.CSSProperties}
         onPointerMove={handlePointerDragMove}
         onPointerUp={handlePointerDragEnd}
-        onPointerCancel={handlePointerDragEnd}
       >
         <Surface
           className={`schedule-panel${dropTarget === 'schedule' ? 'is-drop-target' : ''}`}
@@ -995,38 +1015,12 @@ export function TaskDashboard() {
                 >
                   <MousePointer2 size={15} />
                 </button>
-                <button
-                  type="button"
-                  className={`annotation-tool-btn${annotationTool === 'highlight' ? 'is-active' : ''}`}
-                  aria-label="荧光笔"
-                  title="荧光笔（Esc 退出）"
-                  onClick={() => toggleAnnotationTool('highlight')}
-                >
-                  <Highlighter size={15} />
-                </button>
-                <div
-                  className="annotation-color-picker"
-                  role="group"
-                  aria-label="荧光笔颜色"
-                >
-                  {HIGHLIGHT_COLOR_PRESETS.map((preset) => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      className={`annotation-color-swatch${highlightColor === preset.value ? 'is-selected' : ''}`}
-                      aria-label={`颜色：${preset.label}`}
-                      aria-pressed={highlightColor === preset.value}
-                      title={`荧光笔：${preset.label}`}
-                      style={
-                        { '--annotation-color': preset.value } as React.CSSProperties
-                      }
-                      onClick={() => {
-                        setHighlightColor(preset.value);
-                        setAnnotationTool('highlight');
-                      }}
-                    />
-                  ))}
-                </div>
+                <AnnotationColorPicker
+                  active={annotationTool === 'highlight'}
+                  color={highlightColor}
+                  onActivate={() => setAnnotationTool('highlight')}
+                  onColorChange={setHighlightColor}
+                />
                 <button
                   type="button"
                   className={`annotation-tool-btn${annotationTool === 'eraser' ? 'is-active' : ''}`}
@@ -1085,6 +1079,8 @@ export function TaskDashboard() {
               onDragStart={() => handleTaskDragStart(task.id)}
               onDragEnd={handleTaskDragEnd}
               onPointerDragStart={(event) => handlePointerDragStart(task.id, event)}
+              onPointerDragMove={handlePointerDragMove}
+              onPointerDragEnd={handlePointerDragEnd}
               inWorkstation={workstationTaskIds.includes(task.id)}
               onToggleWorkstation={toggleWorkstationTask}
               inSchedulePanel
@@ -1299,6 +1295,8 @@ export function TaskDashboard() {
                       onPointerDragStart={(event) =>
                         handlePointerDragStart(task.id, event)
                       }
+                      onPointerDragMove={handlePointerDragMove}
+                      onPointerDragEnd={handlePointerDragEnd}
                       inWorkstation={workstationTaskIds.includes(task.id)}
                       onToggleWorkstation={toggleWorkstationTask}
                     />
@@ -1757,6 +1755,8 @@ function TaskLine({
   onDragStart,
   onDragEnd,
   onPointerDragStart,
+  onPointerDragMove,
+  onPointerDragEnd,
   inSchedulePanel = false,
   inWorkstation = false,
   onToggleWorkstation,
@@ -1776,6 +1776,8 @@ function TaskLine({
   onDragStart?: () => void;
   onDragEnd?: () => void;
   onPointerDragStart?: (event: React.PointerEvent<HTMLButtonElement>) => void;
+  onPointerDragMove?: (event: React.PointerEvent<HTMLButtonElement>) => void;
+  onPointerDragEnd?: (event: React.PointerEvent<HTMLButtonElement>) => void;
   inSchedulePanel?: boolean;
   inWorkstation?: boolean;
   onToggleWorkstation?: (taskId: string) => void;
@@ -2143,6 +2145,8 @@ function TaskLine({
           title="按住并拖到另一面板"
           disabled={!canDrag || Boolean(editingField)}
           onPointerDown={onPointerDragStart}
+          onPointerMove={onPointerDragMove}
+          onPointerUp={onPointerDragEnd}
         >
           <GripVertical size={16} />
         </button>

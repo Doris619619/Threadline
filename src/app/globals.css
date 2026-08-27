@@ -278,8 +278,6 @@ button,
 /* ================= 桌面窗口外壳 ================= */
 
 .tl-window {
-  display: grid;
-  grid-template-columns: 160px minmax(0, 1fr);
   min-height: 100dvh;
   margin: 0;
   overflow: hidden;
@@ -290,24 +288,65 @@ button,
   position: relative;
 }
 
+.tl-window.mode-full {
+  display: grid;
+  grid-template-rows: 40px minmax(0, 1fr);
+}
+
+.tl-window-body {
+  min-height: 0;
+}
+
+.mode-full .tl-window-body {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+}
+
 .tl-window.mode-compact {
-  grid-template-columns: minmax(0, 1fr);
+  display: block;
   min-height: 100dvh;
   background: #fffdf8;
 }
+
+.mode-compact .tl-window-body {
+  display: contents;
+}
+
 .mode-compact .tl-main {
   display: grid;
-  grid-template-rows: 52px minmax(0, 1fr);
+  grid-template-rows: 64px minmax(0, 1fr);
   min-height: 100dvh;
   padding: 0;
 }
+
+.full-window-chrome {
+  display: flex;
+  min-width: 0;
+  height: 40px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px 0 14px;
+  color: var(--text-tertiary);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-subtle);
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.full-window-caption {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 720;
+  letter-spacing: 0.03em;
+}
+
 .compact-window-header {
   display: flex;
   min-width: 0;
-  min-height: 52px;
+  min-height: 64px;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 22px 0 28px;
   color: var(--text-primary);
   background: #fffdf8;
   user-select: none;
@@ -325,9 +364,17 @@ button,
 }
 .compact-window-actions {
   display: flex;
+  width: 190px;
   align-items: center;
+  justify-content: space-between;
   gap: 3px;
   -webkit-app-region: no-drag;
+}
+.compact-window-header.is-workstation .compact-window-actions {
+  width: 270px;
+}
+.compact-window-header.is-workstation .compact-window-actions button:nth-child(2) {
+  color: #df746d;
 }
 .compact-window-actions button {
   display: inline-flex;
@@ -396,10 +443,14 @@ button,
 .full-window-entries {
   display: flex;
   gap: 7px;
+  -webkit-app-region: no-drag;
 }
 .full-window-entries button {
-  min-height: 32px;
-  padding: 0 10px;
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 9px;
   color: var(--accent);
   background: #fff;
   border: 1px solid #b9d3ff;
@@ -412,32 +463,39 @@ button,
   background: var(--accent-muted);
 }
 .full-window-entries .desktop-close-button {
-  width: 30px;
+  width: 28px;
   color: var(--text-tertiary) !important;
+  border-color: var(--border);
+}
+
+.full-window-entries .desktop-minimize-button {
+  width: 28px;
+  padding: 0;
+  color: var(--text-secondary);
   border-color: var(--border);
 }
 
 /* ================= 紧凑工作流 ================= */
 .compact-workspace {
   min-height: 0;
-  padding: 14px 16px 16px;
+  padding: 26px 24px 14px;
   overflow: auto;
   background: #fffdf8;
 }
 .compact-section {
   margin-bottom: 16px;
-  padding: 14px 16px;
+  padding: 16px 14px;
   background: #fff;
   border: 1px solid #f0ece4;
   border-radius: 18px;
-  box-shadow: 0 4px 16px rgb(93 70 27 / 7%);
+  box-shadow: 0 3px 14px rgb(93 70 27 / 6%);
 }
 .compact-section > header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 30px;
-  margin-bottom: 6px;
+  min-height: 32px;
+  margin-bottom: 8px;
 }
 .compact-section h2 {
   margin: 0;
@@ -476,7 +534,7 @@ button,
   min-width: 0;
   align-items: center;
   gap: 9px;
-  min-height: 53px;
+  min-height: 56px;
   border-top: 1px solid #f1eee9;
 }
 .mini-task-row {
@@ -609,7 +667,7 @@ button,
   display: flex;
   min-height: 0;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 .workstation-panel ol {
   min-height: 0;
@@ -617,14 +675,14 @@ button,
   background: #fff;
   border: 1px solid #f0ece4;
   border-radius: 18px;
-  box-shadow: 0 4px 16px rgb(93 70 27 / 7%);
+  box-shadow: 0 3px 14px rgb(93 70 27 / 6%);
 }
 .workstation-row {
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr) 16px 24px;
   align-items: center;
   gap: 9px;
-  min-height: 76px;
+  min-height: 77px;
   padding: 0 16px;
   border-bottom: 1px solid #f1eee9;
   cursor: grab;
@@ -716,30 +774,8 @@ button,
   border-right: 1px solid var(--border-subtle);
 }
 
-.annotation-color-picker {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  margin-left: 2px;
-}
-
-.annotation-color-swatch {
-  width: 16px;
-  height: 16px;
-  padding: 0;
-  background: var(--annotation-color);
-  border: 1px solid rgb(0 0 0 / 10%);
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 45%);
-  cursor: pointer;
-}
-
-.annotation-color-swatch.is-selected {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
 .annotation-tool-btn {
+  position: relative;
   display: grid;
   width: 28px;
   height: 28px;
@@ -755,6 +791,113 @@ button,
 .annotation-tool-btn.is-active {
   color: var(--accent);
   background: var(--accent-muted);
+}
+
+.annotation-highlighter-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: 1px;
+}
+
+.annotation-highlighter-button {
+  width: 30px;
+  border-radius: 6px 0 0 6px;
+}
+
+.annotation-current-color {
+  position: absolute;
+  right: 5px;
+  bottom: 4px;
+  width: 11px;
+  height: 4px;
+  background: var(--annotation-color);
+  border: 1px solid rgb(0 0 0 / 8%);
+  border-radius: 999px;
+}
+
+.annotation-color-menu-trigger {
+  display: grid;
+  width: 17px;
+  height: 28px;
+  padding: 0;
+  place-items: center;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--border-subtle);
+  border-radius: 0 6px 6px 0;
+  cursor: pointer;
+}
+
+.annotation-color-menu-trigger:hover,
+.annotation-highlighter-control:focus-within .annotation-color-menu-trigger {
+  color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.annotation-color-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  width: 148px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgb(31 44 70 / 16%);
+}
+
+.annotation-color-menu-title {
+  display: block;
+  padding: 1px 6px 6px;
+  color: var(--text-tertiary);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.annotation-color-menu [role='radiogroup'] {
+  display: grid;
+  gap: 2px;
+}
+
+.annotation-color-option {
+  display: grid;
+  width: 100%;
+  min-height: 30px;
+  grid-template-columns: 18px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+
+.annotation-color-option:hover,
+.annotation-color-option.is-selected {
+  color: var(--text-primary);
+  background: var(--surface-secondary);
+}
+
+.annotation-color-option.is-selected svg {
+  color: var(--accent);
+}
+
+.annotation-color-option-swatch {
+  width: 18px;
+  height: 18px;
+  background: var(--annotation-color);
+  border: 1px solid rgb(0 0 0 / 11%);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 50%);
 }
 
 .tl-annotation-layer {
@@ -1313,11 +1456,18 @@ button,
 
 /* ================= 今日日程（精确网格与独立预计/实际两列） ================= */
 
+.schedule-panel {
+  --timeline-columns: 112px 24px 72px minmax(200px, 1fr) 56px 56px 58px;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-color: var(--border) transparent;
+  scrollbar-width: thin;
+}
+
 .timeline-head {
   display: grid;
-  grid-template-columns:
-    112px 24px minmax(72px, 112px) minmax(0, 1fr)
-    56px 56px 58px;
+  min-width: 670px;
+  grid-template-columns: var(--timeline-columns);
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
@@ -1342,9 +1492,8 @@ button,
 
 .timeline-row {
   display: grid;
-  grid-template-columns:
-    112px 24px minmax(72px, 112px) minmax(0, 1fr)
-    56px 56px 58px;
+  min-width: 670px;
+  grid-template-columns: var(--timeline-columns);
   align-items: center;
   gap: 8px;
   min-height: 40px;
@@ -1402,6 +1551,7 @@ button,
 
 .project-inline-select {
   width: 100%;
+  max-width: 72px;
   min-width: 0;
 }
 
@@ -2587,6 +2737,15 @@ button,
     border: 0;
     border-radius: 0;
   }
+  .tl-window.mode-full {
+    display: block;
+  }
+  .mode-full .tl-window-body {
+    display: block;
+  }
+  .full-window-chrome {
+    display: none;
+  }
   .tl-window-controls {
     display: none;
   }
@@ -2674,8 +2833,7 @@ button,
   }
   .timeline-head,
   .timeline-row {
-    grid-template-columns: 120px 24px 72px minmax(0, 1fr) 50px 50px 54px;
-    gap: 4px;
+    gap: 8px;
     padding: 6px 4px;
   }
   .timeline-row time {

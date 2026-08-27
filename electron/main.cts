@@ -703,6 +703,12 @@ function registerDesktopIpc(): void {
       throw new Error('Rejected desktop close sender');
     mainWindow?.close();
   });
+  /** 仅允许受信任 Main Renderer 最小化自身，避免开放任意 BrowserWindow 控制。 */
+  ipcMain.handle('desktop:minimize-main', async (event) => {
+    if (!isTrustedSender(event, 'main'))
+      throw new Error('Rejected desktop minimize sender');
+    mainWindow?.minimize();
+  });
   ipcMain.handle('desktop:state-applied', async (event, revision: unknown) => {
     if (
       !isTrustedSender(event, 'main') ||

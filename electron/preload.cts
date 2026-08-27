@@ -39,6 +39,7 @@ const bridge =
         transitionWindow: (payload: unknown) =>
           ipcRenderer.invoke('desktop:transition', payload),
         bringToFront: () => ipcRenderer.invoke('desktop:bring-to-front'),
+        minimizeMainWindow: () => ipcRenderer.invoke('desktop:minimize-main'),
         acknowledgeNativeState: (stateRevision: number) =>
           ipcRenderer.invoke('desktop:state-applied', stateRevision),
         onNativeStateChanged: (listener: (payload: unknown) => void) =>

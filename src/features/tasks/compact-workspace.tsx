@@ -76,7 +76,7 @@ function MiniScheduleRow({
   inWorkstation: boolean;
 }) {
   return (
-    <li className={`mini-task-row${task.completed ? 'completed' : ''}`}>
+    <li className={`mini-task-row${task.completed ? ' completed' : ''}`}>
       <time>{formatCompactTime(task)}</time>
       <Checkbox
         aria-label={`完成${task.title}`}
@@ -116,7 +116,7 @@ function MiniQuickRow({
   inWorkstation: boolean;
 }) {
   return (
-    <li className={`mini-quick-row${task.completed ? 'completed' : ''}`}>
+    <li className={`mini-quick-row${task.completed ? ' completed' : ''}`}>
       <Checkbox
         aria-label={`完成${task.title}`}
         checked={task.completed}

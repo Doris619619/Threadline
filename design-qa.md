@@ -1,20 +1,31 @@
-# Compact UI design QA
+<!-- 文件用途：记录本轮紧凑桌面窗口与批注控件的视觉验收证据。 -->
 
-## Reference and method
+# Threadline 桌面紧凑 UI 视觉 QA
 
-- Mini Today reference: `C:/Users/LiangYS/AppData/Local/Temp/codex-clipboard-e74e38fd-babf-4af5-bada-9c392b70b712.png` (518 × 822).
-- Workstation reference: `C:/Users/LiangYS/AppData/Local/Temp/codex-clipboard-71a98b1f-d637-4f24-9b5a-d0b2900aac3d.png` (518 × 504).
-- Compared the implemented compact surfaces at the matching 500px logical width. The Electron smoke separately exercised the native Mini geometry, Edge collapse/restore, and second-instance restore path.
+## 参考与实现状态
 
-## Checked against the reference
+- Mini Today 参考：`C:\Users\LiangYS\AppData\Local\Temp\codex-clipboard-e74e38fd-babf-4af5-bada-9c392b70b712.png`
+- Workstation 参考：`C:\Users\LiangYS\AppData\Local\Temp\codex-clipboard-71a98b1f-d637-4f24-9b5a-d0b2900aac3d.png`
+- 实现截图：2026-08-28 通过应用内 Browser 在同一逻辑视口和默认演示任务状态捕获（工具会话截图）。
 
-| Surface | Verified implementation contract |
-| --- | --- |
-| Mini Today | 52px single header; 16px side insets; 18px white section cards; 468px inner card width at 500px; scheduled and unscheduled rows retain time/checkbox/project/title/action on one baseline; bottom full-workspace link remains separate. |
-| Workstation | One header title only; header sequence is `工作站 / 今日 / 清空 / 收起 / 关闭`; 16px side insets; white list card; every task row is 76px and keeps `序号 / 【项目】任务名 / 操作` on one baseline. |
-| Full schedule | Header, ordinary rows, and inline creation row share a seven-column layout; the project column is constrained and the task column is the only main flexible track, so controls no longer overflow into the quick-task surface. |
-| Window chrome | Windows menu is removed; Main is frameless; compact header is the drag region; interactive controls are non-drag; a low-emphasis close button follows the collapse control. |
+## 对照结果
 
-## Result
+| 区域 | 参考尺寸 | 实现测量与结果 |
+| --- | --- | --- |
+| Mini Today | `518 × 822` | 使用相同视口；卡片从约 `x=24, y=91` 开始，6 条日程任务均为固定 `56px` 单行，项目标签与标题不再上下堆叠。 |
+| Workstation | `518 × 504` | 使用相同视口；任务卡片约 `470 × 309px`，四条任务行均为 `77px`，结构为序号、项目+任务、拖动/移除操作。 |
+| 紧凑顶部 | 单层 header | Mini/Workstation 各只显示一次标题；Workstation 顺序为工作站、今日、清空、收起、关闭。关闭按钮是经用户许可补充的低强调 `×`。 |
+| Full 日程 | 任务列优先 | 项目列锁定紧凑宽度；时间线可横向滚动，新增行任务输入保留最小可编辑宽度，未再被项目选项撑窄。 |
+| 画笔色彩 | 当前色明确 | 荧光笔采用当前色按钮与命名色板浮层；黄色和其余预设色在选择、预览、保存及 reload 中维持同一值。 |
 
-**Passed for the rendered compact layout and interaction contract.** Native title-bar feel, cursor hotspot feel, and 100%/125%/150% DPI appearance require the requested user manual acceptance on the target Windows display; those qualities cannot be reliably judged from browser DOM measurements alone.
+## 已检查的可见差异
+
+- 参考图没有关闭图标；实现把关闭入口置于收起箭头之后，避免遮挡主要操作，并保留 Windows 无边框窗口的可发现关闭能力。
+- Workstation 的卡片高度、行高和底部“打开完整工作台”锚点与参考图的高密度布局一致；演示任务内容不同不会影响结构对照。
+- Full 仅新增连续 40px 拖拽条和窗口操作，未将 Dashboard 重新设计为紧凑窗口风格。
+
+## 最终结果
+
+**final result: passed**
+
+需要用户在真实 Windows 100% / 125% / 150% DPI 下确认拖动手感、标题栏观感和与个人任务数据的最终视觉密度。

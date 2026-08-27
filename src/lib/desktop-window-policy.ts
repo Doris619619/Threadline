@@ -24,8 +24,8 @@ export interface LogicalWorkArea {
 /** 定义三种业务窗口模式在没有 persisted geometry 时使用的默认尺寸。 */
 export const DEFAULT_WINDOW_CONFIGS: Record<DesktopViewMode, WindowStateConfig> = {
   full: { width: 1280, height: 840 },
-  'mini-today': { width: 500, height: 800 },
-  workstation: { width: 500, height: 480 },
+  'mini-today': { width: 518, height: 822 },
+  workstation: { width: 518, height: 504 },
 };
 
 /** 定义 Edge 窗口在所有壳实现中必须保持一致的固定逻辑尺寸。 */
@@ -36,8 +36,8 @@ export const COMPACT_WINDOW_BOUNDS: Record<
   CompactViewMode,
   { minWidth: number; maxWidth: number; minHeight: number; maxHeight: number }
 > = {
-  'mini-today': { minWidth: 440, maxWidth: 560, minHeight: 620, maxHeight: 820 },
-  workstation: { minWidth: 400, maxWidth: 560, minHeight: 340, maxHeight: 640 },
+  'mini-today': { minWidth: 480, maxWidth: 540, minHeight: 760, maxHeight: 860 },
+  workstation: { minWidth: 480, maxWidth: 540, minHeight: 460, maxHeight: 560 },
 };
 
 const MINIMUM_VISIBLE_SIZE: Record<DesktopViewMode, { width: number; height: number }> =
