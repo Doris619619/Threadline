@@ -28,16 +28,10 @@ import { StatsPanel } from '@/features/stats/stats-panel';
 import { useWorkspaceView } from '@/components/app-shell';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import { usePersistentState } from '@/hooks/use-persistent-state';
+import { useAnnotationStrokes } from '@/hooks/use-annotation-strokes';
 import { addLocalDateDays, getLocalDateKey } from '@/lib/local-date';
 import { MiniTodayPanel, WorkstationPanel } from '@/features/tasks/compact-workspace';
-import type {
-  AnnotationStroke,
-  CloseRecord,
-  HistoryEvent,
-  Project,
-  Task,
-  TaskStatus,
-} from '@/types/domain';
+import type { CloseRecord, HistoryEvent, Project, Task, TaskStatus } from '@/types/domain';
 
 type TaskDropZone = 'schedule' | 'quick';
 /** 创建首次打开工作台时可编辑的内置项目，并把创建日绑定到用户本地日期。 */
@@ -214,9 +208,7 @@ export function TaskDashboard() {
     'threadline.close-records.v1',
     [],
   );
-  const [annotationStrokes, setAnnotationStrokes, annotationHydrated] = usePersistentState<
-    AnnotationStroke[]
-  >('threadline.annotations.v1', []);
+  const [annotationStrokes, setAnnotationStrokes, annotationHydrated] = useAnnotationStrokes();
   const [workstationTaskIds, setWorkstationTaskIds, workstationHydrated] = usePersistentState<string[]>(
     'threadline.workstation.v1',
     [],
@@ -1272,7 +1264,7 @@ export function TaskDashboard() {
         activeTool={annotationTool}
         strokes={annotationStrokes}
         onChangeStrokes={setAnnotationStrokes}
-        scope="today"
+        targetDate={selectedDate}
         disabled={false}
       />
       <TaskDialog

@@ -31,24 +31,9 @@ async function dragTaskWithMouse(page: Page, source: Locator, target: Locator) {
 
 test.beforeEach(async ({ page }) => {
   const seedKey = `threadline.e2e.seeded.${test.info().testId}`;
+  await page.clock.install({ time: new Date(frozenLocalNow) });
   await page.addInitScript(
-    ({ key, now }) => {
-      const RealDate = Date;
-      const fixedTime = new RealDate(now).getTime();
-
-      /** 让 E2E 以明确的上海本地时间运行，生产代码仍读取真实用户本地时间。 */
-      class FrozenDate extends RealDate {
-        constructor(value?: string | number | Date) {
-          super(arguments.length === 0 ? fixedTime : value);
-        }
-
-        static now() {
-          return fixedTime;
-        }
-      }
-      // 应用启动前替换浏览器全局 Date，覆盖 seed、日期导航和新建数据时间。
-      window.Date = FrozenDate as DateConstructor;
-
+    (key) => {
       // addInitScript 会在 reload 时再次运行；用 sessionStorage 确保只清理本用例首次导航。
       if (window.sessionStorage.getItem(key)) return;
       window.sessionStorage.setItem(key, 'true');
@@ -62,6 +47,7 @@ test.beforeEach(async ({ page }) => {
         'threadline.history.v1',
         'threadline.close-records.v1',
         'threadline.annotations.v1',
+        'threadline.annotations.v2',
         'threadline.workstation.v1',
         'threadline.workspace.v1',
       ])
@@ -73,7 +59,7 @@ test.beforeEach(async ({ page }) => {
       window.localStorage.removeItem('threadline.desktop-last-compact-mode.v3');
       window.localStorage.removeItem('threadline.desktop-compact-presentation.v3');
     },
-    { key: seedKey, now: frozenLocalNow },
+    seedKey,
   );
   await page.goto('/');
   await page.getByRole('heading', { name: '我的工作台' }).waitFor();
@@ -283,6 +269,28 @@ test('persists task changes and navigates across dates', async ({ page }) => {
   await expect(page.getByText('还没有待安排事项。')).toBeVisible();
   await page.getByRole('button', { name: '前一天' }).click();
   await expect(page.getByRole('checkbox', { name: '完成邮件处理' })).toBeChecked();
+});
+
+test('keeps drawn date annotations on their original day after navigation and reload', async ({ page }) => {
+  await page.getByRole('button', { name: '荧光笔' }).click();
+  const canvas = page.locator('.tl-annotation-layer');
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('批注画布不可见。');
+  await page.mouse.move(box.x + 40, box.y + 40);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 160, box.y + 70, { steps: 8 });
+  await page.mouse.up();
+  const persistedStrokes = page.locator('.tl-annotation-layer path[data-annotation-date]');
+  await expect(persistedStrokes).toHaveCount(1);
+  await expect(persistedStrokes).toHaveAttribute('data-annotation-date', '2026-08-23');
+
+  await page.getByRole('button', { name: '选择模式' }).click();
+  await page.getByRole('button', { name: '后一天' }).click();
+  await expect(persistedStrokes).toHaveCount(0);
+  await page.getByRole('button', { name: '前一天' }).click();
+  await expect(persistedStrokes).toHaveCount(1);
+  await page.reload();
+  await expect(page.locator('.tl-annotation-layer path[data-annotation-date]')).toHaveCount(1);
 });
 
 test('creates a fresh Daily instance for another date', async ({ page }) => {

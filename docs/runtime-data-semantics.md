@@ -13,3 +13,9 @@
 ## 浏览器持久化
 
 `usePersistentState` 的 hydration 由 storage key 和 repository 生命周期控制。调用方可以传入 inline normalizer；Hook 会使用最新 normalizer，但不会因为函数引用变化反复读取 localStorage。
+
+## 日期化批注
+
+批注由专用的 `useAnnotationStrokes` 管理，使用 `threadline.annotations.v2`。日期笔迹必须携带 `targetDate`，全局笔迹明确使用 `targetScope: 'global'`；两种笔迹都保留可选的 `targetTaskId`。
+
+首次升级只在 v2 不存在时读取 v1：旧 `today` 笔迹迁移到升级当天的本地日期，旧 `global` 笔迹保持全局。v1 key 不删除，且迁移不会把笔迹复制到其他日期。

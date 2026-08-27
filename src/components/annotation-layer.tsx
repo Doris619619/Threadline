@@ -5,6 +5,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { isAnnotationVisibleOnDate } from '@/lib/annotation-storage';
 import type { AnnotationStroke, AnnotationPoint } from '@/types/domain';
 
 export type AnnotationTool = 'none' | 'highlight' | 'eraser';
@@ -16,8 +17,8 @@ interface AnnotationLayerProps {
   strokes: AnnotationStroke[];
   /** 笔迹更新回调 */
   onChangeStrokes: (strokes: AnnotationStroke[]) => void;
-  /** 作用域标识 */
-  scope?: 'today' | 'global';
+  /** 当前画布所属的本地业务日期 */
+  targetDate: string;
   /** 是否允许绘制或擦除 */
   disabled?: boolean;
 }
@@ -31,7 +32,7 @@ export function AnnotationLayer({
   activeTool,
   strokes,
   onChangeStrokes,
-  scope = 'today',
+  targetDate,
   disabled = false,
 }: AnnotationLayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -39,16 +40,21 @@ export function AnnotationLayer({
   const currentPointsRef = useRef<AnnotationPoint[]>([]);
   const isDrawingRef = useRef(false);
 
-  const filterStrokes = strokes.filter((s) => s.targetScope === scope);
+  const filterStrokes = strokes.filter((stroke) =>
+    isAnnotationVisibleOnDate(stroke, targetDate),
+  );
 
-  const getRelativePoint = useCallback((e: React.PointerEvent<HTMLDivElement>): AnnotationPoint | null => {
-    if (!containerRef.current) return null;
-    const rect = containerRef.current.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) return null;
-    const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-    return { x, y };
-  }, []);
+  const getRelativePoint = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>): AnnotationPoint | null => {
+      if (!containerRef.current) return null;
+      const rect = containerRef.current.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return null;
+      const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+      return { x, y };
+    },
+    [],
+  );
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (disabled || activeTool === 'none') return;
@@ -57,7 +63,7 @@ export function AnnotationLayer({
     e.preventDefault();
     e.stopPropagation();
     isDrawingRef.current = true;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    e.currentTarget.setPointerCapture(e.pointerId);
 
     const pt = getRelativePoint(e);
     if (!pt) return;
@@ -76,11 +82,10 @@ export function AnnotationLayer({
     if (!pt) return;
 
     if (activeTool === 'highlight') {
-      setCurrentPoints((prev) => {
-        const next = [...prev, pt];
-        currentPointsRef.current = next;
-        return next;
-      });
+      // Pointer move 与 up 可能落在同一 React batch；以 ref 为权威，确保 up 能读到最后一个点。
+      const next = [...currentPointsRef.current, pt];
+      currentPointsRef.current = next;
+      setCurrentPoints(next);
     } else if (activeTool === 'eraser') {
       eraseAtPoint(pt);
     }
@@ -90,7 +95,7 @@ export function AnnotationLayer({
     if (!isDrawingRef.current) return;
     isDrawingRef.current = false;
     try {
-      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      e.currentTarget.releasePointerCapture(e.pointerId);
     } catch {
       // ignore
     }
@@ -103,7 +108,8 @@ export function AnnotationLayer({
         color: 'rgba(255, 225, 53, 0.42)', // 柔和通透的真实荧光黄
         strokeWidth: 16,
         createdAt: new Date().toISOString(),
-        targetScope: scope,
+        targetScope: 'date',
+        targetDate,
       };
       onChangeStrokes([...strokes, newStroke]);
     }
@@ -121,7 +127,7 @@ export function AnnotationLayer({
     const thresholdY = 14 / rect.height;
 
     const remaining = strokes.filter((stroke) => {
-      if (stroke.targetScope !== scope) return true;
+      if (!isAnnotationVisibleOnDate(stroke, targetDate)) return true;
       // 检测当前点是否在某条笔迹的任意线段附近
       const hit = stroke.points.some((p) => {
         const dx = Math.abs(p.x - pt.x);
@@ -137,7 +143,11 @@ export function AnnotationLayer({
   };
 
   // 生成 SVG Path d 属性
-  const pointsToSvgPath = (points: AnnotationPoint[], width: number, height: number) => {
+  const pointsToSvgPath = (
+    points: AnnotationPoint[],
+    width: number,
+    height: number,
+  ) => {
     if (points.length === 0) return '';
     const mapped = points.map((p) => ({ x: p.x * width, y: p.y * height }));
     if (mapped.length === 1) {
@@ -193,6 +203,10 @@ export function AnnotationLayer({
         {filterStrokes.map((stroke) => (
           <path
             key={stroke.id}
+            data-annotation-scope={stroke.targetScope}
+            data-annotation-date={
+              stroke.targetScope === 'date' ? stroke.targetDate : 'global'
+            }
             d={pointsToSvgPath(stroke.points, dimensions.width, dimensions.height)}
             stroke={stroke.color}
             strokeWidth={stroke.strokeWidth}
