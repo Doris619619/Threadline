@@ -12,7 +12,7 @@ import {
   screen,
   type IpcMainInvokeEvent,
 } from 'electron';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, normalize, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
@@ -72,6 +72,7 @@ let latestState: CanonicalDesktopState = {
   lastCompactMode: 'mini-today',
   windowStates: {},
 };
+let rendererCspManifest: { routes?: Record<string, { header?: string }> } | undefined;
 
 /** 返回开发与打包应用都可读取的统一 Threadline 窗口图标。 */
 function getWindowIconPath(): string {
@@ -93,6 +94,21 @@ const hasSingleInstanceLock = app.requestSingleInstanceLock();
 /** 返回打包应用中静态 Next export 的绝对目录。 */
 function getRendererDirectory(): string {
   return join(app.getAppPath(), '.next-electron');
+}
+
+/** 读取构建时扫描生成的 CSP manifest；缺失 manifest 视为打包错误而不是放宽策略。 */
+function getRendererCspHeader(requestUrl: string): string {
+  if (!rendererCspManifest) {
+    rendererCspManifest = JSON.parse(
+      readFileSync(join(getRendererDirectory(), 'threadline-csp.json'), 'utf8'),
+    ) as { routes?: Record<string, { header?: string }> };
+  }
+  const pathname = new URL(requestUrl).pathname;
+  const header =
+    rendererCspManifest.routes?.[pathname]?.header ??
+    rendererCspManifest.routes?.['/']?.header;
+  if (!header) throw new Error(`Missing CSP policy for renderer route: ${pathname}`);
+  return header;
 }
 
 /** 返回唯一允许的开发或生产 Renderer URL，并按窗口角色添加只读标记。 */
@@ -130,7 +146,14 @@ function registerRendererProtocol(): void {
   protocol.handle(APP_PROTOCOL, async (request) => {
     const assetPath = resolveRendererAsset(request.url);
     if (!existsSync(assetPath)) return new Response('Not found', { status: 404 });
-    return net.fetch(pathToFileURL(assetPath).toString());
+    const response = await net.fetch(pathToFileURL(assetPath).toString());
+    const headers = new Headers(response.headers);
+    headers.set('Content-Security-Policy', getRendererCspHeader(request.url));
+    return new Response(response.body, {
+      headers,
+      status: response.status,
+      statusText: response.statusText,
+    });
   });
 }
 

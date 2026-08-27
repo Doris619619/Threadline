@@ -11,8 +11,8 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "next build && node scripts/generate-csp.mjs .next",
+    "start": "node scripts/web-server.mjs",
     "desktop:dev": "node scripts/electron.mjs dev",
     "desktop:build": "node scripts/electron.mjs package",
     "desktop:compile": "node scripts/build-electron.mjs",
@@ -41,6 +41,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@electron/fuses": "1.8.0",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",

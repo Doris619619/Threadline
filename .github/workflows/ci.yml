@@ -1,0 +1,47 @@
+# 文件用途：在 pull request 和 main 推送时执行 Web/PWA 与 Windows Electron 的回归门禁。
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.12.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+
+  windows-electron:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.12.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm desktop:compile
+      - run: pnpm desktop:renderer
+      - run: pnpm desktop:build:dir
+      - run: Test-Path release/win-unpacked/resources/app.asar
+        shell: pwsh
+      - run: node scripts/verify-electron-fuses.mjs release/win-unpacked/Threadline.exe
+      - run: pnpm desktop:build

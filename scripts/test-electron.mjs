@@ -12,6 +12,7 @@ import { _electron as electron } from 'playwright';
 const rendererPort = process.env.THREADLINE_ELECTRON_E2E_PORT ?? '3123';
 const rendererUrl = `http://127.0.0.1:${rendererPort}`;
 const userDataDirectory = await mkdtemp(join(tmpdir(), 'threadline-electron-e2e-'));
+const packagedExecutable = process.env.THREADLINE_PACKAGED_EXECUTABLE;
 
 /** 返回所有原生窗口的可见性与加载 URL，供可见 surface 不变量断言。 */
 async function inspectWindows(app) {
@@ -51,11 +52,36 @@ function waitForProcessExit(process, timeoutMs = 8_000) {
   });
 }
 
+/** 启动第二实例；unpacked 包必须复用最终 executable，而开发 smoke 继续走 Electron CLI。 */
+function startSecondInstance() {
+  return packagedExecutable
+    ? spawn(
+        packagedExecutable,
+        [`--user-data-dir=${userDataDirectory}`, '--no-sandbox'],
+        {
+          stdio: 'ignore',
+        },
+      )
+    : spawn(
+        process.execPath,
+        [
+          'node_modules/electron/cli.js',
+          '.',
+          `--user-data-dir=${userDataDirectory}`,
+          '--no-sandbox',
+        ],
+        {
+          env: { ...process.env, THREADLINE_ELECTRON_RENDERER_URL: rendererUrl },
+          stdio: 'ignore',
+        },
+      );
+}
+
 /** 启动独占的 Next production server，避免复用不兼容的开发服务。 */
 async function startRendererServer() {
   const server = spawn(
     process.execPath,
-    ['node_modules/next/dist/bin/next', 'start', '--port', rendererPort],
+    ['scripts/web-server.mjs', '--port', rendererPort],
     { stdio: 'inherit' },
   );
   await waitFor(async () => {
@@ -72,26 +98,27 @@ let application;
 let server;
 let exitCode = 0;
 try {
-  server = await startRendererServer();
+  if (!packagedExecutable) server = await startRendererServer();
   application = await electron.launch({
-    args: ['.', `--user-data-dir=${userDataDirectory}`, '--no-sandbox'],
-    env: { ...process.env, THREADLINE_ELECTRON_RENDERER_URL: rendererUrl },
+    ...(packagedExecutable ? { executablePath: packagedExecutable } : { args: ['.'] }),
+    args: packagedExecutable
+      ? [`--user-data-dir=${userDataDirectory}`, '--no-sandbox']
+      : ['.', `--user-data-dir=${userDataDirectory}`, '--no-sandbox'],
+    env: {
+      ...process.env,
+      ...(packagedExecutable ? {} : { THREADLINE_ELECTRON_RENDERER_URL: rendererUrl }),
+    },
   });
   const page = await application.firstWindow();
   await page.waitForFunction(() => window.threadlineDesktop?.role === 'main');
-  const secondInstance = spawn(
-    process.execPath,
-    [
-      'node_modules/electron/cli.js',
-      '.',
-      `--user-data-dir=${userDataDirectory}`,
-      '--no-sandbox',
-    ],
-    {
-      env: { ...process.env, THREADLINE_ELECTRON_RENDERER_URL: rendererUrl },
-      stdio: 'ignore',
-    },
-  );
+  if (packagedExecutable) {
+    const csp = await application.evaluate(async ({ net }) => {
+      const response = await net.fetch('threadline://app/');
+      return response.headers.get('content-security-policy');
+    });
+    assert.match(csp ?? '', /default-src 'self'; script-src 'self'/);
+  }
+  const secondInstance = startSecondInstance();
   assert.equal(await waitForProcessExit(secondInstance), 0);
   assert.equal(
     (await inspectWindows(application)).filter((window) => window.visible).length,
@@ -137,19 +164,7 @@ try {
       ),
     'Edge must be visible before second-instance restore',
   );
-  const edgeSecondInstance = spawn(
-    process.execPath,
-    [
-      'node_modules/electron/cli.js',
-      '.',
-      `--user-data-dir=${userDataDirectory}`,
-      '--no-sandbox',
-    ],
-    {
-      env: { ...process.env, THREADLINE_ELECTRON_RENDERER_URL: rendererUrl },
-      stdio: 'ignore',
-    },
-  );
+  const edgeSecondInstance = startSecondInstance();
   assert.equal(await waitForProcessExit(edgeSecondInstance), 0);
   await page.getByTestId('workstation-panel').waitFor();
   await waitFor(

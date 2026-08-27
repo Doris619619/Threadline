@@ -41,6 +41,7 @@ function buildRenderer() {
     ...process.env,
     ELECTRON_BUILD: 'true',
   });
+  run(process.execPath, ['scripts/generate-csp.mjs', '.next-electron']);
 }
 
 /** 编译 Main/Preload 并让 electron-builder 生成指定 Windows 产物。 */

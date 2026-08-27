@@ -26,7 +26,7 @@ export default defineConfig({
     { name: 'mobile', use: { ...devices['iPhone 13'] } },
   ],
   webServer: {
-    command: `node node_modules/next/dist/bin/next start --port ${e2ePort}`,
+    command: `node scripts/web-server.mjs --port ${e2ePort}`,
     url: e2eBaseUrl,
     reuseExistingServer: false,
   },
