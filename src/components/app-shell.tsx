@@ -5,11 +5,13 @@
 import {
   CalendarDays,
   ChartNoAxesCombined,
+  ChevronUp,
   ClipboardList,
   FolderKanban,
   Home,
   Settings,
   Sparkles,
+  X,
 } from 'lucide-react';
 import { createContext, useContext, useRef, useState } from 'react';
 import { format } from 'date-fns';
@@ -60,12 +62,18 @@ const WorkspaceViewContext = createContext<WorkspaceView>({
 /** 读取完整工作台导航状态与当前工作日期。 */
 export const useWorkspaceView = () => useContext(WorkspaceViewContext);
 
-/** 提供紧凑视图标题栏与模式控制；Electron 使用原生 frame，无需 Renderer 拖动 API。 */
-function CompactWindowHeader() {
-  const { isMiniToday, setMode, collapseCompactView } = useDesktopWindow();
+/** 渲染无边框紧凑窗口的唯一标题栏，并把清空控制限制在工作站模式。 */
+export function CompactWindowHeader({
+  onClearWorkstation,
+}: {
+  onClearWorkstation?: () => void;
+}) {
+  const { isMiniToday, isWorkstation, setMode, collapseCompactView, closeMainWindow } =
+    useDesktopWindow();
   return (
     <header className="compact-window-header">
       <span className="compact-window-title">
+        <CalendarDays size={20} />
         {isMiniToday ? '迷你今日' : '工作站'}
       </span>
       <div className="compact-window-actions">
@@ -75,8 +83,26 @@ function CompactWindowHeader() {
         >
           {isMiniToday ? '工作站' : '今日'}
         </button>
-        <button type="button" onClick={() => void collapseCompactView()}>
-          收起
+        {isWorkstation && (
+          <button type="button" onClick={onClearWorkstation}>
+            清空
+          </button>
+        )}
+        <button
+          type="button"
+          className="compact-collapse-button"
+          onClick={() => void collapseCompactView()}
+        >
+          收起 <ChevronUp size={16} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className="desktop-close-button"
+          aria-label="关闭窗口"
+          title="关闭窗口"
+          onClick={() => void closeMainWindow()}
+        >
+          <X size={16} aria-hidden="true" />
         </button>
       </div>
     </header>
@@ -112,7 +138,7 @@ function EdgeTab() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [active, setActive] = useState<WorkspaceViewId>('home');
   const [selectedDate, setSelectedDate] = useState<string>(getLocalDateKey);
-  const { isCompact, isEdgeCollapsed, setMode } = useDesktopWindow();
+  const { isCompact, isEdgeCollapsed, setMode, closeMainWindow } = useDesktopWindow();
   const activeItem = navigation.find((item) => item.id === active) ?? navigation[0];
   /** 切换当前工作日期。 */
   const shiftDate = (amount: number) =>
@@ -151,9 +177,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </aside>
       )}
       <main id="main-content" className="tl-main">
-        {isCompact ? (
-          <CompactWindowHeader />
-        ) : (
+        {!isCompact && (
           <header className="tl-header">
             <div>
               <h1>{activeItem.label === '首页' ? '我的工作台' : activeItem.label}</h1>
@@ -197,6 +221,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </button>
                 <button type="button" onClick={() => void setMode('workstation')}>
                   工作站
+                </button>
+                <button
+                  type="button"
+                  className="desktop-close-button"
+                  aria-label="关闭窗口"
+                  title="关闭窗口"
+                  onClick={() => void closeMainWindow()}
+                >
+                  <X size={16} aria-hidden="true" />
                 </button>
               </div>
             </div>

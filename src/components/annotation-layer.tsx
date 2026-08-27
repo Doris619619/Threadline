@@ -13,6 +13,8 @@ export type AnnotationTool = 'none' | 'highlight' | 'eraser';
 interface AnnotationLayerProps {
   /** 当前激活的工具模式 */
   activeTool: AnnotationTool;
+  /** 当前荧光笔颜色；新笔迹与实时预览必须共享同一值。 */
+  highlightColor: string;
   /** 所有笔迹列表 */
   strokes: AnnotationStroke[];
   /** 笔迹更新回调 */
@@ -30,6 +32,7 @@ interface AnnotationLayerProps {
  */
 export function AnnotationLayer({
   activeTool,
+  highlightColor,
   strokes,
   onChangeStrokes,
   targetDate,
@@ -105,7 +108,7 @@ export function AnnotationLayer({
       const newStroke: AnnotationStroke = {
         id: crypto.randomUUID(),
         points,
-        color: 'rgba(255, 225, 53, 0.42)', // 柔和通透的真实荧光黄
+        color: highlightColor,
         strokeWidth: 16,
         createdAt: new Date().toISOString(),
         targetScope: 'date',
@@ -221,7 +224,7 @@ export function AnnotationLayer({
         {currentPoints.length > 0 && (
           <path
             d={pointsToSvgPath(currentPoints, dimensions.width, dimensions.height)}
-            stroke="rgba(255, 225, 53, 0.45)"
+            stroke={highlightColor}
             strokeWidth={16}
             strokeLinecap="round"
             strokeLinejoin="round"

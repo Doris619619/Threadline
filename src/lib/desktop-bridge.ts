@@ -69,6 +69,7 @@ export type ThreadlineDesktopBridge =
         command: DesktopTransitionCommand,
       ) => Promise<NativeApplyResult>;
       bringToFront: () => Promise<NativeApplyResult>;
+      closeMainWindow: () => Promise<void>;
       acknowledgeNativeState: (stateRevision: number) => Promise<void>;
       onNativeStateChanged: (
         listener: (event: NativeDesktopStateChanged) => void,

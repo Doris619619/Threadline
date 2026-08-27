@@ -20,6 +20,8 @@ export default defineConfig({
     baseURL: e2eBaseUrl,
     timezoneId: 'Asia/Shanghai',
     trace: 'retain-on-failure',
+    // 生产构建后 service worker 可能缓存已替换的 chunk；E2E 应只验证当前构建产物。
+    serviceWorkers: 'block',
   },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },

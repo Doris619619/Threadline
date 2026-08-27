@@ -14,12 +14,13 @@ const rendererUrl = `http://127.0.0.1:${rendererPort}`;
 const userDataDirectory = await mkdtemp(join(tmpdir(), 'threadline-electron-e2e-'));
 const packagedExecutable = process.env.THREADLINE_PACKAGED_EXECUTABLE;
 
-/** 返回所有原生窗口的可见性与加载 URL，供可见 surface 不变量断言。 */
+/** 返回所有原生窗口的可见性、逻辑 bounds 与加载 URL，供壳层不变量断言。 */
 async function inspectWindows(app) {
   return app.evaluate(({ BrowserWindow }) =>
     BrowserWindow.getAllWindows().map((window) => ({
       visible: window.isVisible(),
       url: window.webContents.getURL(),
+      bounds: window.getBounds(),
     })),
   );
 }
@@ -111,6 +112,11 @@ try {
   });
   const page = await application.firstWindow();
   await page.waitForFunction(() => window.threadlineDesktop?.role === 'main');
+  assert.equal(
+    await application.evaluate(({ Menu }) => Menu.getApplicationMenu()),
+    null,
+    'Windows menu bar must be disabled before any compact surface is shown',
+  );
   if (packagedExecutable) {
     const csp = await application.evaluate(async ({ net }) => {
       const response = await net.fetch('threadline://app/');
@@ -126,6 +132,31 @@ try {
   );
   await page.getByRole('button', { name: '迷你今日', exact: true }).click();
   await page.getByTestId('mini-today-panel').waitFor();
+  assert.equal(
+    await page
+      .locator('.compact-window-header')
+      .evaluate((element) =>
+        getComputedStyle(element).getPropertyValue('-webkit-app-region'),
+      ),
+    'drag',
+    'frameless compact header must provide a drag region',
+  );
+  const miniMain = (await inspectWindows(application)).find(
+    (window) => window.visible && window.url.includes('threadline-role=main'),
+  );
+  const primaryWorkArea = await application.evaluate(({ screen }) =>
+    screen.getPrimaryDisplay().workAreaSize,
+  );
+  assert.deepEqual(
+    miniMain?.bounds && {
+      width: miniMain.bounds.width,
+      height: miniMain.bounds.height,
+    },
+    {
+      width: Math.min(500, Math.max(1, primaryWorkArea.width - 48)),
+      height: Math.min(800, Math.max(1, primaryWorkArea.height - 48)),
+    },
+  );
   await page.getByRole('button', { name: '工作站', exact: true }).click();
   await page.getByTestId('workstation-panel').waitFor();
   await page.getByRole('button', { name: '收起', exact: true }).click();

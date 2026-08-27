@@ -7,6 +7,7 @@ import {
   BrowserWindow,
   dialog,
   ipcMain,
+  Menu,
   net,
   protocol,
   screen,
@@ -17,6 +18,7 @@ import { join, normalize, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   DEFAULT_WINDOW_CONFIGS,
+  COMPACT_WINDOW_BOUNDS,
   EDGE_TAB_SIZE,
   normalizeWindowStates,
   resolveSafeWindowState,
@@ -26,6 +28,9 @@ import {
   type LogicalWorkArea,
   type WindowStateConfig,
 } from '../src/lib/desktop-window-policy.js';
+
+// Windows/Linux 默认菜单会占用紧凑窗口的标题区域，必须在 app ready 前移除。
+Menu.setApplicationMenu(null);
 
 const APP_PROTOCOL = 'threadline';
 const APP_HOST = 'app';
@@ -291,12 +296,7 @@ function applyMainNativeState(
 ): void {
   if (!mainWindow || mainWindow.isDestroyed())
     throw new Error('Main window is unavailable');
-  const compactLimits =
-    mode === 'mini-today'
-      ? { minWidth: 340, minHeight: 420, maxWidth: 560, maxHeight: 820 }
-      : mode === 'workstation'
-        ? { minWidth: 260, minHeight: 220, maxWidth: 360, maxHeight: 640 }
-        : undefined;
+  const compactLimits = mode === 'full' ? undefined : COMPACT_WINDOW_BOUNDS[mode];
   mainWindow.setAlwaysOnTop(mode !== 'full');
   mainWindow.setResizable(true);
   mainWindow.setMaximizable(mode === 'full');
@@ -697,6 +697,12 @@ function registerDesktopIpc(): void {
       'edge-restore',
     );
   });
+  /** 仅允许受信任 Main Renderer 请求关闭自身，复用现有 close 生命周期。 */
+  ipcMain.handle('desktop:close-main', async (event) => {
+    if (!isTrustedSender(event, 'main'))
+      throw new Error('Rejected desktop close sender');
+    mainWindow?.close();
+  });
   ipcMain.handle('desktop:state-applied', async (event, revision: unknown) => {
     if (
       !isTrustedSender(event, 'main') ||
@@ -716,7 +722,7 @@ function registerDesktopIpc(): void {
 /** 创建初始隐藏 Main，并注册 handshake 前必要的 renderer 故障与 closed 保护。 */
 async function createMainWindow(): Promise<void> {
   const window = createWindow('main', {
-    frame: true,
+    frame: false,
     width: 1280,
     height: 840,
     minWidth: 800,

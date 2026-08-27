@@ -29,6 +29,7 @@ const bridge =
         environment: 'electron' as const,
         role,
         restoreMain: () => ipcRenderer.invoke('desktop:restore-main'),
+        closeMainWindow: () => ipcRenderer.invoke('desktop:close-main'),
       }
     : {
         environment: 'electron' as const,

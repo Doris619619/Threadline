@@ -24,19 +24,20 @@ export interface LogicalWorkArea {
 /** 定义三种业务窗口模式在没有 persisted geometry 时使用的默认尺寸。 */
 export const DEFAULT_WINDOW_CONFIGS: Record<DesktopViewMode, WindowStateConfig> = {
   full: { width: 1280, height: 840 },
-  'mini-today': { width: 420, height: 660 },
-  workstation: { width: 300, height: 420 },
+  'mini-today': { width: 500, height: 800 },
+  workstation: { width: 500, height: 480 },
 };
 
 /** 定义 Edge 窗口在所有壳实现中必须保持一致的固定逻辑尺寸。 */
 export const EDGE_TAB_SIZE = { width: 42, height: 146 };
 
-const WINDOW_BOUNDS: Record<
+/** 紧凑窗口的统一 logical px 尺寸边界，Main 与 Renderer 必须共用。 */
+export const COMPACT_WINDOW_BOUNDS: Record<
   CompactViewMode,
   { minWidth: number; maxWidth: number; minHeight: number; maxHeight: number }
 > = {
-  'mini-today': { minWidth: 340, maxWidth: 560, minHeight: 420, maxHeight: 820 },
-  workstation: { minWidth: 260, maxWidth: 360, minHeight: 220, maxHeight: 640 },
+  'mini-today': { minWidth: 440, maxWidth: 560, minHeight: 620, maxHeight: 820 },
+  workstation: { minWidth: 400, maxWidth: 560, minHeight: 340, maxHeight: 640 },
 };
 
 const MINIMUM_VISIBLE_SIZE: Record<DesktopViewMode, { width: number; height: number }> =
@@ -66,7 +67,7 @@ export function normalizeCompactWindowState(
   state?: WindowStateConfig,
 ): WindowStateConfig {
   const fallback = DEFAULT_WINDOW_CONFIGS[mode];
-  const bounds = WINDOW_BOUNDS[mode];
+  const bounds = COMPACT_WINDOW_BOUNDS[mode];
   const width =
     typeof state?.width === 'number' && Number.isFinite(state.width)
       ? state.width
