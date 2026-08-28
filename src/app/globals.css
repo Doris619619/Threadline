@@ -2743,9 +2743,6 @@ button,
   .mode-full .tl-window-body {
     display: block;
   }
-  .full-window-chrome {
-    display: none;
-  }
   .tl-window-controls {
     display: none;
   }
