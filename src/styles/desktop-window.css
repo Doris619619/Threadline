@@ -1,0 +1,206 @@
+/**
+ * @fileoverview 定义 Electron Full、Compact 与 Edge 窗口外壳样式。
+ */
+
+/* ================= 桌面窗口外壳 ================= */
+
+.tl-window {
+  min-height: 100dvh;
+  margin: 0;
+  overflow: hidden;
+  background: var(--surface);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  position: relative;
+}
+
+.tl-window.mode-full {
+  display: grid;
+  grid-template-rows: 40px minmax(0, 1fr);
+}
+
+.tl-window-body {
+  min-height: 0;
+}
+
+.mode-full .tl-window-body {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+}
+
+.tl-window.mode-compact {
+  display: block;
+  min-height: 100dvh;
+  background: #fffdf8;
+}
+
+.mode-compact .tl-window-body {
+  display: contents;
+}
+
+.mode-compact .tl-main {
+  display: grid;
+  grid-template-rows: 64px minmax(0, 1fr);
+  min-height: 100dvh;
+  padding: 0;
+}
+
+.full-window-chrome {
+  display: flex;
+  min-width: 0;
+  height: 40px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px 0 14px;
+  color: var(--text-tertiary);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-subtle);
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.full-window-caption {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 720;
+  letter-spacing: 0.03em;
+}
+
+.compact-window-header {
+  display: flex;
+  min-width: 0;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px 0 28px;
+  color: var(--text-primary);
+  background: #fffdf8;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+.compact-window-title {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 760;
+  letter-spacing: 0.01em;
+}
+.compact-window-actions {
+  display: flex;
+  width: 190px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3px;
+  -webkit-app-region: no-drag;
+}
+.compact-window-header.is-workstation .compact-window-actions {
+  width: 270px;
+}
+.compact-window-header.is-workstation .compact-window-actions button:nth-child(2) {
+  color: #df746d;
+}
+.compact-window-actions button {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 6px;
+  border: 0;
+  color: var(--text-secondary);
+  background: transparent;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.compact-window-actions button:first-child {
+  color: var(--accent);
+}
+.compact-window-actions button:hover {
+  color: var(--accent);
+  background: var(--accent-muted);
+}
+.compact-collapse-button {
+  padding-right: 3px !important;
+}
+.desktop-close-button {
+  width: 26px;
+  padding: 0 !important;
+  color: var(--text-tertiary) !important;
+}
+.desktop-close-button:hover {
+  color: var(--danger) !important;
+  background: #fff0f0 !important;
+}
+.edge-tab {
+  display: grid;
+  width: 100vw;
+  height: 100vh;
+  place-content: center;
+  gap: 8px;
+  color: #5a4727;
+  background: #fffaf0;
+  border: 1px solid #eadab6;
+  border-radius: 12px 0 0 12px;
+  cursor: pointer;
+  box-shadow: -3px 4px 18px rgb(75 54 12 / 16%);
+}
+.edge-tab span {
+  writing-mode: vertical-rl;
+  font-size: 0.82rem;
+  font-weight: 750;
+  letter-spacing: 0.16em;
+}
+.edge-tab small {
+  color: #98712e;
+  font-size: 0.62rem;
+}
+.tl-header {
+  -webkit-app-region: drag;
+}
+.tl-header button,
+.tl-header input {
+  -webkit-app-region: no-drag;
+}
+.full-window-entries {
+  display: flex;
+  gap: 7px;
+  -webkit-app-region: no-drag;
+}
+.full-window-entries button {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 9px;
+  color: var(--accent);
+  background: #fff;
+  border: 1px solid #b9d3ff;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.full-window-entries button:hover {
+  background: var(--accent-muted);
+}
+.full-window-entries .desktop-close-button {
+  width: 28px;
+  color: var(--text-tertiary) !important;
+  border-color: var(--border);
+}
+
+.full-window-entries .desktop-minimize-button,
+.full-window-entries .desktop-maximize-button {
+  width: 28px;
+  padding: 0;
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
+

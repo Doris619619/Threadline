@@ -1,0 +1,655 @@
+/**
+ * @fileoverview 定义完整任务工作台、日程、待办、项目选择和待安排样式。
+ */
+
+/* ================= 仪表盘布局 ================= */
+
+.dashboard {
+  display: grid;
+  gap: 16px;
+}
+
+.workspace-loading {
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.metric-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  padding: 16px 24px;
+}
+
+.metric-strip .tl-stat strong {
+  white-space: nowrap;
+}
+
+.metric-strip .tl-stat strong em {
+  font-style: normal;
+}
+
+.metric-strip .tl-stat strong small {
+  margin-left: 4px;
+  color: var(--text-primary);
+  font-size: 0.55em;
+  font-weight: 600;
+}
+
+.quick-panel {
+  padding: 16px 20px 14px;
+}
+
+.quick-panel header,
+.schedule-panel > header,
+.daily-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.dashboard h2 {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.add-link,
+.daily-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  color: var(--text-secondary);
+  background: transparent;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+
+.add-link:hover,
+.daily-add:hover {
+  color: var(--accent);
+}
+
+.quick-tasks {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.quick-task-row {
+  display: grid;
+  grid-template-columns: 24px auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  transition: background-color 140ms ease;
+}
+
+.quick-task-row-adding {
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+  border-radius: var(--radius-sm);
+  animation: tl-fade-in 180ms ease;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+  padding: 4px 6px;
+}
+
+.quick-task-row:hover {
+  background: var(--surface-secondary);
+}
+
+.task-check-wrap,
+.daily-check-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quick-task-row time {
+  display: none;
+}
+
+.task-title {
+  display: block;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+  color: var(--text-primary);
+  background: none;
+  border: 0;
+  padding: 2px 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+
+.task-title:hover {
+  color: var(--accent);
+}
+
+.tl-clickable-cell {
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.tl-clickable-cell:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-secondary));
+  color: var(--accent);
+}
+
+.tl-inline-input {
+  width: 100%;
+  min-height: 26px;
+  height: 26px;
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.tl-inline-input.timeline-time-input {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  padding: 0 4px;
+}
+
+.tl-inline-input.task-duration-input {
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  padding: 0 4px;
+}
+
+.tl-inline-select {
+  min-height: 26px;
+  height: 26px;
+  padding: 0 4px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+  outline: none;
+  cursor: pointer;
+}
+
+.completed .task-title {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.completed .timeline-time,
+.completed .task-duration {
+  opacity: 0.45;
+}
+
+.completed .tl-project-tag {
+  opacity: 0.55;
+}
+
+.task-actions {
+  position: relative;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.task-actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  min-width: 52px;
+}
+
+.timeline-row:hover .task-actions,
+.quick-task-row:hover .task-actions,
+.task-actions:focus-within {
+  opacity: 1;
+}
+
+.task-actions > button {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.task-actions > button:hover {
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+}
+
+.task-actions > .task-workstation-action.is-active {
+  color: var(--accent);
+  background: var(--accent-muted);
+  transform: rotate(45deg);
+}
+
+.task-actions > div {
+  position: absolute;
+  z-index: 10;
+  right: 0;
+  top: 100%;
+  display: none;
+  width: 96px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+}
+
+.task-actions:hover > div,
+.task-actions:focus-within > div {
+  display: grid;
+}
+
+.task-actions > div button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  background: transparent;
+  text-align: left;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.task-actions > div button:hover {
+  color: var(--text-primary);
+  background: var(--surface-secondary);
+}
+
+.dashboard-columns {
+  display: grid;
+  grid-template-columns: minmax(0, var(--schedule-ratio, 1.8fr)) minmax(280px, 1fr);
+  gap: 16px;
+  align-items: stretch;
+  transition: grid-template-columns 120ms ease;
+}
+
+.side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.schedule-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px 16px;
+}
+
+.daily-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 18px 20px 16px;
+}
+
+.schedule-panel > header,
+.daily-panel > header {
+  padding: 0 4px;
+}
+
+/* ================= 今日日程（精确网格与独立预计/实际两列） ================= */
+
+.schedule-panel {
+  /* 已有任务的时间列仅容纳单行时间；新增行保留双时间输入所需的空间。 */
+  --timeline-columns: 92px 20px 64px minmax(120px, 1fr) 68px 68px 52px;
+  --timeline-add-columns: 154px 20px 64px minmax(120px, 1fr) 68px 68px 52px;
+  overflow: visible;
+}
+
+.timeline-scroll {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-color: var(--border) transparent;
+  scrollbar-width: thin;
+}
+
+.timeline-head {
+  display: grid;
+  min-width: 500px;
+  grid-template-columns: var(--timeline-columns);
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  color: var(--text-tertiary);
+  background: var(--surface-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.timeline-col-project {
+  min-width: 0;
+}
+
+.timeline-col-planned,
+.timeline-col-actual {
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  padding-left: 2px;
+}
+
+.timeline-row {
+  display: grid;
+  min-width: 500px;
+  grid-template-columns: var(--timeline-columns);
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background-color 140ms ease;
+}
+
+.timeline-row:last-child {
+  border-bottom: 0;
+}
+
+.timeline-row:hover {
+  background: var(--surface-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.timeline-row-adding {
+  grid-template-columns: var(--timeline-add-columns);
+  gap: 6px;
+  position: relative;
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+  border-radius: var(--radius-sm);
+  animation: tl-fade-in 180ms ease;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.timeline-row-adding .tl-inline-input,
+.timeline-row-adding .tl-inline-select {
+  min-width: 0;
+}
+
+.timeline-time-range-inputs {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 3px;
+}
+
+.timeline-time-range-inputs > span[aria-hidden='true'] {
+  color: var(--text-tertiary);
+  font-size: 0.7rem;
+}
+
+.timeline-inline-error {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  z-index: 3;
+  width: max-content;
+  max-width: 210px;
+  padding: 3px 5px;
+  color: var(--danger);
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  border-radius: 4px;
+  box-shadow: var(--shadow-card);
+  font-size: 0.68rem;
+  line-height: 1.2;
+}
+
+.project-inline-select {
+  width: 100%;
+  max-width: 72px;
+  min-width: 0;
+}
+
+.timeline-row-adding .project-inline-select {
+  max-width: 64px;
+}
+
+@keyframes tl-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.timeline-time {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding: 2px 3px;
+}
+
+.task-duration {
+  display: block;
+  width: 100%;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+  padding: 2px 2px;
+  box-sizing: border-box;
+}
+
+.task-duration-planned,
+.task-duration-actual {
+  text-align: left;
+}
+
+.tl-inline-confirm-btn {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.tl-inline-confirm-btn:hover {
+  background: color-mix(in srgb, var(--accent) 85%, #000);
+  transform: scale(1.05);
+}
+
+.tl-inline-cancel-btn {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.tl-inline-cancel-btn:hover {
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+}
+
+.tl-inline-actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ================= 行内项目选择 Popover 与快速新建 ================= */
+
+.project-picker-popover {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 50;
+  min-width: 140px;
+  margin-top: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+  animation: tl-fade-in 140ms ease;
+}
+
+.project-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.project-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 100ms ease;
+}
+
+.project-picker-item:hover,
+.project-picker-item.is-selected {
+  background: var(--surface-secondary);
+}
+
+.project-picker-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 4px 0;
+}
+
+.project-picker-new-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 100ms ease;
+}
+
+.project-picker-new-btn:hover {
+  background: var(--accent-muted);
+}
+
+.project-picker-new-form {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+}
+
+.project-picker-new-form input {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 6px;
+  font-size: 0.75rem;
+  color: var(--text-primary);
+  background: var(--surface-secondary);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  outline: none;
+}
+
+.schedule-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 9;
+}
+
+.schedule-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.schedule-resize-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: ew-resize;
+  user-select: none;
+  touch-action: none;
+  transition: all 120ms ease;
+}
+
+.schedule-resize-handle:hover,
+.schedule-resize-handle.is-resizing {
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+

@@ -1,0 +1,144 @@
+/**
+ * @fileoverview 定义任务、移期和每日收尾对话框样式。
+ */
+
+/* ================= 对话框 Dialogs ================= */
+
+.task-dialog-backdrop {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  background: rgba(20, 30, 45, 0.35);
+  backdrop-filter: blur(2px);
+}
+
+.task-dialog {
+  width: min(540px, calc(100vw - 28px));
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-window);
+  background: var(--surface);
+}
+
+.task-dialog form,
+.reschedule-dialog {
+  padding: 24px;
+}
+
+.task-dialog header,
+.task-dialog footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.task-dialog header {
+  margin-bottom: 16px;
+}
+
+.task-dialog h2 {
+  margin: 2px 0 0;
+  font-size: 1.25rem;
+}
+
+.task-dialog header p,
+.task-dialog form > p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.task-dialog header button,
+.task-dialog footer button {
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  background: var(--surface-secondary);
+  cursor: pointer;
+}
+
+.task-dialog label {
+  display: grid;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.task-dialog > form > label {
+  margin-bottom: 12px;
+}
+
+.task-dialog select {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.task-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.task-dialog footer {
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.task-dialog footer button[type='submit'] {
+  color: white;
+  background: var(--accent);
+}
+
+.dialog-hint {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  margin-top: 6px;
+}
+
+.close-dialog {
+  width: min(580px, calc(100vw - 28px));
+}
+
+.close-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-secondary);
+  font-size: 0.78rem;
+}
+
+.close-task {
+  display: grid;
+  grid-template-columns: 1fr auto 130px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.8125rem;
+}
+
+.close-task select {
+  min-height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.close-task .tl-input {
+  min-height: 30px;
+  font-size: 0.75rem;
+}
+
+

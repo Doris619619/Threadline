@@ -1,0 +1,578 @@
+/**
+ * @fileoverview 临时保留尚未完成 collision 审计的原始响应式规则顺序。
+ */
+
+/* ================= 响应式规则 ================= */
+
+@media (max-width: 1050px) {
+  .metric-strip {
+    padding: 16px;
+  }
+  .metric-strip .tl-stat {
+    padding: 0 12px;
+  }
+  .dashboard-columns {
+    grid-template-columns: 1fr;
+  }
+  .quick-panel {
+    padding: 16px;
+  }
+  .timeline-col-planned,
+  .timeline-col-actual,
+  .task-duration {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .tl-window {
+    display: block;
+    min-height: 100dvh;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+  .tl-window.mode-full {
+    display: block;
+  }
+  .mode-full .tl-window-body {
+    display: block;
+  }
+  .tl-window-controls {
+    display: none;
+  }
+  .tl-desktop-controls {
+    display: none;
+  }
+  .tl-sidebar {
+    position: fixed;
+    z-index: 10;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: calc(68px + env(safe-area-inset-bottom));
+    padding: 6px 6px env(safe-area-inset-bottom);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-right: 0;
+  }
+  .tl-brand,
+  .tl-profile {
+    display: none;
+  }
+  .tl-sidebar .tl-desktop-nav {
+    display: none;
+  }
+  .tl-sidebar .tl-mobile-nav {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+  }
+  .tl-sidebar .tl-sidebar-item {
+    min-height: 52px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: 3px 1px;
+    font-size: 0.625rem;
+    text-align: center;
+  }
+  .tl-mobile-more {
+    position: relative;
+  }
+  .tl-mobile-more > button {
+    width: 100%;
+    min-height: 52px;
+  }
+  .tl-mobile-more-menu {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 8px);
+    display: grid;
+    min-width: 132px;
+    gap: 4px;
+    padding: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 12px 28px rgb(31 42 55 / 16%);
+  }
+  .tl-mobile-more-menu button {
+    display: flex;
+    min-height: 42px;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    text-align: left;
+  }
+  .tl-mobile-more-menu button.is-active {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .tl-main {
+    padding: 20px 12px calc(80px + env(safe-area-inset-bottom));
+  }
+  .tl-header {
+    padding: 0 4px 12px;
+  }
+  .tl-header > div:first-child {
+    flex: 0 0 auto;
+  }
+  .tl-header h1 {
+    font-size: 1.3rem;
+    white-space: nowrap;
+  }
+  .tl-header p {
+    display: none;
+  }
+  .tl-date button {
+    width: 28px;
+    height: 28px;
+  }
+  .tl-date time {
+    padding: 0 2px;
+    font-size: 0.75rem;
+  }
+  .metric-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    padding: 16px;
+  }
+  .metric-strip .tl-stat {
+    padding: 0;
+    border: 0;
+  }
+  .metric-strip .tl-stat:last-child {
+    grid-column: span 2;
+  }
+  .quick-panel {
+    padding: 14px;
+  }
+  .quick-tasks {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .dashboard-columns {
+    gap: 14px;
+  }
+  .schedule-panel,
+  .daily-panel {
+    padding: 14px 10px;
+  }
+  .timeline-head,
+  .timeline-row {
+    gap: 6px;
+    padding: 6px 4px;
+  }
+  .timeline-row time {
+    font-size: 0.75rem;
+  }
+  .task-duration {
+    font-size: 0.75rem;
+  }
+  .trash-row {
+    grid-template-columns: 1fr auto;
+  }
+  .trash-row small {
+    grid-column: span 2;
+  }
+  .review-grid,
+  .review-details,
+  .stats-summary {
+    grid-template-columns: 1fr;
+  }
+  .review-panel > header {
+    gap: 10px;
+    flex-direction: column;
+  }
+  .project-panel header {
+    flex-direction: column;
+  }
+  .project-row {
+    grid-template-columns: 1fr auto auto;
+  }
+  .project-row span {
+    grid-column: span 3;
+  }
+  .project-row small {
+    display: none;
+  }
+  .close-task {
+    grid-template-columns: 1fr 1fr;
+  }
+  .close-task b {
+    grid-column: span 2;
+  }
+  .queue-row {
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+    padding: 8px 0;
+  }
+  .queue-row select,
+  .queue-row .tl-input,
+  .queue-row button {
+    grid-column: span 1;
+  }
+  .planning-queue header {
+    align-items: flex-start;
+    gap: 8px;
+    flex-direction: column;
+  }
+  .tl-header-actions {
+    gap: 6px;
+  }
+  .tl-mode-menu-trigger span {
+    display: none;
+  }
+  .stats-bar-row {
+    grid-template-columns: 72px minmax(0, 1fr) 68px;
+  }
+  .desktop-settings dl div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+
+/* 工作台信息架构：日历、洞察、记录和节律页面。 */
+.calendar-panel,
+.insights-panel,
+.records-panel,
+.rhythm-panel {
+  display: grid;
+  gap: 16px;
+  max-width: 1200px;
+}
+
+.calendar-intro,
+.calendar-toolbar,
+.insights-toolbar,
+.records-heading,
+.rhythm-intro,
+.rhythm-calendar > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.calendar-intro h2,
+.insights-toolbar h2,
+.records-heading h2,
+.rhythm-intro h2,
+.rhythm-calendar h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.calendar-intro p,
+.insights-toolbar p,
+.records-heading p,
+.rhythm-intro p {
+  margin: 4px 0 0;
+  color: var(--text-tertiary);
+  font-size: 0.8125rem;
+}
+
+.calendar-intro > span {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.calendar-surface,
+.rhythm-calendar {
+  padding: 20px;
+}
+
+.calendar-toolbar {
+  margin-bottom: 16px;
+}
+
+.calendar-toolbar button,
+.rhythm-calendar > header button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.calendar-weekdays,
+.calendar-grid,
+.rhythm-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.calendar-weekdays {
+  margin-bottom: 6px;
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.calendar-day,
+.rhythm-grid button {
+  min-height: 72px;
+  padding: 8px;
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.calendar-day small {
+  display: block;
+  margin-top: 8px;
+  color: inherit;
+  font-size: 0.6875rem;
+}
+
+.calendar-day[data-heat='1'] {
+  background: #e5f4ed;
+  color: #276b4f;
+}
+.calendar-day[data-heat='2'] {
+  background: #bfe6d1;
+  color: #1b5a3f;
+}
+.calendar-day[data-heat='3'] {
+  background: #7dc89e;
+  color: #13472f;
+}
+.calendar-day[data-heat='4'] {
+  background: #3d9d69;
+  color: #fff;
+}
+.calendar-day.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgb(79 140 255 / 18%);
+}
+.calendar-day.is-outside,
+.rhythm-grid button.is-outside {
+  opacity: 0.42;
+}
+
+.insights-actions,
+.insights-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.insights-filters button {
+  min-height: 36px;
+  padding: 6px 12px;
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.insights-filters button.is-active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.insights-filters label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.insights-filters input,
+.records-search input {
+  min-height: 36px;
+  padding: 6px 8px;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.insights-summary,
+.insights-charts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.insights-summary .tl-surface {
+  display: grid;
+  gap: 5px;
+  min-height: 130px;
+}
+
+.insights-summary span,
+.insights-summary small,
+.insight-chart header span {
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+}
+
+.insights-summary strong {
+  font-size: 1.1rem;
+}
+.insights-charts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.insight-chart {
+  min-height: 300px;
+}
+.insight-chart header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.insight-chart h3 {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.records-search {
+  display: flex;
+  min-width: min(280px, 100%);
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  color: var(--text-tertiary);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.records-search input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+}
+.records-timeline ol {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.records-timeline li {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.records-timeline li:last-child {
+  border-bottom: 0;
+}
+.records-timeline time {
+  color: var(--text-tertiary);
+  font-size: 0.8125rem;
+}
+.records-timeline b,
+.records-timeline span {
+  display: block;
+}
+.records-timeline span {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.rhythm-intro {
+  justify-content: flex-start;
+  padding: 18px;
+}
+.rhythm-intro > svg {
+  color: var(--accent);
+  flex: 0 0 auto;
+}
+.rhythm-calendar > header {
+  margin-bottom: 16px;
+}
+.rhythm-grid button {
+  min-height: 54px;
+  text-align: center;
+}
+.rhythm-grid button.is-marked {
+  color: #fff;
+  background: #7659c7;
+}
+
+.report-document {
+  display: none;
+}
+
+.settings-copy {
+  display: grid;
+  gap: 8px;
+}
+.settings-copy h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.settings-copy p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.settings-copy dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.settings-copy dl div {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 12px;
+}
+.settings-copy dt {
+  color: var(--text-tertiary);
+}
+.settings-copy dd {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+@media (max-width: 760px) {
+  .calendar-intro,
+  .insights-toolbar,
+  .records-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .calendar-surface,
+  .rhythm-calendar {
+    padding: 14px 10px;
+  }
+  .calendar-day {
+    min-height: 54px;
+    padding: 6px;
+  }
+  .calendar-day small {
+    display: none;
+  }
+  .insights-summary,
+  .insights-charts {
+    grid-template-columns: 1fr;
+  }
+  .records-search {
+    width: 100%;
+  }
+  .records-timeline li {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+
+

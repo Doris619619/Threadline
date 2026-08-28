@@ -1,0 +1,101 @@
+/**
+ * @fileoverview 定义项目管理面板样式。
+ */
+
+/* ================= 项目管理 ProjectPanel ================= */
+
+.project-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.project-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.project-panel h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.project-panel p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.project-create {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.project-create .tl-input {
+  width: 130px;
+  min-height: 32px;
+}
+
+.project-create input[type='color'] {
+  width: 32px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.project-list {
+  display: grid;
+}
+
+.project-row {
+  display: grid;
+  grid-template-columns: 140px 65px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 16px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.8125rem;
+}
+
+.project-row:first-child {
+  border-top: 0;
+}
+
+.project-row b {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.project-row span {
+  color: var(--text-secondary);
+}
+
+.project-row small {
+  color: var(--text-tertiary);
+}
+
+.project-select {
+  display: inline-flex;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.project-detail {
+  margin-top: 16px;
+}
+
+.project-detail > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+

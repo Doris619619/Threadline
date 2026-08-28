@@ -1,0 +1,84 @@
+/**
+ * @fileoverview 定义历史与回收站样式。
+ */
+
+/* ================= 历史 HistoryPanel ================= */
+
+.history-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.history-panel > .tl-surface {
+  padding: 20px;
+}
+
+.history-panel header {
+  margin-bottom: 12px;
+}
+
+.history-panel h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.history-panel header p,
+.empty-copy {
+  margin: 4px 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.history-panel table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.history-panel th,
+.history-panel td {
+  padding: 8px;
+  text-align: left;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.history-panel th {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.trash-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.8125rem;
+}
+
+.trash-row small {
+  color: var(--text-secondary);
+}
+
+.trash-row button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 6px;
+  padding: 5px 8px;
+  color: var(--accent);
+  background: var(--accent-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.form-error {
+  margin: 4px 0 0;
+  color: var(--danger);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+

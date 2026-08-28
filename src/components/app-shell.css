@@ -1,0 +1,146 @@
+/**
+ * @fileoverview 定义 Web/PWA 应用壳、导航和日期栏样式。
+ */
+
+.tl-sidebar {
+  display: flex;
+  flex-direction: column;
+  padding: 46px 10px 16px;
+  border-right: 1px solid var(--border);
+  background: #fbfcfd;
+}
+
+.tl-brand {
+  margin: 0 6px 20px;
+  color: var(--text-primary);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.tl-sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tl-sidebar .tl-mobile-nav {
+  display: none;
+}
+
+.tl-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding: 8px 4px 0;
+  color: var(--text-secondary);
+}
+
+.tl-avatar {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  color: white;
+  background: linear-gradient(145deg, #42536b, #9bb1d0);
+  border: 2px solid var(--surface-secondary);
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.tl-profile b,
+.tl-profile small {
+  display: block;
+}
+
+.tl-profile b {
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.tl-profile small {
+  margin-top: 1px;
+  font-size: 0.625rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.tl-profile svg {
+  margin-left: auto;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.tl-main {
+  min-width: 0;
+  padding: 24px 28px 32px;
+}
+
+.tl-header {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 16px;
+}
+
+.tl-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tl-header h1 {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+}
+
+.tl-header p {
+  margin: 4px 0 0;
+  color: var(--text-tertiary);
+  font-size: 0.78rem;
+}
+
+.tl-date {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--text-primary);
+}
+
+.tl-date button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.tl-date button:hover {
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+}
+
+.tl-date time {
+  padding: 4px 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+

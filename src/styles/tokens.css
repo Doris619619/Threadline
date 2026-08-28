@@ -1,0 +1,31 @@
+/**
+ * @fileoverview 定义 Threadline 的全局设计 token。
+ */
+
+:root {
+  --background: #f4f5f8;
+  --surface: #ffffff;
+  --surface-secondary: #f8f9fa;
+  --border: #e6e8ec;
+  --border-subtle: #f0f2f5;
+  --text-primary: #1e2530;
+  --text-secondary: #5a6474;
+  --text-tertiary: #8f98a8;
+  --accent: #2b7fff;
+  --accent-muted: #eef5ff;
+  --danger: #e04f4f;
+  --success: #2b7fff;
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.04);
+  --shadow-window: 0 16px 40px rgba(0, 0, 0, 0.08);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+}
+
