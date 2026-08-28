@@ -50,12 +50,10 @@ import {
   RescheduleDialog,
   TaskDialog,
 } from '@/features/tasks/components/task-dialogs';
+import { useScheduleResize } from '@/features/tasks/hooks/use-schedule-resize';
+import { useTaskDragAndDrop } from '@/features/tasks/hooks/use-task-drag-and-drop';
+import { useWorkstationMembership } from '@/features/tasks/hooks/use-workstation-membership';
 import type { HistoryEvent, Project, Task, TaskStatus } from '@/types/domain';
-
-type TaskDropZone = 'schedule' | 'quick';
-
-/** 完整工作台初始时让日程列略宽于右侧待办列，保留用户后续拖拽调整能力。 */
-const DEFAULT_SCHEDULE_RATIO = 1.8;
 
 export function TaskDashboard() {
   const { active, selectedDate, setSelectedDate } = useWorkspaceView();
@@ -84,12 +82,6 @@ export function TaskDashboard() {
     hydrated,
   } = useWorkspaceData();
   const [annotationTool, setAnnotationTool] = useState<AnnotationTool>('none');
-  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
-  const draggingTaskIdRef = useRef<string | null>(null);
-  const pointerDragRef = useRef<{ taskId: string; pointerId: number } | undefined>(
-    undefined,
-  );
-  const [dropTarget, setDropTarget] = useState<TaskDropZone | null>(null);
   const [autoFocusTimeTaskId, setAutoFocusTimeTaskId] = useState<string | null>(null);
 
   const [addingTimedRow, setAddingTimedRow] = useState(false);
@@ -113,10 +105,7 @@ export function TaskDashboard() {
   const [newQuickProjectName, setNewQuickProjectName] = useState('');
   const quickProjectPickerRef = useRef<HTMLDivElement>(null);
 
-  const [scheduleRatio, setScheduleRatio] = useState<number>(DEFAULT_SCHEDULE_RATIO);
-  const [isResizingSchedule, setIsResizingSchedule] = useState(false);
-  const resizeStartXRef = useRef<number>(0);
-  const resizeStartRatioRef = useRef<number>(DEFAULT_SCHEDULE_RATIO);
+  const { isResizingSchedule, scheduleRatio, startResizeSchedule } = useScheduleResize();
 
   const createProjectDirectly = (name: string): Project => {
     const trimmed = name.trim();
@@ -242,31 +231,6 @@ export function TaskDashboard() {
     appendHistory('created', task.id, { title: task.title });
   };
 
-  const startResizeSchedule = (e: React.PointerEvent) => {
-    setIsResizingSchedule(true);
-    resizeStartXRef.current = e.clientX;
-    resizeStartRatioRef.current = scheduleRatio;
-
-    const onPointerMove = (moveEvent: PointerEvent) => {
-      const deltaX = moveEvent.clientX - resizeStartXRef.current;
-      // 向右拖动 deltaX > 0，增加比例
-      const deltaRatio = deltaX / 260;
-      const nextRatio = Math.max(
-        1.1,
-        Math.min(3.2, resizeStartRatioRef.current + deltaRatio),
-      );
-      setScheduleRatio(nextRatio);
-    };
-
-    const onPointerUp = () => {
-      setIsResizingSchedule(false);
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-    };
-
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-  };
   const [editing, setEditing] = useState<Task | undefined>();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [taskDialogMode, setTaskDialogMode] = useState<'normal' | 'unscheduled'>(
@@ -284,12 +248,6 @@ export function TaskDashboard() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [annotationTool]);
 
-  if (!hydrated)
-    return (
-      <Surface className="workspace-loading">
-        <p>正在载入工作台…</p>
-      </Surface>
-    );
   const shown = tasks.filter((t) => t.status === 'active' && t.date === selectedDate);
   const movedFromSelectedDate = tasks.filter(
     (task) =>
@@ -343,29 +301,8 @@ export function TaskDashboard() {
     closeRecords,
   };
 
-  /** 切换任务在工作站内的引用，不触碰原任务、日期、完成状态或优先级。 */
-  const toggleWorkstationTask = (taskId: string) =>
-    updateWorkstationTaskIds((current) =>
-      current.includes(taskId)
-        ? current.filter((id) => id !== taskId)
-        : [...current, taskId],
-    );
-
-  /** 清空工作站仅清空引用集合，绝不删除或变更任务记录。 */
-  const clearWorkstation = () => updateWorkstationTaskIds([]);
-
-  /** 调整引用集合顺序；Task 本身的 priority 和字段完全保持不变。 */
-  const reorderWorkstation = (sourceId: string, targetId: string) =>
-    updateWorkstationTaskIds((current) => {
-      const sourceIndex = current.indexOf(sourceId);
-      const targetIndex = current.indexOf(targetId);
-      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex)
-        return current;
-      const next = [...current];
-      next.splice(sourceIndex, 1);
-      next.splice(targetIndex, 0, sourceId);
-      return next;
-    });
+  const { clearWorkstation, reorderWorkstation, toggleWorkstationTask } =
+    useWorkstationMembership(updateWorkstationTaskIds);
 
   /**
    * 将无时间任务移动到日程，保留同一条记录并设为持久化的待填时间状态。
@@ -403,155 +340,33 @@ export function TaskDashboard() {
   /**
    * 记录拖拽源以呈现视觉反馈；不锁定落点，避免阻断原生 drop 事件。
    */
-  const handleTaskDragStart = (taskId: string) => {
-    if (annotationInteractionLocked) return;
-    draggingTaskIdRef.current = taskId;
-    setDraggingTaskId(taskId);
-  };
 
-  /**
-   * 无论任务是否落入有效区域，都清理本次原生拖拽的临时视觉状态。
-   */
-  const handleTaskDragEnd = () => {
-    draggingTaskIdRef.current = null;
-    setDraggingTaskId(null);
-    setDropTarget(null);
-  };
+  const dragAndDrop = useTaskDragAndDrop({
+    interactionLocked: annotationInteractionLocked,
+    onMoveToQuick: moveTaskToQuick,
+    onMoveToSchedule: moveTaskToSchedule,
+  });
+  const {
+    draggingTaskId,
+    dropTarget,
+    handlePointerDragEnd,
+    handlePointerDragMove,
+    handlePointerDragStart,
+    handleQuickDragOver,
+    handleQuickDrop,
+    handleScheduleDragOver,
+    handleScheduleDrop,
+    handleTaskDragEnd,
+    handleTaskDragStart,
+    setDropTarget,
+  } = dragAndDrop;
 
-  /**
-   * 从标准或自定义拖拽载荷读取任务 ID，并兼容 WebView 未回传载荷的情况。
-   */
-  const getDraggedTaskId = (event: React.DragEvent) =>
-    event.dataTransfer.getData('text/task-id') ||
-    event.dataTransfer.getData('text/plain') ||
-    draggingTaskIdRef.current;
-
-  /**
-   * 从当前鼠标坐标识别任务可落入的面板，供 Windows WebView2 的 Pointer Events 拖拽使用。
-   */
-  const getDropZoneAtPoint = (clientX: number, clientY: number) => {
-    const element = document.elementFromPoint(clientX, clientY);
-    const zone = element?.closest<HTMLElement>('[data-task-drop-zone]')?.dataset
-      .taskDropZone;
-    return zone === 'schedule' || zone === 'quick' ? zone : null;
-  };
-
-  /** 从 React PointerEvent 读取最终屏幕坐标，统一交给按点命中的落点解析器。 */
-  const getDropZoneAtPointer = (event: React.PointerEvent) =>
-    getDropZoneAtPoint(event.clientX, event.clientY);
-
-  /** 完成一次明确拖拽柄的移动；命中面板后只改变任务排程状态。 */
-  const finishPointerDrag = (pointerId: number, clientX: number, clientY: number) => {
-    const activePointerDrag = pointerDragRef.current;
-    const fallbackTaskId = draggingTaskIdRef.current;
-    const taskId = activePointerDrag?.taskId ?? fallbackTaskId;
-    if (!taskId || (activePointerDrag && pointerId !== activePointerDrag.pointerId))
-      return;
-    const target = getDropZoneAtPoint(clientX, clientY);
-    if (target === 'schedule') moveTaskToSchedule(taskId);
-    if (target === 'quick') moveTaskToQuick(taskId);
-    pointerDragRef.current = undefined;
-    draggingTaskIdRef.current = null;
-    setDraggingTaskId(null);
-    setDropTarget(null);
-  };
-
-  /**
-   * 从明确的六点拖拽柄开始桌面鼠标拖拽，避免依赖 WebView2 不稳定的原生 draggable 事件。
-   */
-  const handlePointerDragStart = (
-    taskId: string,
-    event: React.PointerEvent<HTMLButtonElement>,
-  ) => {
-    if (
-      annotationInteractionLocked ||
-      event.pointerType !== 'mouse' ||
-      event.button !== 0
-    )
-      return;
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    const nextPointerDrag = { taskId, pointerId: event.pointerId };
-    pointerDragRef.current = nextPointerDrag;
-    draggingTaskIdRef.current = taskId;
-    setDraggingTaskId(taskId);
-
-    /** 在滚动容器接管事件时，仍从窗口捕获阶段完成本次拖拽。 */
-    const finishFromWindow = (nativeEvent: PointerEvent) => {
-      finishPointerDrag(
-        nativeEvent.pointerId,
-        nativeEvent.clientX,
-        nativeEvent.clientY,
-      );
-      window.removeEventListener('pointerup', finishFromWindow, true);
-    };
-    window.addEventListener('pointerup', finishFromWindow, true);
-  };
-
-  /**
-   * 随鼠标移动高亮当前有效的落点面板。
-   */
-  const handlePointerDragMove = (event: React.PointerEvent) => {
-    const activePointerDrag = pointerDragRef.current;
-    if (!activePointerDrag || event.pointerId !== activePointerDrag.pointerId) return;
-    const nextTarget = getDropZoneAtPointer(event);
-    setDropTarget((current) => (current === nextTarget ? current : nextTarget));
-  };
-
-  /**
-   * 松开鼠标后按落点移动原任务；没有有效落点时只清理临时拖拽状态。
-   */
-  const handlePointerDragEnd = (event: React.PointerEvent) => {
-    finishPointerDrag(event.pointerId, event.clientX, event.clientY);
-  };
-
-  /**
-   * 允许非批注状态下的任务落入日程面板；preventDefault 是浏览器接受 drop 的前提。
-   */
-  const handleScheduleDragOver = (event: React.DragEvent) => {
-    if (annotationInteractionLocked) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-    setDropTarget('schedule');
-  };
-
-  /**
-   * 将同一条无时间任务持久化为待填时间状态，并将时间输入聚焦给用户。
-   */
-  const handleScheduleDrop = (event: React.DragEvent) => {
-    if (annotationInteractionLocked) return;
-    event.preventDefault();
-    setDropTarget(null);
-    const taskId = getDraggedTaskId(event);
-    if (!taskId) return;
-    moveTaskToSchedule(taskId);
-    draggingTaskIdRef.current = null;
-    setDraggingTaskId(null);
-  };
-
-  /**
-   * 允许非批注状态下的任务落入无时间待办面板；preventDefault 保证 drop 可触发。
-   */
-  const handleQuickDragOver = (event: React.DragEvent) => {
-    if (annotationInteractionLocked) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-    setDropTarget('quick');
-  };
-
-  /**
-   * 取消任务的待填或已填写排程时间，但保留任务身份与其他业务字段。
-   */
-  const handleQuickDrop = (event: React.DragEvent) => {
-    if (annotationInteractionLocked) return;
-    event.preventDefault();
-    setDropTarget(null);
-    const taskId = getDraggedTaskId(event);
-    if (!taskId) return;
-    moveTaskToQuick(taskId);
-    draggingTaskIdRef.current = null;
-    setDraggingTaskId(null);
-  };
+  if (!hydrated)
+    return (
+      <Surface className="workspace-loading">
+        <p>正在载入工作台…</p>
+      </Surface>
+    );
 
   const open = (task?: Task, mode: 'normal' | 'unscheduled' = 'normal') => {
     setEditing(task);
@@ -1406,4 +1221,5 @@ export function TaskDashboard() {
 function numberOrUndefined(value: FormDataEntryValue | null) {
   return value === null || value === '' ? undefined : Number(value);
 }
+
 
