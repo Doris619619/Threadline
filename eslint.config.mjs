@@ -11,6 +11,7 @@ export default defineConfig([
     '.next/**',
     '.next-electron/**',
     'dist-electron/**',
+    'release/**',
     'node_modules/**',
     'coverage/**',
     'playwright-report/**',

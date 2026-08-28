@@ -1484,7 +1484,8 @@ button,
 /* ================= 今日日程（精确网格与独立预计/实际两列） ================= */
 
 .schedule-panel {
-  --timeline-columns: 112px 24px 72px minmax(200px, 1fr) 56px 56px 58px;
+  /* 让表头、已有任务与新增表单共用同一列轨道，预计/实际始终落在对应输入框上方。 */
+  --timeline-columns: minmax(104px, 1.1fr) 20px 64px minmax(120px, 2fr) 52px 52px 52px;
   overflow: visible;
 }
 
@@ -1497,10 +1498,10 @@ button,
 
 .timeline-head {
   display: grid;
-  min-width: 670px;
+  min-width: 500px;
   grid-template-columns: var(--timeline-columns);
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   padding: 7px 10px;
   color: var(--text-tertiary);
   background: var(--surface-secondary);
@@ -1523,10 +1524,10 @@ button,
 
 .timeline-row {
   display: grid;
-  min-width: 670px;
+  min-width: 500px;
   grid-template-columns: var(--timeline-columns);
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-height: 40px;
   padding: 4px 10px;
   border-bottom: 1px solid var(--border-subtle);
@@ -1543,11 +1544,7 @@ button,
 }
 
 .timeline-row-adding {
-  min-width: 0;
-  grid-template-columns: minmax(104px, 1.1fr) 20px 64px minmax(
-      120px,
-      2fr
-    ) 52px 52px 52px;
+  grid-template-columns: var(--timeline-columns);
   gap: 6px;
   position: relative;
   background: color-mix(in srgb, var(--accent) 4%, var(--surface));
@@ -2915,7 +2912,7 @@ button,
   }
   .timeline-head,
   .timeline-row {
-    gap: 8px;
+    gap: 6px;
     padding: 6px 4px;
   }
   .timeline-row time {

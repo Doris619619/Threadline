@@ -410,18 +410,38 @@ test('keeps all timed task creation controls visible in a compact desktop schedu
   await schedule.getByRole('button', { name: '添加', exact: true }).click();
   const taskInput = schedule.getByPlaceholder('任务名称（按 Enter 保存）');
   const projectSelect = schedule.locator('.project-inline-select');
+  const plannedInput = schedule.getByPlaceholder('45min');
+  const actualInput = schedule.getByPlaceholder('实际耗时');
+  const plannedHeading = schedule.locator('.timeline-col-planned');
+  const actualHeading = schedule.locator('.timeline-col-actual');
   const timeline = schedule.locator('.timeline-scroll');
   const save = schedule.getByTitle('保存任务');
   const cancel = schedule.getByTitle('取消');
   const taskBox = await taskInput.boundingBox();
   const projectBox = await projectSelect.boundingBox();
+  const plannedInputBox = await plannedInput.boundingBox();
+  const actualInputBox = await actualInput.boundingBox();
+  const plannedHeadingBox = await plannedHeading.boundingBox();
+  const actualHeadingBox = await actualHeading.boundingBox();
   const timelineBox = await timeline.boundingBox();
   const saveBox = await save.boundingBox();
   const cancelBox = await cancel.boundingBox();
-  if (!taskBox || !projectBox || !timelineBox || !saveBox || !cancelBox)
+  if (
+    !taskBox ||
+    !projectBox ||
+    !plannedInputBox ||
+    !actualInputBox ||
+    !plannedHeadingBox ||
+    !actualHeadingBox ||
+    !timelineBox ||
+    !saveBox ||
+    !cancelBox
+  )
     throw new Error('新增日程字段不可见。');
   expect(taskBox.width).toBeGreaterThanOrEqual(120);
   expect(projectBox.width).toBeLessThanOrEqual(64);
+  expect(Math.abs(plannedHeadingBox.x - plannedInputBox.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(actualHeadingBox.x - actualInputBox.x)).toBeLessThanOrEqual(1);
   expect(saveBox.x + saveBox.width).toBeLessThanOrEqual(
     timelineBox.x + timelineBox.width,
   );
