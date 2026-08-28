@@ -410,8 +410,12 @@ test('keeps all timed task creation controls visible in a compact desktop schedu
   await schedule.getByRole('button', { name: '添加', exact: true }).click();
   const taskInput = schedule.getByPlaceholder('任务名称（按 Enter 保存）');
   const projectSelect = schedule.locator('.project-inline-select');
+  const timeInputs = schedule.locator('.timeline-time-range-inputs');
   const plannedInput = schedule.getByPlaceholder('45min');
   const actualInput = schedule.getByPlaceholder('实际耗时');
+  const timeHeading = schedule.locator('.timeline-col-time');
+  const projectHeading = schedule.locator('.timeline-col-project');
+  const titleHeading = schedule.locator('.timeline-col-title');
   const plannedHeading = schedule.locator('.timeline-col-planned');
   const actualHeading = schedule.locator('.timeline-col-actual');
   const timeline = schedule.locator('.timeline-scroll');
@@ -419,12 +423,16 @@ test('keeps all timed task creation controls visible in a compact desktop schedu
   const cancel = schedule.getByTitle('取消');
   const taskBox = await taskInput.boundingBox();
   const projectBox = await projectSelect.boundingBox();
+  const timeInputsBox = await timeInputs.boundingBox();
   const existingTimeBox = await schedule
     .locator('.timeline-row .timeline-time')
     .first()
     .boundingBox();
   const plannedInputBox = await plannedInput.boundingBox();
   const actualInputBox = await actualInput.boundingBox();
+  const timeHeadingBox = await timeHeading.boundingBox();
+  const projectHeadingBox = await projectHeading.boundingBox();
+  const titleHeadingBox = await titleHeading.boundingBox();
   const plannedHeadingBox = await plannedHeading.boundingBox();
   const actualHeadingBox = await actualHeading.boundingBox();
   const timelineBox = await timeline.boundingBox();
@@ -433,9 +441,13 @@ test('keeps all timed task creation controls visible in a compact desktop schedu
   if (
     !taskBox ||
     !projectBox ||
+    !timeInputsBox ||
     !existingTimeBox ||
     !plannedInputBox ||
     !actualInputBox ||
+    !timeHeadingBox ||
+    !projectHeadingBox ||
+    !titleHeadingBox ||
     !plannedHeadingBox ||
     !actualHeadingBox ||
     !timelineBox ||
@@ -445,9 +457,12 @@ test('keeps all timed task creation controls visible in a compact desktop schedu
     throw new Error('新增日程字段不可见。');
   expect(taskBox.width).toBeGreaterThanOrEqual(120);
   expect(projectBox.width).toBeLessThanOrEqual(64);
-  expect(existingTimeBox.width).toBeLessThanOrEqual(92);
+  await expect(schedule.locator('.timeline-time').first()).toHaveCSS('text-align', 'right');
   expect(plannedInputBox.width).toBeGreaterThanOrEqual(68);
   expect(actualInputBox.width).toBeGreaterThanOrEqual(68);
+  expect(Math.abs(timeHeadingBox.x - timeInputsBox.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(projectHeadingBox.x - projectBox.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(titleHeadingBox.x - taskBox.x)).toBeLessThanOrEqual(1);
   expect(Math.abs(plannedHeadingBox.x - plannedInputBox.x)).toBeLessThanOrEqual(1);
   expect(Math.abs(actualHeadingBox.x - actualInputBox.x)).toBeLessThanOrEqual(1);
   expect(saveBox.x + saveBox.width).toBeLessThanOrEqual(
