@@ -31,7 +31,7 @@ import { useWorkspaceData } from '@/features/workspace/workspace-data-provider';
 import { createDailyInstance, makeTask } from '@/features/workspace/workspace-seed';
 import { CompactWindowHeader, useWorkspaceView } from '@/components/app-shell';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
-import { addLocalDateDays, getLocalDateKey } from '@/lib/local-date';
+import { getLocalDateKey } from '@/lib/local-date';
 import {
   MiniTodayPanel,
   WorkstationPanel,
@@ -53,6 +53,7 @@ import {
 import { useScheduleResize } from '@/features/tasks/hooks/use-schedule-resize';
 import { useTaskDragAndDrop } from '@/features/tasks/hooks/use-task-drag-and-drop';
 import { useWorkstationMembership } from '@/features/tasks/hooks/use-workstation-membership';
+import { useTaskDashboardData } from '@/features/tasks/hooks/use-task-dashboard-data';
 import type { HistoryEvent, Project, Task, TaskStatus } from '@/types/domain';
 
 export function TaskDashboard() {
@@ -248,39 +249,29 @@ export function TaskDashboard() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [annotationTool]);
 
-  const shown = tasks.filter((t) => t.status === 'active' && t.date === selectedDate);
-  const movedFromSelectedDate = tasks.filter(
-    (task) =>
-      task.status === 'active' &&
-      task.date !== selectedDate &&
-      task.postponedFrom === selectedDate,
-  );
-  const daily =
-    dailyByDate[selectedDate] ?? createDailyInstance(selectedDate, dailyTemplates);
-  const tomorrow = addLocalDateDays(selectedDate, 1);
-  const timed = shown
-    .filter((t) => Boolean(t.plannedStartTime) || t.schedulePendingTime)
-    .sort((a, b) => {
-      if (a.schedulePendingTime !== b.schedulePendingTime) {
-        return a.schedulePendingTime ? -1 : 1;
-      }
-      if (a.plannedStartTime && b.plannedStartTime) {
-        return a.plannedStartTime.localeCompare(b.plannedStartTime);
-      }
-      if (a.plannedStartTime) return -1;
-      if (b.plannedStartTime) return 1;
-      return 0;
-    });
-  const quick = shown.filter((t) => !t.plannedStartTime && !t.schedulePendingTime);
-  const backlog = tasks.filter((t) => t.status === 'backlog');
-  const done = shown.filter((t) => t.completed).length;
-  const normalTaskTotal = shown.length + movedFromSelectedDate.length;
-  const actual = shown.reduce((sum, t) => sum + (t.actualDurationMinutes ?? 0), 0);
-  const dailyActual = daily.reduce((sum, item) => sum + item.actual, 0);
-  const dailyDone = daily.filter(
-    (item) => item.completed || item.children.some((child) => child.completed),
-  ).length;
-  const isDayClosed = closeRecords.some((record) => record.date === selectedDate);
+  const {
+    actual,
+    analyticsInput,
+    backlog,
+    daily,
+    dailyActual,
+    dailyDone,
+    done,
+    isDayClosed,
+    normalTaskTotal,
+    quick,
+    shown,
+    timed,
+    tomorrow,
+  } = useTaskDashboardData({
+    closeRecords,
+    dailyByDate,
+    dailyHistory,
+    dailyTemplates,
+    projects: workspaceProjects,
+    selectedDate,
+    tasks,
+  });
   const annotationInteractionLocked = annotationTool !== 'none';
 
   const toggleAnnotationTool = (tool: AnnotationTool) => {
@@ -291,15 +282,6 @@ export function TaskDashboard() {
     updateTasks((current) =>
       current.map((item) => (item.id === task.id ? task : item)),
     );
-
-  /** 只组合当前领域状态；Calendar、Insights 与 PDF 都由各自的纯 selector 消费该输入。 */
-  const analyticsInput = {
-    tasks,
-    projects: workspaceProjects,
-    dailyByDate,
-    dailyHistory,
-    closeRecords,
-  };
 
   const { clearWorkstation, reorderWorkstation, toggleWorkstationTask } =
     useWorkstationMembership(updateWorkstationTaskIds);
