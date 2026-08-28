@@ -17,10 +17,7 @@ import {
 } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
-import {
-  AnnotationColorPicker,
-  HIGHLIGHT_COLOR_PRESETS,
-} from '@/components/annotation-color-picker';
+import { AnnotationColorPicker } from '@/components/annotation-color-picker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { ProjectTag } from '@/components/ui/project-tag';
@@ -28,21 +25,21 @@ import { StatItem } from '@/components/ui/stat-item';
 import { Surface } from '@/components/ui/surface';
 import { calculateDuration } from '@/lib/task-rules';
 import { taskFormSchema } from '@/lib/schemas';
-import {
-  DailyPanel,
-  seedDaily,
-  type Daily,
-  type DailyHistoryEntry,
-} from '@/features/daily/daily-panel';
+import { DailyPanel } from '@/features/daily/daily-panel';
+import { CalendarPanel } from '@/features/calendar/calendar-panel';
+import { InsightsPanel } from '@/features/insights/insights-panel';
 import { ProjectPanel } from '@/features/projects/project-panel';
-import { ReviewPanel } from '@/features/reviews/review-panel';
-import { HistoryPanel } from '@/features/history/history-panel';
+import { RecordsPanel } from '@/features/records/records-panel';
+import { RhythmPanel } from '@/features/rhythm/rhythm-panel';
 import { SettingsPanel } from '@/features/settings/settings-panel';
-import { StatsPanel } from '@/features/stats/stats-panel';
+import { useWorkspaceData } from '@/features/workspace/workspace-data-provider';
+import {
+  createDailyInstance,
+  createProjectSeed,
+  makeTask,
+} from '@/features/workspace/workspace-seed';
 import { CompactWindowHeader, useWorkspaceView } from '@/components/app-shell';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
-import { usePersistentState } from '@/hooks/use-persistent-state';
-import { useAnnotationStrokes } from '@/hooks/use-annotation-strokes';
 import { addLocalDateDays, getLocalDateKey } from '@/lib/local-date';
 import {
   MiniTodayPanel,
@@ -50,85 +47,10 @@ import {
   type CompactQuickTaskDraft,
   type CompactTimedTaskDraft,
 } from '@/features/tasks/compact-workspace';
-import type {
-  CloseRecord,
-  HistoryEvent,
-  Project,
-  Task,
-  TaskStatus,
-} from '@/types/domain';
+import type { HistoryEvent, Project, Task, TaskStatus } from '@/types/domain';
 
 type TaskDropZone = 'schedule' | 'quick';
 
-/** 只接受内置荧光笔色，避免损坏的 localStorage 影响 SVG 或 CSS 属性。 */
-function normalizeHighlightColor(value: unknown): string {
-  return typeof value === 'string' &&
-    HIGHLIGHT_COLOR_PRESETS.some((preset) => preset.value === value)
-    ? value
-    : HIGHLIGHT_COLOR_PRESETS[0].value;
-}
-/** 创建首次打开工作台时可编辑的内置项目，并把创建日绑定到用户本地日期。 */
-function createProjectSeed(today = getLocalDateKey()): Project[] {
-  return [
-    { id: 'work', name: '工作', color: '#4f8cff', status: 'active', createdAt: today },
-    {
-      id: 'course',
-      name: '课程',
-      color: '#8b7cf6',
-      status: 'active',
-      createdAt: today,
-    },
-    {
-      id: 'research',
-      name: 'AI研究',
-      color: '#38a774',
-      status: 'active',
-      createdAt: today,
-    },
-    { id: 'life', name: '生活', color: '#e9a04b', status: 'active', createdAt: today },
-    { id: 'other', name: '其他', color: '#8793a7', status: 'active', createdAt: today },
-  ];
-}
-/** 创建首次打开时的演示任务，使任务的业务日期和元数据始终属于本地当天。 */
-function createInitialTasks(today = getLocalDateKey()): Task[] {
-  return [
-    makeTask(today, 'email', 'work', '邮件处理', '08:30', undefined, 40),
-    makeTask(today, 'stats', 'course', '统计课预习', '10:45', undefined, 60),
-    makeTask(today, 'paper', 'course', '领域论文', '12:00', '13:30', 90, 56, true),
-    makeTask(today, 'demo', 'research', '跑 Demo', '14:20', undefined, 45),
-    makeTask(today, 'meeting', 'work', '会议记录', '15:10', '16:10', 60, 58, true),
-    makeTask(today, 'gym', 'life', '健身', '17:00', undefined, 60),
-    makeTask(today, 'adapter', 'other', '买转换插头'),
-    makeTask(today, 'pickup', 'life', '取快递'),
-  ];
-}
-/** 创建一条内置任务，并让业务日期和 created/updated 元数据保持同一日期语义。 */
-function makeTask(
-  today: string,
-  id: string,
-  projectId: string,
-  title: string,
-  plannedStartTime?: string,
-  plannedEndTime?: string,
-  plannedDurationMinutes?: number,
-  actualDurationMinutes?: number,
-  completed = false,
-): Task {
-  return {
-    id,
-    projectId,
-    title,
-    date: today,
-    plannedStartTime,
-    plannedEndTime,
-    plannedDurationMinutes,
-    actualDurationMinutes,
-    completed,
-    status: 'active',
-    createdAt: today,
-    updatedAt: today,
-  };
-}
 function formatMinutes(value?: number) {
   if (value === undefined) return '—';
   return value < 60
@@ -196,66 +118,33 @@ function normalizeTime(value: string) {
     ? `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
     : undefined;
 }
-function isTrashExpired(task: Task) {
-  return (
-    task.status === 'trashed' &&
-    Boolean(task.deletedAt) &&
-    new Date(task.deletedAt!).getTime() < Date.now() - 30 * 24 * 60 * 60 * 1000
-  );
-}
-const withoutExpiredTasks = (items: Task[]) =>
-  items.filter((task) => !isTrashExpired(task));
-/** 为选中日期生成 Daily 实例；当天保留模板演示状态，其他日期从未完成状态开始。 */
-function createDailyInstance(date: string, templates: Daily[]): Daily[] {
-  if (date === getLocalDateKey()) return structuredClone(templates);
-  return templates.map((item) => ({
-    ...item,
-    actual: 0,
-    result: '',
-    completed: false,
-    children: item.children.map((child) => ({ ...child, actual: 0, completed: false })),
-  }));
-}
-
 export function TaskDashboard() {
-  const { active, selectedDate } = useWorkspaceView();
+  const { active, selectedDate, setSelectedDate } = useWorkspaceView();
   const { isMiniToday, isWorkstation } = useDesktopWindow();
-  const [tasks, setTasks, tasksHydrated] = usePersistentState(
-    'threadline.tasks.v1',
-    () => withoutExpiredTasks(createInitialTasks()),
-    withoutExpiredTasks,
-  );
-  const [workspaceProjects, setWorkspaceProjects, projectsHydrated] =
-    usePersistentState('threadline.projects.v1', createProjectSeed);
-  const [dailyByDate, setDailyByDate, dailyByDateHydrated] = usePersistentState<
-    Record<string, Daily[]>
-  >('threadline.daily-by-date.v1', () => ({ [getLocalDateKey()]: seedDaily }));
-  const [dailyTemplates, setDailyTemplates, dailyTemplatesHydrated] =
-    usePersistentState<Daily[]>('threadline.daily-templates.v1', seedDaily);
-  const [dailyHistory, setDailyHistory, dailyHistoryHydrated] = usePersistentState<
-    DailyHistoryEntry[]
-  >('threadline.daily-history.v1', []);
-  const [history, setHistory, historyHydrated] = usePersistentState<HistoryEvent[]>(
-    'threadline.history.v1',
-    [],
-  );
-  const [closeRecords, setCloseRecords, closeRecordsHydrated] = usePersistentState<
-    CloseRecord[]
-  >('threadline.close-records.v1', []);
-  const [annotationStrokes, setAnnotationStrokes, annotationHydrated] =
-    useAnnotationStrokes();
-  const [workstationTaskIds, setWorkstationTaskIds, workstationHydrated] =
-    usePersistentState<string[]>('threadline.workstation.v1', [], (value) =>
-      Array.isArray(value)
-        ? [...new Set(value.filter((id) => typeof id === 'string'))]
-        : [],
-    );
+  const {
+    tasks,
+    updateTasks,
+    projects: workspaceProjects,
+    updateProjects,
+    dailyByDate,
+    updateDailyByDate,
+    dailyTemplates,
+    updateDailyTemplates,
+    dailyHistory,
+    updateDailyHistory,
+    history,
+    updateHistory,
+    closeRecords,
+    updateCloseRecords,
+    annotationStrokes,
+    updateAnnotationStrokes,
+    workstationTaskIds,
+    updateWorkstationTaskIds,
+    highlightColor,
+    updateHighlightColor,
+    hydrated,
+  } = useWorkspaceData();
   const [annotationTool, setAnnotationTool] = useState<AnnotationTool>('none');
-  const [highlightColor, setHighlightColor] = usePersistentState<string>(
-    'threadline.annotation-highlight-color.v1',
-    HIGHLIGHT_COLOR_PRESETS[0].value,
-    normalizeHighlightColor,
-  );
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const draggingTaskIdRef = useRef<string | null>(null);
   const pointerDragRef = useRef<{ taskId: string; pointerId: number } | undefined>(
@@ -301,7 +190,7 @@ export function TaskDashboard() {
       status: 'active',
       createdAt: getLocalDateKey(),
     };
-    setWorkspaceProjects((current) => [...current, newProj]);
+    updateProjects((current) => [...current, newProj]);
     return newProj;
   };
 
@@ -341,7 +230,7 @@ export function TaskDashboard() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setTasks((current) => [...current, newTask]);
+    updateTasks((current) => [...current, newTask]);
     appendHistory('created', newTask.id, { title: newTask.title });
     setNewTimedStartTime('');
     setNewTimedEndTime('');
@@ -368,7 +257,7 @@ export function TaskDashboard() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setTasks((current) => [...current, newTask]);
+    updateTasks((current) => [...current, newTask]);
     appendHistory('created', newTask.id, { title: newTask.title });
     setNewQuickTitle('');
     setNewQuickCompleted(false);
@@ -394,7 +283,7 @@ export function TaskDashboard() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setTasks((current) => [...current, task]);
+    updateTasks((current) => [...current, task]);
     appendHistory('created', task.id, { title: task.title });
   };
 
@@ -410,7 +299,7 @@ export function TaskDashboard() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setTasks((current) => [...current, task]);
+    updateTasks((current) => [...current, task]);
     appendHistory('created', task.id, { title: task.title });
   };
 
@@ -456,16 +345,6 @@ export function TaskDashboard() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [annotationTool]);
 
-  const hydrated =
-    tasksHydrated &&
-    projectsHydrated &&
-    dailyByDateHydrated &&
-    dailyTemplatesHydrated &&
-    dailyHistoryHydrated &&
-    historyHydrated &&
-    closeRecordsHydrated &&
-    annotationHydrated &&
-    workstationHydrated;
   if (!hydrated)
     return (
       <Surface className="workspace-loading">
@@ -512,22 +391,33 @@ export function TaskDashboard() {
   };
 
   const update = (task: Task) =>
-    setTasks((current) => current.map((item) => (item.id === task.id ? task : item)));
+    updateTasks((current) =>
+      current.map((item) => (item.id === task.id ? task : item)),
+    );
+
+  /** 只组合当前领域状态；Calendar、Insights 与 PDF 都由各自的纯 selector 消费该输入。 */
+  const analyticsInput = {
+    tasks,
+    projects: workspaceProjects,
+    dailyByDate,
+    dailyHistory,
+    closeRecords,
+  };
 
   /** 切换任务在工作站内的引用，不触碰原任务、日期、完成状态或优先级。 */
   const toggleWorkstationTask = (taskId: string) =>
-    setWorkstationTaskIds((current) =>
+    updateWorkstationTaskIds((current) =>
       current.includes(taskId)
         ? current.filter((id) => id !== taskId)
         : [...current, taskId],
     );
 
   /** 清空工作站仅清空引用集合，绝不删除或变更任务记录。 */
-  const clearWorkstation = () => setWorkstationTaskIds([]);
+  const clearWorkstation = () => updateWorkstationTaskIds([]);
 
   /** 调整引用集合顺序；Task 本身的 priority 和字段完全保持不变。 */
   const reorderWorkstation = (sourceId: string, targetId: string) =>
-    setWorkstationTaskIds((current) => {
+    updateWorkstationTaskIds((current) => {
       const sourceIndex = current.indexOf(sourceId);
       const targetIndex = current.indexOf(targetId);
       if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex)
@@ -768,7 +658,7 @@ export function TaskDashboard() {
       updatedAt: new Date().toISOString(),
     });
     if (!editing)
-      setTasks((current) => [
+      updateTasks((current) => [
         ...current,
         {
           ...base,
@@ -790,7 +680,7 @@ export function TaskDashboard() {
     taskId?: string,
     payload: Record<string, string> = {},
   ) =>
-    setHistory((current) => [
+    updateHistory((current) => [
       {
         id: crypto.randomUUID(),
         taskId,
@@ -803,12 +693,12 @@ export function TaskDashboard() {
   const move = (id: string, status: TaskStatus) => {
     const task = tasks.find((item) => item.id === id);
     if (status === 'trashed') {
-      setAnnotationStrokes((current) =>
+      updateAnnotationStrokes((current) =>
         current.filter((stroke) => stroke.targetTaskId !== id),
       );
-      setWorkstationTaskIds((current) => current.filter((taskId) => taskId !== id));
+      updateWorkstationTaskIds((current) => current.filter((taskId) => taskId !== id));
     }
-    setTasks((current) =>
+    updateTasks((current) =>
       current.map((t) =>
         t.id === id
           ? {
@@ -831,7 +721,7 @@ export function TaskDashboard() {
     if (!rescheduling) return;
     const sourceDate = rescheduling.date ?? selectedDate;
     if (targetDate <= sourceDate) return '请选择晚于原计划日期的未来日期';
-    setTasks((current) =>
+    updateTasks((current) =>
       current.map((task) =>
         task.id === rescheduling.id
           ? {
@@ -892,58 +782,37 @@ export function TaskDashboard() {
         tasks={tasks}
         daily={daily}
         dailyHistory={dailyHistory}
-        onChange={setWorkspaceProjects}
+        onChange={updateProjects}
       />
     );
-  if (active === 'stats')
+  if (active === 'calendar')
     return (
-      <StatsPanel
-        tasks={tasks}
-        projects={workspaceProjects}
-        daily={daily}
-        dailyHistory={dailyHistory}
+      <CalendarPanel
+        analyticsInput={analyticsInput}
         selectedDate={selectedDate}
+        onSelectDate={setSelectedDate}
       />
     );
-  if (active === 'review')
+  if (active === 'insights')
     return (
-      <ReviewPanel
+      <InsightsPanel analyticsInput={analyticsInput} selectedDate={selectedDate} />
+    );
+  if (active === 'records')
+    return (
+      <RecordsPanel
         tasks={tasks}
         projects={workspaceProjects}
-        daily={daily}
-        dailyHistory={dailyHistory}
         history={history}
+        dailyHistory={dailyHistory}
         closeRecords={closeRecords}
-        selectedDate={selectedDate}
       />
     );
+  if (active === 'rhythm') return <RhythmPanel selectedDate={selectedDate} />;
   if (active === 'settings')
-    return (
-      <SettingsPanel
-        historyContent={
-          <HistoryPanel
-            tasks={tasks}
-            history={history}
-            closeRecords={closeRecords}
-            dailyHistory={dailyHistory}
-            onUpdate={update}
-          />
-        }
-      />
-    );
-  const isSchedulePage = active === 'schedule';
+    return <SettingsPanel tasks={tasks} onUpdateTask={update} />;
   return (
-    <div
-      className={`dashboard dashboard-annotatable${isSchedulePage ? 'schedule-workspace' : ''}`}
-      data-testid={isSchedulePage ? 'schedule-panel' : 'home-panel'}
-    >
-      {isSchedulePage && !isMiniToday && (
-        <div className="schedule-workspace-intro">
-          <span>今日安排</span>
-          <p>待填时间任务固定在最上方；拖动任务可在日程和无时间待办之间移动。</p>
-        </div>
-      )}
-      {!isMiniToday && !isSchedulePage && (
+    <div className="dashboard dashboard-annotatable" data-testid="home-panel">
+      {!isMiniToday && (
         <Surface className="metric-strip">
           <StatItem
             label="普通任务"
@@ -1019,7 +888,7 @@ export function TaskDashboard() {
                   active={annotationTool === 'highlight'}
                   color={highlightColor}
                   onActivate={() => setAnnotationTool('highlight')}
-                  onColorChange={setHighlightColor}
+                  onColorChange={updateHighlightColor}
                 />
                 <button
                   type="button"
@@ -1252,7 +1121,7 @@ export function TaskDashboard() {
             </div>
           )}
         </Surface>
-        {!isMiniToday && !isSchedulePage && (
+        {!isMiniToday && (
           <div className="side-column">
             <Surface
               className={`quick-panel${dropTarget === 'quick' ? 'is-drop-target' : ''}`}
@@ -1421,30 +1290,30 @@ export function TaskDashboard() {
               date={selectedDate}
               projects={workspaceProjects}
               onChange={(items) =>
-                setDailyByDate((current) => ({ ...current, [selectedDate]: items }))
+                updateDailyByDate((current) => ({ ...current, [selectedDate]: items }))
               }
               onAdd={(item) => {
-                setDailyTemplates((current) => [...current, item]);
-                setDailyByDate((current) => {
+                updateDailyTemplates((current) => [...current, item]);
+                updateDailyByDate((current) => {
                   const existing =
                     current[selectedDate] ??
                     createDailyInstance(selectedDate, dailyTemplates);
                   return { ...current, [selectedDate]: [...existing, item] };
                 });
               }}
-              onRecord={(entry) => setDailyHistory((current) => [entry, ...current])}
+              onRecord={(entry) => updateDailyHistory((current) => [entry, ...current])}
             />
           </div>
         )}
       </div>
-      {!isMiniToday && !isSchedulePage && (
+      {!isMiniToday && (
         <PlanningQueue
           tasks={backlog}
           projects={workspaceProjects}
           onUpdate={update}
           onMove={move}
           onArrange={(id) => {
-            setTasks((current) =>
+            updateTasks((current) =>
               current.map((task) =>
                 task.id === id
                   ? {
@@ -1460,7 +1329,7 @@ export function TaskDashboard() {
           }}
         />
       )}
-      {!isMiniToday && !isSchedulePage && (
+      {!isMiniToday && (
         <button
           className="finish-day"
           disabled={isDayClosed}
@@ -1473,7 +1342,7 @@ export function TaskDashboard() {
         activeTool={annotationTool}
         highlightColor={highlightColor}
         strokes={annotationStrokes}
-        onChangeStrokes={setAnnotationStrokes}
+        onChangeStrokes={updateAnnotationStrokes}
         targetDate={selectedDate}
         disabled={false}
       />
@@ -1501,7 +1370,7 @@ export function TaskDashboard() {
         tomorrow={tomorrow}
         onCloseDay={(form) => {
           const events: HistoryEvent[] = [];
-          setTasks((current) =>
+          updateTasks((current) =>
             current.map((task) => {
               const action = form.get(`action-${task.id}`);
               if (!action || task.completed) return task;
@@ -1544,8 +1413,8 @@ export function TaskDashboard() {
                 : task;
             }),
           );
-          setHistory((current) => [...events, ...current]);
-          setDailyHistory((current) => [
+          updateHistory((current) => [...events, ...current]);
+          updateDailyHistory((current) => [
             ...daily
               .filter(
                 (item) =>
@@ -1575,7 +1444,7 @@ export function TaskDashboard() {
                   .reduce((total, item) => total + item.actual, 0),
             ]),
           );
-          setCloseRecords((current) => [
+          updateCloseRecords((current) => [
             ...current.filter((record) => record.date !== selectedDate),
             {
               id: crypto.randomUUID(),

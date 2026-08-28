@@ -56,6 +56,9 @@ export type PresentationRollback = {
   reason: string;
 };
 
+export type ReportPdfExportResult =
+  { canceled: true } | { canceled: false; filePath: string };
+
 type Unsubscribe = () => void;
 
 export type ThreadlineDesktopBridge =
@@ -71,6 +74,7 @@ export type ThreadlineDesktopBridge =
       bringToFront: () => Promise<NativeApplyResult>;
       minimizeMainWindow: () => Promise<void>;
       closeMainWindow: () => Promise<void>;
+      exportReportPdf: () => Promise<ReportPdfExportResult>;
       acknowledgeNativeState: (stateRevision: number) => Promise<void>;
       onNativeStateChanged: (
         listener: (event: NativeDesktopStateChanged) => void,

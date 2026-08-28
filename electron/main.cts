@@ -14,6 +14,7 @@ import {
   type IpcMainInvokeEvent,
 } from 'electron';
 import { existsSync, readFileSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
 import { join, normalize, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
@@ -708,6 +709,31 @@ function registerDesktopIpc(): void {
     if (!isTrustedSender(event, 'main'))
       throw new Error('Rejected desktop minimize sender');
     mainWindow?.minimize();
+  });
+  /**
+   * 仅让受信任 Main Renderer 把当前报告 DOM 输出为 PDF。
+   * Renderer 不传文件路径或 HTML，避免向页面暴露通用文件写入与任意内容打印能力。
+   */
+  ipcMain.handle('desktop:export-report-pdf', async (event) => {
+    if (!isTrustedSender(event, 'main'))
+      throw new Error('Rejected desktop report export sender');
+    const owner = BrowserWindow.fromWebContents(event.sender);
+    if (!owner) throw new Error('Missing desktop report export window');
+    const destination = await dialog.showSaveDialog(owner, {
+      title: '导出 Threadline 洞察报告',
+      defaultPath: 'Threadline-洞察报告.pdf',
+      filters: [{ name: 'PDF 文件', extensions: ['pdf'] }],
+      properties: ['createDirectory'],
+    });
+    if (destination.canceled || !destination.filePath) return { canceled: true };
+    const pdf = await event.sender.printToPDF({
+      pageSize: 'A4',
+      printBackground: true,
+      preferCSSPageSize: true,
+      margins: { top: 0.4, bottom: 0.4, left: 0.45, right: 0.45 },
+    });
+    await writeFile(destination.filePath, pdf);
+    return { canceled: false, filePath: destination.filePath };
   });
   ipcMain.handle('desktop:state-applied', async (event, revision: unknown) => {
     if (

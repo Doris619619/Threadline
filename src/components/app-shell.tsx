@@ -6,10 +6,12 @@ import {
   CalendarDays,
   ChartNoAxesCombined,
   ChevronUp,
-  ClipboardList,
   FolderKanban,
   Home,
   Minus,
+  MoreHorizontal,
+  NotebookTabs,
+  Orbit,
   Settings,
   Sparkles,
   X,
@@ -24,10 +26,10 @@ import { addLocalDateDays, getLocalDateKey, parseLocalDateKey } from '@/lib/loca
 const navigation = [
   { id: 'home', label: '首页', icon: Home, description: '安排、执行、记录今天' },
   {
-    id: 'schedule',
-    label: '日程',
+    id: 'calendar',
+    label: '日历',
     icon: CalendarDays,
-    description: '按时间查看今天的任务',
+    description: '查看每日项目投入与历史日期',
   },
   {
     id: 'projects',
@@ -36,16 +38,22 @@ const navigation = [
     description: '管理长期事项与任务归属',
   },
   {
-    id: 'stats',
-    label: '统计',
+    id: 'insights',
+    label: '洞察',
     icon: ChartNoAxesCombined,
-    description: '了解投入时间与完成趋势',
+    description: '统一查看投入、估时与项目重心',
   },
   {
-    id: 'review',
-    label: '复盘',
-    icon: ClipboardList,
-    description: '回顾完成、遗留与下一步',
+    id: 'records',
+    label: '记录',
+    icon: NotebookTabs,
+    description: '搜索当前可可靠获得的历史记录',
+  },
+  {
+    id: 'rhythm',
+    label: '节律',
+    icon: Orbit,
+    description: '私密标记个人节律，不纳入普通分析',
   },
   {
     id: 'settings',
@@ -55,10 +63,17 @@ const navigation = [
   },
 ] as const;
 export type WorkspaceViewId = (typeof navigation)[number]['id'];
-type WorkspaceView = { active: WorkspaceViewId; selectedDate: string };
+type WorkspaceView = {
+  active: WorkspaceViewId;
+  selectedDate: string;
+  setActive: (active: WorkspaceViewId) => void;
+  setSelectedDate: (date: string) => void;
+};
 const WorkspaceViewContext = createContext<WorkspaceView>({
   active: 'home',
   selectedDate: getLocalDateKey(),
+  setActive: () => undefined,
+  setSelectedDate: () => undefined,
 });
 /** 读取完整工作台导航状态与当前工作日期。 */
 export const useWorkspaceView = () => useContext(WorkspaceViewContext);
@@ -72,9 +87,7 @@ export function CompactWindowHeader({
   const { isMiniToday, isWorkstation, setMode, collapseCompactView, closeMainWindow } =
     useDesktopWindow();
   return (
-    <header
-      className={`compact-window-header${isWorkstation ? ' is-workstation' : ''}`}
-    >
+    <header className={`compact-window-header${isWorkstation ? 'is-workstation' : ''}`}>
       <span className="compact-window-title">
         <CalendarDays size={20} />
         {isMiniToday ? '迷你今日' : '工作站'}
@@ -177,6 +190,7 @@ function EdgeTab() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [active, setActive] = useState<WorkspaceViewId>('home');
   const [selectedDate, setSelectedDate] = useState<string>(getLocalDateKey);
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const { isCompact, isEdgeCollapsed } = useDesktopWindow();
   const activeItem = navigation.find((item) => item.id === active) ?? navigation[0];
   /** 切换当前工作日期。 */
@@ -193,17 +207,65 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <a className="tl-brand" href="#main-content">
               我的工作台
             </a>
-            <nav aria-label="主导航">
+            <nav className="tl-desktop-nav" aria-label="主导航">
               {navigation.map(({ id, label, icon: Icon }) => (
                 <SidebarItem
                   key={id}
                   active={active === id}
-                  onClick={() => setActive(id)}
+                  onClick={() => {
+                    setActive(id);
+                    setMobileMoreOpen(false);
+                  }}
                 >
                   <Icon aria-hidden="true" size={18} />
                   {label}
                 </SidebarItem>
               ))}
+            </nav>
+            <nav className="tl-mobile-nav" aria-label="移动端主导航">
+              {navigation.slice(0, 4).map(({ id, label, icon: Icon }) => (
+                <SidebarItem
+                  key={id}
+                  active={active === id}
+                  onClick={() => {
+                    setActive(id);
+                    setMobileMoreOpen(false);
+                  }}
+                >
+                  <Icon aria-hidden="true" size={18} />
+                  {label}
+                </SidebarItem>
+              ))}
+              <div className="tl-mobile-more">
+                <button
+                  type="button"
+                  className={`tl-sidebar-item${navigation.slice(4).some((item) => item.id === active) ? 'is-active' : ''}`}
+                  aria-expanded={mobileMoreOpen}
+                  aria-controls="mobile-more-navigation"
+                  onClick={() => setMobileMoreOpen((open) => !open)}
+                >
+                  <MoreHorizontal aria-hidden="true" size={18} />
+                  更多
+                </button>
+                {mobileMoreOpen && (
+                  <div id="mobile-more-navigation" className="tl-mobile-more-menu">
+                    {navigation.slice(4).map(({ id, label, icon: Icon }) => (
+                      <button
+                        type="button"
+                        key={id}
+                        className={active === id ? 'is-active' : ''}
+                        onClick={() => {
+                          setActive(id);
+                          setMobileMoreOpen(false);
+                        }}
+                      >
+                        <Icon aria-hidden="true" size={18} />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </nav>
             <div className="tl-profile">
               <div className="tl-avatar" aria-hidden="true">
@@ -259,7 +321,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             </header>
           )}
-          <WorkspaceViewContext.Provider value={{ active, selectedDate }}>
+          <WorkspaceViewContext.Provider
+            value={{ active, selectedDate, setActive, setSelectedDate }}
+          >
             {children}
           </WorkspaceViewContext.Provider>
         </main>

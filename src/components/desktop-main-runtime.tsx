@@ -6,7 +6,9 @@
 
 import { AppShell } from '@/components/app-shell';
 import { PwaRegistrar } from '@/components/pwa-registrar';
+import { RhythmStateProvider } from '@/features/rhythm/rhythm-state';
 import { TaskDashboard } from '@/features/tasks/task-dashboard';
+import { WorkspaceDataProvider } from '@/features/workspace/workspace-data-provider';
 import { DesktopWindowProvider } from '@/lib/desktop-window-context';
 
 /** 挂载完整业务树及其桌面视图状态 Provider。 */
@@ -14,9 +16,13 @@ export function DesktopMainRuntime() {
   return (
     <DesktopWindowProvider>
       <PwaRegistrar />
-      <AppShell>
-        <TaskDashboard />
-      </AppShell>
+      <RhythmStateProvider>
+        <AppShell>
+          <WorkspaceDataProvider>
+            <TaskDashboard />
+          </WorkspaceDataProvider>
+        </AppShell>
+      </RhythmStateProvider>
     </DesktopWindowProvider>
   );
 }

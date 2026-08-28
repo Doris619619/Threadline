@@ -50,6 +50,7 @@ test.beforeEach(async ({ page }) => {
       'threadline.annotation-highlight-color.v1',
       'threadline.workstation.v1',
       'threadline.workspace.v1',
+      'threadline.rhythm.v1',
     ])
       window.localStorage.removeItem(key);
     window.localStorage.removeItem('threadline.desktop-mode.v2');
@@ -65,30 +66,57 @@ test.beforeEach(async ({ page }) => {
   await page.waitForTimeout(100);
 });
 
-/** 进入设置中的历史与回收站二级页面，供历史相关流程复用。 */
-async function openHistorySettings(page: Page) {
-  await page.getByRole('button', { name: '设置', exact: true }).click();
-  await page.getByRole('button', { name: '历史与回收站', exact: true }).click();
+/** 进入独立记录页，供任务流转与收尾历史流程复用。 */
+async function openRecords(page: Page) {
+  await openWorkspaceSection(page, '记录');
 }
 
-test('gives every sidebar destination a distinct working page', async ({ page }) => {
-  await page.getByRole('button', { name: '日程', exact: true }).click();
-  await expect(page.getByTestId('schedule-panel')).toBeVisible();
-  await expect(page.getByText('待填时间任务固定在最上方')).toBeVisible();
+/** 进入设置的数据分类，供回收站恢复与保留期流程复用。 */
+async function openSettingsData(page: Page) {
+  await openWorkspaceSection(page, '设置');
+}
 
-  await page.getByRole('button', { name: '项目', exact: true }).click();
+/** 根据当前断点选择可见的桌面侧栏或移动底栏，不依赖重复导航 DOM 的角色查询顺序。 */
+async function openWorkspaceSection(page: Page, label: string) {
+  const desktopTarget = page
+    .getByLabel('主导航', { exact: true })
+    .getByRole('button', { name: label, exact: true });
+  if (await desktopTarget.isVisible()) {
+    await desktopTarget.click();
+    return;
+  }
+  const mobileNavigation = page.getByLabel('移动端主导航', { exact: true });
+  if (['首页', '日历', '项目', '洞察'].includes(label)) {
+    await mobileNavigation.getByRole('button', { name: label, exact: true }).click();
+    return;
+  }
+  await mobileNavigation.getByRole('button', { name: '更多', exact: true }).click();
+  await mobileNavigation.getByRole('button', { name: label, exact: true }).click();
+}
+
+test('gives every workspace destination a distinct working page', async ({ page }) => {
+  await openWorkspaceSection(page, '日历');
+  await expect(page.getByTestId('calendar-panel')).toBeVisible();
+  await expect(page.getByText('项目投入热力')).toBeVisible();
+
+  await openWorkspaceSection(page, '项目');
   await expect(page.locator('.project-panel')).toBeVisible();
 
-  await page.getByRole('button', { name: '统计', exact: true }).click();
-  await expect(page.getByTestId('stats-panel')).toBeVisible();
-  await expect(page.getByText('今日项目投入')).toBeVisible();
+  await openWorkspaceSection(page, '洞察');
+  await expect(page.getByTestId('insights-panel')).toBeVisible();
+  await expect(page.getByText('工作投入趋势')).toBeVisible();
 
-  await page.getByRole('button', { name: '复盘', exact: true }).click();
-  await expect(page.getByRole('heading', { name: '今日复盘' })).toBeVisible();
+  await openWorkspaceSection(page, '记录');
+  await expect(page.getByTestId('records-panel')).toBeVisible();
 
-  await page.getByRole('button', { name: '设置', exact: true }).click();
+  await openWorkspaceSection(page, '节律');
+  await expect(page.getByTestId('rhythm-panel')).toBeVisible();
+
+  await openWorkspaceSection(page, '设置');
   await expect(page.getByTestId('settings-panel')).toBeVisible();
-  await expect(page.getByText('Windows 桌面窗口')).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: '回收站', exact: true }),
+  ).toBeVisible();
 });
 
 test('uses direct three-state entries and keeps workstation membership independent from tasks', async ({
@@ -450,9 +478,9 @@ test('records rescheduling and abandonment in history', async ({ page }) => {
   await email.getByRole('button', { name: '移期', exact: true }).click();
   const reschedule = page.getByRole('dialog', { name: '移期任务' });
   await reschedule.getByRole('button', { name: '确认移期' }).click();
-  await openHistorySettings(page);
-  await expect(page.getByRole('cell', { name: '已移期' })).toBeVisible();
-  await expect(page.getByRole('cell', { name: '放弃' }).first()).toBeVisible();
+  await openRecords(page);
+  await expect(page.getByText('已移期', { exact: true })).toBeVisible();
+  await expect(page.getByText('放弃', { exact: true }).first()).toBeVisible();
 });
 
 test('can choose a future date when rescheduling', async ({ page }) => {
@@ -474,7 +502,7 @@ test('deletes a task and restores it from trash', async ({ page }) => {
   const pickup = page.locator('.quick-task-row').filter({ hasText: '取快递' });
   await pickup.getByRole('button', { name: '取快递更多操作' }).click();
   await pickup.getByRole('button', { name: '删除', exact: true }).click();
-  await openHistorySettings(page);
+  await openSettingsData(page);
   await expect(
     page.locator('.trash-panel').getByText('取快递', { exact: true }),
   ).toBeVisible();
@@ -500,7 +528,7 @@ test('purges trash entries older than thirty days on reload', async ({ page }) =
     window.localStorage.setItem('threadline.tasks.v1', JSON.stringify(tasks));
   });
   await page.reload();
-  await openHistorySettings(page);
+  await openSettingsData(page);
   await expect(page.getByText('过期删除任务')).toHaveCount(0);
 });
 
@@ -521,13 +549,10 @@ test('keeps closeout records in the history view', async ({ page }) => {
     .getByRole('dialog')
     .getByRole('button', { name: '确认结束今天', exact: true })
     .click();
-  await openHistorySettings(page);
-  await expect(page.getByText('Daily 与收尾历史')).toBeVisible();
+  await openRecords(page);
   await expect(page.getByText('结束今天', { exact: true })).toBeVisible();
-  await expect(page.getByText('完成听力训练', { exact: true })).toBeVisible();
-  await expect(
-    page.getByRole('cell', { name: '收尾：移至明天' }).first(),
-  ).toBeVisible();
+  await expect(page.getByText('完成听力训练')).toBeVisible();
+  await expect(page.getByText('收尾：移至明天', { exact: true }).first()).toBeVisible();
 });
 
 test('keeps postponed work in the original date task denominator', async ({ page }) => {
@@ -543,17 +568,16 @@ test('keeps postponed work in the original date task denominator', async ({ page
   await expect(page.getByRole('checkbox', { name: '完成邮件处理' })).toBeVisible();
 });
 
-test('shows task and daily data in dedicated review periods', async ({ page }) => {
-  await page.getByRole('button', { name: '复盘', exact: true }).click();
-  await expect(page.getByRole('heading', { name: '今日复盘' })).toBeVisible();
-  await expect(page.getByText('普通与 Daily 实际耗时')).toBeVisible();
-  await expect(page.getByText('1/3 已完成 · 30min')).toBeVisible();
-  await page.getByRole('button', { name: '本周', exact: true }).click();
-  await expect(page.getByRole('heading', { name: '本周复盘' })).toBeVisible();
+test('shows task and daily data in unified insight periods', async ({ page }) => {
+  await openWorkspaceSection(page, '洞察');
+  await expect(page.getByText('工作投入趋势')).toBeVisible();
+  await expect(page.getByText('项目时间分布')).toBeVisible();
+  await page.getByRole('button', { name: '本月', exact: true }).click();
+  await expect(page.getByText('实际投入', { exact: true }).first()).toBeVisible();
 });
 
 test('edits a project and opens its compact project detail', async ({ page }) => {
-  await page.getByRole('button', { name: '项目', exact: true }).click();
+  await openWorkspaceSection(page, '项目');
   await page.getByRole('button', { name: '【AI研究】' }).click();
   await expect(
     page.getByRole('heading', { name: 'AI研究', exact: true }),

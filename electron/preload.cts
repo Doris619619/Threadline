@@ -40,6 +40,7 @@ const bridge =
           ipcRenderer.invoke('desktop:transition', payload),
         bringToFront: () => ipcRenderer.invoke('desktop:bring-to-front'),
         minimizeMainWindow: () => ipcRenderer.invoke('desktop:minimize-main'),
+        exportReportPdf: () => ipcRenderer.invoke('desktop:export-report-pdf'),
         acknowledgeNativeState: (stateRevision: number) =>
           ipcRenderer.invoke('desktop:state-applied', stateRevision),
         onNativeStateChanged: (listener: (payload: unknown) => void) =>

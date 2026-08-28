@@ -6,6 +6,8 @@
 
 任务日期、Daily、收尾、历史目标日期和回收站恢复使用 `src/lib/local-date.ts`。
 
+Calendar、Insights 与报告不分别计算统计，而是通过 `src/lib/analytics.ts` 的纯函数结果读取；日期范围、周一周起点和月历网格由 `src/lib/date-range.ts` 负责。旧 CloseRecord 只能作为项目级 `legacy-aggregate`，不得由当前任务状态、更新时间或移期字段反推任务级历史。完整质量规则见 [工作台信息架构与分析口径](workspace-information-architecture.md)。
+
 - `getLocalDateKey()` 读取用户本地的年、月、日，不能用 `toISOString().slice(0, 10)` 生成业务日期。
 - 相邻日期必须经 `addLocalDateDays()` 计算，避免 UTC 和本地午夜边界混用。
 - 时间戳字段（例如 `updatedAt`）仍可使用 ISO instant；只有业务日键必须使用本地日期 helper。
