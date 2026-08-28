@@ -1017,6 +1017,10 @@ button,
   gap: 4px;
 }
 
+.tl-sidebar .tl-mobile-nav {
+  display: none;
+}
+
 .tl-profile {
   display: flex;
   align-items: center;
@@ -2765,9 +2769,12 @@ button,
   .tl-profile {
     display: none;
   }
-  .tl-sidebar nav {
+  .tl-sidebar .tl-desktop-nav {
+    display: none;
+  }
+  .tl-sidebar .tl-mobile-nav {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
   .tl-sidebar .tl-sidebar-item {
     min-height: 52px;
@@ -2777,6 +2784,42 @@ button,
     padding: 3px 1px;
     font-size: 0.625rem;
     text-align: center;
+  }
+  .tl-mobile-more {
+    position: relative;
+  }
+  .tl-mobile-more > button {
+    width: 100%;
+    min-height: 52px;
+  }
+  .tl-mobile-more-menu {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 8px);
+    display: grid;
+    min-width: 132px;
+    gap: 4px;
+    padding: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 12px 28px rgb(31 42 55 / 16%);
+  }
+  .tl-mobile-more-menu button {
+    display: flex;
+    min-height: 42px;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    text-align: left;
+  }
+  .tl-mobile-more-menu button.is-active {
+    color: var(--accent);
+    background: var(--accent-soft);
   }
   .tl-main {
     padding: 20px 12px calc(80px + env(safe-area-inset-bottom));
@@ -2899,5 +2942,389 @@ button,
   .desktop-settings dl div {
     grid-template-columns: 1fr;
     gap: 4px;
+  }
+}
+
+/* 工作台信息架构：日历、洞察、记录和节律页面。 */
+.calendar-panel,
+.insights-panel,
+.records-panel,
+.rhythm-panel {
+  display: grid;
+  gap: 16px;
+  max-width: 1200px;
+}
+
+.calendar-intro,
+.calendar-toolbar,
+.insights-toolbar,
+.records-heading,
+.rhythm-intro,
+.rhythm-calendar > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.calendar-intro h2,
+.insights-toolbar h2,
+.records-heading h2,
+.rhythm-intro h2,
+.rhythm-calendar h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.calendar-intro p,
+.insights-toolbar p,
+.records-heading p,
+.rhythm-intro p {
+  margin: 4px 0 0;
+  color: var(--text-tertiary);
+  font-size: 0.8125rem;
+}
+
+.calendar-intro > span {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.calendar-surface,
+.rhythm-calendar {
+  padding: 20px;
+}
+
+.calendar-toolbar {
+  margin-bottom: 16px;
+}
+
+.calendar-toolbar button,
+.rhythm-calendar > header button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.calendar-weekdays,
+.calendar-grid,
+.rhythm-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.calendar-weekdays {
+  margin-bottom: 6px;
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.calendar-day,
+.rhythm-grid button {
+  min-height: 72px;
+  padding: 8px;
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.calendar-day small {
+  display: block;
+  margin-top: 8px;
+  color: inherit;
+  font-size: 0.6875rem;
+}
+
+.calendar-day[data-heat='1'] {
+  background: #e5f4ed;
+  color: #276b4f;
+}
+.calendar-day[data-heat='2'] {
+  background: #bfe6d1;
+  color: #1b5a3f;
+}
+.calendar-day[data-heat='3'] {
+  background: #7dc89e;
+  color: #13472f;
+}
+.calendar-day[data-heat='4'] {
+  background: #3d9d69;
+  color: #fff;
+}
+.calendar-day.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgb(79 140 255 / 18%);
+}
+.calendar-day.is-outside,
+.rhythm-grid button.is-outside {
+  opacity: 0.42;
+}
+
+.insights-actions,
+.insights-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.insights-filters button {
+  min-height: 36px;
+  padding: 6px 12px;
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.insights-filters button.is-active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.insights-filters label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.insights-filters input,
+.records-search input {
+  min-height: 36px;
+  padding: 6px 8px;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.insights-summary,
+.insights-charts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.insights-summary .tl-surface {
+  display: grid;
+  gap: 5px;
+  min-height: 130px;
+}
+
+.insights-summary span,
+.insights-summary small,
+.insight-chart header span {
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+}
+
+.insights-summary strong {
+  font-size: 1.1rem;
+}
+.insights-charts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.insight-chart {
+  min-height: 300px;
+}
+.insight-chart header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.insight-chart h3 {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.records-search {
+  display: flex;
+  min-width: min(280px, 100%);
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  color: var(--text-tertiary);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.records-search input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+}
+.records-timeline ol {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.records-timeline li {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.records-timeline li:last-child {
+  border-bottom: 0;
+}
+.records-timeline time {
+  color: var(--text-tertiary);
+  font-size: 0.8125rem;
+}
+.records-timeline b,
+.records-timeline span {
+  display: block;
+}
+.records-timeline span {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.rhythm-intro {
+  justify-content: flex-start;
+  padding: 18px;
+}
+.rhythm-intro > svg {
+  color: var(--accent);
+  flex: 0 0 auto;
+}
+.rhythm-calendar > header {
+  margin-bottom: 16px;
+}
+.rhythm-grid button {
+  min-height: 54px;
+  text-align: center;
+}
+.rhythm-grid button.is-marked {
+  color: #fff;
+  background: #7659c7;
+}
+
+.report-document {
+  display: none;
+}
+
+.settings-copy {
+  display: grid;
+  gap: 8px;
+}
+.settings-copy h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.settings-copy p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.settings-copy dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.settings-copy dl div {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 12px;
+}
+.settings-copy dt {
+  color: var(--text-tertiary);
+}
+.settings-copy dd {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+@media (max-width: 760px) {
+  .calendar-intro,
+  .insights-toolbar,
+  .records-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .calendar-surface,
+  .rhythm-calendar {
+    padding: 14px 10px;
+  }
+  .calendar-day {
+    min-height: 54px;
+    padding: 6px;
+  }
+  .calendar-day small {
+    display: none;
+  }
+  .insights-summary,
+  .insights-charts {
+    grid-template-columns: 1fr;
+  }
+  .records-search {
+    width: 100%;
+  }
+  .records-timeline li {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+
+@media print {
+  .tl-sidebar,
+  .tl-header,
+  .full-window-chrome,
+  .insights-toolbar,
+  .insights-filters,
+  .insights-summary,
+  .insights-charts {
+    display: none !important;
+  }
+  .tl-main {
+    padding: 0;
+  }
+  .report-document {
+    display: block;
+    color: #111;
+  }
+  .report-document header {
+    border-bottom: 2px solid #111;
+  }
+  .report-document dl {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .report-document dt {
+    color: #555;
+  }
+  .report-document dd {
+    margin: 4px 0 0;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .report-document table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .report-document th,
+  .report-document td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
   }
 }

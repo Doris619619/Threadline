@@ -152,3 +152,46 @@ export function HistoryPanel({
     </div>
   );
 }
+
+/** 渲染设置中的回收站；恢复只改变任务状态，不改变任何历史或 analytics 记录。 */
+export function TrashPanel({
+  tasks,
+  onUpdate,
+}: {
+  tasks: Task[];
+  onUpdate: (task: Task) => void;
+}) {
+  const trashed = tasks.filter((task) => task.status === 'trashed');
+  return (
+    <Surface className="trash-panel">
+      <header>
+        <h2>回收站</h2>
+        <p>删除的数据保留 30 天，恢复后回到今天的待办。</p>
+      </header>
+      {trashed.length === 0 ? (
+        <p className="empty-copy">回收站为空。</p>
+      ) : (
+        trashed.map((task) => (
+          <div className="trash-row" key={task.id}>
+            <b>{task.title}</b>
+            <small>删除后 30 天内可恢复</small>
+            <button
+              type="button"
+              onClick={() =>
+                onUpdate({
+                  ...task,
+                  status: 'active',
+                  date: getLocalDateKey(),
+                  deletedAt: undefined,
+                })
+              }
+            >
+              <RotateCcw size={15} />
+              恢复
+            </button>
+          </div>
+        ))
+      )}
+    </Surface>
+  );
+}

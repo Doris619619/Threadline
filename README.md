@@ -2,7 +2,7 @@
 
 # Threadline
 
-面向桌面浏览器、iPhone PWA 与 Windows 桌面端的个人任务工作台。界面以“今日执行”为中心：普通任务、Daily、待安排、项目、收尾、历史和复盘在同一工作区中协作。
+面向桌面浏览器、iPhone PWA 与 Windows 桌面端的个人任务工作台。界面以“今日执行”为中心：普通任务、Daily、待安排、项目、收尾、日历、洞察、记录和节律在同一工作区中协作。
 
 ## 产品与运行形态
 
@@ -10,7 +10,7 @@
 - **Windows 桌面版**：Electron 打包同一套前端；不维护第二套 UI 或业务逻辑。
 - **数据层**：未配置 Supabase 时使用本地 seed 与浏览器持久化；配置 Supabase 并建立登录态后可使用受 RLS 保护的远端仓储。
 
-核心流程包括任务规划与执行、Daily 父子任务联动、待安排和移期、回收站恢复、每日收尾，以及今日/本周复盘。
+核心流程包括任务规划与执行、Daily 父子任务联动、待安排和移期、回收站恢复、每日收尾、项目投入日历，以及跨范围洞察与报告导出。
 
 ## 技术栈
 
@@ -54,7 +54,7 @@ pnpm desktop:build:dir
 pnpm desktop:build
 ```
 
-`desktop:compile` 会先检查 Electron 类型，再以 `esbuild` 将 Main 与 Preload 输出为 `dist-electron/*.cjs`；两者保持 CommonJS。`desktop:dev` 会启动隔离的 Next.js 开发服务器并打开 Electron 窗口。`desktop:renderer` 只生成 `.next-electron` 静态前端；`desktop:build:dir` 生成 unpacked Windows x64 应用；`desktop:build` 生成 NSIS 安装包。原有的 `pnpm build` 与 `pnpm start` 仍保持 Next.js Web/PWA 生产模式。
+`desktop:compile` 会先检查 Electron 类型，再以 `esbuild` 将 Main 与 Preload 输出为 `dist-electron/*.cjs`；两者保持 CommonJS。洞察报告在 Web/PWA 走浏览器打印，在 Electron 通过受限 Main bridge 保存为 PDF。`desktop:dev` 会启动隔离的 Next.js 开发服务器并打开 Electron 窗口。`desktop:renderer` 只生成 `.next-electron` 静态前端；`desktop:build:dir` 生成 unpacked Windows x64 应用；`desktop:build` 生成 NSIS 安装包。原有的 `pnpm build` 与 `pnpm start` 仍保持 Next.js Web/PWA 生产模式。
 
 Web/PWA 与打包的 `threadline://app` 都从实际构建 HTML 生成精确 CSP hash；Windows 包在 `afterPack` 写入并复核 Electron fuses、ASAR integrity 与 `OnlyLoadAppFromAsar`。详见 [CSP 与打包硬化](docs/electron-hardening.md)。
 
@@ -81,15 +81,15 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
 ## 自动化验证范围
 
-`pnpm test:e2e` 会以生产构建启动本地服务，并覆盖桌面与手机的关键流：新建/编辑任务、时间输入和自动时长、实际耗时、完成状态、Daily 父子联动、待安排、移期与放弃、回收站恢复、今日收尾、今日/本周复盘、六项导航，以及完整工作台/迷你今日/工作站/右侧收起入口的工作流。
+`pnpm test:e2e` 会以生产构建启动本地服务，并覆盖桌面与手机的关键流：新建/编辑任务、时间输入和自动时长、实际耗时、完成状态、Daily 父子联动、待安排、移期与放弃、回收站恢复、今日收尾、七项导航，以及完整工作台/迷你今日/工作站/右侧收起入口的工作流。
 
 ## 项目结构
 
 ```text
 src/app/                 App Router 页面、全局样式与元数据
 src/components/          壳层与通用 UI 原子组件
-src/features/            任务、Daily、项目、历史、复盘等业务视图
-src/lib/                 规则、Zod schema、仓储接口与 seed
+src/features/            任务、Daily、项目、日历、洞察、记录、节律与领域状态视图
+src/lib/                 规则、日期范围、analytics、Zod schema、仓储接口与 seed
 src/types/               领域类型
 supabase/migrations/     PostgreSQL schema 与 RLS
 e2e/                     Playwright 端到端测试
@@ -104,7 +104,8 @@ docs/                    PRD、目标、工程协作规范、桌面交互与 PR 
 
 - 普通任务只有“重要 / 不重要”两档待安排优先级。
 - 删除进入回收站，恢复后回到当天；放弃、待安排、移期保留为可复盘历史。
-- Daily 的子任务完成会同步父任务完成状态；Daily 实际耗时计入首页与复盘统计，但不会作为普通任务顺延。
+- Daily 的子任务完成会同步父任务完成状态；Daily 实际耗时计入首页与洞察，但不会作为普通任务顺延。
+- 日历、洞察与 PDF 共用纯函数 analytics 口径；旧收尾数据只能作为项目级 aggregate，绝不反推任务级历史。详细规则见 [工作台信息架构与分析口径](docs/workspace-information-architecture.md)。
 - 开始与结束时间支持 `1420` / `14:20` 输入；同日填写会自动计算预计分钟，不支持跨午夜。
 - **今日日程 ↔ 无时间待办**支持拖拽移动任务（不复制）：按住每条任务右侧的六点拖拽柄并拖到另一面板；拖入日程后会作为持久化的待填时间任务置顶并自动聚焦时间输入，拖出会清除待填状态与全部排程时间。
 - **荧光笔 / 橡皮擦**可在今日日程区域批注，坐标按相对比例持久化；按 Esc 或再次点击工具退出。
