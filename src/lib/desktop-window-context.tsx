@@ -29,6 +29,8 @@ type DesktopWindowContextValue = {
   collapseCompactView: () => Promise<void>;
   restoreCompactView: () => Promise<void>;
   resetWindowStates: () => Promise<void>;
+  minimizeMainWindow: () => Promise<void>;
+  closeMainWindow: () => Promise<void>;
   isMiniToday: boolean;
   isWorkstation: boolean;
   isCompact: boolean;
@@ -151,6 +153,16 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     async () => transition(mode, presentation, lastCompactMode, {}),
     [lastCompactMode, mode, presentation, transition],
   );
+  /** 请求 Electron Main 关闭窗口；Web/PWA 没有原生窗口时安全无操作。 */
+  const closeMainWindow = useCallback(async () => {
+    const bridge = getMainDesktopBridge();
+    if (bridge) await bridge.closeMainWindow();
+  }, []);
+  /** 请求 Electron Main 最小化窗口；Web/PWA 没有原生窗口时安全无操作。 */
+  const minimizeMainWindow = useCallback(async () => {
+    const bridge = getMainDesktopBridge();
+    if (bridge) await bridge.minimizeMainWindow();
+  }, []);
 
   /** 只在首次 hydration 发起一次 Electron 握手；Web/PWA 直接成为 ready。 */
   useEffect(() => {
@@ -260,6 +272,8 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
         collapseCompactView,
         restoreCompactView,
         resetWindowStates,
+        minimizeMainWindow,
+        closeMainWindow,
         isMiniToday: mode === 'mini-today',
         isWorkstation: mode === 'workstation',
         isCompact: mode !== 'full',

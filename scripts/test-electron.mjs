@@ -14,12 +14,13 @@ const rendererUrl = `http://127.0.0.1:${rendererPort}`;
 const userDataDirectory = await mkdtemp(join(tmpdir(), 'threadline-electron-e2e-'));
 const packagedExecutable = process.env.THREADLINE_PACKAGED_EXECUTABLE;
 
-/** 返回所有原生窗口的可见性与加载 URL，供可见 surface 不变量断言。 */
+/** 返回所有原生窗口的可见性、逻辑 bounds 与加载 URL，供壳层不变量断言。 */
 async function inspectWindows(app) {
   return app.evaluate(({ BrowserWindow }) =>
     BrowserWindow.getAllWindows().map((window) => ({
       visible: window.isVisible(),
       url: window.webContents.getURL(),
+      bounds: window.getBounds(),
     })),
   );
 }
@@ -111,6 +112,11 @@ try {
   });
   const page = await application.firstWindow();
   await page.waitForFunction(() => window.threadlineDesktop?.role === 'main');
+  assert.equal(
+    await application.evaluate(({ Menu }) => Menu.getApplicationMenu()),
+    null,
+    'Windows menu bar must be disabled before any compact surface is shown',
+  );
   if (packagedExecutable) {
     const csp = await application.evaluate(async ({ net }) => {
       const response = await net.fetch('threadline://app/');
@@ -124,8 +130,49 @@ try {
     (await inspectWindows(application)).filter((window) => window.visible).length,
     1,
   );
+  assert.equal(
+    await page
+      .locator('.full-window-chrome')
+      .evaluate((element) =>
+        getComputedStyle(element).getPropertyValue('-webkit-app-region'),
+      ),
+    'drag',
+    'frameless Full chrome must provide a continuous drag region',
+  );
+  await page.getByRole('button', { name: '最小化窗口' }).click();
+  await waitFor(
+    async () =>
+      application.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows().some((window) => window.isMinimized()),
+      ),
+    'Full window must minimize through the restricted Renderer action',
+  );
+  await application.evaluate(({ BrowserWindow }) => {
+    BrowserWindow.getAllWindows()
+      .find((window) => !window.isDestroyed())
+      ?.restore();
+  });
+  await page.waitForFunction(() => document.visibilityState === 'visible');
   await page.getByRole('button', { name: '迷你今日', exact: true }).click();
   await page.getByTestId('mini-today-panel').waitFor();
+  assert.equal(
+    await page
+      .locator('.compact-window-header')
+      .evaluate((element) =>
+        getComputedStyle(element).getPropertyValue('-webkit-app-region'),
+      ),
+    'drag',
+    'frameless compact header must provide a drag region',
+  );
+  const miniMain = (await inspectWindows(application)).find(
+    (window) => window.visible && window.url.includes('threadline-role=main'),
+  );
+  assert.ok(miniMain, 'Mini mode must keep the Main BrowserWindow visible');
+  assert.equal(miniMain.bounds.width, 518);
+  assert.ok(
+    miniMain.bounds.height >= 760 && miniMain.bounds.height <= 822,
+    'Mini height must use the target range or a work-area-clamped value',
+  );
   await page.getByRole('button', { name: '工作站', exact: true }).click();
   await page.getByTestId('workstation-panel').waitFor();
   await page.getByRole('button', { name: '收起', exact: true }).click();

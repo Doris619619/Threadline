@@ -14,7 +14,7 @@ const primaryWorkArea: LogicalWorkArea = { x: 0, y: 0, width: 1920, height: 1040
 describe('desktop window policy', () => {
   /** 确认同一显示器中的合法持久化 geometry 不会被不必要地覆盖。 */
   it('keeps a fully visible window on its original display', () => {
-    const state = { width: 420, height: 660, x: 1200, y: 80 };
+    const state = { width: 500, height: 800, x: 1200, y: 80 };
 
     expect(
       resolveSafeWindowState('mini-today', state, [primaryWorkArea], primaryWorkArea),
@@ -37,17 +37,17 @@ describe('desktop window policy', () => {
   it('recovers a window whose original monitor is no longer available', () => {
     const restored = resolveSafeWindowState(
       'mini-today',
-      { width: 420, height: 660, x: -2200, y: 80 },
+      { width: 500, height: 800, x: -2200, y: 80 },
       [primaryWorkArea],
       primaryWorkArea,
     );
 
-    expect(restored).toEqual({ width: 420, height: 660, x: 1476, y: 24 });
+    expect(restored).toEqual({ width: 500, height: 800, x: 1396, y: 24 });
   });
 
   /** 只露出少于阈值的边缘不算可见，避免用户无法把窗口拖回屏幕。 */
   it('rejects a window with too little visible area', () => {
-    const almostOffscreen = { width: 420, height: 660, x: 1881, y: 80 };
+    const almostOffscreen = { width: 500, height: 800, x: 1881, y: 80 };
 
     expect(
       hasSufficientVisibleArea('mini-today', almostOffscreen, [primaryWorkArea]),
@@ -59,7 +59,7 @@ describe('desktop window policy', () => {
         [primaryWorkArea],
         primaryWorkArea,
       ),
-    ).toEqual({ width: 420, height: 660, x: 1476, y: 24 });
+    ).toEqual({ width: 500, height: 800, x: 1396, y: 24 });
   });
 
   /** 125% DPI 下所有输入保持 logical pixel，不能拿 1920x1080 physical pixel 与其混算。 */
@@ -70,7 +70,7 @@ describe('desktop window policy', () => {
       width: 1536,
       height: 864,
     };
-    const state = { width: 420, height: 660, x: 1092, y: 24 };
+    const state = { width: 500, height: 800, x: 1012, y: 24 };
 
     expect(
       resolveSafeWindowState(
@@ -90,7 +90,7 @@ describe('desktop window policy', () => {
       width: 1280,
       height: 720,
     };
-    const state = { width: 300, height: 420, x: 956, y: 24 };
+    const state = { width: 500, height: 480, x: 756, y: 24 };
 
     expect(
       resolveSafeWindowState(
@@ -111,7 +111,7 @@ describe('desktop window policy', () => {
         x: -120,
         y: 48,
       }),
-    ).toEqual({ width: 360, height: 220, x: -120, y: 48 });
+    ).toEqual({ width: 540, height: 460, x: -120, y: 48 });
   });
 
   /** 缺失和非法 persisted state 必须恢复为当前三态的安全规格。 */
@@ -120,12 +120,12 @@ describe('desktop window policy', () => {
       normalizeWindowStates({
         full: { width: 700, height: 500, x: 10, y: 10 },
         'mini-today': { width: Number.NaN, height: 999 },
-        workstation: { width: 300, height: 420, x: 80, y: 48 },
+        workstation: { width: 500, height: 480, x: 80, y: 48 },
         floating: { width: 72, height: 72 },
       }),
     ).toEqual({
-      'mini-today': { width: 420, height: 820 },
-      workstation: { width: 300, height: 420, x: 80, y: 48 },
+      'mini-today': { width: 518, height: 860 },
+      workstation: { width: 500, height: 480, x: 80, y: 48 },
     });
   });
 });

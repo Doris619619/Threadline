@@ -7,15 +7,15 @@
 ## 任务拖拽与批注
 
 - 今日日程与无时间待办之间可拖拽同一条任务记录。拖入日程会进入持久化的 `schedulePendingTime`，不会猜测开始时间；拖回待办会清除所有排程字段。
-- 荧光笔或橡皮擦激活时锁定任务拖拽与行内编辑，Esc 或再次点击当前工具退出。笔迹按相对坐标保存，窗口缩放后保持对齐。
+- 荧光笔或橡皮擦激活时锁定任务拖拽与行内编辑，Esc 或再次点击当前工具退出。荧光笔提供黄、粉、蓝、绿、紫预设色，当前色会记住为本地偏好；笔迹按相对坐标保存，窗口缩放后保持对齐。
 
 ## 三态工作流
 
-- **完整工作台**：原生标题栏、非置顶，保留首页、日程、项目、统计、复盘与设置。右上角有两个直接入口“迷你今日”和“工作站”，单击立即切换。
-- **迷你今日**：始终置顶的紧凑快速视图，显示“今日日程”和“无时间待办”。每行可完成任务，也可加入或移出工作站；不显示统计、Planning Queue、Daily 和批注工具。
+- **完整工作台**：无原生标题栏、非置顶，保留首页、日程、项目、统计、复盘与设置。独立的 40px 顶部 chrome 提供连续拖动区、“迷你今日”、“工作站”、最小化到任务栏和关闭入口。
+- **迷你今日**：始终置顶的紧凑快速视图，显示“今日日程”和“无时间待办”。每行保持时间、完成框、项目标签与任务名同一行；可完成任务、加入或移出工作站，并可直接新增任务；不显示统计、Planning Queue、Daily 和批注工具。
 - **工作站**：始终置顶的小尺寸提醒窗，只显示有序的序号、项目和任务名。它保存 `threadline.workstation.v1` 中的 task ID 引用，不复制标题或任务内容；因此改名或改项目会同步。移除、清空和拖动排序只改引用集合，不会删除、完成、移期或修改原任务。
 
-迷你今日与工作站使用**同一个带 Windows 原生边框的 Electron Main BrowserWindow**平滑变形；底部“打开完整工作台”会恢复完整工作台并保留此前侧边栏页面。
+迷你今日与工作站使用**同一个无原生 frame 的 Electron Main BrowserWindow**平滑变形；Renderer 的唯一紧凑 header 提供拖动、模式切换、收起和低强调关闭入口。Mini Today 默认 518 × 822 logical px，Workstation 默认 518 × 504 logical px；底部“打开完整工作台”会恢复完整工作台并保留此前侧边栏页面。
 
 ## 右侧收起入口
 
@@ -37,5 +37,5 @@ Main 与 Renderer 共同复用 `src/lib/desktop-window-policy.ts`：Main 不再�
 
 - v3 key：`threadline.desktop-mode.v3`、`threadline.desktop-window-states.v3`、`threadline.desktop-last-compact-mode.v3`、`threadline.desktop-compact-presentation.v3`。
 - 旧 v2 的 `floating-icon` 和 72px geometry 不会迁入；非法旧值安全回退到完整工作台。
-- Mini Today 限制为 340–560 × 420–820 logical px；Workstation 限制为 260–360 × 220–640 logical px。重置窗口尺寸与位置会清空 v3 geometry。
+- Mini Today 默认 518 × 822，限制为 480–540 × 760–860 logical px；Workstation 默认 518 × 504，限制为 480–540 × 460–560 logical px。重置窗口尺寸与位置会清空 v3 geometry。
 - 真正移入回收站的任务会从工作站引用集合清除；完成任务不会自动移除。

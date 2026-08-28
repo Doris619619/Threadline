@@ -4,9 +4,23 @@
 
 'use client';
 
-import { Check, Eraser, GripVertical, Highlighter, MoreHorizontal, MousePointer2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import {
+  Check,
+  Eraser,
+  GripVertical,
+  MoreHorizontal,
+  MousePointer2,
+  Pencil,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
+import {
+  AnnotationColorPicker,
+  HIGHLIGHT_COLOR_PRESETS,
+} from '@/components/annotation-color-picker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { ProjectTag } from '@/components/ui/project-tag';
@@ -25,21 +39,52 @@ import { ReviewPanel } from '@/features/reviews/review-panel';
 import { HistoryPanel } from '@/features/history/history-panel';
 import { SettingsPanel } from '@/features/settings/settings-panel';
 import { StatsPanel } from '@/features/stats/stats-panel';
-import { useWorkspaceView } from '@/components/app-shell';
+import { CompactWindowHeader, useWorkspaceView } from '@/components/app-shell';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import { useAnnotationStrokes } from '@/hooks/use-annotation-strokes';
 import { addLocalDateDays, getLocalDateKey } from '@/lib/local-date';
-import { MiniTodayPanel, WorkstationPanel } from '@/features/tasks/compact-workspace';
-import type { CloseRecord, HistoryEvent, Project, Task, TaskStatus } from '@/types/domain';
+import {
+  MiniTodayPanel,
+  WorkstationPanel,
+  type CompactQuickTaskDraft,
+  type CompactTimedTaskDraft,
+} from '@/features/tasks/compact-workspace';
+import type {
+  CloseRecord,
+  HistoryEvent,
+  Project,
+  Task,
+  TaskStatus,
+} from '@/types/domain';
 
 type TaskDropZone = 'schedule' | 'quick';
+
+/** 只接受内置荧光笔色，避免损坏的 localStorage 影响 SVG 或 CSS 属性。 */
+function normalizeHighlightColor(value: unknown): string {
+  return typeof value === 'string' &&
+    HIGHLIGHT_COLOR_PRESETS.some((preset) => preset.value === value)
+    ? value
+    : HIGHLIGHT_COLOR_PRESETS[0].value;
+}
 /** 创建首次打开工作台时可编辑的内置项目，并把创建日绑定到用户本地日期。 */
 function createProjectSeed(today = getLocalDateKey()): Project[] {
   return [
     { id: 'work', name: '工作', color: '#4f8cff', status: 'active', createdAt: today },
-    { id: 'course', name: '课程', color: '#8b7cf6', status: 'active', createdAt: today },
-    { id: 'research', name: 'AI研究', color: '#38a774', status: 'active', createdAt: today },
+    {
+      id: 'course',
+      name: '课程',
+      color: '#8b7cf6',
+      status: 'active',
+      createdAt: today,
+    },
+    {
+      id: 'research',
+      name: 'AI研究',
+      color: '#38a774',
+      status: 'active',
+      createdAt: today,
+    },
     { id: 'life', name: '生活', color: '#e9a04b', status: 'active', createdAt: today },
     { id: 'other', name: '其他', color: '#8793a7', status: 'active', createdAt: today },
   ];
@@ -117,7 +162,11 @@ function parseDurationInput(value: string): number | undefined {
 /**
  * 解析用户输入的时间范围（如 08:30, 0830, 08:30-10:00, 15:10–16:10, 1510-1610）。
  */
-function parseTimeInput(value: string): { start?: string; end?: string; duration?: number } {
+function parseTimeInput(value: string): {
+  start?: string;
+  end?: string;
+  duration?: number;
+} {
   const clean = value.trim();
   if (!clean) return {};
   const parts = clean.split(/[-–~至到\s]+/).filter(Boolean);
@@ -176,55 +225,49 @@ export function TaskDashboard() {
     () => withoutExpiredTasks(createInitialTasks()),
     withoutExpiredTasks,
   );
-  const [workspaceProjects, setWorkspaceProjects, projectsHydrated] = usePersistentState(
-    'threadline.projects.v1',
-    createProjectSeed,
-  );
+  const [workspaceProjects, setWorkspaceProjects, projectsHydrated] =
+    usePersistentState('threadline.projects.v1', createProjectSeed);
   const [dailyByDate, setDailyByDate, dailyByDateHydrated] = usePersistentState<
     Record<string, Daily[]>
-  >(
-    'threadline.daily-by-date.v1',
-    () => ({ [getLocalDateKey()]: seedDaily }),
-  );
-  const [dailyTemplates, setDailyTemplates, dailyTemplatesHydrated] = usePersistentState<
-    Daily[]
-  >(
-    'threadline.daily-templates.v1',
-    seedDaily,
-  );
+  >('threadline.daily-by-date.v1', () => ({ [getLocalDateKey()]: seedDaily }));
+  const [dailyTemplates, setDailyTemplates, dailyTemplatesHydrated] =
+    usePersistentState<Daily[]>('threadline.daily-templates.v1', seedDaily);
   const [dailyHistory, setDailyHistory, dailyHistoryHydrated] = usePersistentState<
     DailyHistoryEntry[]
-  >(
-    'threadline.daily-history.v1',
-    [],
-  );
+  >('threadline.daily-history.v1', []);
   const [history, setHistory, historyHydrated] = usePersistentState<HistoryEvent[]>(
     'threadline.history.v1',
     [],
   );
   const [closeRecords, setCloseRecords, closeRecordsHydrated] = usePersistentState<
     CloseRecord[]
-  >(
-    'threadline.close-records.v1',
-    [],
-  );
-  const [annotationStrokes, setAnnotationStrokes, annotationHydrated] = useAnnotationStrokes();
-  const [workstationTaskIds, setWorkstationTaskIds, workstationHydrated] = usePersistentState<string[]>(
-    'threadline.workstation.v1',
-    [],
-    (value) => Array.isArray(value) ? [...new Set(value.filter((id) => typeof id === 'string'))] : [],
-  );
+  >('threadline.close-records.v1', []);
+  const [annotationStrokes, setAnnotationStrokes, annotationHydrated] =
+    useAnnotationStrokes();
+  const [workstationTaskIds, setWorkstationTaskIds, workstationHydrated] =
+    usePersistentState<string[]>('threadline.workstation.v1', [], (value) =>
+      Array.isArray(value)
+        ? [...new Set(value.filter((id) => typeof id === 'string'))]
+        : [],
+    );
   const [annotationTool, setAnnotationTool] = useState<AnnotationTool>('none');
+  const [highlightColor, setHighlightColor] = usePersistentState<string>(
+    'threadline.annotation-highlight-color.v1',
+    HIGHLIGHT_COLOR_PRESETS[0].value,
+    normalizeHighlightColor,
+  );
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const draggingTaskIdRef = useRef<string | null>(null);
-  const [pointerDrag, setPointerDrag] = useState<
-    { taskId: string; pointerId: number } | undefined
-  >();
+  const pointerDragRef = useRef<{ taskId: string; pointerId: number } | undefined>(
+    undefined,
+  );
   const [dropTarget, setDropTarget] = useState<TaskDropZone | null>(null);
   const [autoFocusTimeTaskId, setAutoFocusTimeTaskId] = useState<string | null>(null);
 
   const [addingTimedRow, setAddingTimedRow] = useState(false);
-  const [newTimedTime, setNewTimedTime] = useState('');
+  const [newTimedStartTime, setNewTimedStartTime] = useState('');
+  const [newTimedEndTime, setNewTimedEndTime] = useState('');
+  const [newTimedTimeError, setNewTimedTimeError] = useState<string>();
   const [newTimedCompleted, setNewTimedCompleted] = useState(false);
   const [newTimedProjectId, setNewTimedProjectId] = useState('work');
   const [newTimedTitle, setNewTimedTitle] = useState('');
@@ -262,12 +305,24 @@ export function TaskDashboard() {
     return newProj;
   };
 
+  /** 校验两个直观时间输入，并把有效范围同步为任务预计时长。 */
   const handleConfirmAddTimed = () => {
     if (!newTimedTitle.trim()) {
       setAddingTimedRow(false);
       return;
     }
-    const { start, end, duration } = parseTimeInput(newTimedTime);
+    const start = normalizeTime(newTimedStartTime);
+    const end = normalizeTime(newTimedEndTime);
+    if (newTimedStartTime.trim() && !start) {
+      setNewTimedTimeError('开始时间格式应为 08:30');
+      return;
+    }
+    if (newTimedEndTime.trim() && (!start || !end || end <= start)) {
+      setNewTimedTimeError('结束时间需晚于有效的开始时间');
+      return;
+    }
+    setNewTimedTimeError(undefined);
+    const duration = start && end ? calculateDuration(start, end) : undefined;
     const plannedDuration = parseDurationInput(newTimedPlanned) ?? duration;
     const actualDuration = parseDurationInput(newTimedActual);
     const newTask: Task = {
@@ -288,7 +343,8 @@ export function TaskDashboard() {
     };
     setTasks((current) => [...current, newTask]);
     appendHistory('created', newTask.id, { title: newTask.title });
-    setNewTimedTime('');
+    setNewTimedStartTime('');
+    setNewTimedEndTime('');
     setNewTimedTitle('');
     setNewTimedPlanned('');
     setNewTimedActual('');
@@ -319,6 +375,45 @@ export function TaskDashboard() {
     setAddingQuickRow(false);
   };
 
+  /** 从迷你今日写入有可选起止时间的任务，并复用完整工作台的持久化字段。 */
+  const createCompactTimedTask = (draft: CompactTimedTaskDraft) => {
+    const task: Task = {
+      id: crypto.randomUUID(),
+      projectId: draft.projectId,
+      title: draft.title,
+      date: selectedDate,
+      plannedStartTime: draft.start,
+      plannedEndTime: draft.end,
+      plannedDurationMinutes:
+        draft.start && draft.end
+          ? calculateDuration(draft.start, draft.end)
+          : undefined,
+      schedulePendingTime: !draft.start,
+      completed: false,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setTasks((current) => [...current, task]);
+    appendHistory('created', task.id, { title: task.title });
+  };
+
+  /** 从迷你今日写入无时间待办，不额外推断时间或完成状态。 */
+  const createCompactQuickTask = (draft: CompactQuickTaskDraft) => {
+    const task: Task = {
+      id: crypto.randomUUID(),
+      projectId: draft.projectId,
+      title: draft.title,
+      date: selectedDate,
+      completed: false,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setTasks((current) => [...current, task]);
+    appendHistory('created', task.id, { title: task.title });
+  };
+
   const startResizeSchedule = (e: React.PointerEvent) => {
     setIsResizingSchedule(true);
     resizeStartXRef.current = e.clientX;
@@ -328,7 +423,10 @@ export function TaskDashboard() {
       const deltaX = moveEvent.clientX - resizeStartXRef.current;
       // 向右拖动 deltaX > 0，增加比例
       const deltaRatio = deltaX / 260;
-      const nextRatio = Math.max(1.1, Math.min(3.2, resizeStartRatioRef.current + deltaRatio));
+      const nextRatio = Math.max(
+        1.1,
+        Math.min(3.2, resizeStartRatioRef.current + deltaRatio),
+      );
       setScheduleRatio(nextRatio);
     };
 
@@ -343,7 +441,9 @@ export function TaskDashboard() {
   };
   const [editing, setEditing] = useState<Task | undefined>();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
-  const [taskDialogMode, setTaskDialogMode] = useState<'normal' | 'unscheduled'>('normal');
+  const [taskDialogMode, setTaskDialogMode] = useState<'normal' | 'unscheduled'>(
+    'normal',
+  );
   const [rescheduling, setRescheduling] = useState<Task | undefined>();
   const closeDialog = useRef<HTMLDialogElement>(null);
 
@@ -383,9 +483,7 @@ export function TaskDashboard() {
     dailyByDate[selectedDate] ?? createDailyInstance(selectedDate, dailyTemplates);
   const tomorrow = addLocalDateDays(selectedDate, 1);
   const timed = shown
-    .filter(
-      (t) => Boolean(t.plannedStartTime) || t.schedulePendingTime,
-    )
+    .filter((t) => Boolean(t.plannedStartTime) || t.schedulePendingTime)
     .sort((a, b) => {
       if (a.schedulePendingTime !== b.schedulePendingTime) {
         return a.schedulePendingTime ? -1 : 1;
@@ -397,9 +495,7 @@ export function TaskDashboard() {
       if (b.plannedStartTime) return 1;
       return 0;
     });
-  const quick = shown.filter(
-    (t) => !t.plannedStartTime && !t.schedulePendingTime,
-  );
+  const quick = shown.filter((t) => !t.plannedStartTime && !t.schedulePendingTime);
   const backlog = tasks.filter((t) => t.status === 'backlog');
   const done = shown.filter((t) => t.completed).length;
   const normalTaskTotal = shown.length + movedFromSelectedDate.length;
@@ -420,17 +516,27 @@ export function TaskDashboard() {
 
   /** 切换任务在工作站内的引用，不触碰原任务、日期、完成状态或优先级。 */
   const toggleWorkstationTask = (taskId: string) =>
-    setWorkstationTaskIds((current) => current.includes(taskId) ? current.filter((id) => id !== taskId) : [...current, taskId]);
+    setWorkstationTaskIds((current) =>
+      current.includes(taskId)
+        ? current.filter((id) => id !== taskId)
+        : [...current, taskId],
+    );
 
   /** 清空工作站仅清空引用集合，绝不删除或变更任务记录。 */
   const clearWorkstation = () => setWorkstationTaskIds([]);
 
   /** 调整引用集合顺序；Task 本身的 priority 和字段完全保持不变。 */
-  const reorderWorkstation = (sourceId: string, targetId: string) => setWorkstationTaskIds((current) => {
-    const sourceIndex = current.indexOf(sourceId); const targetIndex = current.indexOf(targetId);
-    if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return current;
-    const next = [...current]; next.splice(sourceIndex, 1); next.splice(targetIndex, 0, sourceId); return next;
-  });
+  const reorderWorkstation = (sourceId: string, targetId: string) =>
+    setWorkstationTaskIds((current) => {
+      const sourceIndex = current.indexOf(sourceId);
+      const targetIndex = current.indexOf(targetId);
+      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex)
+        return current;
+      const next = [...current];
+      next.splice(sourceIndex, 1);
+      next.splice(targetIndex, 0, sourceId);
+      return next;
+    });
 
   /**
    * 将无时间任务移动到日程，保留同一条记录并设为持久化的待填时间状态。
@@ -494,10 +600,31 @@ export function TaskDashboard() {
   /**
    * 从当前鼠标坐标识别任务可落入的面板，供 Windows WebView2 的 Pointer Events 拖拽使用。
    */
-  const getDropZoneAtPointer = (event: React.PointerEvent) => {
-    const element = document.elementFromPoint(event.clientX, event.clientY);
-    const zone = element?.closest<HTMLElement>('[data-task-drop-zone]')?.dataset.taskDropZone;
+  const getDropZoneAtPoint = (clientX: number, clientY: number) => {
+    const element = document.elementFromPoint(clientX, clientY);
+    const zone = element?.closest<HTMLElement>('[data-task-drop-zone]')?.dataset
+      .taskDropZone;
     return zone === 'schedule' || zone === 'quick' ? zone : null;
+  };
+
+  /** 从 React PointerEvent 读取最终屏幕坐标，统一交给按点命中的落点解析器。 */
+  const getDropZoneAtPointer = (event: React.PointerEvent) =>
+    getDropZoneAtPoint(event.clientX, event.clientY);
+
+  /** 完成一次明确拖拽柄的移动；命中面板后只改变任务排程状态。 */
+  const finishPointerDrag = (pointerId: number, clientX: number, clientY: number) => {
+    const activePointerDrag = pointerDragRef.current;
+    const fallbackTaskId = draggingTaskIdRef.current;
+    const taskId = activePointerDrag?.taskId ?? fallbackTaskId;
+    if (!taskId || (activePointerDrag && pointerId !== activePointerDrag.pointerId))
+      return;
+    const target = getDropZoneAtPoint(clientX, clientY);
+    if (target === 'schedule') moveTaskToSchedule(taskId);
+    if (target === 'quick') moveTaskToQuick(taskId);
+    pointerDragRef.current = undefined;
+    draggingTaskIdRef.current = null;
+    setDraggingTaskId(null);
+    setDropTarget(null);
   };
 
   /**
@@ -507,18 +634,37 @@ export function TaskDashboard() {
     taskId: string,
     event: React.PointerEvent<HTMLButtonElement>,
   ) => {
-    if (annotationInteractionLocked || event.pointerType !== 'mouse' || event.button !== 0) return;
+    if (
+      annotationInteractionLocked ||
+      event.pointerType !== 'mouse' ||
+      event.button !== 0
+    )
+      return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    setPointerDrag({ taskId, pointerId: event.pointerId });
+    const nextPointerDrag = { taskId, pointerId: event.pointerId };
+    pointerDragRef.current = nextPointerDrag;
+    draggingTaskIdRef.current = taskId;
     setDraggingTaskId(taskId);
+
+    /** 在滚动容器接管事件时，仍从窗口捕获阶段完成本次拖拽。 */
+    const finishFromWindow = (nativeEvent: PointerEvent) => {
+      finishPointerDrag(
+        nativeEvent.pointerId,
+        nativeEvent.clientX,
+        nativeEvent.clientY,
+      );
+      window.removeEventListener('pointerup', finishFromWindow, true);
+    };
+    window.addEventListener('pointerup', finishFromWindow, true);
   };
 
   /**
    * 随鼠标移动高亮当前有效的落点面板。
    */
   const handlePointerDragMove = (event: React.PointerEvent) => {
-    if (!pointerDrag || event.pointerId !== pointerDrag.pointerId) return;
+    const activePointerDrag = pointerDragRef.current;
+    if (!activePointerDrag || event.pointerId !== activePointerDrag.pointerId) return;
     const nextTarget = getDropZoneAtPointer(event);
     setDropTarget((current) => (current === nextTarget ? current : nextTarget));
   };
@@ -527,13 +673,7 @@ export function TaskDashboard() {
    * 松开鼠标后按落点移动原任务；没有有效落点时只清理临时拖拽状态。
    */
   const handlePointerDragEnd = (event: React.PointerEvent) => {
-    if (!pointerDrag || event.pointerId !== pointerDrag.pointerId) return;
-    const target = getDropZoneAtPointer(event);
-    if (target === 'schedule') moveTaskToSchedule(pointerDrag.taskId);
-    if (target === 'quick') moveTaskToQuick(pointerDrag.taskId);
-    setPointerDrag(undefined);
-    setDraggingTaskId(null);
-    setDropTarget(null);
+    finishPointerDrag(event.pointerId, event.clientX, event.clientY);
   };
 
   /**
@@ -609,7 +749,13 @@ export function TaskDashboard() {
     const automatic = calculateDuration(start, end);
     const planned = automatic ?? numberOrUndefined(form.get('planned'));
     const base =
-      editing ?? makeTask(getLocalDateKey(), crypto.randomUUID(), String(form.get('project')), title);
+      editing ??
+      makeTask(
+        getLocalDateKey(),
+        crypto.randomUUID(),
+        String(form.get('project')),
+        title,
+      );
     update({
       ...base,
       title,
@@ -709,9 +855,36 @@ export function TaskDashboard() {
     return undefined;
   };
   if (isMiniToday)
-    return <MiniTodayPanel timed={timed} quick={quick} projects={workspaceProjects} workstationTaskIds={workstationTaskIds} onUpdateTask={update} onToggleWorkstation={toggleWorkstationTask} onClearWorkstation={clearWorkstation} onReorderWorkstation={reorderWorkstation} />;
+    return (
+      <>
+        <CompactWindowHeader />
+        <MiniTodayPanel
+          timed={timed}
+          quick={quick}
+          projects={workspaceProjects}
+          workstationTaskIds={workstationTaskIds}
+          onUpdateTask={update}
+          onToggleWorkstation={toggleWorkstationTask}
+          onClearWorkstation={clearWorkstation}
+          onReorderWorkstation={reorderWorkstation}
+          onCreateTimedTask={createCompactTimedTask}
+          onCreateQuickTask={createCompactQuickTask}
+        />
+      </>
+    );
   if (isWorkstation)
-    return <WorkstationPanel tasks={tasks.filter((task) => task.status !== 'trashed')} projects={workspaceProjects} workstationTaskIds={workstationTaskIds} onToggleWorkstation={toggleWorkstationTask} onClearWorkstation={clearWorkstation} onReorderWorkstation={reorderWorkstation} />;
+    return (
+      <>
+        <CompactWindowHeader onClearWorkstation={clearWorkstation} />
+        <WorkstationPanel
+          tasks={tasks.filter((task) => task.status !== 'trashed')}
+          projects={workspaceProjects}
+          workstationTaskIds={workstationTaskIds}
+          onToggleWorkstation={toggleWorkstationTask}
+          onReorderWorkstation={reorderWorkstation}
+        />
+      </>
+    );
   if (active === 'projects')
     return (
       <ProjectPanel
@@ -760,7 +933,10 @@ export function TaskDashboard() {
     );
   const isSchedulePage = active === 'schedule';
   return (
-    <div className={`dashboard dashboard-annotatable${isSchedulePage ? ' schedule-workspace' : ''}`} data-testid={isSchedulePage ? 'schedule-panel' : 'home-panel'}>
+    <div
+      className={`dashboard dashboard-annotatable${isSchedulePage ? 'schedule-workspace' : ''}`}
+      data-testid={isSchedulePage ? 'schedule-panel' : 'home-panel'}
+    >
       {isSchedulePage && !isMiniToday && (
         <div className="schedule-workspace-intro">
           <span>今日安排</span>
@@ -768,60 +944,59 @@ export function TaskDashboard() {
         </div>
       )}
       {!isMiniToday && !isSchedulePage && (
-      <Surface className="metric-strip">
-        <StatItem
-          label="普通任务"
-          value={
-            <>
-              <em>{done}</em>
-              <small>/ {normalTaskTotal}</small>
-            </>
-          }
-        />
-        <StatItem
-          label="Daily"
-          value={
-            <>
-              <em>{dailyDone}</em>
-              <small>/ {daily.length}</small>
-            </>
-          }
-        />
-        <StatItem
-          label="普通实际"
-          value={
-            <>
-              <em>{formatMinutes(actual)}</em>
-            </>
-          }
-        />
-        <StatItem
-          label="Daily 实际"
-          value={
-            <>
-              <em>{formatMinutes(dailyActual)}</em>
-            </>
-          }
-        />
-        <StatItem
-          label="今日总实际"
-          value={
-            <>
-              <em>{formatMinutes(actual + dailyActual)}</em>
-            </>
-          }
-        />
-      </Surface>
+        <Surface className="metric-strip">
+          <StatItem
+            label="普通任务"
+            value={
+              <>
+                <em>{done}</em>
+                <small>/ {normalTaskTotal}</small>
+              </>
+            }
+          />
+          <StatItem
+            label="Daily"
+            value={
+              <>
+                <em>{dailyDone}</em>
+                <small>/ {daily.length}</small>
+              </>
+            }
+          />
+          <StatItem
+            label="普通实际"
+            value={
+              <>
+                <em>{formatMinutes(actual)}</em>
+              </>
+            }
+          />
+          <StatItem
+            label="Daily 实际"
+            value={
+              <>
+                <em>{formatMinutes(dailyActual)}</em>
+              </>
+            }
+          />
+          <StatItem
+            label="今日总实际"
+            value={
+              <>
+                <em>{formatMinutes(actual + dailyActual)}</em>
+              </>
+            }
+          />
+        </Surface>
       )}
       <div
-        className={`dashboard-columns${isMiniToday ? ' is-mini-today' : ''}`}
+        className={`dashboard-columns${isMiniToday ? 'is-mini-today' : ''}`}
         style={{ '--schedule-ratio': `${scheduleRatio}fr` } as React.CSSProperties}
         onPointerMove={handlePointerDragMove}
         onPointerUp={handlePointerDragEnd}
-        onPointerCancel={handlePointerDragEnd}
       >
         <Surface
-          className={`schedule-panel${dropTarget === 'schedule' ? ' is-drop-target' : ''}`}
+          className={`schedule-panel${dropTarget === 'schedule' ? 'is-drop-target' : ''}`}
           data-task-drop-zone="schedule"
           onDragOver={handleScheduleDragOver}
           onDragLeave={() => setDropTarget(null)}
@@ -833,25 +1008,22 @@ export function TaskDashboard() {
               <div className="annotation-tools" role="group" aria-label="批注工具">
                 <button
                   type="button"
-                  className={`annotation-tool-btn${annotationTool === 'none' ? ' is-active' : ''}`}
+                  className={`annotation-tool-btn${annotationTool === 'none' ? 'is-active' : ''}`}
                   aria-label="选择模式"
                   title="选择模式"
                   onClick={() => setAnnotationTool('none')}
                 >
                   <MousePointer2 size={15} />
                 </button>
+                <AnnotationColorPicker
+                  active={annotationTool === 'highlight'}
+                  color={highlightColor}
+                  onActivate={() => setAnnotationTool('highlight')}
+                  onColorChange={setHighlightColor}
+                />
                 <button
                   type="button"
-                  className={`annotation-tool-btn${annotationTool === 'highlight' ? ' is-active' : ''}`}
-                  aria-label="荧光笔"
-                  title="荧光笔（Esc 退出）"
-                  onClick={() => toggleAnnotationTool('highlight')}
-                >
-                  <Highlighter size={15} />
-                </button>
-                <button
-                  type="button"
-                  className={`annotation-tool-btn${annotationTool === 'eraser' ? ' is-active' : ''}`}
+                  className={`annotation-tool-btn${annotationTool === 'eraser' ? 'is-active' : ''}`}
                   aria-label="橡皮擦"
                   title="橡皮擦（Esc 退出）"
                   onClick={() => toggleAnnotationTool('eraser')}
@@ -869,14 +1041,14 @@ export function TaskDashboard() {
                 <Plus size={19} /> 添加
               </button>
               {!isMiniToday && (
-              <button
-                type="button"
-                className={`schedule-resize-handle ${isResizingSchedule ? 'is-resizing' : ''}`}
-                onPointerDown={startResizeSchedule}
-                title="按住向右拖动以扩展今日日程宽度"
-              >
-                <GripVertical size={16} />
-              </button>
+                <button
+                  type="button"
+                  className={`schedule-resize-handle ${isResizingSchedule ? 'is-resizing' : ''}`}
+                  onPointerDown={startResizeSchedule}
+                  title="按住向右拖动以扩展今日日程宽度"
+                >
+                  <GripVertical size={16} />
+                </button>
               )}
             </div>
           </header>
@@ -887,8 +1059,7 @@ export function TaskDashboard() {
             <span className="timeline-col-title">任务</span>
             <span className="timeline-col-planned">预计</span>
             <span className="timeline-col-actual">实际</span>
-            <span className="timeline-col-actions"></span>
-            <span className="timeline-col-drag"></span>
+            <span className="timeline-col-actions">操作</span>
           </div>
           {timed.map((task) => (
             <TaskLine
@@ -908,6 +1079,8 @@ export function TaskDashboard() {
               onDragStart={() => handleTaskDragStart(task.id)}
               onDragEnd={handleTaskDragEnd}
               onPointerDragStart={(event) => handlePointerDragStart(task.id, event)}
+              onPointerDragMove={handlePointerDragMove}
+              onPointerDragEnd={handlePointerDragEnd}
               inWorkstation={workstationTaskIds.includes(task.id)}
               onToggleWorkstation={toggleWorkstationTask}
               inSchedulePanel
@@ -916,17 +1089,41 @@ export function TaskDashboard() {
 
           {addingTimedRow && (
             <div className="timeline-row timeline-row-adding">
-              <input
-                className="tl-inline-input timeline-time-input"
-                placeholder="08:30"
-                value={newTimedTime}
-                autoFocus
-                onChange={(e) => setNewTimedTime(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleConfirmAddTimed();
-                  if (e.key === 'Escape') setAddingTimedRow(false);
-                }}
-              />
+              <div className="timeline-time-range-inputs">
+                <input
+                  className="tl-inline-input timeline-time-input"
+                  aria-label="开始时间"
+                  placeholder="08:30"
+                  value={newTimedStartTime}
+                  autoFocus
+                  onChange={(e) => {
+                    setNewTimedStartTime(e.target.value);
+                    setNewTimedTimeError(undefined);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleConfirmAddTimed();
+                    if (e.key === 'Escape') setAddingTimedRow(false);
+                  }}
+                />
+                <span aria-hidden="true">→</span>
+                <input
+                  className="tl-inline-input timeline-time-input"
+                  aria-label="结束时间"
+                  placeholder="10:00"
+                  value={newTimedEndTime}
+                  onChange={(e) => {
+                    setNewTimedEndTime(e.target.value);
+                    setNewTimedTimeError(undefined);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleConfirmAddTimed();
+                    if (e.key === 'Escape') setAddingTimedRow(false);
+                  }}
+                />
+                {newTimedTimeError && (
+                  <span className="timeline-inline-error">{newTimedTimeError}</span>
+                )}
+              </div>
               <div className="task-check-wrap">
                 <Checkbox
                   checked={newTimedCompleted}
@@ -966,7 +1163,9 @@ export function TaskDashboard() {
                           if (e.key === 'Enter') {
                             e.preventDefault();
                             if (newTimedProjectName.trim()) {
-                              const created = createProjectDirectly(newTimedProjectName.trim());
+                              const created = createProjectDirectly(
+                                newTimedProjectName.trim(),
+                              );
                               setNewTimedProjectId(created.id);
                               setNewTimedProjectName('');
                               setIsAddingTimedProject(false);
@@ -980,7 +1179,9 @@ export function TaskDashboard() {
                         className="tl-inline-confirm-btn"
                         onClick={() => {
                           if (newTimedProjectName.trim()) {
-                            const created = createProjectDirectly(newTimedProjectName.trim());
+                            const created = createProjectDirectly(
+                              newTimedProjectName.trim(),
+                            );
                             setNewTimedProjectId(created.id);
                             setNewTimedProjectName('');
                             setIsAddingTimedProject(false);
@@ -1052,216 +1253,225 @@ export function TaskDashboard() {
           )}
         </Surface>
         {!isMiniToday && !isSchedulePage && (
-        <div className="side-column">
-          <Surface
-            className={`quick-panel${dropTarget === 'quick' ? ' is-drop-target' : ''}`}
-            data-task-drop-zone="quick"
-            onDragOver={handleQuickDragOver}
-            onDragLeave={() => setDropTarget(null)}
-            onDrop={handleQuickDrop}
-          >
-            <header>
-              <h2>无时间待办</h2>
-              <button
-                className="add-link"
-                onClick={() => {
-                  setAddingQuickRow(true);
-                  setNewQuickProjectId(workspaceProjects[0]?.id ?? 'other');
-                }}
-              >
-                <Plus size={19} /> 添加
-              </button>
-            </header>
-            <div className="quick-tasks">
-              {quick.length === 0 && !addingQuickRow ? (
-                <p className="empty-copy">暂无未定时间的待办事项</p>
-              ) : (
-                quick.map((task) => (
-                  <TaskLine
-                    key={task.id}
-                    task={task}
-                    onUpdate={update}
-                    onEdit={() => open(task, 'unscheduled')}
-                    onMove={move}
-                    onReschedule={() => setRescheduling(task)}
-                    projects={workspaceProjects}
-                    onAddProject={createProjectDirectly}
-                    draggable={!annotationInteractionLocked}
-                    isDragging={draggingTaskId === task.id}
-                    interactionLocked={annotationInteractionLocked}
-                    onDragStart={() => handleTaskDragStart(task.id)}
-                    onDragEnd={handleTaskDragEnd}
-                    onPointerDragStart={(event) => handlePointerDragStart(task.id, event)}
-                    inWorkstation={workstationTaskIds.includes(task.id)}
-                    onToggleWorkstation={toggleWorkstationTask}
-                  />
-                ))
-              )}
-
-              {addingQuickRow && (
-                <div className="quick-task-row quick-task-row-adding">
-                  <div className="task-check-wrap">
-                    <Checkbox
-                      checked={newQuickCompleted}
-                      onChange={(e) => setNewQuickCompleted(e.target.checked)}
+          <div className="side-column">
+            <Surface
+              className={`quick-panel${dropTarget === 'quick' ? 'is-drop-target' : ''}`}
+              data-task-drop-zone="quick"
+              onDragOver={handleQuickDragOver}
+              onDragLeave={() => setDropTarget(null)}
+              onDrop={handleQuickDrop}
+            >
+              <header>
+                <h2>无时间待办</h2>
+                <button
+                  className="add-link"
+                  onClick={() => {
+                    setAddingQuickRow(true);
+                    setNewQuickProjectId(workspaceProjects[0]?.id ?? 'other');
+                  }}
+                >
+                  <Plus size={19} /> 添加
+                </button>
+              </header>
+              <div className="quick-tasks">
+                {quick.length === 0 && !addingQuickRow ? (
+                  <p className="empty-copy">暂无未定时间的待办事项</p>
+                ) : (
+                  quick.map((task) => (
+                    <TaskLine
+                      key={task.id}
+                      task={task}
+                      onUpdate={update}
+                      onEdit={() => open(task, 'unscheduled')}
+                      onMove={move}
+                      onReschedule={() => setRescheduling(task)}
+                      projects={workspaceProjects}
+                      onAddProject={createProjectDirectly}
+                      draggable={!annotationInteractionLocked}
+                      isDragging={draggingTaskId === task.id}
+                      interactionLocked={annotationInteractionLocked}
+                      onDragStart={() => handleTaskDragStart(task.id)}
+                      onDragEnd={handleTaskDragEnd}
+                      onPointerDragStart={(event) =>
+                        handlePointerDragStart(task.id, event)
+                      }
+                      onPointerDragMove={handlePointerDragMove}
+                      onPointerDragEnd={handlePointerDragEnd}
+                      inWorkstation={workstationTaskIds.includes(task.id)}
+                      onToggleWorkstation={toggleWorkstationTask}
                     />
-                  </div>
-                  <div style={{ position: 'relative' }} ref={quickProjectPickerRef}>
-                    <select
-                      className="tl-inline-select project-inline-select"
-                      value={newQuickProjectId}
-                      onChange={(e) => {
-                        if (e.target.value === '__new__') {
-                          setIsAddingQuickProject(true);
-                        } else {
-                          setNewQuickProjectId(e.target.value);
-                        }
-                      }}
-                    >
-                      {workspaceProjects
-                        .filter((p) => p.status === 'active')
-                        .map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      <option value="__new__">+ 新增项目…</option>
-                    </select>
-                    {isAddingQuickProject && (
-                      <div className="project-picker-popover">
-                        <div className="project-picker-new-form">
-                          <input
-                            placeholder="新项目名称"
-                            value={newQuickProjectName}
-                            autoFocus
-                            onChange={(e) => setNewQuickProjectName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
+                  ))
+                )}
+
+                {addingQuickRow && (
+                  <div className="quick-task-row quick-task-row-adding">
+                    <div className="task-check-wrap">
+                      <Checkbox
+                        checked={newQuickCompleted}
+                        onChange={(e) => setNewQuickCompleted(e.target.checked)}
+                      />
+                    </div>
+                    <div style={{ position: 'relative' }} ref={quickProjectPickerRef}>
+                      <select
+                        className="tl-inline-select project-inline-select"
+                        value={newQuickProjectId}
+                        onChange={(e) => {
+                          if (e.target.value === '__new__') {
+                            setIsAddingQuickProject(true);
+                          } else {
+                            setNewQuickProjectId(e.target.value);
+                          }
+                        }}
+                      >
+                        {workspaceProjects
+                          .filter((p) => p.status === 'active')
+                          .map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                        <option value="__new__">+ 新增项目…</option>
+                      </select>
+                      {isAddingQuickProject && (
+                        <div className="project-picker-popover">
+                          <div className="project-picker-new-form">
+                            <input
+                              placeholder="新项目名称"
+                              value={newQuickProjectName}
+                              autoFocus
+                              onChange={(e) => setNewQuickProjectName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  if (newQuickProjectName.trim()) {
+                                    const created = createProjectDirectly(
+                                      newQuickProjectName.trim(),
+                                    );
+                                    setNewQuickProjectId(created.id);
+                                    setNewQuickProjectName('');
+                                    setIsAddingQuickProject(false);
+                                  }
+                                }
+                                if (e.key === 'Escape') setIsAddingQuickProject(false);
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="tl-inline-confirm-btn"
+                              onClick={() => {
                                 if (newQuickProjectName.trim()) {
-                                  const created = createProjectDirectly(newQuickProjectName.trim());
+                                  const created = createProjectDirectly(
+                                    newQuickProjectName.trim(),
+                                  );
                                   setNewQuickProjectId(created.id);
                                   setNewQuickProjectName('');
                                   setIsAddingQuickProject(false);
                                 }
-                              }
-                              if (e.key === 'Escape') setIsAddingQuickProject(false);
-                            }}
-                          />
-                          <button
-                            type="button"
-                            className="tl-inline-confirm-btn"
-                            onClick={() => {
-                              if (newQuickProjectName.trim()) {
-                                const created = createProjectDirectly(newQuickProjectName.trim());
-                                setNewQuickProjectId(created.id);
-                                setNewQuickProjectName('');
-                                setIsAddingQuickProject(false);
-                              }
-                            }}
-                          >
-                            <Check size={13} />
-                          </button>
-                          <button
-                            type="button"
-                            className="tl-inline-cancel-btn"
-                            onClick={() => setIsAddingQuickProject(false)}
-                          >
-                            <X size={13} />
-                          </button>
+                              }}
+                            >
+                              <Check size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              className="tl-inline-cancel-btn"
+                              onClick={() => setIsAddingQuickProject(false)}
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                    <input
+                      className="tl-inline-input task-title-input"
+                      placeholder="待办内容（按 Enter 保存）"
+                      value={newQuickTitle}
+                      autoFocus
+                      onChange={(e) => setNewQuickTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleConfirmAddQuick();
+                        if (e.key === 'Escape') setAddingQuickRow(false);
+                      }}
+                    />
+                    <div className="tl-inline-actions-cell">
+                      <button
+                        type="button"
+                        className="tl-inline-confirm-btn"
+                        onClick={handleConfirmAddQuick}
+                        title="保存待办"
+                      >
+                        <Check size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="tl-inline-cancel-btn"
+                        onClick={() => setAddingQuickRow(false)}
+                        title="取消"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
                   </div>
-                  <input
-                    className="tl-inline-input task-title-input"
-                    placeholder="待办内容（按 Enter 保存）"
-                    value={newQuickTitle}
-                    autoFocus
-                    onChange={(e) => setNewQuickTitle(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleConfirmAddQuick();
-                      if (e.key === 'Escape') setAddingQuickRow(false);
-                    }}
-                  />
-                  <div className="tl-inline-actions-cell">
-                    <button
-                      type="button"
-                      className="tl-inline-confirm-btn"
-                      onClick={handleConfirmAddQuick}
-                      title="保存待办"
-                    >
-                      <Check size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      className="tl-inline-cancel-btn"
-                      onClick={() => setAddingQuickRow(false)}
-                      title="取消"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </Surface>
-          <DailyPanel
-            items={daily}
-            history={dailyHistory}
-            date={selectedDate}
-            projects={workspaceProjects}
-            onChange={(items) =>
-              setDailyByDate((current) => ({ ...current, [selectedDate]: items }))
-            }
-            onAdd={(item) => {
-              setDailyTemplates((current) => [...current, item]);
-              setDailyByDate((current) => {
-                const existing =
-                  current[selectedDate] ??
-                  createDailyInstance(selectedDate, dailyTemplates);
-                return { ...current, [selectedDate]: [...existing, item] };
-              });
-            }}
-            onRecord={(entry) => setDailyHistory((current) => [entry, ...current])}
-          />
-        </div>
+                )}
+              </div>
+            </Surface>
+            <DailyPanel
+              items={daily}
+              history={dailyHistory}
+              date={selectedDate}
+              projects={workspaceProjects}
+              onChange={(items) =>
+                setDailyByDate((current) => ({ ...current, [selectedDate]: items }))
+              }
+              onAdd={(item) => {
+                setDailyTemplates((current) => [...current, item]);
+                setDailyByDate((current) => {
+                  const existing =
+                    current[selectedDate] ??
+                    createDailyInstance(selectedDate, dailyTemplates);
+                  return { ...current, [selectedDate]: [...existing, item] };
+                });
+              }}
+              onRecord={(entry) => setDailyHistory((current) => [entry, ...current])}
+            />
+          </div>
         )}
       </div>
       {!isMiniToday && !isSchedulePage && (
-      <PlanningQueue
-        tasks={backlog}
-        projects={workspaceProjects}
-        onUpdate={update}
-        onMove={move}
-        onArrange={(id) => {
-          setTasks((current) =>
-            current.map((task) =>
-              task.id === id
-                ? {
-                    ...task,
-                    status: 'active',
-                    date: selectedDate,
-                    updatedAt: new Date().toISOString(),
-                  }
-                : task,
-            ),
-          );
-          appendHistory('scheduled', id, { toDate: selectedDate });
-        }}
-      />
+        <PlanningQueue
+          tasks={backlog}
+          projects={workspaceProjects}
+          onUpdate={update}
+          onMove={move}
+          onArrange={(id) => {
+            setTasks((current) =>
+              current.map((task) =>
+                task.id === id
+                  ? {
+                      ...task,
+                      status: 'active',
+                      date: selectedDate,
+                      updatedAt: new Date().toISOString(),
+                    }
+                  : task,
+              ),
+            );
+            appendHistory('scheduled', id, { toDate: selectedDate });
+          }}
+        />
       )}
       {!isMiniToday && !isSchedulePage && (
-      <button
-        className="finish-day"
-        disabled={isDayClosed}
-        onClick={() => closeDialog.current?.showModal()}
-      >
-        {isDayClosed ? '今日已结束' : '结束今天'}
-      </button>
+        <button
+          className="finish-day"
+          disabled={isDayClosed}
+          onClick={() => closeDialog.current?.showModal()}
+        >
+          {isDayClosed ? '今日已结束' : '结束今天'}
+        </button>
       )}
       <AnnotationLayer
         activeTool={annotationTool}
+        highlightColor={highlightColor}
         strokes={annotationStrokes}
         onChangeStrokes={setAnnotationStrokes}
         targetDate={selectedDate}
@@ -1485,7 +1695,8 @@ function PlanningQueue({
       ) : (
         tasks.map((task) => {
           const project =
-            projects.find((item) => item.id === task.projectId) ?? createProjectSeed()[4];
+            projects.find((item) => item.id === task.projectId) ??
+            createProjectSeed()[4];
           return (
             <div className="queue-row" key={task.id}>
               <ProjectTag name={project.name} color={project.color} />
@@ -1544,6 +1755,8 @@ function TaskLine({
   onDragStart,
   onDragEnd,
   onPointerDragStart,
+  onPointerDragMove,
+  onPointerDragEnd,
   inSchedulePanel = false,
   inWorkstation = false,
   onToggleWorkstation,
@@ -1563,11 +1776,14 @@ function TaskLine({
   onDragStart?: () => void;
   onDragEnd?: () => void;
   onPointerDragStart?: (event: React.PointerEvent<HTMLButtonElement>) => void;
+  onPointerDragMove?: (event: React.PointerEvent<HTMLButtonElement>) => void;
+  onPointerDragEnd?: (event: React.PointerEvent<HTMLButtonElement>) => void;
   inSchedulePanel?: boolean;
   inWorkstation?: boolean;
   onToggleWorkstation?: (taskId: string) => void;
 }) {
-  const project = projects.find((p) => p.id === task.projectId) ?? createProjectSeed()[4];
+  const project =
+    projects.find((p) => p.id === task.projectId) ?? createProjectSeed()[4];
   const timed = inSchedulePanel || Boolean(task.plannedStartTime);
   const canDrag = draggable && !interactionLocked;
   const [editingField, setEditingField] = useState<
@@ -1674,7 +1890,7 @@ function TaskLine({
 
   return (
     <div
-      className={`${timed ? 'timeline-row' : 'quick-task-row'} task-row-draggable${task.completed ? ' completed' : ''}${isDragging ? ' is-dragging' : ''}${!canDrag ? ' is-drag-disabled' : ''}`}
+      className={`${timed ? 'timeline-row' : 'quick-task-row'} task-row-draggable${task.completed ? 'completed' : ''}${isDragging ? 'is-dragging' : ''}${!canDrag ? 'is-drag-disabled' : ''}`}
       draggable={canDrag && !editingField}
       onDragStart={(event) => {
         if (!canDrag || editingField) {
@@ -1705,7 +1921,7 @@ function TaskLine({
           />
         ) : (
           <time
-            className={`timeline-time tl-clickable-cell${!task.plannedStartTime ? ' is-pending-time' : ''}`}
+            className={`timeline-time tl-clickable-cell${!task.plannedStartTime ? 'is-pending-time' : ''}`}
             onClick={() => !interactionLocked && setEditingField('time')}
             title="点击直接修改时间（支持 08:30 或 08:30-10:00）"
           >
@@ -1892,35 +2108,49 @@ function TaskLine({
         </>
       )}
 
-      <div className="task-actions">
-        {onToggleWorkstation && <button type="button" className={`task-workstation-action${inWorkstation ? ' is-active' : ''}`} aria-label={`${inWorkstation ? '从工作站移除' : '加入工作站'}${task.title}`} title={inWorkstation ? '从工作站移除' : '加入工作站'} onClick={() => onToggleWorkstation(task.id)}><Plus size={15} /></button>}
-        <button aria-label={`${task.title}更多操作`}>
-          <MoreHorizontal size={17} />
-        </button>
-        <div>
-          <button onClick={onEdit}>
-            <Pencil size={13} />
-            详细编辑
+      <div className="task-actions-cell">
+        <div className="task-actions">
+          {onToggleWorkstation && (
+            <button
+              type="button"
+              className={`task-workstation-action${inWorkstation ? 'is-active' : ''}`}
+              aria-label={`${inWorkstation ? '从工作站移除' : '加入工作站'}${task.title}`}
+              title={inWorkstation ? '从工作站移除' : '加入工作站'}
+              onClick={() => onToggleWorkstation(task.id)}
+            >
+              <Plus size={15} />
+            </button>
+          )}
+          <button aria-label={`${task.title}更多操作`}>
+            <MoreHorizontal size={17} />
           </button>
-          <button onClick={onReschedule}>移期</button>
-          <button onClick={() => onMove(task.id, 'backlog')}>待安排</button>
-          <button onClick={() => onMove(task.id, 'abandoned')}>放弃</button>
-          <button onClick={() => onMove(task.id, 'trashed')}>
-            <Trash2 size={13} />
-            删除
-          </button>
+          <div>
+            <button onClick={onEdit}>
+              <Pencil size={13} />
+              详细编辑
+            </button>
+            <button onClick={onReschedule}>移期</button>
+            <button onClick={() => onMove(task.id, 'backlog')}>待安排</button>
+            <button onClick={() => onMove(task.id, 'abandoned')}>放弃</button>
+            <button onClick={() => onMove(task.id, 'trashed')}>
+              <Trash2 size={13} />
+              删除
+            </button>
+          </div>
         </div>
+        <button
+          type="button"
+          className="task-drag-handle"
+          aria-label={`拖动${task.title}`}
+          title="按住并拖到另一面板"
+          disabled={!canDrag || Boolean(editingField)}
+          onPointerDown={onPointerDragStart}
+          onPointerMove={onPointerDragMove}
+          onPointerUp={onPointerDragEnd}
+        >
+          <GripVertical size={16} />
+        </button>
       </div>
-      <button
-        type="button"
-        className="task-drag-handle"
-        aria-label={`拖动${task.title}`}
-        title="按住并拖到另一面板"
-        disabled={!canDrag || Boolean(editingField)}
-        onPointerDown={onPointerDragStart}
-      >
-        <GripVertical size={16} />
-      </button>
     </div>
   );
 }
@@ -1962,9 +2192,16 @@ function RescheduleDialog({
         </header>
         <label>
           新日期
-          <Input aria-label="移期日期" name="date" type="date" defaultValue={defaultDate} />
+          <Input
+            aria-label="移期日期"
+            name="date"
+            type="date"
+            defaultValue={defaultDate}
+          />
         </label>
-        <p className="dialog-hint">默认明天；也可选择任意未来日期。原日期历史会保留。</p>
+        <p className="dialog-hint">
+          默认明天；也可选择任意未来日期。原日期历史会保留。
+        </p>
         {error && <p className="form-error">{error}</p>}
         <footer>
           <button type="button" onClick={onClose}>
@@ -2061,7 +2298,8 @@ function TaskDialog({
                   {projects
                     .filter(
                       (project) =>
-                        project.status === 'active' || project.id === editing?.projectId,
+                        project.status === 'active' ||
+                        project.id === editing?.projectId,
                     )
                     .map((project) => (
                       <option key={project.id} value={project.id}>
@@ -2079,7 +2317,8 @@ function TaskDialog({
                   {projects
                     .filter(
                       (project) =>
-                        project.status === 'active' || project.id === editing?.projectId,
+                        project.status === 'active' ||
+                        project.id === editing?.projectId,
                     )
                     .map((project) => (
                       <option key={project.id} value={project.id}>
