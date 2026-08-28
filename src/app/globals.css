@@ -1484,8 +1484,9 @@ button,
 /* ================= 今日日程（精确网格与独立预计/实际两列） ================= */
 
 .schedule-panel {
-  /* 时间列只保留显示时间的空间；表头、已有任务和新增表单共用其余列轨道。 */
-  --timeline-columns: 150px 20px 64px minmax(120px, 1fr) 68px 68px 52px;
+  /* 已有任务的时间列仅容纳单行时间；新增行保留双时间输入所需的空间。 */
+  --timeline-columns: 92px 20px 64px minmax(120px, 1fr) 68px 68px 52px;
+  --timeline-add-columns: 154px 20px 64px minmax(120px, 1fr) 68px 68px 52px;
   overflow: visible;
 }
 
@@ -1544,7 +1545,7 @@ button,
 }
 
 .timeline-row-adding {
-  grid-template-columns: var(--timeline-columns);
+  grid-template-columns: var(--timeline-add-columns);
   gap: 6px;
   position: relative;
   background: color-mix(in srgb, var(--accent) 4%, var(--surface));

@@ -419,6 +419,10 @@ test('keeps all timed task creation controls visible in a compact desktop schedu
   const cancel = schedule.getByTitle('取消');
   const taskBox = await taskInput.boundingBox();
   const projectBox = await projectSelect.boundingBox();
+  const existingTimeBox = await schedule
+    .locator('.timeline-row .timeline-time')
+    .first()
+    .boundingBox();
   const plannedInputBox = await plannedInput.boundingBox();
   const actualInputBox = await actualInput.boundingBox();
   const plannedHeadingBox = await plannedHeading.boundingBox();
@@ -429,6 +433,7 @@ test('keeps all timed task creation controls visible in a compact desktop schedu
   if (
     !taskBox ||
     !projectBox ||
+    !existingTimeBox ||
     !plannedInputBox ||
     !actualInputBox ||
     !plannedHeadingBox ||
@@ -440,6 +445,7 @@ test('keeps all timed task creation controls visible in a compact desktop schedu
     throw new Error('新增日程字段不可见。');
   expect(taskBox.width).toBeGreaterThanOrEqual(120);
   expect(projectBox.width).toBeLessThanOrEqual(64);
+  expect(existingTimeBox.width).toBeLessThanOrEqual(92);
   expect(plannedInputBox.width).toBeGreaterThanOrEqual(68);
   expect(actualInputBox.width).toBeGreaterThanOrEqual(68);
   expect(Math.abs(plannedHeadingBox.x - plannedInputBox.x)).toBeLessThanOrEqual(1);
