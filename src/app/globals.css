@@ -1451,7 +1451,7 @@ button,
 
 .dashboard-columns {
   display: grid;
-  grid-template-columns: minmax(0, var(--schedule-ratio, 1.45fr)) minmax(280px, 1fr);
+  grid-template-columns: minmax(0, var(--schedule-ratio, 1.8fr)) minmax(280px, 1fr);
   gap: 16px;
   align-items: stretch;
   transition: grid-template-columns 120ms ease;
@@ -1484,8 +1484,8 @@ button,
 /* ================= 今日日程（精确网格与独立预计/实际两列） ================= */
 
 .schedule-panel {
-  /* 让表头、已有任务与新增表单共用同一列轨道，预计/实际始终落在对应输入框上方。 */
-  --timeline-columns: minmax(104px, 1.1fr) 20px 64px minmax(120px, 2fr) 52px 52px 52px;
+  /* 时间列只保留显示时间的空间；表头、已有任务和新增表单共用其余列轨道。 */
+  --timeline-columns: 150px 20px 64px minmax(120px, 1fr) 68px 68px 52px;
   overflow: visible;
 }
 
@@ -1625,6 +1625,8 @@ button,
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
   padding: 2px 2px;
   box-sizing: border-box;

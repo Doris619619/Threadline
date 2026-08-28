@@ -440,6 +440,8 @@ test('keeps all timed task creation controls visible in a compact desktop schedu
     throw new Error('新增日程字段不可见。');
   expect(taskBox.width).toBeGreaterThanOrEqual(120);
   expect(projectBox.width).toBeLessThanOrEqual(64);
+  expect(plannedInputBox.width).toBeGreaterThanOrEqual(68);
+  expect(actualInputBox.width).toBeGreaterThanOrEqual(68);
   expect(Math.abs(plannedHeadingBox.x - plannedInputBox.x)).toBeLessThanOrEqual(1);
   expect(Math.abs(actualHeadingBox.x - actualInputBox.x)).toBeLessThanOrEqual(1);
   expect(saveBox.x + saveBox.width).toBeLessThanOrEqual(
@@ -449,6 +451,15 @@ test('keeps all timed task creation controls visible in a compact desktop schedu
     timelineBox.x + timelineBox.width,
   );
   await expect(timeline).toHaveCSS('overflow-x', 'auto');
+});
+
+test('starts the full workspace with a wider schedule column', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '初始分栏仅在完整桌面工作台生效。');
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const scheduleBox = await page.locator('.schedule-panel').boundingBox();
+  const sideBox = await page.locator('.side-column').boundingBox();
+  if (!scheduleBox || !sideBox) throw new Error('完整工作台分栏不可见。');
+  expect(scheduleBox.width / sideBox.width).toBeGreaterThan(1.7);
 });
 
 test('keeps every highlighter color option in stable swatch label and check slots', async ({

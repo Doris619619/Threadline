@@ -51,6 +51,9 @@ import type { HistoryEvent, Project, Task, TaskStatus } from '@/types/domain';
 
 type TaskDropZone = 'schedule' | 'quick';
 
+/** 完整工作台初始时让日程列略宽于右侧待办列，保留用户后续拖拽调整能力。 */
+const DEFAULT_SCHEDULE_RATIO = 1.8;
+
 function formatMinutes(value?: number) {
   if (value === undefined) return '—';
   return value < 60
@@ -174,10 +177,10 @@ export function TaskDashboard() {
   const [newQuickProjectName, setNewQuickProjectName] = useState('');
   const quickProjectPickerRef = useRef<HTMLDivElement>(null);
 
-  const [scheduleRatio, setScheduleRatio] = useState<number>(1.45);
+  const [scheduleRatio, setScheduleRatio] = useState<number>(DEFAULT_SCHEDULE_RATIO);
   const [isResizingSchedule, setIsResizingSchedule] = useState(false);
   const resizeStartXRef = useRef<number>(0);
-  const resizeStartRatioRef = useRef<number>(1.45);
+  const resizeStartRatioRef = useRef<number>(DEFAULT_SCHEDULE_RATIO);
 
   const createProjectDirectly = (name: string): Project => {
     const trimmed = name.trim();
