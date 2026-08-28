@@ -5,6 +5,7 @@
 import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Surface } from '@/components/ui/surface';
+import { getLocalDateKeyFromTimestamp } from '@/lib/local-date';
 import type { DailyHistoryEntry } from '@/features/daily/daily-panel';
 import type { CloseRecord, HistoryEvent, Project, Task } from '@/types/domain';
 
@@ -28,7 +29,7 @@ const eventLabels: Record<string, string> = {
 };
 
 /** 从现有可靠来源构建只读记录行；已过期删除的旧任务保持明确的未知标题提示。 */
-function buildRecordRows(
+export function buildRecordRows(
   tasks: readonly Task[],
   projects: readonly Project[],
   history: readonly HistoryEvent[],
@@ -38,10 +39,14 @@ function buildRecordRows(
   const projectNames = new Map(projects.map((project) => [project.id, project.name]));
   const taskNames = new Map(tasks.map((task) => [task.id, task.title]));
   const taskRows = tasks
-    .filter((task) => task.completed || task.status !== 'active')
+    .filter((task) => task.completed)
     .map((task) => ({
       id: `task:${task.id}`,
-      date: task.date ?? task.completedAt?.slice(0, 10) ?? task.updatedAt.slice(0, 10),
+      date:
+        task.date ??
+        (task.completedAt
+          ? getLocalDateKeyFromTimestamp(task.completedAt)
+          : getLocalDateKeyFromTimestamp(task.updatedAt)),
       title: task.title,
       detail: `${projectNames.get(task.projectId) ?? '已删除项目'} · ${task.completed ? '已完成' : task.status}`,
       searchable:
@@ -50,7 +55,8 @@ function buildRecordRows(
   const historyRows = history.map((event) => {
     const title =
       event.payload?.title ?? taskNames.get(event.taskId ?? '') ?? '已删除任务';
-    const date = event.payload?.fromDate ?? event.occurredAt.slice(0, 10);
+    const date =
+      event.payload?.fromDate ?? getLocalDateKeyFromTimestamp(event.occurredAt);
     const detail = eventLabels[event.type] ?? event.type;
     return {
       id: `history:${event.id}`,

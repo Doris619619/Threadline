@@ -51,6 +51,11 @@ export type NativeGeometryChanged = {
   nativeRevision: number;
 };
 
+/** Main 主动广播的 full 窗口最大化状态；紧凑窗口永远视为未最大化。 */
+export type NativeMainWindowMaximizeChanged = {
+  isMaximized: boolean;
+};
+
 export type PresentationRollback = {
   mode: DesktopViewMode;
   reason: string;
@@ -74,6 +79,8 @@ export type ThreadlineDesktopBridge =
       bringToFront: () => Promise<NativeApplyResult>;
       minimizeMainWindow: () => Promise<void>;
       closeMainWindow: () => Promise<void>;
+      getMainWindowMaximized: () => Promise<boolean>;
+      toggleMainWindowMaximized: () => Promise<boolean>;
       exportReportPdf: () => Promise<ReportPdfExportResult>;
       acknowledgeNativeState: (stateRevision: number) => Promise<void>;
       onNativeStateChanged: (
@@ -81,6 +88,9 @@ export type ThreadlineDesktopBridge =
       ) => Unsubscribe;
       onNativeGeometryChanged: (
         listener: (event: NativeGeometryChanged) => void,
+      ) => Unsubscribe;
+      onMainWindowMaximizeChanged: (
+        listener: (event: NativeMainWindowMaximizeChanged) => void,
       ) => Unsubscribe;
       onPresentationRollback: (
         listener: (event: PresentationRollback) => void,

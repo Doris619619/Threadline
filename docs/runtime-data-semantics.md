@@ -11,6 +11,7 @@ Calendar、Insights 与报告不分别计算统计，而是通过 `src/lib/analy
 - `getLocalDateKey()` 读取用户本地的年、月、日，不能用 `toISOString().slice(0, 10)` 生成业务日期。
 - 相邻日期必须经 `addLocalDateDays()` 计算，避免 UTC 和本地午夜边界混用。
 - 时间戳字段（例如 `updatedAt`）仍可使用 ISO instant；只有业务日键必须使用本地日期 helper。
+- Records 与 History 从 timestamp 展示日期时使用 `getLocalDateKeyFromTimestamp()`；不得以字符串截取 ISO 的 UTC 日期。
 
 ## 浏览器持久化
 

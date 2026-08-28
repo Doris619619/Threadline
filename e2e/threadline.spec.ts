@@ -2,7 +2,7 @@
  * @fileoverview 覆盖 Threadline 关键用户流程的浏览器端到端测试。
  */
 
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
 
 const frozenLocalNow = '2026-08-23T12:00:00+08:00';
 
@@ -311,6 +311,16 @@ test('completion can be toggled without a dialog', async ({ page }) => {
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
+test('does not offer incomplete-work transitions for a completed task', async ({ page }) => {
+  const completed = page.locator('.timeline-row').filter({ hasText: '领域论文' });
+  await completed.getByRole('button', { name: '领域论文更多操作' }).click();
+
+  await expect(completed.getByRole('button', { name: '移期', exact: true })).toHaveCount(0);
+  await expect(completed.getByRole('button', { name: '待安排', exact: true })).toHaveCount(0);
+  await expect(completed.getByRole('button', { name: '放弃', exact: true })).toHaveCount(0);
+  await expect(completed.getByRole('button', { name: '删除', exact: true })).toBeVisible();
+});
+
 test('persists task changes and navigates across dates', async ({ page }) => {
   const task = page.getByRole('checkbox', { name: '完成邮件处理' });
   await task.check();
@@ -325,7 +335,8 @@ test('persists task changes and navigates across dates', async ({ page }) => {
 
 test('keeps drawn date annotations on their original day after navigation and reload', async ({
   page,
-}) => {
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '批注绘制使用桌面鼠标路径。');
   await page.getByRole('button', { name: '荧光笔' }).click();
   const canvas = page.locator('.tl-annotation-layer');
   const box = await canvas.boundingBox();
@@ -339,6 +350,10 @@ test('keeps drawn date annotations on their original day after navigation and re
   );
   await expect(persistedStrokes).toHaveCount(1);
   await expect(persistedStrokes).toHaveAttribute('data-annotation-date', '2026-08-23');
+  await page.waitForFunction(() => {
+    const stored = window.localStorage.getItem('threadline.annotations.v2');
+    return Boolean(stored && JSON.parse(stored).length);
+  });
 
   await page.getByRole('button', { name: '选择模式' }).click();
   await page.getByRole('button', { name: '后一天' }).click();
@@ -386,19 +401,105 @@ test('uses the selected highlighter color for cursor, saved strokes, and reload 
   await expect(page.getByRole('button', { name: '选择颜色，当前黄色' })).toBeVisible();
 });
 
-test('keeps the task editor larger than the compact project selector', async ({
+test('keeps all timed task creation controls visible in a compact desktop schedule', async ({
   page,
-}) => {
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '新增日程行仅出现在完整桌面工作台。');
+  await page.setViewportSize({ width: 1280, height: 840 });
   const schedule = page.locator('.schedule-panel');
   await schedule.getByRole('button', { name: '添加', exact: true }).click();
   const taskInput = schedule.getByPlaceholder('任务名称（按 Enter 保存）');
   const projectSelect = schedule.locator('.project-inline-select');
+  const timeline = schedule.locator('.timeline-scroll');
+  const save = schedule.getByTitle('保存任务');
+  const cancel = schedule.getByTitle('取消');
   const taskBox = await taskInput.boundingBox();
   const projectBox = await projectSelect.boundingBox();
-  if (!taskBox || !projectBox) throw new Error('新增日程字段不可见。');
-  expect(taskBox.width).toBeGreaterThanOrEqual(180);
-  expect(projectBox.width).toBeLessThanOrEqual(72);
-  await expect(schedule).toHaveCSS('overflow-x', 'auto');
+  const timelineBox = await timeline.boundingBox();
+  const saveBox = await save.boundingBox();
+  const cancelBox = await cancel.boundingBox();
+  if (!taskBox || !projectBox || !timelineBox || !saveBox || !cancelBox)
+    throw new Error('新增日程字段不可见。');
+  expect(taskBox.width).toBeGreaterThanOrEqual(120);
+  expect(projectBox.width).toBeLessThanOrEqual(64);
+  expect(saveBox.x + saveBox.width).toBeLessThanOrEqual(
+    timelineBox.x + timelineBox.width,
+  );
+  expect(cancelBox.x + cancelBox.width).toBeLessThanOrEqual(
+    timelineBox.x + timelineBox.width,
+  );
+  await expect(timeline).toHaveCSS('overflow-x', 'auto');
+});
+
+test('keeps every highlighter color option in stable swatch label and check slots', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '批注菜单布局在完整桌面工作台验收。');
+  await page.getByRole('button', { name: /选择颜色/ }).click();
+  const options = page.getByRole('radio');
+  const optionBoxes = await options.evaluateAll((elements) =>
+    elements.map((element) => element.getBoundingClientRect().toJSON()),
+  );
+  expect(optionBoxes).toHaveLength(5);
+  expect(new Set(optionBoxes.map((box) => Math.round(box.height)))).toEqual(
+    new Set([30]),
+  );
+
+  await page.getByRole('radio', { name: '绿色' }).click();
+  await page.getByRole('button', { name: /选择颜色，当前绿色/ }).click();
+  const selected = page.locator('.annotation-color-option.is-selected');
+  const [swatch, label, check] = await Promise.all([
+    selected.locator('.annotation-color-option-swatch').boundingBox(),
+    selected.locator('.annotation-color-option-label').boundingBox(),
+    selected.locator('.annotation-color-option-check').boundingBox(),
+  ]);
+  if (!swatch || !label || !check) throw new Error('绿色菜单选项布局不可见。');
+  expect(Math.round(swatch.width)).toBe(18);
+  expect(Math.round(swatch.height)).toBe(18);
+  expect(label.x).toBeGreaterThan(swatch.x);
+  expect(check.x).toBeGreaterThan(label.x);
+});
+
+test('reopens the cached PWA offline without returning HTML for a Next script', async (
+  { browser }: { browser: Browser },
+  testInfo: { project: { name: string } },
+) => {
+  test.skip(testInfo.project.name !== 'desktop', '离线缓存由 Desktop Chromium 回归覆盖。');
+  const context = await browser.newContext({
+    serviceWorkers: 'allow',
+    timezoneId: 'Asia/Shanghai',
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto('/');
+    await page.getByRole('heading', { name: '我的工作台' }).waitFor();
+    await page.waitForFunction(() => navigator.serviceWorker.ready.then(() => true));
+    await page.reload();
+    await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+    const scriptUrl = await page.evaluate(() => {
+      const entry = performance
+        .getEntriesByType('resource')
+        .map((item) => item.name)
+        .find((name) => name.includes('/_next/') && name.endsWith('.js'));
+      if (!entry) throw new Error('未找到 Next JavaScript 资源。');
+      return entry;
+    });
+
+    await context.setOffline(true);
+    const asset = await page.evaluate(async (url) => {
+      const response = await fetch(url);
+      return {
+        contentType: response.headers.get('content-type'),
+        prefix: (await response.text()).slice(0, 32),
+      };
+    }, scriptUrl);
+    expect(asset.contentType).toContain('javascript');
+    expect(asset.prefix).not.toContain('<!doctype html');
+    await page.reload();
+    await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();
+  } finally {
+    await context.close();
+  }
 });
 
 test('creates a fresh Daily instance for another date', async ({ page }) => {
@@ -480,7 +581,7 @@ test('records rescheduling and abandonment in history', async ({ page }) => {
   await reschedule.getByRole('button', { name: '确认移期' }).click();
   await openRecords(page);
   await expect(page.getByText('已移期', { exact: true })).toBeVisible();
-  await expect(page.getByText('放弃', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('放弃', { exact: true })).toHaveCount(1);
 });
 
 test('can choose a future date when rescheduling', async ({ page }) => {

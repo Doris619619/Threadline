@@ -13,6 +13,7 @@ const role =
 function subscribe(
   channel:
     | 'desktop:geometry-changed'
+    | 'desktop:maximize-changed'
     | 'desktop:presentation-rollback'
     | 'desktop:state-changed',
   listener: (payload: unknown) => void,
@@ -29,7 +30,6 @@ const bridge =
         environment: 'electron' as const,
         role,
         restoreMain: () => ipcRenderer.invoke('desktop:restore-main'),
-        closeMainWindow: () => ipcRenderer.invoke('desktop:close-main'),
       }
     : {
         environment: 'electron' as const,
@@ -40,6 +40,9 @@ const bridge =
           ipcRenderer.invoke('desktop:transition', payload),
         bringToFront: () => ipcRenderer.invoke('desktop:bring-to-front'),
         minimizeMainWindow: () => ipcRenderer.invoke('desktop:minimize-main'),
+        closeMainWindow: () => ipcRenderer.invoke('desktop:close-main'),
+        getMainWindowMaximized: () => ipcRenderer.invoke('desktop:get-maximized'),
+        toggleMainWindowMaximized: () => ipcRenderer.invoke('desktop:toggle-maximized'),
         exportReportPdf: () => ipcRenderer.invoke('desktop:export-report-pdf'),
         acknowledgeNativeState: (stateRevision: number) =>
           ipcRenderer.invoke('desktop:state-applied', stateRevision),
@@ -47,6 +50,8 @@ const bridge =
           subscribe('desktop:state-changed', listener),
         onNativeGeometryChanged: (listener: (payload: unknown) => void) =>
           subscribe('desktop:geometry-changed', listener),
+        onMainWindowMaximizeChanged: (listener: (payload: unknown) => void) =>
+          subscribe('desktop:maximize-changed', listener),
         onPresentationRollback: (listener: (payload: unknown) => void) =>
           subscribe('desktop:presentation-rollback', listener),
       };

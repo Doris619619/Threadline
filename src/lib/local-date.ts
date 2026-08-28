@@ -12,6 +12,13 @@ export function getLocalDateKey(date = new Date()): LocalDateKey {
   return `${year}-${month}-${day}`;
 }
 
+/** 将 ISO instant 映射为本地业务日期；非法 timestamp 直接拒绝，避免静默显示错误日期。 */
+export function getLocalDateKeyFromTimestamp(value: string): LocalDateKey {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) throw new RangeError(`Invalid timestamp: ${value}`);
+  return getLocalDateKey(date);
+}
+
 /** 将合法的业务日期解析为本地午夜；非法值直接抛错，避免静默回退到错误日期。 */
 export function parseLocalDateKey(value: string): Date {
   const matched = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);

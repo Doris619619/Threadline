@@ -31,6 +31,8 @@ type DesktopWindowContextValue = {
   resetWindowStates: () => Promise<void>;
   minimizeMainWindow: () => Promise<void>;
   closeMainWindow: () => Promise<void>;
+  isMainWindowMaximized: boolean;
+  toggleMainWindowMaximized: () => Promise<void>;
   isMiniToday: boolean;
   isWorkstation: boolean;
   isCompact: boolean;
@@ -84,6 +86,7 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
   const [isDesktopReady, setIsDesktopReady] = useState(
     () => typeof window !== 'undefined' && !getMainDesktopBridge(),
   );
+  const [isMainWindowMaximized, setIsMainWindowMaximized] = useState(false);
   const hydrated =
     modeHydrated && presentationHydrated && compactHydrated && statesHydrated;
 
@@ -162,6 +165,11 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
   const minimizeMainWindow = useCallback(async () => {
     const bridge = getMainDesktopBridge();
     if (bridge) await bridge.minimizeMainWindow();
+  }, []);
+  /** 切换 Main 的原生最大化；Web/PWA 无 native window 时保持无操作。 */
+  const toggleMainWindowMaximized = useCallback(async () => {
+    const bridge = getMainDesktopBridge();
+    if (bridge) setIsMainWindowMaximized(await bridge.toggleMainWindowMaximized());
   }, []);
 
   /** 只在首次 hydration 发起一次 Electron 握手；Web/PWA 直接成为 ready。 */
@@ -252,6 +260,15 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
       );
     });
   }, [setWindowStates]);
+  /** 订阅原生最大化事件并在首次 hydration 后读取初始状态，避免用 CSS 反推窗口状态。 */
+  useEffect(() => {
+    const bridge = getMainDesktopBridge();
+    if (!bridge) return;
+    void bridge.getMainWindowMaximized().then(setIsMainWindowMaximized);
+    return bridge.onMainWindowMaximizeChanged(({ isMaximized }) =>
+      setIsMainWindowMaximized(isMaximized),
+    );
+  }, []);
   /** 把 Edge 故障回退持久化为 expanded，保持 Renderer 与 Main 一致。 */
   useEffect(() => {
     const bridge = getMainDesktopBridge();
@@ -274,6 +291,8 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
         resetWindowStates,
         minimizeMainWindow,
         closeMainWindow,
+        isMainWindowMaximized,
+        toggleMainWindowMaximized,
         isMiniToday: mode === 'mini-today',
         isWorkstation: mode === 'workstation',
         isCompact: mode !== 'full',

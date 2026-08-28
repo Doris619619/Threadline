@@ -9,6 +9,8 @@ import {
   FolderKanban,
   Home,
   Minus,
+  Maximize2,
+  Minimize2,
   MoreHorizontal,
   NotebookTabs,
   Orbit,
@@ -127,7 +129,13 @@ export function CompactWindowHeader({
 
 /** 渲染 Full 无边框窗口的连续拖拽区与独立的模式、最小化、关闭控制。 */
 function FullWindowChrome() {
-  const { setMode, minimizeMainWindow, closeMainWindow } = useDesktopWindow();
+  const {
+    setMode,
+    minimizeMainWindow,
+    closeMainWindow,
+    isMainWindowMaximized,
+    toggleMainWindowMaximized,
+  } = useDesktopWindow();
   return (
     <header className="full-window-chrome">
       <span className="full-window-caption">Threadline</span>
@@ -146,6 +154,19 @@ function FullWindowChrome() {
           onClick={() => void minimizeMainWindow()}
         >
           <Minus size={16} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className="desktop-maximize-button"
+          aria-label={isMainWindowMaximized ? '还原窗口' : '最大化窗口'}
+          title={isMainWindowMaximized ? '还原窗口' : '最大化窗口'}
+          onClick={() => void toggleMainWindowMaximized()}
+        >
+          {isMainWindowMaximized ? (
+            <Minimize2 size={16} aria-hidden="true" />
+          ) : (
+            <Maximize2 size={16} aria-hidden="true" />
+          )}
         </button>
         <button
           type="button"

@@ -95,7 +95,7 @@ export function AnnotationColorPicker({
                 <button
                   key={preset.id}
                   type="button"
-                  className={`annotation-color-option${isSelected ? 'is-selected' : ''}`}
+                  className={`annotation-color-option${isSelected ? ' is-selected' : ''}`}
                   role="radio"
                   aria-checked={isSelected}
                   onClick={() => {
@@ -109,8 +109,13 @@ export function AnnotationColorPicker({
                     aria-hidden="true"
                     style={{ '--annotation-color': preset.value } as CSSProperties}
                   />
-                  <span>{preset.label}</span>
-                  {isSelected && <Check size={14} aria-label="当前颜色" />}
+                  <span className="annotation-color-option-label">{preset.label}</span>
+                  <span
+                    className="annotation-color-option-check"
+                    aria-hidden={!isSelected}
+                  >
+                    {isSelected && <Check size={14} aria-label="当前颜色" />}
+                  </span>
                 </button>
               );
             })}

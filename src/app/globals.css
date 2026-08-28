@@ -468,7 +468,8 @@ button,
   border-color: var(--border);
 }
 
-.full-window-entries .desktop-minimize-button {
+.full-window-entries .desktop-minimize-button,
+.full-window-entries .desktop-maximize-button {
   width: 28px;
   padding: 0;
   color: var(--text-secondary);
@@ -865,7 +866,9 @@ button,
 .annotation-color-option {
   display: grid;
   width: 100%;
+  height: 30px;
   min-height: 30px;
+  max-height: 30px;
   grid-template-columns: 18px minmax(0, 1fr) 16px;
   align-items: center;
   gap: 8px;
@@ -879,6 +882,26 @@ button,
   font-weight: 650;
   text-align: left;
   cursor: pointer;
+}
+
+.annotation-color-option-swatch {
+  grid-column: 1;
+}
+
+.annotation-color-option-label {
+  min-width: 0;
+  grid-column: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.annotation-color-option-check {
+  display: grid;
+  width: 16px;
+  height: 16px;
+  grid-column: 3;
+  place-items: center;
 }
 
 .annotation-color-option:hover,
@@ -1462,8 +1485,12 @@ button,
 
 .schedule-panel {
   --timeline-columns: 112px 24px 72px minmax(200px, 1fr) 56px 56px 58px;
+  overflow: visible;
+}
+
+.timeline-scroll {
+  min-width: 0;
   overflow-x: auto;
-  overflow-y: visible;
   scrollbar-color: var(--border) transparent;
   scrollbar-width: thin;
 }
@@ -1516,11 +1543,22 @@ button,
 }
 
 .timeline-row-adding {
+  min-width: 0;
+  grid-template-columns: minmax(104px, 1.1fr) 20px 64px minmax(
+      120px,
+      2fr
+    ) 52px 52px 52px;
+  gap: 6px;
   position: relative;
   background: color-mix(in srgb, var(--accent) 4%, var(--surface));
   border-radius: var(--radius-sm);
   animation: tl-fade-in 180ms ease;
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.timeline-row-adding .tl-inline-input,
+.timeline-row-adding .tl-inline-select {
+  min-width: 0;
 }
 
 .timeline-time-range-inputs {
@@ -1557,6 +1595,10 @@ button,
   width: 100%;
   max-width: 72px;
   min-width: 0;
+}
+
+.timeline-row-adding .project-inline-select {
+  max-width: 64px;
 }
 
 @keyframes tl-fade-in {

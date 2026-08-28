@@ -297,6 +297,7 @@ function applyMainNativeState(
 ): void {
   if (!mainWindow || mainWindow.isDestroyed())
     throw new Error('Main window is unavailable');
+  if (mode !== 'full' && mainWindow.isMaximized()) mainWindow.unmaximize();
   const compactLimits = mode === 'full' ? undefined : COMPACT_WINDOW_BOUNDS[mode];
   mainWindow.setAlwaysOnTop(mode !== 'full');
   mainWindow.setResizable(true);
@@ -313,6 +314,14 @@ function applyMainNativeState(
   mainWindow.setBounds(geometry);
 }
 
+/** 将 BrowserWindow 的真实最大化状态回传给 Main Renderer，避免 Renderer 猜测窗口状态。 */
+function publishMainWindowMaximizeState(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send('desktop:maximize-changed', {
+    isMaximized: latestState.mode === 'full' && mainWindow.isMaximized(),
+  });
+}
+
 /** 将真实用户移动或缩放后的 canonical bounds 防抖回传给 Main Renderer。 */
 function publishUserGeometry(): void {
   if (
@@ -320,13 +329,19 @@ function publishUserGeometry(): void {
     mainWindow.isDestroyed() ||
     !mainWindow.isVisible() ||
     latestState.presentation === 'edge-collapsed' ||
+    mainWindow.isMaximized() ||
     Date.now() < suppressGeometryUntil
   ) {
     return;
   }
   if (userGeometryTimer) clearTimeout(userGeometryTimer);
   userGeometryTimer = setTimeout(() => {
-    if (!mainWindow || mainWindow.isDestroyed() || Date.now() < suppressGeometryUntil)
+    if (
+      !mainWindow ||
+      mainWindow.isDestroyed() ||
+      mainWindow.isMaximized() ||
+      Date.now() < suppressGeometryUntil
+    )
       return;
     const bounds = mainWindow.getBounds();
     stateRevision += 1;
@@ -702,13 +717,32 @@ function registerDesktopIpc(): void {
   ipcMain.handle('desktop:close-main', async (event) => {
     if (!isTrustedSender(event, 'main'))
       throw new Error('Rejected desktop close sender');
-    mainWindow?.close();
+    // Edge 可能隐藏但仍存在；只 close Main 会让 window-all-closed 永远不触发并留下后台进程。
+    isQuitting = true;
+    app.quit();
   });
   /** 仅允许受信任 Main Renderer 最小化自身，避免开放任意 BrowserWindow 控制。 */
   ipcMain.handle('desktop:minimize-main', async (event) => {
     if (!isTrustedSender(event, 'main'))
       throw new Error('Rejected desktop minimize sender');
     mainWindow?.minimize();
+  });
+  /** 只允许 Full 的 Main Renderer 读取真实 native maximize 状态。 */
+  ipcMain.handle('desktop:get-maximized', async (event) => {
+    if (!isTrustedSender(event, 'main'))
+      throw new Error('Rejected desktop maximize state sender');
+    return latestState.mode === 'full' && Boolean(mainWindow?.isMaximized());
+  });
+  /** 只允许 Full 的 Main Renderer 切换真实 BrowserWindow maximize，紧凑模式不接受该能力。 */
+  ipcMain.handle('desktop:toggle-maximized', async (event) => {
+    if (!isTrustedSender(event, 'main'))
+      throw new Error('Rejected desktop maximize sender');
+    if (!mainWindow || mainWindow.isDestroyed() || latestState.mode !== 'full')
+      return false;
+    if (mainWindow.isMaximized()) mainWindow.unmaximize();
+    else mainWindow.maximize();
+    publishMainWindowMaximizeState();
+    return mainWindow.isMaximized();
   });
   /**
    * 仅让受信任 Main Renderer 把当前报告 DOM 输出为 PDF。
@@ -770,6 +804,8 @@ async function createMainWindow(): Promise<void> {
   });
   window.on('move', publishUserGeometry);
   window.on('resize', publishUserGeometry);
+  window.on('maximize', publishMainWindowMaximizeState);
+  window.on('unmaximize', publishMainWindowMaximizeState);
   window.on('close', () => {
     userRequestedClose = true;
     if (!rebuildingMain) isQuitting = true;

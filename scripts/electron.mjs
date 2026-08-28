@@ -42,6 +42,7 @@ function buildRenderer() {
     ELECTRON_BUILD: 'true',
   });
   run(process.execPath, ['scripts/generate-csp.mjs', '.next-electron']);
+  run(process.execPath, ['scripts/generate-sw-precache.mjs', '.next-electron']);
 }
 
 /** 编译 Main/Preload 并让 electron-builder 生成指定 Windows 产物。 */
@@ -96,13 +97,15 @@ async function runDevelopmentShell() {
 if (command === 'renderer') {
   buildRenderer();
 } else if (command === 'package-dir') {
-  packageApplication(['--win', '--x64', '--dir']);
+  packageApplication(['--win', '--x64', '--dir', '--publish', 'never']);
 } else if (command === 'package') {
-  packageApplication(['--win', 'nsis', '--x64']);
+  packageApplication(['--win', 'nsis', '--x64', '--publish', 'never']);
+} else if (command === 'release') {
+  packageApplication(['--win', 'nsis', '--x64', '--publish', 'always']);
 } else if (command === 'dev') {
   await runDevelopmentShell();
 } else {
   throw new Error(
-    'Usage: pnpm desktop:renderer | desktop:dev | desktop:build:dir | desktop:electron:build',
+    'Usage: pnpm desktop:renderer | desktop:dev | desktop:build:dir | desktop:build | desktop:release',
   );
 }

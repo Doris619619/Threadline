@@ -6,7 +6,7 @@
 
 ## 产品与运行形态
 
-- **Web / PWA**：Next.js App Router 应用，支持浏览器访问和 iPhone 添加到主屏后的离线应用壳。
+- **Web / PWA**：Next.js App Router 应用，成功在线打开后预缓存应用壳与当前 Next 静态资源，支持断网重开。
 - **Windows 桌面版**：Electron 打包同一套前端；不维护第二套 UI 或业务逻辑。
 - **数据层**：未配置 Supabase 时使用本地 seed 与浏览器持久化；配置 Supabase 并建立登录态后可使用受 RLS 保护的远端仓储。
 
@@ -52,9 +52,10 @@ pnpm desktop:compile
 pnpm desktop:renderer
 pnpm desktop:build:dir
 pnpm desktop:build
+pnpm desktop:release
 ```
 
-`desktop:compile` 会先检查 Electron 类型，再以 `esbuild` 将 Main 与 Preload 输出为 `dist-electron/*.cjs`；两者保持 CommonJS。洞察报告在 Web/PWA 走浏览器打印，在 Electron 通过受限 Main bridge 保存为 PDF。`desktop:dev` 会启动隔离的 Next.js 开发服务器并打开 Electron 窗口。`desktop:renderer` 只生成 `.next-electron` 静态前端；`desktop:build:dir` 生成 unpacked Windows x64 应用；`desktop:build` 生成 NSIS 安装包。原有的 `pnpm build` 与 `pnpm start` 仍保持 Next.js Web/PWA 生产模式。
+`desktop:compile` 会先检查 Electron 类型，再以 `esbuild` 将 Main 与 Preload 输出为 `dist-electron/*.cjs`；两者保持 CommonJS。洞察报告在 Web/PWA 走浏览器打印，在 Electron 通过受限 Main bridge 保存为 PDF。`desktop:dev` 会启动隔离的 Next.js 开发服务器并打开 Electron 窗口。`desktop:renderer` 只生成 `.next-electron` 静态前端；`desktop:build:dir` 生成 unpacked Windows x64 应用；`desktop:build` 生成仅供验证、明确不发布的 NSIS 安装包；仅版本 tag 或手动触发的 GitHub Release workflow 使用 `desktop:release` 发布。原有的 `pnpm build` 与 `pnpm start` 仍保持 Next.js Web/PWA 生产模式。
 
 Web/PWA 与打包的 `threadline://app` 都从实际构建 HTML 生成精确 CSP hash；Windows 包在 `afterPack` 写入并复核 Electron fuses、ASAR integrity 与 `OnlyLoadAppFromAsar`。详见 [CSP 与打包硬化](docs/electron-hardening.md)。
 
@@ -77,7 +78,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
 执行 `supabase/migrations/202608230001_initial_threadline.sql` 创建数据表。迁移包含 `owner_id`、约束、索引与基于 `auth.uid()` 的 RLS policy；客户端不能读取或修改其他用户的数据。
 
-`src/lib/supabase-workspace-repository.ts` 已将 Project、Task、Daily、历史和收尾记录逐表映射到该 schema。配置完成并建立登录态后，可用该 Repository 替换本地实现；业务组件不直接依赖 Supabase SDK。
+`src/lib/supabase-workspace-repository.ts` 已将 Project、Task、Daily、历史和收尾记录逐表映射到该 schema，但当前运行时仍使用浏览器本地持久化，尚未自动接入或同步 Supabase。远端接入前需先完成本地 seed ID 到 UUID 的迁移、删除同步与离线/冲突策略；业务组件不直接依赖 Supabase SDK。
 
 ## 自动化验证范围
 
@@ -109,7 +110,7 @@ docs/                    PRD、目标、工程协作规范、桌面交互与 PR 
 - 开始与结束时间支持 `1420` / `14:20` 输入；同日填写会自动计算预计分钟，不支持跨午夜。
 - **今日日程 ↔ 无时间待办**支持拖拽移动任务（不复制）：按住每条任务右侧的六点拖拽柄并拖到另一面板；拖入日程后会作为持久化的待填时间任务置顶并自动聚焦时间输入，拖出会清除待填状态与全部排程时间。
 - **荧光笔 / 橡皮擦**可在今日日程区域批注，坐标按相对比例持久化；按 Esc 或再次点击工具退出。
-- **Windows 桌面三态工作流**：完整工作台右上两个直接按钮进入迷你今日或工作站；两种紧凑视图使用同一个始终置顶的主窗口并可互转。迷你今日显示今日日程与无时间待办；工作站保存有序 task ID 引用，支持加入、移除、清空和排序而不影响原任务。右侧 edge tab 只是紧凑视图的收起状态，悬停后恢复最近视图；启动、模式切换和第二次启动都会校验多显示器/DPI 下的可见 geometry，并唤醒既有窗口。
+- **Windows 桌面三态工作流**：完整工作台右上两个直接按钮进入迷你今日或工作站，并提供最小化、原生最大化/还原和关闭；两种紧凑视图使用同一个始终置顶的主窗口并可互转。迷你今日显示今日日程与无时间待办；工作站保存有序 task ID 引用，支持加入、移除、清空和排序而不影响原任务。右侧 edge tab 只是紧凑视图的收起状态，悬停后恢复最近视图；启动、模式切换和第二次启动都会校验多显示器/DPI 下的可见 geometry，并唤醒既有窗口。
 
 ## 协作约定
 

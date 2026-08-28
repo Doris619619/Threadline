@@ -2,6 +2,7 @@
 node_modules/
 .next/
 .next-electron/
+public/sw-precache.json
 dist-electron/
 release/
 out/

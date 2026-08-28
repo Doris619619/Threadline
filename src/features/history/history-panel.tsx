@@ -1,7 +1,9 @@
+/** @fileoverview 展示历史事件、Daily 收尾与回收站，避免由 Task 当前快照重复构造流转记录。 */
+
 'use client';
 import { RotateCcw } from 'lucide-react';
 import { Surface } from '@/components/ui/surface';
-import { getLocalDateKey } from '@/lib/local-date';
+import { getLocalDateKey, getLocalDateKeyFromTimestamp } from '@/lib/local-date';
 import type { DailyHistoryEntry } from '@/features/daily/daily-panel';
 import type { CloseRecord, HistoryEvent, Task } from '@/types/domain';
 
@@ -30,12 +32,6 @@ export function HistoryPanel({
   onUpdate: (task: Task) => void;
 }) {
   const trashed = tasks.filter((task) => task.status === 'trashed');
-  const taskHistory = tasks.filter(
-    (task) =>
-      task.status === 'rescheduled' ||
-      task.status === 'abandoned' ||
-      task.status === 'backlog',
-  );
   return (
     <div className="history-panel">
       <Surface>
@@ -43,7 +39,7 @@ export function HistoryPanel({
           <h2>历史记录</h2>
           <p>移期、待安排和放弃会长期保留；放弃不计入当天普通任务分母。</p>
         </header>
-        {taskHistory.length === 0 && history.length === 0 ? (
+        {history.length === 0 ? (
           <p className="empty-copy">还没有历史流转。</p>
         ) : (
           <table>
@@ -56,20 +52,6 @@ export function HistoryPanel({
               </tr>
             </thead>
             <tbody>
-              {taskHistory.map((task) => (
-                <tr key={task.id}>
-                  <td>{task.title}</td>
-                  <td>
-                    {task.status === 'abandoned'
-                      ? '放弃'
-                      : task.status === 'backlog'
-                        ? '待安排'
-                        : '已移期'}
-                  </td>
-                  <td>{task.postponedFrom ?? getLocalDateKey()}</td>
-                  <td>{task.postponedTo ?? '—'}</td>
-                </tr>
-              ))}
               {history.map((event) => (
                 <tr key={event.id}>
                   <td>
@@ -77,7 +59,10 @@ export function HistoryPanel({
                       '今日收尾'}
                   </td>
                   <td>{eventLabel[event.type] ?? event.type}</td>
-                  <td>{event.payload?.fromDate ?? event.occurredAt.slice(0, 10)}</td>
+                  <td>
+                    {event.payload?.fromDate ??
+                      getLocalDateKeyFromTimestamp(event.occurredAt)}
+                  </td>
                   <td>{event.payload?.toDate ?? '—'}</td>
                 </tr>
               ))}

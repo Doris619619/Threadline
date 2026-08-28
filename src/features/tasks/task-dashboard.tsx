@@ -23,7 +23,7 @@ import { Input } from '@/components/ui/input';
 import { ProjectTag } from '@/components/ui/project-tag';
 import { StatItem } from '@/components/ui/stat-item';
 import { Surface } from '@/components/ui/surface';
-import { calculateDuration } from '@/lib/task-rules';
+import { calculateDuration, canTransitionTask } from '@/lib/task-rules';
 import { taskFormSchema } from '@/lib/schemas';
 import { DailyPanel } from '@/features/daily/daily-panel';
 import { CalendarPanel } from '@/features/calendar/calendar-panel';
@@ -692,6 +692,7 @@ export function TaskDashboard() {
     ]);
   const move = (id: string, status: TaskStatus) => {
     const task = tasks.find((item) => item.id === id);
+    if (!task || !canTransitionTask(task, status)) return;
     if (status === 'trashed') {
       updateAnnotationStrokes((current) =>
         current.filter((stroke) => stroke.targetTaskId !== id),
@@ -719,6 +720,7 @@ export function TaskDashboard() {
   };
   const reschedule = (targetDate: string) => {
     if (!rescheduling) return;
+    if (!canTransitionTask(rescheduling, 'rescheduled')) return '请先取消完成再移期';
     const sourceDate = rescheduling.date ?? selectedDate;
     if (targetDate <= sourceDate) return '请选择晚于原计划日期的未来日期';
     updateTasks((current) =>
@@ -921,116 +923,133 @@ export function TaskDashboard() {
               )}
             </div>
           </header>
-          <div className="timeline-head">
-            <span className="timeline-col-time">时间</span>
-            <span className="timeline-col-check"></span>
-            <span className="timeline-col-project">项目</span>
-            <span className="timeline-col-title">任务</span>
-            <span className="timeline-col-planned">预计</span>
-            <span className="timeline-col-actual">实际</span>
-            <span className="timeline-col-actions">操作</span>
-          </div>
-          {timed.map((task) => (
-            <TaskLine
-              key={task.id}
-              task={task}
-              onUpdate={update}
-              onEdit={() => open(task, 'normal')}
-              onMove={move}
-              onReschedule={() => setRescheduling(task)}
-              projects={workspaceProjects}
-              onAddProject={createProjectDirectly}
-              draggable={!annotationInteractionLocked}
-              isDragging={draggingTaskId === task.id}
-              autoFocusTime={autoFocusTimeTaskId === task.id}
-              onTimeFocused={() => setAutoFocusTimeTaskId(null)}
-              interactionLocked={annotationInteractionLocked}
-              onDragStart={() => handleTaskDragStart(task.id)}
-              onDragEnd={handleTaskDragEnd}
-              onPointerDragStart={(event) => handlePointerDragStart(task.id, event)}
-              onPointerDragMove={handlePointerDragMove}
-              onPointerDragEnd={handlePointerDragEnd}
-              inWorkstation={workstationTaskIds.includes(task.id)}
-              onToggleWorkstation={toggleWorkstationTask}
-              inSchedulePanel
-            />
-          ))}
+          <div className="timeline-scroll">
+            <div className="timeline-head">
+              <span className="timeline-col-time">时间</span>
+              <span className="timeline-col-check"></span>
+              <span className="timeline-col-project">项目</span>
+              <span className="timeline-col-title">任务</span>
+              <span className="timeline-col-planned">预计</span>
+              <span className="timeline-col-actual">实际</span>
+              <span className="timeline-col-actions">操作</span>
+            </div>
+            {timed.map((task) => (
+              <TaskLine
+                key={task.id}
+                task={task}
+                onUpdate={update}
+                onEdit={() => open(task, 'normal')}
+                onMove={move}
+                onReschedule={() => setRescheduling(task)}
+                projects={workspaceProjects}
+                onAddProject={createProjectDirectly}
+                draggable={!annotationInteractionLocked}
+                isDragging={draggingTaskId === task.id}
+                autoFocusTime={autoFocusTimeTaskId === task.id}
+                onTimeFocused={() => setAutoFocusTimeTaskId(null)}
+                interactionLocked={annotationInteractionLocked}
+                onDragStart={() => handleTaskDragStart(task.id)}
+                onDragEnd={handleTaskDragEnd}
+                onPointerDragStart={(event) => handlePointerDragStart(task.id, event)}
+                onPointerDragMove={handlePointerDragMove}
+                onPointerDragEnd={handlePointerDragEnd}
+                inWorkstation={workstationTaskIds.includes(task.id)}
+                onToggleWorkstation={toggleWorkstationTask}
+                inSchedulePanel
+              />
+            ))}
 
-          {addingTimedRow && (
-            <div className="timeline-row timeline-row-adding">
-              <div className="timeline-time-range-inputs">
-                <input
-                  className="tl-inline-input timeline-time-input"
-                  aria-label="开始时间"
-                  placeholder="08:30"
-                  value={newTimedStartTime}
-                  autoFocus
-                  onChange={(e) => {
-                    setNewTimedStartTime(e.target.value);
-                    setNewTimedTimeError(undefined);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleConfirmAddTimed();
-                    if (e.key === 'Escape') setAddingTimedRow(false);
-                  }}
-                />
-                <span aria-hidden="true">→</span>
-                <input
-                  className="tl-inline-input timeline-time-input"
-                  aria-label="结束时间"
-                  placeholder="10:00"
-                  value={newTimedEndTime}
-                  onChange={(e) => {
-                    setNewTimedEndTime(e.target.value);
-                    setNewTimedTimeError(undefined);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleConfirmAddTimed();
-                    if (e.key === 'Escape') setAddingTimedRow(false);
-                  }}
-                />
-                {newTimedTimeError && (
-                  <span className="timeline-inline-error">{newTimedTimeError}</span>
-                )}
-              </div>
-              <div className="task-check-wrap">
-                <Checkbox
-                  checked={newTimedCompleted}
-                  onChange={(e) => setNewTimedCompleted(e.target.checked)}
-                />
-              </div>
-              <div style={{ position: 'relative' }} ref={timedProjectPickerRef}>
-                <select
-                  className="tl-inline-select project-inline-select"
-                  value={newTimedProjectId}
-                  onChange={(e) => {
-                    if (e.target.value === '__new__') {
-                      setIsAddingTimedProject(true);
-                    } else {
-                      setNewTimedProjectId(e.target.value);
-                    }
-                  }}
-                >
-                  {workspaceProjects
-                    .filter((p) => p.status === 'active')
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  <option value="__new__">+ 新增项目…</option>
-                </select>
-                {isAddingTimedProject && (
-                  <div className="project-picker-popover">
-                    <div className="project-picker-new-form">
-                      <input
-                        placeholder="新项目名称"
-                        value={newTimedProjectName}
-                        autoFocus
-                        onChange={(e) => setNewTimedProjectName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
+            {addingTimedRow && (
+              <div className="timeline-row timeline-row-adding">
+                <div className="timeline-time-range-inputs">
+                  <input
+                    className="tl-inline-input timeline-time-input"
+                    aria-label="开始时间"
+                    placeholder="08:30"
+                    value={newTimedStartTime}
+                    autoFocus
+                    onChange={(e) => {
+                      setNewTimedStartTime(e.target.value);
+                      setNewTimedTimeError(undefined);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleConfirmAddTimed();
+                      if (e.key === 'Escape') setAddingTimedRow(false);
+                    }}
+                  />
+                  <span aria-hidden="true">→</span>
+                  <input
+                    className="tl-inline-input timeline-time-input"
+                    aria-label="结束时间"
+                    placeholder="10:00"
+                    value={newTimedEndTime}
+                    onChange={(e) => {
+                      setNewTimedEndTime(e.target.value);
+                      setNewTimedTimeError(undefined);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleConfirmAddTimed();
+                      if (e.key === 'Escape') setAddingTimedRow(false);
+                    }}
+                  />
+                  {newTimedTimeError && (
+                    <span className="timeline-inline-error">{newTimedTimeError}</span>
+                  )}
+                </div>
+                <div className="task-check-wrap">
+                  <Checkbox
+                    checked={newTimedCompleted}
+                    onChange={(e) => setNewTimedCompleted(e.target.checked)}
+                  />
+                </div>
+                <div style={{ position: 'relative' }} ref={timedProjectPickerRef}>
+                  <select
+                    className="tl-inline-select project-inline-select"
+                    value={newTimedProjectId}
+                    onChange={(e) => {
+                      if (e.target.value === '__new__') {
+                        setIsAddingTimedProject(true);
+                      } else {
+                        setNewTimedProjectId(e.target.value);
+                      }
+                    }}
+                  >
+                    {workspaceProjects
+                      .filter((p) => p.status === 'active')
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    <option value="__new__">+ 新增项目…</option>
+                  </select>
+                  {isAddingTimedProject && (
+                    <div className="project-picker-popover">
+                      <div className="project-picker-new-form">
+                        <input
+                          placeholder="新项目名称"
+                          value={newTimedProjectName}
+                          autoFocus
+                          onChange={(e) => setNewTimedProjectName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (newTimedProjectName.trim()) {
+                                const created = createProjectDirectly(
+                                  newTimedProjectName.trim(),
+                                );
+                                setNewTimedProjectId(created.id);
+                                setNewTimedProjectName('');
+                                setIsAddingTimedProject(false);
+                              }
+                            }
+                            if (e.key === 'Escape') setIsAddingTimedProject(false);
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="tl-inline-confirm-btn"
+                          onClick={() => {
                             if (newTimedProjectName.trim()) {
                               const created = createProjectDirectly(
                                 newTimedProjectName.trim(),
@@ -1039,87 +1058,72 @@ export function TaskDashboard() {
                               setNewTimedProjectName('');
                               setIsAddingTimedProject(false);
                             }
-                          }
-                          if (e.key === 'Escape') setIsAddingTimedProject(false);
-                        }}
-                      />
-                      <button
-                        type="button"
-                        className="tl-inline-confirm-btn"
-                        onClick={() => {
-                          if (newTimedProjectName.trim()) {
-                            const created = createProjectDirectly(
-                              newTimedProjectName.trim(),
-                            );
-                            setNewTimedProjectId(created.id);
-                            setNewTimedProjectName('');
-                            setIsAddingTimedProject(false);
-                          }
-                        }}
-                      >
-                        <Check size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        className="tl-inline-cancel-btn"
-                        onClick={() => setIsAddingTimedProject(false)}
-                      >
-                        <X size={13} />
-                      </button>
+                          }}
+                        >
+                          <Check size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          className="tl-inline-cancel-btn"
+                          onClick={() => setIsAddingTimedProject(false)}
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+                <input
+                  className="tl-inline-input task-title-input"
+                  placeholder="任务名称（按 Enter 保存）"
+                  value={newTimedTitle}
+                  onChange={(e) => setNewTimedTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleConfirmAddTimed();
+                    if (e.key === 'Escape') setAddingTimedRow(false);
+                  }}
+                />
+                <input
+                  className="tl-inline-input task-duration-input"
+                  placeholder="45min"
+                  value={newTimedPlanned}
+                  onChange={(e) => setNewTimedPlanned(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleConfirmAddTimed();
+                    if (e.key === 'Escape') setAddingTimedRow(false);
+                  }}
+                />
+                <input
+                  className="tl-inline-input task-duration-input"
+                  placeholder="实际耗时"
+                  value={newTimedActual}
+                  onChange={(e) => setNewTimedActual(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleConfirmAddTimed();
+                    if (e.key === 'Escape') setAddingTimedRow(false);
+                  }}
+                />
+                <div className="tl-inline-actions-cell">
+                  <button
+                    type="button"
+                    className="tl-inline-confirm-btn"
+                    onClick={handleConfirmAddTimed}
+                    title="保存任务"
+                  >
+                    <Check size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className="tl-inline-cancel-btn"
+                    onClick={() => setAddingTimedRow(false)}
+                    title="取消"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
               </div>
-              <input
-                className="tl-inline-input task-title-input"
-                placeholder="任务名称（按 Enter 保存）"
-                value={newTimedTitle}
-                onChange={(e) => setNewTimedTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleConfirmAddTimed();
-                  if (e.key === 'Escape') setAddingTimedRow(false);
-                }}
-              />
-              <input
-                className="tl-inline-input task-duration-input"
-                placeholder="45min"
-                value={newTimedPlanned}
-                onChange={(e) => setNewTimedPlanned(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleConfirmAddTimed();
-                  if (e.key === 'Escape') setAddingTimedRow(false);
-                }}
-              />
-              <input
-                className="tl-inline-input task-duration-input"
-                placeholder="实际耗时"
-                value={newTimedActual}
-                onChange={(e) => setNewTimedActual(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleConfirmAddTimed();
-                  if (e.key === 'Escape') setAddingTimedRow(false);
-                }}
-              />
-              <div className="tl-inline-actions-cell">
-                <button
-                  type="button"
-                  className="tl-inline-confirm-btn"
-                  onClick={handleConfirmAddTimed}
-                  title="保存任务"
-                >
-                  <Check size={14} />
-                </button>
-                <button
-                  type="button"
-                  className="tl-inline-cancel-btn"
-                  onClick={() => setAddingTimedRow(false)}
-                  title="取消"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </Surface>
         {!isMiniToday && (
           <div className="side-column">
@@ -1593,7 +1597,9 @@ function PlanningQueue({
                 }
               />
               <button onClick={() => onArrange(task.id)}>安排到今天</button>
-              <button onClick={() => onMove(task.id, 'abandoned')}>放弃</button>
+              {!task.completed && (
+                <button onClick={() => onMove(task.id, 'abandoned')}>放弃</button>
+              )}
               <button onClick={() => onMove(task.id, 'trashed')}>删除</button>
             </div>
           );
@@ -1655,6 +1661,7 @@ function TaskLine({
     projects.find((p) => p.id === task.projectId) ?? createProjectSeed()[4];
   const timed = inSchedulePanel || Boolean(task.plannedStartTime);
   const canDrag = draggable && !interactionLocked;
+  const canChangeWorkflow = !task.completed;
   const [editingField, setEditingField] = useState<
     'time' | 'project' | 'title' | 'planned' | 'actual' | undefined
   >();
@@ -1998,9 +2005,13 @@ function TaskLine({
               <Pencil size={13} />
               详细编辑
             </button>
-            <button onClick={onReschedule}>移期</button>
-            <button onClick={() => onMove(task.id, 'backlog')}>待安排</button>
-            <button onClick={() => onMove(task.id, 'abandoned')}>放弃</button>
+            {canChangeWorkflow && <button onClick={onReschedule}>移期</button>}
+            {canChangeWorkflow && (
+              <button onClick={() => onMove(task.id, 'backlog')}>待安排</button>
+            )}
+            {canChangeWorkflow && (
+              <button onClick={() => onMove(task.id, 'abandoned')}>放弃</button>
+            )}
             <button onClick={() => onMove(task.id, 'trashed')}>
               <Trash2 size={13} />
               删除

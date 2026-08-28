@@ -153,6 +153,36 @@ try {
       ?.restore();
   });
   await page.waitForFunction(() => document.visibilityState === 'visible');
+  const normalBounds = await application.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()
+      .find((window) => !window.isDestroyed())
+      ?.getBounds(),
+  );
+  await page.getByRole('button', { name: '最大化窗口' }).click();
+  await waitFor(
+    async () =>
+      application.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows().some((window) => window.isMaximized()),
+      ),
+    'Full window must maximize through the restricted Renderer action',
+  );
+  await page.getByRole('button', { name: '还原窗口' }).click();
+  await waitFor(
+    async () =>
+      application.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows().every((window) => !window.isMaximized()),
+      ),
+    'Full window must restore through the restricted Renderer action',
+  );
+  assert.deepEqual(
+    await application.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()
+        .find((window) => !window.isDestroyed())
+        ?.getBounds(),
+    ),
+    normalBounds,
+    'maximize and restore must retain the normal window geometry',
+  );
   await page.getByRole('button', { name: '迷你今日', exact: true }).click();
   await page.getByTestId('mini-today-panel').waitFor();
   assert.equal(
@@ -222,6 +252,14 @@ try {
         (window) => window.visible && window.url.includes('threadline-role=main'),
       ),
     'second instance must restore the latest compact Main from Edge',
+  );
+  await page.getByRole('button', { name: '打开完整工作台' }).click();
+  await page.locator('.full-window-chrome').waitFor();
+  const desktopProcess = application.process();
+  await page.getByRole('button', { name: '关闭窗口' }).click();
+  await waitFor(
+    async () => desktopProcess.exitCode !== null,
+    'Full close must terminate the Electron process without rebuilding Main',
   );
   console.log('Electron window smoke test passed.');
 } catch (error) {
