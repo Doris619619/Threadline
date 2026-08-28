@@ -18,7 +18,7 @@ import { AnnotationColorPicker } from '@/components/annotation-color-picker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { StatItem } from '@/components/ui/stat-item';
 import { Surface } from '@/components/ui/surface';
-import { calculateDuration, canTransitionTask } from '@/lib/task-rules';
+import { calculateDuration } from '@/lib/task-rules';
 import { taskFormSchema } from '@/lib/schemas';
 import { DailyPanel } from '@/features/daily/daily-panel';
 import { CalendarPanel } from '@/features/calendar/calendar-panel';
@@ -54,7 +54,8 @@ import { useScheduleResize } from '@/features/tasks/hooks/use-schedule-resize';
 import { useTaskDragAndDrop } from '@/features/tasks/hooks/use-task-drag-and-drop';
 import { useWorkstationMembership } from '@/features/tasks/hooks/use-workstation-membership';
 import { useTaskDashboardData } from '@/features/tasks/hooks/use-task-dashboard-data';
-import type { HistoryEvent, Project, Task, TaskStatus } from '@/types/domain';
+import { useTaskWorkflow } from '@/features/tasks/hooks/use-task-workflow';
+import type { HistoryEvent, Project, Task } from '@/types/domain';
 
 export function TaskDashboard() {
   const { active, selectedDate, setSelectedDate } = useWorkspaceView();
@@ -278,10 +279,19 @@ export function TaskDashboard() {
     setAnnotationTool((current) => (current === tool ? 'none' : tool));
   };
 
-  const update = (task: Task) =>
-    updateTasks((current) =>
-      current.map((item) => (item.id === task.id ? task : item)),
-    );
+  const {
+    appendHistory,
+    moveTask: move,
+    rescheduleTask,
+    updateTask: update,
+  } = useTaskWorkflow({
+    selectedDate,
+    tasks,
+    updateAnnotationStrokes,
+    updateHistory,
+    updateTasks,
+    updateWorkstationTaskIds,
+  });
 
   const { clearWorkstation, reorderWorkstation, toggleWorkstationTask } =
     useWorkstationMembership(updateWorkstationTaskIds);
@@ -411,76 +421,11 @@ export function TaskDashboard() {
     setTaskDialogOpen(false);
     return undefined;
   };
-  const appendHistory = (
-    type: string,
-    taskId?: string,
-    payload: Record<string, string> = {},
-  ) =>
-    updateHistory((current) => [
-      {
-        id: crypto.randomUUID(),
-        taskId,
-        type,
-        occurredAt: new Date().toISOString(),
-        payload,
-      },
-      ...current,
-    ]);
-  const move = (id: string, status: TaskStatus) => {
-    const task = tasks.find((item) => item.id === id);
-    if (!task || !canTransitionTask(task, status)) return;
-    if (status === 'trashed') {
-      updateAnnotationStrokes((current) =>
-        current.filter((stroke) => stroke.targetTaskId !== id),
-      );
-      updateWorkstationTaskIds((current) => current.filter((taskId) => taskId !== id));
-    }
-    updateTasks((current) =>
-      current.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              status,
-              date: status === 'active' ? t.date : undefined,
-              postponedFrom:
-                status !== 'active' ? (t.date ?? t.postponedFrom) : t.postponedFrom,
-              abandonedAt:
-                status === 'abandoned' ? new Date().toISOString() : t.abandonedAt,
-              deletedAt: status === 'trashed' ? new Date().toISOString() : t.deletedAt,
-              updatedAt: new Date().toISOString(),
-            }
-          : t,
-      ),
-    );
-    appendHistory(status, id, { fromDate: task?.date ?? selectedDate });
-  };
+  /** 将当前移期弹窗的任务交给 workflow，并只在成功后关闭弹窗。 */
   const reschedule = (targetDate: string) => {
-    if (!rescheduling) return;
-    if (!canTransitionTask(rescheduling, 'rescheduled')) return '请先取消完成再移期';
-    const sourceDate = rescheduling.date ?? selectedDate;
-    if (targetDate <= sourceDate) return '请选择晚于原计划日期的未来日期';
-    updateTasks((current) =>
-      current.map((task) =>
-        task.id === rescheduling.id
-          ? {
-              ...task,
-              status: 'active',
-              date: targetDate,
-              completed: false,
-              completedAt: undefined,
-              postponedFrom: sourceDate,
-              postponedTo: targetDate,
-              updatedAt: new Date().toISOString(),
-            }
-          : task,
-      ),
-    );
-    appendHistory('rescheduled', rescheduling.id, {
-      fromDate: sourceDate,
-      toDate: targetDate,
-    });
-    setRescheduling(undefined);
-    return undefined;
+    const message = rescheduleTask(rescheduling, targetDate);
+    if (!message && rescheduling) setRescheduling(undefined);
+    return message;
   };
   if (isMiniToday)
     return (
@@ -1203,5 +1148,6 @@ export function TaskDashboard() {
 function numberOrUndefined(value: FormDataEntryValue | null) {
   return value === null || value === '' ? undefined : Number(value);
 }
+
 
 
