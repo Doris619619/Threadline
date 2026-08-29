@@ -10,7 +10,7 @@
 - **日历**展示“项目投入热力”：某日热力数等于 `actualMinutes > 0` 的去重项目数，映射为 `0 / 1 / 2 / 3 / 4+`。它不使用完成任务数量。
 - **洞察**提供日、周、月和自定义范围的项目投入、预计与实际、投入趋势、项目重心与浏览器/Electron 报告导出。
 - **记录**只搜索当前可靠可得的 Task、HistoryEvent、DailyHistory 与 CloseRecord；它不是 Event Sourcing。
-- **节律**是仅本地的私密日期标记，默认不进入 analytics、PDF 或记录搜索。
+- **节律**是账号级同步的日期标记，默认不进入 analytics、PDF 或记录搜索。
 - **设置**第一版只提供数据回收站、隐私边界、桌面窗口重置和关于信息；不伪造主题、密度、默认项目等偏好。
 
 ## 统一 analytics
@@ -25,13 +25,13 @@
 | `legacy-aggregate` | 旧 CloseRecord 只有某日项目总分钟    | 仅保留为项目级汇总，不拆分为任务 |
 | `incomplete`       | 缺少明确业务日期或无法确认归属       | 不伪造历史，洞察与报告显示提示   |
 
-当同日同项目已有精确来源时，adapter 完全跳过 CloseRecord；不会用 CloseRecord 减去 Daily、更新时间、当前状态或移期字段推断历史。
+History / Records 的正式 Daily 历史只来自 `daily_history_entries`。Calendar、Insights 与 PDF 同时读取正式 Daily history 和尚未正式记录的 `daily_entries`，按 `(template_id, entry_date)` 去重；因此未点击“记录”的当日实际耗时仍会立即进入洞察。同日同项目已有精确来源时，adapter 完全跳过 CloseRecord；不会用 CloseRecord 减去 Daily、更新时间、当前状态或移期字段推断历史。
 
 ## 状态边界
 
-`WorkspaceDataProvider` 只协调 hydration 和领域 Context：任务、项目、Daily、历史、工作台表面状态。每个领域都有独立 State 与 Actions Context；analytics 和报告不进入 Provider。节律状态由独立 `RhythmStateProvider` 管理，因此不会被工作台 analytics 读取。
+`WorkspaceDataProvider` 通过细粒度 Supabase Repository 与 React Query 协调任务、项目、Daily、历史和工作站。普通单表字段直接 CRUD；task transition + history、close_day、Daily template + 当前 entry、完整 workstation reorder 使用小型事务 RPC。节律由独立 `RhythmStateProvider` 订阅 Supabase，但仍不进入 analytics。
 
-本轮仍使用既有 Task / Daily / History / CloseRecord 数据模型；没有引入 TimeRecord，也没有迁移或删除旧 storage key。若未来确认 TimeRecord，必须先建立单一领域 action 与原子版本化存储，再考虑将其升级为实际投入的唯一来源。
+Task 的 `abandoned` 是永久保留的业务历史状态；`purged` 不是 TaskStatus。只有 `trashed + deleted_at 超过 30 天` 才由受保护的数据库函数物理删除。History FK 不级联删除 task history，并保存标题/项目/日期 snapshot。旧业务 localStorage key 在云账号初始化后清理，不迁移旧数据。
 
 ## 报告导出
 
