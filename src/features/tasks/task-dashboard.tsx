@@ -6,15 +6,10 @@
 
 import {
   Check,
-  Eraser,
-  GripVertical,
-  MousePointer2,
-  Plus,
   X,
 } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
-import { AnnotationColorPicker } from '@/components/annotation-color-picker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { StatItem } from '@/components/ui/stat-item';
 import { Surface } from '@/components/ui/surface';
@@ -44,6 +39,8 @@ import {
   parseDurationInput,
 } from '@/features/tasks/task-time';
 import { TaskLine } from '@/features/tasks/components/task-line';
+import { SchedulePanel } from '@/features/tasks/components/schedule-panel';
+import { QuickTaskPanel } from '@/features/tasks/components/quick-task-panel';
 import { PlanningQueue } from '@/features/tasks/components/planning-queue';
 import {
   CloseDialog,
@@ -547,63 +544,24 @@ export function TaskDashboard() {
         onPointerMove={handlePointerDragMove}
         onPointerUp={handlePointerDragEnd}
       >
-        <Surface
-          className={`schedule-panel${dropTarget === 'schedule' ? 'is-drop-target' : ''}`}
-          data-task-drop-zone="schedule"
-          onDragOver={handleScheduleDragOver}
+        <SchedulePanel
+          annotationTool={annotationTool}
+          highlightColor={highlightColor}
+          isDropTarget={dropTarget === 'schedule'}
+          isFullWorkspace={!isMiniToday}
+          isResizing={isResizingSchedule}
+          onAdd={() => {
+            setAddingTimedRow(true);
+            setNewTimedProjectId(workspaceProjects[0]?.id ?? 'work');
+          }}
           onDragLeave={() => setDropTarget(null)}
+          onDragOver={handleScheduleDragOver}
           onDrop={handleScheduleDrop}
+          onResizeStart={startResizeSchedule}
+          onSelectAnnotationTool={setAnnotationTool}
+          onSetHighlightColor={updateHighlightColor}
+          onToggleEraser={() => toggleAnnotationTool('eraser')}
         >
-          <header className="schedule-panel-header">
-            <h2>今日日程</h2>
-            <div className="schedule-panel-actions">
-              <div className="annotation-tools" role="group" aria-label="批注工具">
-                <button
-                  type="button"
-                  className={`annotation-tool-btn${annotationTool === 'none' ? 'is-active' : ''}`}
-                  aria-label="选择模式"
-                  title="选择模式"
-                  onClick={() => setAnnotationTool('none')}
-                >
-                  <MousePointer2 size={15} />
-                </button>
-                <AnnotationColorPicker
-                  active={annotationTool === 'highlight'}
-                  color={highlightColor}
-                  onActivate={() => setAnnotationTool('highlight')}
-                  onColorChange={updateHighlightColor}
-                />
-                <button
-                  type="button"
-                  className={`annotation-tool-btn${annotationTool === 'eraser' ? 'is-active' : ''}`}
-                  aria-label="橡皮擦"
-                  title="橡皮擦（Esc 退出）"
-                  onClick={() => toggleAnnotationTool('eraser')}
-                >
-                  <Eraser size={15} />
-                </button>
-              </div>
-              <button
-                className="add-link"
-                onClick={() => {
-                  setAddingTimedRow(true);
-                  setNewTimedProjectId(workspaceProjects[0]?.id ?? 'work');
-                }}
-              >
-                <Plus size={19} /> 添加
-              </button>
-              {!isMiniToday && (
-                <button
-                  type="button"
-                  className={`schedule-resize-handle ${isResizingSchedule ? 'is-resizing' : ''}`}
-                  onPointerDown={startResizeSchedule}
-                  title="按住向右拖动以扩展今日日程宽度"
-                >
-                  <GripVertical size={16} />
-                </button>
-              )}
-            </div>
-          </header>
           <div className="timeline-scroll">
             <div className="timeline-head">
               <span className="timeline-col-time">时间</span>
@@ -805,28 +763,19 @@ export function TaskDashboard() {
               </div>
             )}
           </div>
-        </Surface>
+        </SchedulePanel>
         {!isMiniToday && (
           <div className="side-column">
-            <Surface
-              className={`quick-panel${dropTarget === 'quick' ? 'is-drop-target' : ''}`}
-              data-task-drop-zone="quick"
-              onDragOver={handleQuickDragOver}
+            <QuickTaskPanel
+              isDropTarget={dropTarget === 'quick'}
+              onAdd={() => {
+                setAddingQuickRow(true);
+                setNewQuickProjectId(workspaceProjects[0]?.id ?? 'other');
+              }}
               onDragLeave={() => setDropTarget(null)}
+              onDragOver={handleQuickDragOver}
               onDrop={handleQuickDrop}
             >
-              <header>
-                <h2>无时间待办</h2>
-                <button
-                  className="add-link"
-                  onClick={() => {
-                    setAddingQuickRow(true);
-                    setNewQuickProjectId(workspaceProjects[0]?.id ?? 'other');
-                  }}
-                >
-                  <Plus size={19} /> 添加
-                </button>
-              </header>
               <div className="quick-tasks">
                 {quick.length === 0 && !addingQuickRow ? (
                   <p className="empty-copy">暂无未定时间的待办事项</p>
@@ -968,7 +917,7 @@ export function TaskDashboard() {
                   </div>
                 )}
               </div>
-            </Surface>
+            </QuickTaskPanel>
             <DailyPanel
               items={daily}
               history={dailyHistory}
