@@ -1,28 +1,40 @@
-/** @fileoverview 冻结新增行空标题取消时关闭行但不丢失草稿的既有行为。 */
+/** @fileoverview 验证新增行关闭、首页卸载和空标题取消均不会丢失跨页面草稿。 */
 
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { QuickTaskCreateRow } from '@/features/tasks/components/quick-task-create-row';
 import { TimedTaskCreateRow } from '@/features/tasks/components/timed-task-create-row';
+import { useTaskCreateDrafts } from '@/features/tasks/hooks/use-task-create-drafts';
 import type { Project } from '@/types/domain';
 
 const projects: Project[] = [{ id: 'work', name: '工作', color: '#4f8cff', status: 'active', createdAt: '' }];
 
-describe('task create row compatibility', () => {
-  it('keeps timed and quick drafts after a blank-title cancellation', () => {
-    const closeTimed = vi.fn();
-    const closeQuick = vi.fn();
-    const createTimed = vi.fn(() => ({ cancelled: true as const }));
-    const createQuick = vi.fn(() => ({ cancelled: true as const }));
-    const view = render(<><TimedTaskCreateRow open projects={projects} defaultProjectId="work" onCreate={createTimed} onCreateProject={vi.fn()} onClose={closeTimed} /><QuickTaskCreateRow open projects={projects} defaultProjectId="work" onCreate={createQuick} onCreateProject={vi.fn()} onClose={closeQuick} /></>);
-    fireEvent.change(screen.getByPlaceholderText('任务名称（按 Enter 保存）'), { target: { value: '保留日程草稿' } });
-    fireEvent.change(screen.getByPlaceholderText('待办内容（按 Enter 保存）'), { target: { value: '保留待办草稿' } });
-    fireEvent.click(screen.getByTitle('保存任务'));
-    fireEvent.click(screen.getByTitle('保存待办'));
-    expect(closeTimed).toHaveBeenCalledOnce();
-    expect(closeQuick).toHaveBeenCalledOnce();
-    view.rerender(<><TimedTaskCreateRow open projects={projects} defaultProjectId="work" onCreate={createTimed} onCreateProject={vi.fn()} onClose={closeTimed} /><QuickTaskCreateRow open projects={projects} defaultProjectId="work" onCreate={createQuick} onCreateProject={vi.fn()} onClose={closeQuick} /></>);
-    expect(screen.getByPlaceholderText('任务名称（按 Enter 保存）')).toHaveValue('保留日程草稿');
-    expect(screen.getByPlaceholderText('待办内容（按 Enter 保存）')).toHaveValue('保留待办草稿');
+/** 模拟首页被切出再返回；Hook 留在 Dashboard 层，新增行可卸载。 */
+function DraftHarness({ home }: { home: boolean }) {
+  const drafts = useTaskCreateDrafts();
+  const createTimed = (draft: { title: string }) => draft.title.trim() ? { task: {} } : { cancelled: true };
+  const createQuick = (draft: { title: string }) => draft.title.trim() ? { task: {} } : { cancelled: true };
+  return home ? <>
+    <button onClick={() => drafts.openTimed('work')}>打开日程</button><button onClick={() => drafts.openQuick('work')}>打开待办</button>
+    <TimedTaskCreateRow open={drafts.timedOpen} draft={drafts.timedDraft} projects={projects} onCreate={createTimed} onCreateProject={() => projects[0]} onChange={drafts.updateTimedDraft} onReset={() => drafts.resetTimed('work')} onClose={drafts.closeTimed} />
+    <QuickTaskCreateRow open={drafts.quickOpen} draft={drafts.quickDraft} projects={projects} onCreate={createQuick} onCreateProject={() => projects[0]} onChange={drafts.updateQuickDraft} onReset={() => drafts.resetQuick('work')} onClose={drafts.closeQuick} />
+  </> : <p>其他页面</p>;
+}
+
+describe('task create row draft lifecycle', () => {
+  it('keeps drafts after close/reopen and Dashboard child unmount, including actual blank-title cancellation', () => {
+    const view = render(<DraftHarness home />);
+    fireEvent.click(screen.getByText('打开日程')); fireEvent.click(screen.getByText('打开待办'));
+    fireEvent.change(screen.getByPlaceholderText('任务名称（按 Enter 保存）'), { target: { value: '日程草稿' } });
+    fireEvent.change(screen.getByPlaceholderText('待办内容（按 Enter 保存）'), { target: { value: '待办草稿' } });
+    fireEvent.click(screen.getAllByTitle('取消')[0]);
+    fireEvent.click(screen.getAllByTitle('取消')[0]);
+    fireEvent.click(screen.getByText('打开日程')); fireEvent.click(screen.getByText('打开待办'));
+    expect(screen.getByPlaceholderText('任务名称（按 Enter 保存）')).toHaveValue('日程草稿');
+    expect(screen.getByPlaceholderText('待办内容（按 Enter 保存）')).toHaveValue('待办草稿');
+    view.rerender(<DraftHarness home={false} />); view.rerender(<DraftHarness home />);
+    fireEvent.click(screen.getByText('打开日程')); fireEvent.click(screen.getByText('打开待办'));
+    expect(screen.getByPlaceholderText('任务名称（按 Enter 保存）')).toHaveValue('日程草稿');
+    expect(screen.getByPlaceholderText('待办内容（按 Enter 保存）')).toHaveValue('待办草稿');
   });
 });

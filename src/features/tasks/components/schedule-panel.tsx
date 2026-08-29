@@ -2,17 +2,16 @@
  * @fileoverview 渲染日程区域外壳；新增草稿和任务状态仍由 Dashboard 上层持有。
  */
 
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Eraser, GripVertical, MousePointer2, Plus } from 'lucide-react';
 import { AnnotationColorPicker } from '@/components/annotation-color-picker';
 import { Surface } from '@/components/ui/surface';
 import type { AnnotationTool } from '@/components/annotation-layer';
 
 type SchedulePanelChildren =
-  | ReactNode
-  | ((controls: { isAdding: boolean; closeAdd: () => void }) => ReactNode);
+  ReactNode | ((controls: { isAdding: boolean; closeAdd: () => void }) => ReactNode);
 
-/** 保持日程 drop 契约、批注工具和 resize 控制，新增行的开关状态归属于日程区域。 */
+/** 保持日程 drop 契约、批注工具和 resize 控制；新增行开关由跨页面草稿控制器提供。 */
 export function SchedulePanel({
   children,
   annotationTool,
@@ -20,6 +19,9 @@ export function SchedulePanel({
   isDropTarget,
   isFullWorkspace,
   isResizing,
+  isAdding,
+  onAdd,
+  onCloseAdd,
   onDragLeave,
   onDragOver,
   onDrop,
@@ -34,6 +36,9 @@ export function SchedulePanel({
   isDropTarget: boolean;
   isFullWorkspace: boolean;
   isResizing: boolean;
+  isAdding: boolean;
+  onAdd: () => void;
+  onCloseAdd: () => void;
   onDragLeave: () => void;
   onDragOver: (event: React.DragEvent) => void;
   onDrop: (event: React.DragEvent) => void;
@@ -42,7 +47,6 @@ export function SchedulePanel({
   onToggleEraser: () => void;
   onSetHighlightColor: (color: string) => void;
 }) {
-  const [isAdding, setIsAdding] = useState(false);
   return (
     <Surface
       className={`schedule-panel${isDropTarget ? 'is-drop-target' : ''}`}
@@ -80,7 +84,7 @@ export function SchedulePanel({
               <Eraser size={15} />
             </button>
           </div>
-          <button className="add-link" onClick={() => setIsAdding(true)}>
+          <button className="add-link" onClick={onAdd}>
             <Plus size={19} /> 添加
           </button>
           {isFullWorkspace && (
@@ -96,7 +100,7 @@ export function SchedulePanel({
         </div>
       </header>
       {typeof children === 'function'
-        ? children({ isAdding, closeAdd: () => setIsAdding(false) })
+        ? children({ isAdding, closeAdd: onCloseAdd })
         : children}
     </Surface>
   );

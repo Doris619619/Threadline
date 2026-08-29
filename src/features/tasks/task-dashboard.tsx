@@ -6,7 +6,6 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
-import { Checkbox } from '@/components/ui/checkbox';
 import { StatItem } from '@/components/ui/stat-item';
 import { Surface } from '@/components/ui/surface';
 import { DailyPanel } from '@/features/daily/daily-panel';
@@ -20,10 +19,7 @@ import { useWorkspaceData } from '@/features/workspace/workspace-data-provider';
 import { createDailyInstance } from '@/features/workspace/workspace-seed';
 import { CompactWindowHeader, useWorkspaceView } from '@/components/app-shell';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
-import {
-  MiniTodayPanel,
-  WorkstationPanel,
-} from '@/features/tasks/compact-workspace';
+import { MiniTodayPanel, WorkstationPanel } from '@/features/tasks/compact-workspace';
 import { formatMinutes } from '@/features/tasks/task-time';
 import { TaskLine } from '@/features/tasks/components/task-line';
 import { TimedTaskCreateRow } from '@/features/tasks/components/timed-task-create-row';
@@ -37,6 +33,7 @@ import {
   TaskDialog,
 } from '@/features/tasks/components/task-dialogs';
 import { useTaskCreateAndEdit } from '@/features/tasks/hooks/use-task-create-and-edit';
+import { useTaskCreateDrafts } from '@/features/tasks/hooks/use-task-create-drafts';
 import { useTaskDashboardController } from '@/features/tasks/hooks/use-task-dashboard-controller';
 import { useCloseDay } from '@/features/tasks/hooks/use-close-day';
 import type { Task } from '@/types/domain';
@@ -68,6 +65,7 @@ export function TaskDashboard() {
     hydrated,
   } = useWorkspaceData();
   const [annotationTool, setAnnotationTool] = useState<AnnotationTool>('none');
+  const createDrafts = useTaskCreateDrafts();
 
   const [editing, setEditing] = useState<Task | undefined>();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
@@ -323,6 +321,9 @@ export function TaskDashboard() {
           isDropTarget={dropTarget === 'schedule'}
           isFullWorkspace={!isMiniToday}
           isResizing={isResizingSchedule}
+          isAdding={createDrafts.timedOpen}
+          onAdd={() => createDrafts.openTimed(workspaceProjects[0]?.id ?? 'work')}
+          onCloseAdd={createDrafts.closeTimed}
           onDragLeave={() => setDropTarget(null)}
           onDragOver={handleScheduleDragOver}
           onDrop={handleScheduleDrop}
@@ -331,7 +332,7 @@ export function TaskDashboard() {
           onSetHighlightColor={updateHighlightColor}
           onToggleEraser={() => toggleAnnotationTool('eraser')}
         >
-          {({ isAdding, closeAdd }) => (
+          {() => (
             <div className="timeline-scroll">
               <div className="timeline-head">
                 <span className="timeline-col-time">时间</span>
@@ -368,12 +369,16 @@ export function TaskDashboard() {
                 />
               ))}
               <TimedTaskCreateRow
-                open={isAdding}
+                open={createDrafts.timedOpen}
+                draft={createDrafts.timedDraft}
                 projects={workspaceProjects}
-                defaultProjectId={workspaceProjects[0]?.id ?? 'work'}
                 onCreate={createTimedTask}
                 onCreateProject={createProjectDirectly}
-                onClose={closeAdd}
+                onChange={createDrafts.updateTimedDraft}
+                onReset={() =>
+                  createDrafts.resetTimed(workspaceProjects[0]?.id ?? 'work')
+                }
+                onClose={createDrafts.closeTimed}
               />
             </div>
           )}
@@ -382,13 +387,16 @@ export function TaskDashboard() {
           <div className="side-column">
             <QuickTaskPanel
               isDropTarget={dropTarget === 'quick'}
+              isAdding={createDrafts.quickOpen}
+              onAdd={() => createDrafts.openQuick(workspaceProjects[0]?.id ?? 'other')}
+              onCloseAdd={createDrafts.closeQuick}
               onDragLeave={() => setDropTarget(null)}
               onDragOver={handleQuickDragOver}
               onDrop={handleQuickDrop}
             >
-              {({ isAdding, closeAdd }) => (
+              {() => (
                 <div className="quick-tasks">
-                  {quick.length === 0 && !isAdding ? (
+                  {quick.length === 0 && !createDrafts.quickOpen ? (
                     <p className="empty-copy">暂无未定时间的待办事项</p>
                   ) : (
                     quick.map((task) => (
@@ -406,7 +414,9 @@ export function TaskDashboard() {
                         interactionLocked={annotationInteractionLocked}
                         onDragStart={() => handleTaskDragStart(task.id)}
                         onDragEnd={handleTaskDragEnd}
-                        onPointerDragStart={(event) => handlePointerDragStart(task.id, event)}
+                        onPointerDragStart={(event) =>
+                          handlePointerDragStart(task.id, event)
+                        }
                         onPointerDragMove={handlePointerDragMove}
                         onPointerDragEnd={handlePointerDragEnd}
                         inWorkstation={workstationTaskIds.includes(task.id)}
@@ -415,16 +425,21 @@ export function TaskDashboard() {
                     ))
                   )}
                   <QuickTaskCreateRow
-                    open={isAdding}
+                    open={createDrafts.quickOpen}
+                    draft={createDrafts.quickDraft}
                     projects={workspaceProjects}
-                    defaultProjectId={workspaceProjects[0]?.id ?? 'other'}
                     onCreate={createQuickTask}
                     onCreateProject={createProjectDirectly}
-                    onClose={closeAdd}
+                    onChange={createDrafts.updateQuickDraft}
+                    onReset={() =>
+                      createDrafts.resetQuick(workspaceProjects[0]?.id ?? 'other')
+                    }
+                    onClose={createDrafts.closeQuick}
                   />
                 </div>
               )}
-            </QuickTaskPanel>            <DailyPanel
+            </QuickTaskPanel>
+            <DailyPanel
               items={daily}
               history={dailyHistory}
               date={selectedDate}
@@ -513,4 +528,3 @@ export function TaskDashboard() {
     </div>
   );
 }
-
