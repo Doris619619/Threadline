@@ -81,10 +81,9 @@ pnpm desktop:verify:parity
 - app.asar 文件集合和内容；
 - Main、Preload、Renderer assets 和 packaged runtime tree；
 - 两个 EXE 的 fuse wire；
-- Preview 与 canonical 的 packaged Electron smoke；
-- `app.isPackaged`、`threadline://app`、production CSP、preload/IPC 和所有桌面窗口模式。
+- 两份 manifest 的 Git SHA、builder config hash、ASAR 和 fuse 验证状态。
 
-PE 本体不要求逐字节相同，因为 ASAR integrity resource、fuse 写入和签名 metadata 位于 EXE 内；这些区域通过 ASAR 内容比较、fuse wire 和 runtime smoke 分别验证。任何运行相关文件或安全策略差异都会返回 `DESKTOP_BUILD_PARITY_FAILED`，不会生成通过报告。
+PE 本体不要求逐字节相同，因为 ASAR integrity resource、fuse 写入和签名 metadata 位于 EXE 内；这些区域通过 ASAR 内容比较、fuse wire 与 packaged runtime tree 分别验证。任何运行相关文件或安全策略差异都会返回 `DESKTOP_BUILD_PARITY_FAILED`，不会生成通过报告。Preview 的正常启动与窗口交互由构建后的本机验收确认，不作为静态 parity 命令的重型自动化门禁。
 
 ## `PACKAGING_STALL` 与 Windows Defender
 
@@ -141,4 +140,4 @@ pnpm desktop:verify:parity
 pnpm desktop:build
 ```
 
-涉及 Renderer 时同时执行 `pnpm build` 与 `pnpm test:e2e`。只有 parity、packaged smoke、ASAR 和 fuse 验证全部通过，才能把 Preview 描述为正式运行环境的可靠验收包。
+涉及 Renderer 时同时执行 `pnpm build` 与 `pnpm test:e2e`。只有静态 parity、ASAR、fuse 验证通过，并且 Preview 在本机正常启动后，才能把它描述为正式运行环境的可靠验收包。

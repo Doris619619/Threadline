@@ -60,7 +60,7 @@ pnpm desktop:release
 
 `desktop:compile` 会先检查 Electron 类型，再以 `esbuild` 将 Main 与 Preload 输出为 `dist-electron/*.cjs`；两者保持 CommonJS。洞察报告在 Web/PWA 走浏览器打印，在 Electron 通过受限 Main bridge 保存为 PDF。`desktop:dev` 会启动隔离的 Next.js 开发服务器并打开 Electron 窗口。`desktop:renderer` 只生成 `.next-electron` 静态前端。
 
-日常需要“最新 EXE”时使用 `desktop:preview`：它生成 `release/preview/win-unpacked/Threadline.exe`，仍走正式 Renderer、Main/Preload、electron-builder、ASAR、afterPack 与 fuses，只省略 NSIS。`desktop:preview:open` 会在成功后显式启动；`desktop:verify:parity` 会与 canonical package-dir 比较并运行两套 packaged smoke。`desktop:build:dir` 保留为 CI/兼容目录包入口；`desktop:build` 生成仅供验证、明确不发布的 NSIS 安装包；仅版本 tag 或手动触发的 GitHub Release workflow 使用 `desktop:release` 发布。原有的 `pnpm build` 与 `pnpm start` 仍保持 Next.js Web/PWA 生产模式。
+日常需要“最新 EXE”时使用 `desktop:preview`：它生成 `release/preview/win-unpacked/Threadline.exe`，仍走正式 Renderer、Main/Preload、electron-builder、ASAR、afterPack 与 fuses，只省略 NSIS。`desktop:preview:open` 会在成功后显式启动；`desktop:verify:parity` 会与 canonical package-dir 比较 ASAR、运行文件树、fuse wire 与 manifest 等静态合同，不为自动化测试改动正式 runtime。`desktop:build:dir` 保留为 CI/兼容目录包入口；`desktop:build` 生成仅供验证、明确不发布的 NSIS 安装包；仅版本 tag 或手动触发的 GitHub Release workflow 使用 `desktop:release` 发布。原有的 `pnpm build` 与 `pnpm start` 仍保持 Next.js Web/PWA 生产模式。
 
 Web/PWA 与打包的 `threadline://app` 都从实际构建 HTML 生成精确 CSP hash；Windows 包在 `afterPack` 写入并复核 Electron fuses、ASAR integrity 与 `OnlyLoadAppFromAsar`。完整命令、manifest、并发保护、production parity 与 Defender `PACKAGING_STALL` 诊断见 [Windows 本地构建](docs/WINDOWS_BUILD.md)；安全边界见 [CSP 与打包硬化](docs/electron-hardening.md)。
 

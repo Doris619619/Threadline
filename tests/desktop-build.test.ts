@@ -17,6 +17,7 @@ import {
   assertNoConflictingDesktopProcess,
   collectGitState,
   hasPackagingStalled,
+  parseGitStatusPaths,
   releaseDesktopBuildLock,
   removeAllowedBuildTarget,
   runDesktopCommand,
@@ -112,6 +113,13 @@ describe('desktop build preflight', () => {
     expect(state.commit).toMatch(/^[0-9a-f]{40}$/);
     expect(['clean', 'dirty']).toContain(state.workingTree);
     expect(Array.isArray(state.dirtyPaths)).toBe(true);
+  });
+
+  test('Git porcelain parser preserves the first dirty path', () => {
+    expect(parseGitStatusPaths(' M docs/WINDOWS_BUILD.md\n?? new-file.txt')).toEqual([
+      'docs/WINDOWS_BUILD.md',
+      'new-file.txt',
+    ]);
   });
 });
 

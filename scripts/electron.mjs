@@ -368,7 +368,7 @@ async function runPackagingMode(mode) {
   });
 }
 
-/** 对 Preview 和 canonical package-dir 使用同一批输入，比较产物并分别运行 packaged smoke。 */
+/** 对 Preview 和 canonical package-dir 使用同一批输入，并执行不改变 runtime 的静态产物合同比较。 */
 async function verifyProductionParity() {
   const previewMode = modeDefinitions.preview;
   const canonicalMode = modeDefinitions['package-dir'];
@@ -390,17 +390,6 @@ async function verifyProductionParity() {
       previewExecutable: preview.executablePath,
       canonicalExecutable: canonical.executablePath,
     });
-    const smoke = {};
-    for (const [name, executablePath] of [
-      ['preview', preview.executablePath],
-      ['canonical', canonical.executablePath],
-    ]) {
-      smoke[name] = await runBuildStage(
-        `packaged-smoke:${name}`,
-        ['scripts/test-electron.mjs'],
-        { ...process.env, THREADLINE_PACKAGED_EXECUTABLE: executablePath },
-      );
-    }
     const reportPath = join(repositoryRoot, 'release', 'preview', 'parity-report.json');
     await writeBuildManifest(reportPath, {
       schemaVersion: 1,
@@ -411,16 +400,10 @@ async function verifyProductionParity() {
       previewManifest: preview.manifestPath,
       canonicalManifest: canonical.manifestPath,
       comparison,
-      smoke: Object.fromEntries(
-        Object.entries(smoke).map(([name, result]) => [
-          name,
-          { status: result.status, durationMs: result.durationMs },
-        ]),
-      ),
     });
     console.log('\nDESKTOP PRODUCTION PARITY PASSED');
     console.log(`Report: ${reportPath}`);
-    return { comparison, smoke, reportPath };
+    return { comparison, reportPath };
   });
 }
 

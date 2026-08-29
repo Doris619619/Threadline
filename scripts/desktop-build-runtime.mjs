@@ -112,7 +112,7 @@ export async function releaseDesktopBuildLock(lockPath, lock) {
 }
 
 /** 运行只读 Git 命令并返回标准输出；失败会保留 Git 的原始错误信息。 */
-function readGit(argumentsList, repositoryRoot) {
+function readGit(argumentsList, repositoryRoot, preserveLeadingWhitespace = false) {
   const result = spawnSync('git', argumentsList, {
     cwd: repositoryRoot,
     encoding: 'utf8',
@@ -121,7 +121,12 @@ function readGit(argumentsList, repositoryRoot) {
   if (result.status !== 0) {
     throw new Error(result.stderr || `git ${argumentsList.join(' ')} failed`);
   }
-  return result.stdout.trim();
+  return preserveLeadingWhitespace ? result.stdout.trimEnd() : result.stdout.trim();
+}
+
+/** 解析 porcelain 路径且保留首行状态列前的空格，避免首个文件名丢失首字符。 */
+export function parseGitStatusPaths(status) {
+  return status ? status.split(/\r?\n/).map((line) => line.slice(3)) : [];
 }
 
 /** 读取本轮构建可追溯的 branch、HEAD 与 dirty paths；Preview 允许 dirty 但不会隐瞒。 */
@@ -129,12 +134,13 @@ export function collectGitState(repositoryRoot) {
   const status = readGit(
     ['status', '--porcelain=v1', '--untracked-files=all'],
     repositoryRoot,
+    true,
   );
   return {
     branch: readGit(['branch', '--show-current'], repositoryRoot) || 'detached',
     commit: readGit(['rev-parse', 'HEAD'], repositoryRoot),
     workingTree: status ? 'dirty' : 'clean',
-    dirtyPaths: status ? status.split(/\r?\n/).map((line) => line.slice(3)) : [],
+    dirtyPaths: parseGitStatusPaths(status),
   };
 }
 
@@ -292,11 +298,11 @@ export function inspectDefenderExclusions(relevantPaths) {
       '-NoProfile',
       '-NonInteractive',
       '-Command',
-      '(Get-MpPreference).ExclusionPath | ConvertTo-Json -Compress',
+      "$ErrorActionPreference='Stop'; @(Get-MpPreference -ErrorAction Stop).ExclusionPath | ConvertTo-Json -Compress",
     ],
     { encoding: 'utf8', windowsHide: true },
   );
-  if (result.status !== 0) {
+  if (result.status !== 0 || result.stderr.trim()) {
     return { status: 'unavailable', relevantPaths: [], matchedExclusions: [] };
   }
   try {
