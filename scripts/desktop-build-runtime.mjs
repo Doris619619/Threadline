@@ -153,14 +153,43 @@ export function inspectWindowsDesktopProcesses() {
       windowsHide: true,
     },
   );
-  if (result.status !== 0) return { status: 'unavailable', processes: [] };
+  if (result.status !== 0) return inspectThreadlineProcessesWithoutCim();
   const output = result.stdout.trim();
-  if (!output) return { status: 'available', processes: [] };
+  if (!output) return inspectThreadlineProcessesWithoutCim();
   try {
     const parsed = JSON.parse(output);
     return {
       status: 'available',
       processes: Array.isArray(parsed) ? parsed : [parsed],
+    };
+  } catch {
+    return inspectThreadlineProcessesWithoutCim();
+  }
+}
+
+/** 当 Win32_Process 因权限不可读时，回退到 Get-Process，至少可靠阻止覆盖正在运行的目标 EXE。 */
+function inspectThreadlineProcessesWithoutCim() {
+  const script =
+    'Get-Process -Name Threadline -ErrorAction SilentlyContinue | Select-Object Id,Path,ProcessName | ConvertTo-Json -Compress';
+  const result = spawnSync(
+    'powershell.exe',
+    ['-NoProfile', '-NonInteractive', '-Command', script],
+    {
+      encoding: 'utf8',
+      windowsHide: true,
+    },
+  );
+  if (result.status !== 0) return { status: 'unavailable', processes: [] };
+  try {
+    const parsed = JSON.parse(result.stdout.trim() || '[]');
+    const items = Array.isArray(parsed) ? parsed : [parsed];
+    return {
+      status: 'available',
+      processes: items.map((item) => ({
+        ProcessId: item.Id,
+        ExecutablePath: item.Path,
+        Name: item.ProcessName,
+      })),
     };
   } catch {
     return { status: 'unavailable', processes: [] };
