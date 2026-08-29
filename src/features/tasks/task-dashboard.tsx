@@ -4,10 +4,7 @@
 
 'use client';
 
-import {
-  Check,
-  X,
-} from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -38,12 +35,8 @@ import {
   RescheduleDialog,
   TaskDialog,
 } from '@/features/tasks/components/task-dialogs';
-import { useScheduleResize } from '@/features/tasks/hooks/use-schedule-resize';
-import { useTaskDragAndDrop } from '@/features/tasks/hooks/use-task-drag-and-drop';
-import { useWorkstationMembership } from '@/features/tasks/hooks/use-workstation-membership';
-import { useTaskDashboardData } from '@/features/tasks/hooks/use-task-dashboard-data';
-import { useTaskWorkflow } from '@/features/tasks/hooks/use-task-workflow';
 import { useTaskCreateAndEdit } from '@/features/tasks/hooks/use-task-create-and-edit';
+import { useTaskDashboardController } from '@/features/tasks/hooks/use-task-dashboard-controller';
 import type { HistoryEvent, Task } from '@/types/domain';
 
 export function TaskDashboard() {
@@ -73,7 +66,6 @@ export function TaskDashboard() {
     hydrated,
   } = useWorkspaceData();
   const [annotationTool, setAnnotationTool] = useState<AnnotationTool>('none');
-  const [autoFocusTimeTaskId, setAutoFocusTimeTaskId] = useState<string | null>(null);
 
   const [addingTimedRow, setAddingTimedRow] = useState(false);
   const [newTimedStartTime, setNewTimedStartTime] = useState('');
@@ -96,8 +88,6 @@ export function TaskDashboard() {
   const [newQuickProjectName, setNewQuickProjectName] = useState('');
   const quickProjectPickerRef = useRef<HTMLDivElement>(null);
 
-  const { isResizingSchedule, scheduleRatio, startResizeSchedule } = useScheduleResize();
-
   const [editing, setEditing] = useState<Task | undefined>();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [taskDialogMode, setTaskDialogMode] = useState<'normal' | 'unscheduled'>(
@@ -115,29 +105,6 @@ export function TaskDashboard() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [annotationTool]);
 
-  const {
-    actual,
-    analyticsInput,
-    backlog,
-    daily,
-    dailyActual,
-    dailyDone,
-    done,
-    isDayClosed,
-    normalTaskTotal,
-    quick,
-    shown,
-    timed,
-    tomorrow,
-  } = useTaskDashboardData({
-    closeRecords,
-    dailyByDate,
-    dailyHistory,
-    dailyTemplates,
-    projects: workspaceProjects,
-    selectedDate,
-    tasks,
-  });
   const annotationInteractionLocked = annotationTool !== 'none';
 
   const toggleAnnotationTool = (tool: AnnotationTool) => {
@@ -145,11 +112,50 @@ export function TaskDashboard() {
   };
 
   const {
+    actual,
+    analyticsInput,
     appendHistory,
+    autoFocusTimeTaskId,
+    backlog,
+    clearWorkstation,
+    daily,
+    dailyActual,
+    dailyDone,
+    done,
+    draggingTaskId,
+    dropTarget,
+    handlePointerDragEnd,
+    handlePointerDragMove,
+    handlePointerDragStart,
+    handleQuickDragOver,
+    handleQuickDrop,
+    handleScheduleDragOver,
+    handleScheduleDrop,
+    handleTaskDragEnd,
+    handleTaskDragStart,
+    isDayClosed,
+    isResizingSchedule,
     moveTask: move,
+    normalTaskTotal,
+    quick,
+    reorderWorkstation,
     rescheduleTask,
+    scheduleRatio,
+    setAutoFocusTimeTaskId,
+    setDropTarget,
+    shown,
+    startResizeSchedule,
+    timed,
+    toggleWorkstationTask,
+    tomorrow,
     updateTask: update,
-  } = useTaskWorkflow({
+  } = useTaskDashboardController({
+    closeRecords,
+    dailyByDate,
+    dailyHistory,
+    dailyTemplates,
+    interactionLocked: annotationInteractionLocked,
+    projects: workspaceProjects,
     selectedDate,
     tasks,
     updateAnnotationStrokes,
@@ -157,9 +163,6 @@ export function TaskDashboard() {
     updateTasks,
     updateWorkstationTaskIds,
   });
-
-  const { clearWorkstation, reorderWorkstation, toggleWorkstationTask } =
-    useWorkstationMembership(updateWorkstationTaskIds);
 
   const {
     createCompactQuickTask,
@@ -214,63 +217,6 @@ export function TaskDashboard() {
     setNewQuickCompleted(false);
     setAddingQuickRow(false);
   };
-
-  /**
-   * 将无时间任务移动到日程，保留同一条记录并设为持久化的待填时间状态。
-   */
-  const moveTaskToSchedule = (taskId: string) => {
-    const task = shown.find((item) => item.id === taskId);
-    if (!task || task.plannedStartTime || task.schedulePendingTime) return;
-    update({
-      ...task,
-      schedulePendingTime: true,
-      plannedStartTime: undefined,
-      plannedEndTime: undefined,
-      plannedDurationMinutes: undefined,
-      updatedAt: new Date().toISOString(),
-    });
-    setAutoFocusTimeTaskId(taskId);
-  };
-
-  /**
-   * 将日程任务移回无时间待办，清理待填状态和全部排程字段。
-   */
-  const moveTaskToQuick = (taskId: string) => {
-    const task = shown.find((item) => item.id === taskId);
-    if (!task) return;
-    update({
-      ...task,
-      schedulePendingTime: false,
-      plannedStartTime: undefined,
-      plannedEndTime: undefined,
-      plannedDurationMinutes: undefined,
-      updatedAt: new Date().toISOString(),
-    });
-  };
-
-  /**
-   * 记录拖拽源以呈现视觉反馈；不锁定落点，避免阻断原生 drop 事件。
-   */
-
-  const dragAndDrop = useTaskDragAndDrop({
-    interactionLocked: annotationInteractionLocked,
-    onMoveToQuick: moveTaskToQuick,
-    onMoveToSchedule: moveTaskToSchedule,
-  });
-  const {
-    draggingTaskId,
-    dropTarget,
-    handlePointerDragEnd,
-    handlePointerDragMove,
-    handlePointerDragStart,
-    handleQuickDragOver,
-    handleQuickDrop,
-    handleScheduleDragOver,
-    handleScheduleDrop,
-    handleTaskDragEnd,
-    handleTaskDragStart,
-    setDropTarget,
-  } = dragAndDrop;
 
   if (!hydrated)
     return (
