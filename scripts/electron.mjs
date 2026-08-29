@@ -142,10 +142,15 @@ async function buildRenderer() {
     'scripts/generate-sw-precache.mjs',
     '.next-electron',
   ]);
+  const boundary = await runBuildStage('next-boundary', [
+    'scripts/verify-next-build-boundary.mjs',
+    'electron',
+  ]);
   return {
     renderer: { status: renderer.status, durationMs: renderer.durationMs },
     csp: { status: csp.status, durationMs: csp.durationMs },
     precache: { status: precache.status, durationMs: precache.durationMs },
+    boundary: { status: boundary.status, durationMs: boundary.durationMs },
   };
 }
 

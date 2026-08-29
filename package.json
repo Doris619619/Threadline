@@ -11,8 +11,9 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build && node scripts/generate-csp.mjs .next && node scripts/generate-sw-precache.mjs .next",
-    "start": "node scripts/web-server.mjs",
+    "build": "pnpm build:web",
+    "build:web": "next build && node scripts/generate-sw-precache.mjs .next && node scripts/verify-next-build-boundary.mjs web && node scripts/verify-web-csp.mjs",
+    "start": "next start",
     "desktop:dev": "node scripts/electron.mjs dev",
     "desktop:preview": "node scripts/electron.mjs preview",
     "desktop:preview:open": "node scripts/electron.mjs preview-open",

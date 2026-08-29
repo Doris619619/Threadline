@@ -78,11 +78,11 @@ function startSecondInstance() {
       );
 }
 
-/** 启动独占的 Next production server，避免复用不兼容的开发服务。 */
+/** 启动官方 Next production server，确保 Web Proxy 与 nonce CSP 真实执行。 */
 async function startRendererServer() {
   const server = spawn(
     process.execPath,
-    ['scripts/web-server.mjs', '--port', rendererPort],
+    ['node_modules/next/dist/bin/next', 'start', '--port', rendererPort],
     { stdio: 'inherit' },
   );
   await waitFor(async () => {

@@ -39,6 +39,7 @@ function createPolicy(hashes) {
     "default-src 'self'",
     `script-src 'self' ${hashes.join(' ')}`,
     "style-src 'self'",
+    "style-src-attr 'unsafe-inline'",
     "connect-src 'self'",
     "img-src 'self'",
     "font-src 'self'",
