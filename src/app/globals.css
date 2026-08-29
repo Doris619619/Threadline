@@ -19,4 +19,6 @@
 @import '../features/settings/settings.css';
 @import '../features/history/history.css';
 @import '../styles/responsive-overrides.css';
+@import '../features/feature-pages.css';
+@import '../styles/responsive-overrides-late.css';
 @import '../features/insights/insights-print.css';
