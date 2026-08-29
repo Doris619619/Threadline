@@ -2,26 +2,29 @@
  * @fileoverview 渲染无时间待办区域外壳；新增草稿和任务状态仍由 Dashboard 上层持有。
  */
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Plus } from 'lucide-react';
 import { Surface } from '@/components/ui/surface';
 
-/** 保持无时间待办的 drop 契约与标题区域，内部行内容由调用方原样传入。 */
+type QuickTaskPanelChildren =
+  | ReactNode
+  | ((controls: { isAdding: boolean; closeAdd: () => void }) => ReactNode);
+
+/** 保持无时间待办的 drop 契约与标题区域，新增行开关状态归属于待办区域。 */
 export function QuickTaskPanel({
   children,
   isDropTarget,
-  onAdd,
   onDragLeave,
   onDragOver,
   onDrop,
 }: {
-  children: ReactNode;
+  children: QuickTaskPanelChildren;
   isDropTarget: boolean;
-  onAdd: () => void;
   onDragLeave: () => void;
   onDragOver: (event: React.DragEvent) => void;
   onDrop: (event: React.DragEvent) => void;
 }) {
+  const [isAdding, setIsAdding] = useState(false);
   return (
     <Surface
       className={`quick-panel${isDropTarget ? 'is-drop-target' : ''}`}
@@ -32,11 +35,13 @@ export function QuickTaskPanel({
     >
       <header>
         <h2>无时间待办</h2>
-        <button className="add-link" onClick={onAdd}>
+        <button className="add-link" onClick={() => setIsAdding(true)}>
           <Plus size={19} /> 添加
         </button>
       </header>
-      {children}
+      {typeof children === 'function'
+        ? children({ isAdding, closeAdd: () => setIsAdding(false) })
+        : children}
     </Surface>
   );
 }

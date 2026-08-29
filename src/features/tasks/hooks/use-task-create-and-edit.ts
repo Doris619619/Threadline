@@ -10,25 +10,11 @@ import { makeTask } from '@/features/workspace/workspace-seed';
 import type {
   CompactQuickTaskDraft,
   CompactTimedTaskDraft,
-} from '@/features/tasks/compact-workspace';
+  QuickTaskDraft,
+  TimedTaskDraft,
+} from '@/features/tasks/task-drafts';
 import { normalizeTime, parseDurationInput } from '@/features/tasks/task-time';
 import type { Project, Task } from '@/types/domain';
-
-export type TimedTaskDraft = {
-  actual: string;
-  completed: boolean;
-  endTime: string;
-  planned: string;
-  projectId: string;
-  startTime: string;
-  title: string;
-};
-
-export type QuickTaskDraft = {
-  completed: boolean;
-  projectId: string;
-  title: string;
-};
 
 /** 统一返回新增面板可显示的输入错误，空标题沿用既有的静默取消行为。 */
 export function useTaskCreateAndEdit({

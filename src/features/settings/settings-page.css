@@ -1,0 +1,33 @@
+/** @fileoverview Settings 页面补充文案样式；保持原有晚加载位置。 */
+
+.settings-copy {
+  display: grid;
+  gap: 8px;
+}
+.settings-copy h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.settings-copy p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.settings-copy dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.settings-copy dl div {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 12px;
+}
+.settings-copy dt {
+  color: var(--text-tertiary);
+}
+.settings-copy dd {
+  margin: 0;
+  color: var(--text-primary);
+}
+

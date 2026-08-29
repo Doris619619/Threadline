@@ -1,0 +1,82 @@
+/** @fileoverview Insights 页面样式；保留与 Records 输入框的原始相邻级联顺序。 */
+
+.insights-actions,
+.insights-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.insights-filters button {
+  min-height: 36px;
+  padding: 6px 12px;
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.insights-filters button.is-active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.insights-filters label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.insights-filters input,
+.records-search input {
+  min-height: 36px;
+  padding: 6px 8px;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.insights-summary,
+.insights-charts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.insights-summary .tl-surface {
+  display: grid;
+  gap: 5px;
+  min-height: 130px;
+}
+
+.insights-summary span,
+.insights-summary small,
+.insight-chart header span {
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+}
+
+.insights-summary strong {
+  font-size: 1.1rem;
+}
+.insights-charts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.insight-chart {
+  min-height: 300px;
+}
+.insight-chart header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.insight-chart h3 {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+

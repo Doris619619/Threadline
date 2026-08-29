@@ -6,17 +6,14 @@ import { GripVertical, Plus, X } from 'lucide-react';
 import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ProjectTag } from '@/components/ui/project-tag';
+import type {
+  CompactQuickTaskDraft,
+  CompactTimedTaskDraft,
+} from '@/features/tasks/task-drafts';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import type { Project, Task } from '@/types/domain';
 
-export type CompactTimedTaskDraft = {
-  projectId: string;
-  title: string;
-  start?: string;
-  end?: string;
-};
-
-export type CompactQuickTaskDraft = Pick<CompactTimedTaskDraft, 'projectId' | 'title'>;
+export type { CompactQuickTaskDraft, CompactTimedTaskDraft } from '@/features/tasks/task-drafts';
 
 type CompactWorkspaceProps = {
   timed: Task[];

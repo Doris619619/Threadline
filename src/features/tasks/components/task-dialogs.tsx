@@ -30,7 +30,12 @@ export function CloseDialog({
   const unfinished = tasks.filter((task) => !task.completed);
   return (
     <dialog className="task-dialog close-dialog" ref={dialog}>
-      <form action={onCloseDay}>
+      <form
+        action={(data) => {
+          onCloseDay(data);
+          dialog.current?.close();
+        }}
+      >
         <header>
           <div>
             <p>每日收尾</p>
