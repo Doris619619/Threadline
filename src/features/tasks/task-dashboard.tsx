@@ -13,8 +13,6 @@ import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-la
 import { Checkbox } from '@/components/ui/checkbox';
 import { StatItem } from '@/components/ui/stat-item';
 import { Surface } from '@/components/ui/surface';
-import { calculateDuration } from '@/lib/task-rules';
-import { taskFormSchema } from '@/lib/schemas';
 import { DailyPanel } from '@/features/daily/daily-panel';
 import { CalendarPanel } from '@/features/calendar/calendar-panel';
 import { InsightsPanel } from '@/features/insights/insights-panel';
@@ -23,21 +21,14 @@ import { RecordsPanel } from '@/features/records/records-panel';
 import { RhythmPanel } from '@/features/rhythm/rhythm-panel';
 import { SettingsPanel } from '@/features/settings/settings-panel';
 import { useWorkspaceData } from '@/features/workspace/workspace-data-provider';
-import { createDailyInstance, makeTask } from '@/features/workspace/workspace-seed';
+import { createDailyInstance } from '@/features/workspace/workspace-seed';
 import { CompactWindowHeader, useWorkspaceView } from '@/components/app-shell';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
-import { getLocalDateKey } from '@/lib/local-date';
 import {
   MiniTodayPanel,
   WorkstationPanel,
-  type CompactQuickTaskDraft,
-  type CompactTimedTaskDraft,
 } from '@/features/tasks/compact-workspace';
-import {
-  formatMinutes,
-  normalizeTime,
-  parseDurationInput,
-} from '@/features/tasks/task-time';
+import { formatMinutes } from '@/features/tasks/task-time';
 import { TaskLine } from '@/features/tasks/components/task-line';
 import { SchedulePanel } from '@/features/tasks/components/schedule-panel';
 import { QuickTaskPanel } from '@/features/tasks/components/quick-task-panel';
@@ -52,7 +43,8 @@ import { useTaskDragAndDrop } from '@/features/tasks/hooks/use-task-drag-and-dro
 import { useWorkstationMembership } from '@/features/tasks/hooks/use-workstation-membership';
 import { useTaskDashboardData } from '@/features/tasks/hooks/use-task-dashboard-data';
 import { useTaskWorkflow } from '@/features/tasks/hooks/use-task-workflow';
-import type { HistoryEvent, Project, Task } from '@/types/domain';
+import { useTaskCreateAndEdit } from '@/features/tasks/hooks/use-task-create-and-edit';
+import type { HistoryEvent, Task } from '@/types/domain';
 
 export function TaskDashboard() {
   const { active, selectedDate, setSelectedDate } = useWorkspaceView();
@@ -105,130 +97,6 @@ export function TaskDashboard() {
   const quickProjectPickerRef = useRef<HTMLDivElement>(null);
 
   const { isResizingSchedule, scheduleRatio, startResizeSchedule } = useScheduleResize();
-
-  const createProjectDirectly = (name: string): Project => {
-    const trimmed = name.trim();
-    const colors = ['#4f8cff', '#8b7cf6', '#38a774', '#e9a04b', '#ec4899', '#06b6d4'];
-    const randomColor = colors[workspaceProjects.length % colors.length];
-    const newProj: Project = {
-      id: crypto.randomUUID(),
-      name: trimmed,
-      color: randomColor,
-      status: 'active',
-      createdAt: getLocalDateKey(),
-    };
-    updateProjects((current) => [...current, newProj]);
-    return newProj;
-  };
-
-  /** 校验两个直观时间输入，并把有效范围同步为任务预计时长。 */
-  const handleConfirmAddTimed = () => {
-    if (!newTimedTitle.trim()) {
-      setAddingTimedRow(false);
-      return;
-    }
-    const start = normalizeTime(newTimedStartTime);
-    const end = normalizeTime(newTimedEndTime);
-    if (newTimedStartTime.trim() && !start) {
-      setNewTimedTimeError('开始时间格式应为 08:30');
-      return;
-    }
-    if (newTimedEndTime.trim() && (!start || !end || end <= start)) {
-      setNewTimedTimeError('结束时间需晚于有效的开始时间');
-      return;
-    }
-    setNewTimedTimeError(undefined);
-    const duration = start && end ? calculateDuration(start, end) : undefined;
-    const plannedDuration = parseDurationInput(newTimedPlanned) ?? duration;
-    const actualDuration = parseDurationInput(newTimedActual);
-    const newTask: Task = {
-      id: crypto.randomUUID(),
-      projectId: newTimedProjectId,
-      title: newTimedTitle.trim(),
-      date: selectedDate,
-      plannedStartTime: start,
-      schedulePendingTime: !start,
-      plannedEndTime: end,
-      plannedDurationMinutes: plannedDuration,
-      actualDurationMinutes: actualDuration,
-      completed: newTimedCompleted,
-      completedAt: newTimedCompleted ? new Date().toISOString() : undefined,
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    updateTasks((current) => [...current, newTask]);
-    appendHistory('created', newTask.id, { title: newTask.title });
-    setNewTimedStartTime('');
-    setNewTimedEndTime('');
-    setNewTimedTitle('');
-    setNewTimedPlanned('');
-    setNewTimedActual('');
-    setNewTimedCompleted(false);
-    setAddingTimedRow(false);
-  };
-
-  const handleConfirmAddQuick = () => {
-    if (!newQuickTitle.trim()) {
-      setAddingQuickRow(false);
-      return;
-    }
-    const newTask: Task = {
-      id: crypto.randomUUID(),
-      projectId: newQuickProjectId,
-      title: newQuickTitle.trim(),
-      date: selectedDate,
-      completed: newQuickCompleted,
-      completedAt: newQuickCompleted ? new Date().toISOString() : undefined,
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    updateTasks((current) => [...current, newTask]);
-    appendHistory('created', newTask.id, { title: newTask.title });
-    setNewQuickTitle('');
-    setNewQuickCompleted(false);
-    setAddingQuickRow(false);
-  };
-
-  /** 从迷你今日写入有可选起止时间的任务，并复用完整工作台的持久化字段。 */
-  const createCompactTimedTask = (draft: CompactTimedTaskDraft) => {
-    const task: Task = {
-      id: crypto.randomUUID(),
-      projectId: draft.projectId,
-      title: draft.title,
-      date: selectedDate,
-      plannedStartTime: draft.start,
-      plannedEndTime: draft.end,
-      plannedDurationMinutes:
-        draft.start && draft.end
-          ? calculateDuration(draft.start, draft.end)
-          : undefined,
-      schedulePendingTime: !draft.start,
-      completed: false,
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    updateTasks((current) => [...current, task]);
-    appendHistory('created', task.id, { title: task.title });
-  };
-
-  /** 从迷你今日写入无时间待办，不额外推断时间或完成状态。 */
-  const createCompactQuickTask = (draft: CompactQuickTaskDraft) => {
-    const task: Task = {
-      id: crypto.randomUUID(),
-      projectId: draft.projectId,
-      title: draft.title,
-      date: selectedDate,
-      completed: false,
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    updateTasks((current) => [...current, task]);
-    appendHistory('created', task.id, { title: task.title });
-  };
 
   const [editing, setEditing] = useState<Task | undefined>();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
@@ -292,6 +160,60 @@ export function TaskDashboard() {
 
   const { clearWorkstation, reorderWorkstation, toggleWorkstationTask } =
     useWorkstationMembership(updateWorkstationTaskIds);
+
+  const {
+    createCompactQuickTask,
+    createCompactTimedTask,
+    createProjectDirectly,
+    createQuickTask,
+    createTimedTask,
+    saveTask,
+  } = useTaskCreateAndEdit({
+    appendHistory,
+    editing,
+    projects: workspaceProjects,
+    selectedDate,
+    updateProjectList: updateProjects,
+    updateTask: update,
+    updateTasks,
+  });
+
+  /** 调用动作层创建日程任务，并保持既有字段重置顺序。 */
+  const handleConfirmAddTimed = () => {
+    const result = createTimedTask({
+      actual: newTimedActual,
+      completed: newTimedCompleted,
+      endTime: newTimedEndTime,
+      planned: newTimedPlanned,
+      projectId: newTimedProjectId,
+      startTime: newTimedStartTime,
+      title: newTimedTitle,
+    });
+    if ('error' in result) {
+      setNewTimedTimeError(result.error);
+      return;
+    }
+    setNewTimedTimeError(undefined);
+    setNewTimedStartTime('');
+    setNewTimedEndTime('');
+    setNewTimedTitle('');
+    setNewTimedPlanned('');
+    setNewTimedActual('');
+    setNewTimedCompleted(false);
+    setAddingTimedRow(false);
+  };
+
+  /** 调用动作层创建无时间待办，并保持既有空标题取消行为。 */
+  const handleConfirmAddQuick = () => {
+    createQuickTask({
+      completed: newQuickCompleted,
+      projectId: newQuickProjectId,
+      title: newQuickTitle,
+    });
+    setNewQuickTitle('');
+    setNewQuickCompleted(false);
+    setAddingQuickRow(false);
+  };
 
   /**
    * 将无时间任务移动到日程，保留同一条记录并设为持久化的待填时间状态。
@@ -362,61 +284,11 @@ export function TaskDashboard() {
     setTaskDialogMode(mode);
     setTaskDialogOpen(true);
   };
+  /** 由动作层验证并写入 Dialog 内容；仅在成功时关闭原有弹窗。 */
   const save = (form: FormData): string | undefined => {
-    const title = String(form.get('title') ?? '').trim();
-    const startRaw = String(form.get('start') ?? '');
-    const endRaw = String(form.get('end') ?? '');
-    const start = startRaw ? normalizeTime(startRaw) : undefined;
-    const end = endRaw ? normalizeTime(endRaw) : undefined;
-    const parsed = taskFormSchema.safeParse({
-      title,
-      projectId: String(form.get('project') ?? ''),
-      plannedMinutes: numberOrUndefined(form.get('planned')),
-      actualMinutes: numberOrUndefined(form.get('actual')),
-    });
-    if (!parsed.success) return parsed.error.issues[0]?.message ?? '请检查任务信息';
-    if (startRaw && !start) return '开始时间格式应为 1420 或 14:20';
-    if (endRaw && !end) return '结束时间格式应为 1530 或 15:30';
-    if (end && !start) return '填写结束时间前，请先填写开始时间';
-    if (end && start && end < start) return '暂不支持跨午夜任务，请选择同一天内的时间';
-    const automatic = calculateDuration(start, end);
-    const planned = automatic ?? numberOrUndefined(form.get('planned'));
-    const base =
-      editing ??
-      makeTask(
-        getLocalDateKey(),
-        crypto.randomUUID(),
-        String(form.get('project')),
-        title,
-      );
-    update({
-      ...base,
-      title,
-      projectId: String(form.get('project')),
-      date: editing?.date ?? selectedDate,
-      plannedStartTime: start,
-      plannedEndTime: end,
-      plannedDurationMinutes: planned,
-      actualDurationMinutes: numberOrUndefined(form.get('actual')),
-      updatedAt: new Date().toISOString(),
-    });
-    if (!editing)
-      updateTasks((current) => [
-        ...current,
-        {
-          ...base,
-          title,
-          projectId: String(form.get('project')),
-          date: selectedDate,
-          plannedStartTime: start,
-          plannedEndTime: end,
-          plannedDurationMinutes: planned,
-          actualDurationMinutes: numberOrUndefined(form.get('actual')),
-          updatedAt: new Date().toISOString(),
-        },
-      ]);
-    setTaskDialogOpen(false);
-    return undefined;
+    const message = saveTask(form);
+    if (!message) setTaskDialogOpen(false);
+    return message;
   };
   /** 将当前移期弹窗的任务交给 workflow，并只在成功后关闭弹窗。 */
   const reschedule = (targetDate: string) => {
@@ -1093,10 +965,5 @@ export function TaskDashboard() {
     </div>
   );
 }
-
-function numberOrUndefined(value: FormDataEntryValue | null) {
-  return value === null || value === '' ? undefined : Number(value);
-}
-
 
 
