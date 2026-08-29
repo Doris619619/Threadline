@@ -14,6 +14,9 @@
     "build": "next build && node scripts/generate-csp.mjs .next && node scripts/generate-sw-precache.mjs .next",
     "start": "node scripts/web-server.mjs",
     "desktop:dev": "node scripts/electron.mjs dev",
+    "desktop:preview": "node scripts/electron.mjs preview",
+    "desktop:preview:open": "node scripts/electron.mjs preview-open",
+    "desktop:verify:parity": "node scripts/electron.mjs verify-parity",
     "desktop:build": "node scripts/electron.mjs package",
     "desktop:release": "node scripts/electron.mjs release",
     "desktop:compile": "node scripts/build-electron.mjs",
@@ -42,6 +45,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@electron/asar": "3.4.1",
     "@electron/fuses": "1.8.0",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.3.3",
