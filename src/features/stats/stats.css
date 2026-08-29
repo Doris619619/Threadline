@@ -1,0 +1,109 @@
+/**
+ * @fileoverview 定义统计面板及其与设置共享的摘要样式。
+ */
+
+/* ================= 统计与设置 ================= */
+
+.stats-panel,
+.settings-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.stats-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stats-summary-item,
+.stats-project-breakdown,
+.desktop-settings {
+  padding: 18px;
+}
+
+.stats-summary-item span,
+.stats-summary-item small {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.stats-summary-item strong {
+  display: block;
+  margin: 8px 0 5px;
+  color: var(--accent);
+  font-size: 1.34rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-project-breakdown header,
+.desktop-settings header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.stats-project-breakdown h2,
+.desktop-settings h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.stats-project-breakdown header p,
+.desktop-settings header p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.stats-project-breakdown header > span,
+.desktop-settings header > span {
+  color: var(--accent);
+  font-size: 0.84rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.stats-bars {
+  display: grid;
+  gap: 12px;
+}
+
+.stats-bar-row {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) 84px;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+
+.stats-bar-row > span,
+.stats-bar-row small {
+  overflow: hidden;
+  color: var(--text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-bar-row small {
+  text-align: right;
+}
+
+.stats-bar-row i {
+  height: 8px;
+  overflow: hidden;
+  background: var(--surface-secondary);
+  border-radius: 99px;
+}
+
+.stats-bar-row i b {
+  display: block;
+  min-width: 2px;
+  height: 100%;
+  border-radius: inherit;
+}
+
+

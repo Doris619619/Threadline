@@ -1,0 +1,204 @@
+/**
+ * @fileoverview 封装任务和项目创建、编辑保存；不持有面板草稿或弹窗开关状态。
+ */
+
+import type { Dispatch, SetStateAction } from 'react';
+import { calculateDuration } from '@/lib/task-rules';
+import { taskFormSchema } from '@/lib/schemas';
+import { getLocalDateKey } from '@/lib/local-date';
+import { makeTask } from '@/features/workspace/workspace-seed';
+import type {
+  CompactQuickTaskDraft,
+  CompactTimedTaskDraft,
+} from '@/features/tasks/compact-workspace';
+import { normalizeTime, parseDurationInput } from '@/features/tasks/task-time';
+import type { Project, Task } from '@/types/domain';
+
+export type TimedTaskDraft = {
+  actual: string;
+  completed: boolean;
+  endTime: string;
+  planned: string;
+  projectId: string;
+  startTime: string;
+  title: string;
+};
+
+export type QuickTaskDraft = {
+  completed: boolean;
+  projectId: string;
+  title: string;
+};
+
+/** 统一返回新增面板可显示的输入错误，空标题沿用既有的静默取消行为。 */
+export function useTaskCreateAndEdit({
+  appendHistory,
+  editing,
+  projects,
+  selectedDate,
+  updateProjectList,
+  updateTask,
+  updateTasks,
+}: {
+  appendHistory: (type: string, taskId?: string, payload?: Record<string, string>) => void;
+  editing: Task | undefined;
+  projects: Project[];
+  selectedDate: string;
+  updateProjectList: Dispatch<SetStateAction<Project[]>>;
+  updateTask: (task: Task) => void;
+  updateTasks: Dispatch<SetStateAction<Task[]>>;
+}) {
+  /** 新建项目并沿用原有循环色板和本地日期字段。 */
+  const createProjectDirectly = (name: string): Project => {
+    const trimmed = name.trim();
+    const colors = ['#4f8cff', '#8b7cf6', '#38a774', '#e9a04b', '#ec4899', '#06b6d4'];
+    const newProject: Project = {
+      id: crypto.randomUUID(),
+      name: trimmed,
+      color: colors[projects.length % colors.length],
+      status: 'active',
+      createdAt: getLocalDateKey(),
+    };
+    updateProjectList((current) => [...current, newProject]);
+    return newProject;
+  };
+
+  /** 从日程行草稿创建任务，不改变既有的同日时间范围限制。 */
+  const createTimedTask = (draft: TimedTaskDraft) => {
+    if (!draft.title.trim()) return { cancelled: true };
+    const start = normalizeTime(draft.startTime);
+    const end = normalizeTime(draft.endTime);
+    if (draft.startTime.trim() && !start) return { error: '开始时间格式应为 08:30' };
+    if (draft.endTime.trim() && (!start || !end || end <= start)) {
+      return { error: '结束时间需晚于有效的开始时间' };
+    }
+    const duration = start && end ? calculateDuration(start, end) : undefined;
+    const task: Task = {
+      id: crypto.randomUUID(),
+      projectId: draft.projectId,
+      title: draft.title.trim(),
+      date: selectedDate,
+      plannedStartTime: start,
+      schedulePendingTime: !start,
+      plannedEndTime: end,
+      plannedDurationMinutes: parseDurationInput(draft.planned) ?? duration,
+      actualDurationMinutes: parseDurationInput(draft.actual),
+      completed: draft.completed,
+      completedAt: draft.completed ? new Date().toISOString() : undefined,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    updateTasks((current) => [...current, task]);
+    appendHistory('created', task.id, { title: task.title });
+    return { task };
+  };
+
+  /** 从无时间待办行草稿创建任务，不推断时间。 */
+  const createQuickTask = (draft: QuickTaskDraft) => {
+    if (!draft.title.trim()) return { cancelled: true };
+    const task: Task = {
+      id: crypto.randomUUID(),
+      projectId: draft.projectId,
+      title: draft.title.trim(),
+      date: selectedDate,
+      completed: draft.completed,
+      completedAt: draft.completed ? new Date().toISOString() : undefined,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    updateTasks((current) => [...current, task]);
+    appendHistory('created', task.id, { title: task.title });
+    return { task };
+  };
+
+  /** 从迷你今日写入有可选起止时间的任务，并复用完整工作台的持久化字段。 */
+  const createCompactTimedTask = (draft: CompactTimedTaskDraft) => {
+    const task: Task = {
+      id: crypto.randomUUID(),
+      projectId: draft.projectId,
+      title: draft.title,
+      date: selectedDate,
+      plannedStartTime: draft.start,
+      plannedEndTime: draft.end,
+      plannedDurationMinutes:
+        draft.start && draft.end ? calculateDuration(draft.start, draft.end) : undefined,
+      schedulePendingTime: !draft.start,
+      completed: false,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    updateTasks((current) => [...current, task]);
+    appendHistory('created', task.id, { title: task.title });
+  };
+
+  /** 从迷你今日写入无时间待办，不额外推断时间或完成状态。 */
+  const createCompactQuickTask = (draft: CompactQuickTaskDraft) => {
+    const task: Task = {
+      id: crypto.randomUUID(),
+      projectId: draft.projectId,
+      title: draft.title,
+      date: selectedDate,
+      completed: false,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    updateTasks((current) => [...current, task]);
+    appendHistory('created', task.id, { title: task.title });
+  };
+
+  /** 验证 Dialog FormData 并保留现有跨午夜拒绝和新建双写流程。 */
+  const saveTask = (form: FormData): string | undefined => {
+    const title = String(form.get('title') ?? '').trim();
+    const startRaw = String(form.get('start') ?? '');
+    const endRaw = String(form.get('end') ?? '');
+    const start = startRaw ? normalizeTime(startRaw) : undefined;
+    const end = endRaw ? normalizeTime(endRaw) : undefined;
+    const parsed = taskFormSchema.safeParse({
+      title,
+      projectId: String(form.get('project') ?? ''),
+      plannedMinutes: numberOrUndefined(form.get('planned')),
+      actualMinutes: numberOrUndefined(form.get('actual')),
+    });
+    if (!parsed.success) return parsed.error.issues[0]?.message ?? '请检查任务信息';
+    if (startRaw && !start) return '开始时间格式应为 1420 或 14:20';
+    if (endRaw && !end) return '结束时间格式应为 1530 或 15:30';
+    if (end && !start) return '填写结束时间前，请先填写开始时间';
+    if (end && start && end < start) return '暂不支持跨午夜任务，请选择同一天内的时间';
+    const planned = calculateDuration(start, end) ?? numberOrUndefined(form.get('planned'));
+    const base =
+      editing ?? makeTask(getLocalDateKey(), crypto.randomUUID(), String(form.get('project')), title);
+    const nextTask: Task = {
+      ...base,
+      title,
+      projectId: String(form.get('project')),
+      date: editing?.date ?? selectedDate,
+      plannedStartTime: start,
+      plannedEndTime: end,
+      plannedDurationMinutes: planned,
+      actualDurationMinutes: numberOrUndefined(form.get('actual')),
+      updatedAt: new Date().toISOString(),
+    };
+    updateTask(nextTask);
+    if (!editing) updateTasks((current) => [...current, nextTask]);
+    return undefined;
+  };
+
+  return {
+    createCompactQuickTask,
+    createCompactTimedTask,
+    createProjectDirectly,
+    createQuickTask,
+    createTimedTask,
+    saveTask,
+  };
+}
+
+/** 保持 Dialog 的 FormData 数字空值处理，与原组件一致。 */
+function numberOrUndefined(value: FormDataEntryValue | null) {
+  const text = String(value ?? '').trim();
+  return text ? Number(text) : undefined;
+}

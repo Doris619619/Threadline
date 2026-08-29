@@ -1,0 +1,97 @@
+/**
+ * @fileoverview 定义复盘面板样式。
+ */
+
+/* ================= 复盘 ReviewPanel ================= */
+
+.review-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.review-panel > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.review-panel h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.review-panel header p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.period-toggle {
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-secondary);
+}
+
+.period-toggle button {
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: var(--text-secondary);
+  background: transparent;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.period-toggle .active {
+  color: var(--text-primary);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  font-weight: 600;
+}
+
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.review-metric {
+  padding: 16px;
+}
+
+.review-metric span,
+.review-metric small {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.review-metric strong {
+  display: block;
+  margin: 6px 0;
+  color: var(--accent);
+  font-size: 1.5rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.review-details {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 16px;
+  padding: 18px;
+}
+
+.review-details h3 {
+  margin: 0 0 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.review-details p {
+  margin: 6px 0;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+

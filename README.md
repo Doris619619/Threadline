@@ -90,6 +90,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 src/app/                 App Router 页面、全局样式与元数据
 src/components/          壳层与通用 UI 原子组件
 src/features/            任务、Daily、项目、日历、洞察、记录、节律与领域状态视图
+src/styles/              design token、基础规则、Electron 窗口与有序响应式覆盖
 src/lib/                 规则、日期范围、analytics、Zod schema、仓储接口与 seed
 src/types/               领域类型
 supabase/migrations/     PostgreSQL schema 与 RLS
@@ -102,6 +103,8 @@ docs/                    PRD、目标、工程协作规范、桌面交互与 PR 
 ```
 
 ## 数据与交互约定
+
+前端结构约定见 [前端样式与模块归属](docs/frontend-style-ownership.md)：`src/app/globals.css` 只保留 Tailwind 和有序 CSS 入口，任务首页由展示组件及 data/create/workflow/drag/resize 等职责 Hook 组成。新增样式和任务交互前应先按该文档定位 owner，避免跨功能改动。
 
 - 普通任务只有“重要 / 不重要”两档待安排优先级。
 - 删除进入回收站，恢复后回到当天；放弃、待安排、移期保留为可复盘历史。

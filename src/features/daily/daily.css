@@ -1,0 +1,282 @@
+/**
+ * @fileoverview 定义 Daily 面板样式。
+ */
+
+/* ================= Daily 任务面板 ================= */
+
+.daily-group {
+  padding: 10px 4px 6px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.daily-group:first-of-type {
+  border-top: 0;
+  padding-top: 4px;
+}
+
+.daily-parent {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.daily-parent-title-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.daily-parent-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.daily-parent-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.daily-tag-badge {
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+}
+
+.daily-edit-link {
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  background: transparent;
+  font-size: 0.75rem;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.daily-edit-link:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.daily-edit-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.daily-edit-inline select,
+.daily-edit-inline .tl-input {
+  min-height: 28px;
+  font-size: 0.75rem;
+}
+
+.daily-save-btn,
+.daily-cancel-btn {
+  border: 0;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.daily-save-btn {
+  color: #fff;
+  background: var(--accent);
+}
+
+.daily-cancel-btn {
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+}
+
+.daily-children {
+  position: relative;
+  display: grid;
+  gap: 3px;
+  margin: 4px 0 4px 11px;
+  padding-left: 17px;
+}
+
+.daily-children::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -4px;
+  bottom: 14px;
+  width: 1.5px;
+  background: color-mix(in srgb, var(--border) 80%, var(--text-tertiary) 20%);
+  border-radius: 1px;
+}
+
+.daily-child-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.daily-child-row::before {
+  content: '';
+  position: absolute;
+  left: -17px;
+  top: 50%;
+  width: 12px;
+  height: 1.5px;
+  background: color-mix(in srgb, var(--border) 80%, var(--text-tertiary) 20%);
+  border-radius: 1px;
+}
+
+.daily-child-name {
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.daily-child-duration {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.daily-child-add {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0 2px 24px;
+}
+
+.daily-child-add .tl-input {
+  min-height: 28px;
+  font-size: 0.75rem;
+}
+
+.daily-child-add button {
+  flex: 0 0 auto;
+  border: 0;
+  padding: 0 8px;
+  color: var(--accent);
+  background: transparent;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.daily-add-footer {
+  display: flex;
+  justify-content: center;
+  padding-top: 12px;
+  margin-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.daily-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 140ms ease;
+}
+
+.daily-add-btn:hover {
+  color: var(--accent);
+}
+
+.daily-add-form {
+  display: grid;
+  gap: 8px;
+  padding: 12px 8px 4px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.daily-add-form .tl-input,
+.daily-add-form select {
+  min-height: 32px;
+  font-size: 0.8125rem;
+}
+
+.daily-add-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.daily-add-confirm,
+.daily-add-cancel {
+  border: 0;
+  border-radius: 4px;
+  padding: 5px 12px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.daily-add-confirm {
+  color: #fff;
+  background: var(--accent);
+}
+
+.daily-add-cancel {
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+}
+
+.daily-history {
+  width: 100%;
+  margin-top: 9px;
+  border-top: 1px solid var(--border-subtle);
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.daily-history caption {
+  padding: 9px 0;
+  text-align: left;
+  font-weight: 700;
+}
+
+.daily-history th,
+.daily-history td {
+  padding: 6px 8px;
+  text-align: left;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.daily-entry {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) auto;
+  gap: 6px;
+  padding: 9px 0;
+}
+
+.daily-entry .tl-input {
+  min-height: 30px;
+  font-size: 0.75rem;
+}
+
+.daily-entry button {
+  border: 0;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: var(--accent);
+  background: var(--accent-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+

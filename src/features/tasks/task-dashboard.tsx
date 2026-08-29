@@ -4,27 +4,12 @@
 
 'use client';
 
-import {
-  Check,
-  Eraser,
-  GripVertical,
-  MoreHorizontal,
-  MousePointer2,
-  Pencil,
-  Plus,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
-import { AnnotationColorPicker } from '@/components/annotation-color-picker';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { ProjectTag } from '@/components/ui/project-tag';
 import { StatItem } from '@/components/ui/stat-item';
 import { Surface } from '@/components/ui/surface';
-import { calculateDuration, canTransitionTask } from '@/lib/task-rules';
-import { taskFormSchema } from '@/lib/schemas';
 import { DailyPanel } from '@/features/daily/daily-panel';
 import { CalendarPanel } from '@/features/calendar/calendar-panel';
 import { InsightsPanel } from '@/features/insights/insights-panel';
@@ -33,94 +18,27 @@ import { RecordsPanel } from '@/features/records/records-panel';
 import { RhythmPanel } from '@/features/rhythm/rhythm-panel';
 import { SettingsPanel } from '@/features/settings/settings-panel';
 import { useWorkspaceData } from '@/features/workspace/workspace-data-provider';
-import {
-  createDailyInstance,
-  createProjectSeed,
-  makeTask,
-} from '@/features/workspace/workspace-seed';
+import { createDailyInstance } from '@/features/workspace/workspace-seed';
 import { CompactWindowHeader, useWorkspaceView } from '@/components/app-shell';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
-import { addLocalDateDays, getLocalDateKey } from '@/lib/local-date';
 import {
   MiniTodayPanel,
   WorkstationPanel,
-  type CompactQuickTaskDraft,
-  type CompactTimedTaskDraft,
 } from '@/features/tasks/compact-workspace';
-import type { HistoryEvent, Project, Task, TaskStatus } from '@/types/domain';
+import { formatMinutes } from '@/features/tasks/task-time';
+import { TaskLine } from '@/features/tasks/components/task-line';
+import { SchedulePanel } from '@/features/tasks/components/schedule-panel';
+import { QuickTaskPanel } from '@/features/tasks/components/quick-task-panel';
+import { PlanningQueue } from '@/features/tasks/components/planning-queue';
+import {
+  CloseDialog,
+  RescheduleDialog,
+  TaskDialog,
+} from '@/features/tasks/components/task-dialogs';
+import { useTaskCreateAndEdit } from '@/features/tasks/hooks/use-task-create-and-edit';
+import { useTaskDashboardController } from '@/features/tasks/hooks/use-task-dashboard-controller';
+import type { HistoryEvent, Task } from '@/types/domain';
 
-type TaskDropZone = 'schedule' | 'quick';
-
-/** 完整工作台初始时让日程列略宽于右侧待办列，保留用户后续拖拽调整能力。 */
-const DEFAULT_SCHEDULE_RATIO = 1.8;
-
-function formatMinutes(value?: number) {
-  if (value === undefined) return '—';
-  return value < 60
-    ? `${value}min`
-    : `${Math.floor(value / 60)}h${value % 60 ? `${value % 60}min` : ''}`;
-}
-
-/**
- * 解析用户输入的持续时间字符串（如 30, 30min, 1h, 1.5h, 1h20min, —）。
- */
-function parseDurationInput(value: string): number | undefined {
-  const clean = value.trim().toLowerCase();
-  if (!clean || clean === '—' || clean === '-' || clean === '0' || clean === '0min') {
-    return undefined;
-  }
-  const hourMinMatch = clean.match(
-    /^(\d+(?:\.\d+)?)\s*h(?:our)?s?\s*(\d+)?(?:\s*m(?:in)?s?)?$/,
-  );
-  if (hourMinMatch) {
-    const hours = parseFloat(hourMinMatch[1]);
-    const mins = hourMinMatch[2] ? parseInt(hourMinMatch[2], 10) : 0;
-    return Math.round(hours * 60 + mins);
-  }
-  const minMatch = clean.match(/^(\d+)\s*(?:m|min|mins|minute|minutes)?$/);
-  if (minMatch) {
-    return parseInt(minMatch[1], 10);
-  }
-  return undefined;
-}
-
-/**
- * 解析用户输入的时间范围（如 08:30, 0830, 08:30-10:00, 15:10–16:10, 1510-1610）。
- */
-function parseTimeInput(value: string): {
-  start?: string;
-  end?: string;
-  duration?: number;
-} {
-  const clean = value.trim();
-  if (!clean) return {};
-  const parts = clean.split(/[-–~至到\s]+/).filter(Boolean);
-  if (parts.length === 1) {
-    const start = normalizeTime(parts[0]);
-    return { start };
-  }
-  if (parts.length >= 2) {
-    const start = normalizeTime(parts[0]);
-    const end = normalizeTime(parts[1]);
-    if (start && end && end >= start) {
-      const duration = calculateDuration(start, end);
-      return { start, end, duration };
-    }
-    return { start, end };
-  }
-  return {};
-}
-function normalizeTime(value: string) {
-  const clean = value.trim();
-  const parsed = /^\d{3,4}$/.test(clean)
-    ? `${clean.slice(0, -2)}:${clean.slice(-2)}`
-    : clean;
-  if (!/^\d{1,2}:\d{2}$/.test(parsed)) return undefined;
-  const [h, m] = parsed.split(':').map(Number);
-  return h < 24 && m < 60
-    ? `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-    : undefined;
-}
 export function TaskDashboard() {
   const { active, selectedDate, setSelectedDate } = useWorkspaceView();
   const { isMiniToday, isWorkstation } = useDesktopWindow();
@@ -148,13 +66,6 @@ export function TaskDashboard() {
     hydrated,
   } = useWorkspaceData();
   const [annotationTool, setAnnotationTool] = useState<AnnotationTool>('none');
-  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
-  const draggingTaskIdRef = useRef<string | null>(null);
-  const pointerDragRef = useRef<{ taskId: string; pointerId: number } | undefined>(
-    undefined,
-  );
-  const [dropTarget, setDropTarget] = useState<TaskDropZone | null>(null);
-  const [autoFocusTimeTaskId, setAutoFocusTimeTaskId] = useState<string | null>(null);
 
   const [addingTimedRow, setAddingTimedRow] = useState(false);
   const [newTimedStartTime, setNewTimedStartTime] = useState('');
@@ -177,160 +88,6 @@ export function TaskDashboard() {
   const [newQuickProjectName, setNewQuickProjectName] = useState('');
   const quickProjectPickerRef = useRef<HTMLDivElement>(null);
 
-  const [scheduleRatio, setScheduleRatio] = useState<number>(DEFAULT_SCHEDULE_RATIO);
-  const [isResizingSchedule, setIsResizingSchedule] = useState(false);
-  const resizeStartXRef = useRef<number>(0);
-  const resizeStartRatioRef = useRef<number>(DEFAULT_SCHEDULE_RATIO);
-
-  const createProjectDirectly = (name: string): Project => {
-    const trimmed = name.trim();
-    const colors = ['#4f8cff', '#8b7cf6', '#38a774', '#e9a04b', '#ec4899', '#06b6d4'];
-    const randomColor = colors[workspaceProjects.length % colors.length];
-    const newProj: Project = {
-      id: crypto.randomUUID(),
-      name: trimmed,
-      color: randomColor,
-      status: 'active',
-      createdAt: getLocalDateKey(),
-    };
-    updateProjects((current) => [...current, newProj]);
-    return newProj;
-  };
-
-  /** 校验两个直观时间输入，并把有效范围同步为任务预计时长。 */
-  const handleConfirmAddTimed = () => {
-    if (!newTimedTitle.trim()) {
-      setAddingTimedRow(false);
-      return;
-    }
-    const start = normalizeTime(newTimedStartTime);
-    const end = normalizeTime(newTimedEndTime);
-    if (newTimedStartTime.trim() && !start) {
-      setNewTimedTimeError('开始时间格式应为 08:30');
-      return;
-    }
-    if (newTimedEndTime.trim() && (!start || !end || end <= start)) {
-      setNewTimedTimeError('结束时间需晚于有效的开始时间');
-      return;
-    }
-    setNewTimedTimeError(undefined);
-    const duration = start && end ? calculateDuration(start, end) : undefined;
-    const plannedDuration = parseDurationInput(newTimedPlanned) ?? duration;
-    const actualDuration = parseDurationInput(newTimedActual);
-    const newTask: Task = {
-      id: crypto.randomUUID(),
-      projectId: newTimedProjectId,
-      title: newTimedTitle.trim(),
-      date: selectedDate,
-      plannedStartTime: start,
-      schedulePendingTime: !start,
-      plannedEndTime: end,
-      plannedDurationMinutes: plannedDuration,
-      actualDurationMinutes: actualDuration,
-      completed: newTimedCompleted,
-      completedAt: newTimedCompleted ? new Date().toISOString() : undefined,
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    updateTasks((current) => [...current, newTask]);
-    appendHistory('created', newTask.id, { title: newTask.title });
-    setNewTimedStartTime('');
-    setNewTimedEndTime('');
-    setNewTimedTitle('');
-    setNewTimedPlanned('');
-    setNewTimedActual('');
-    setNewTimedCompleted(false);
-    setAddingTimedRow(false);
-  };
-
-  const handleConfirmAddQuick = () => {
-    if (!newQuickTitle.trim()) {
-      setAddingQuickRow(false);
-      return;
-    }
-    const newTask: Task = {
-      id: crypto.randomUUID(),
-      projectId: newQuickProjectId,
-      title: newQuickTitle.trim(),
-      date: selectedDate,
-      completed: newQuickCompleted,
-      completedAt: newQuickCompleted ? new Date().toISOString() : undefined,
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    updateTasks((current) => [...current, newTask]);
-    appendHistory('created', newTask.id, { title: newTask.title });
-    setNewQuickTitle('');
-    setNewQuickCompleted(false);
-    setAddingQuickRow(false);
-  };
-
-  /** 从迷你今日写入有可选起止时间的任务，并复用完整工作台的持久化字段。 */
-  const createCompactTimedTask = (draft: CompactTimedTaskDraft) => {
-    const task: Task = {
-      id: crypto.randomUUID(),
-      projectId: draft.projectId,
-      title: draft.title,
-      date: selectedDate,
-      plannedStartTime: draft.start,
-      plannedEndTime: draft.end,
-      plannedDurationMinutes:
-        draft.start && draft.end
-          ? calculateDuration(draft.start, draft.end)
-          : undefined,
-      schedulePendingTime: !draft.start,
-      completed: false,
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    updateTasks((current) => [...current, task]);
-    appendHistory('created', task.id, { title: task.title });
-  };
-
-  /** 从迷你今日写入无时间待办，不额外推断时间或完成状态。 */
-  const createCompactQuickTask = (draft: CompactQuickTaskDraft) => {
-    const task: Task = {
-      id: crypto.randomUUID(),
-      projectId: draft.projectId,
-      title: draft.title,
-      date: selectedDate,
-      completed: false,
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    updateTasks((current) => [...current, task]);
-    appendHistory('created', task.id, { title: task.title });
-  };
-
-  const startResizeSchedule = (e: React.PointerEvent) => {
-    setIsResizingSchedule(true);
-    resizeStartXRef.current = e.clientX;
-    resizeStartRatioRef.current = scheduleRatio;
-
-    const onPointerMove = (moveEvent: PointerEvent) => {
-      const deltaX = moveEvent.clientX - resizeStartXRef.current;
-      // 向右拖动 deltaX > 0，增加比例
-      const deltaRatio = deltaX / 260;
-      const nextRatio = Math.max(
-        1.1,
-        Math.min(3.2, resizeStartRatioRef.current + deltaRatio),
-      );
-      setScheduleRatio(nextRatio);
-    };
-
-    const onPointerUp = () => {
-      setIsResizingSchedule(false);
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-    };
-
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-  };
   const [editing, setEditing] = useState<Task | undefined>();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [taskDialogMode, setTaskDialogMode] = useState<'normal' | 'unscheduled'>(
@@ -348,406 +105,142 @@ export function TaskDashboard() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [annotationTool]);
 
-  if (!hydrated)
-    return (
-      <Surface className="workspace-loading">
-        <p>正在载入工作台…</p>
-      </Surface>
-    );
-  const shown = tasks.filter((t) => t.status === 'active' && t.date === selectedDate);
-  const movedFromSelectedDate = tasks.filter(
-    (task) =>
-      task.status === 'active' &&
-      task.date !== selectedDate &&
-      task.postponedFrom === selectedDate,
-  );
-  const daily =
-    dailyByDate[selectedDate] ?? createDailyInstance(selectedDate, dailyTemplates);
-  const tomorrow = addLocalDateDays(selectedDate, 1);
-  const timed = shown
-    .filter((t) => Boolean(t.plannedStartTime) || t.schedulePendingTime)
-    .sort((a, b) => {
-      if (a.schedulePendingTime !== b.schedulePendingTime) {
-        return a.schedulePendingTime ? -1 : 1;
-      }
-      if (a.plannedStartTime && b.plannedStartTime) {
-        return a.plannedStartTime.localeCompare(b.plannedStartTime);
-      }
-      if (a.plannedStartTime) return -1;
-      if (b.plannedStartTime) return 1;
-      return 0;
-    });
-  const quick = shown.filter((t) => !t.plannedStartTime && !t.schedulePendingTime);
-  const backlog = tasks.filter((t) => t.status === 'backlog');
-  const done = shown.filter((t) => t.completed).length;
-  const normalTaskTotal = shown.length + movedFromSelectedDate.length;
-  const actual = shown.reduce((sum, t) => sum + (t.actualDurationMinutes ?? 0), 0);
-  const dailyActual = daily.reduce((sum, item) => sum + item.actual, 0);
-  const dailyDone = daily.filter(
-    (item) => item.completed || item.children.some((child) => child.completed),
-  ).length;
-  const isDayClosed = closeRecords.some((record) => record.date === selectedDate);
   const annotationInteractionLocked = annotationTool !== 'none';
 
   const toggleAnnotationTool = (tool: AnnotationTool) => {
     setAnnotationTool((current) => (current === tool ? 'none' : tool));
   };
 
-  const update = (task: Task) =>
-    updateTasks((current) =>
-      current.map((item) => (item.id === task.id ? task : item)),
-    );
-
-  /** 只组合当前领域状态；Calendar、Insights 与 PDF 都由各自的纯 selector 消费该输入。 */
-  const analyticsInput = {
-    tasks,
-    projects: workspaceProjects,
+  const {
+    actual,
+    analyticsInput,
+    appendHistory,
+    autoFocusTimeTaskId,
+    backlog,
+    clearWorkstation,
+    daily,
+    dailyActual,
+    dailyDone,
+    done,
+    draggingTaskId,
+    dropTarget,
+    handlePointerDragEnd,
+    handlePointerDragMove,
+    handlePointerDragStart,
+    handleQuickDragOver,
+    handleQuickDrop,
+    handleScheduleDragOver,
+    handleScheduleDrop,
+    handleTaskDragEnd,
+    handleTaskDragStart,
+    isDayClosed,
+    isResizingSchedule,
+    moveTask: move,
+    normalTaskTotal,
+    quick,
+    reorderWorkstation,
+    rescheduleTask,
+    scheduleRatio,
+    setAutoFocusTimeTaskId,
+    setDropTarget,
+    shown,
+    startResizeSchedule,
+    timed,
+    toggleWorkstationTask,
+    tomorrow,
+    updateTask: update,
+  } = useTaskDashboardController({
+    closeRecords,
     dailyByDate,
     dailyHistory,
-    closeRecords,
+    dailyTemplates,
+    interactionLocked: annotationInteractionLocked,
+    projects: workspaceProjects,
+    selectedDate,
+    tasks,
+    updateAnnotationStrokes,
+    updateHistory,
+    updateTasks,
+    updateWorkstationTaskIds,
+  });
+
+  const {
+    createCompactQuickTask,
+    createCompactTimedTask,
+    createProjectDirectly,
+    createQuickTask,
+    createTimedTask,
+    saveTask,
+  } = useTaskCreateAndEdit({
+    appendHistory,
+    editing,
+    projects: workspaceProjects,
+    selectedDate,
+    updateProjectList: updateProjects,
+    updateTask: update,
+    updateTasks,
+  });
+
+  /** 调用动作层创建日程任务，并保持既有字段重置顺序。 */
+  const handleConfirmAddTimed = () => {
+    const result = createTimedTask({
+      actual: newTimedActual,
+      completed: newTimedCompleted,
+      endTime: newTimedEndTime,
+      planned: newTimedPlanned,
+      projectId: newTimedProjectId,
+      startTime: newTimedStartTime,
+      title: newTimedTitle,
+    });
+    if ('error' in result) {
+      setNewTimedTimeError(result.error);
+      return;
+    }
+    setNewTimedTimeError(undefined);
+    setNewTimedStartTime('');
+    setNewTimedEndTime('');
+    setNewTimedTitle('');
+    setNewTimedPlanned('');
+    setNewTimedActual('');
+    setNewTimedCompleted(false);
+    setAddingTimedRow(false);
   };
 
-  /** 切换任务在工作站内的引用，不触碰原任务、日期、完成状态或优先级。 */
-  const toggleWorkstationTask = (taskId: string) =>
-    updateWorkstationTaskIds((current) =>
-      current.includes(taskId)
-        ? current.filter((id) => id !== taskId)
-        : [...current, taskId],
+  /** 调用动作层创建无时间待办，并保持既有空标题取消行为。 */
+  const handleConfirmAddQuick = () => {
+    createQuickTask({
+      completed: newQuickCompleted,
+      projectId: newQuickProjectId,
+      title: newQuickTitle,
+    });
+    setNewQuickTitle('');
+    setNewQuickCompleted(false);
+    setAddingQuickRow(false);
+  };
+
+  if (!hydrated)
+    return (
+      <Surface className="workspace-loading">
+        <p>正在载入工作台…</p>
+      </Surface>
     );
-
-  /** 清空工作站仅清空引用集合，绝不删除或变更任务记录。 */
-  const clearWorkstation = () => updateWorkstationTaskIds([]);
-
-  /** 调整引用集合顺序；Task 本身的 priority 和字段完全保持不变。 */
-  const reorderWorkstation = (sourceId: string, targetId: string) =>
-    updateWorkstationTaskIds((current) => {
-      const sourceIndex = current.indexOf(sourceId);
-      const targetIndex = current.indexOf(targetId);
-      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex)
-        return current;
-      const next = [...current];
-      next.splice(sourceIndex, 1);
-      next.splice(targetIndex, 0, sourceId);
-      return next;
-    });
-
-  /**
-   * 将无时间任务移动到日程，保留同一条记录并设为持久化的待填时间状态。
-   */
-  const moveTaskToSchedule = (taskId: string) => {
-    const task = shown.find((item) => item.id === taskId);
-    if (!task || task.plannedStartTime || task.schedulePendingTime) return;
-    update({
-      ...task,
-      schedulePendingTime: true,
-      plannedStartTime: undefined,
-      plannedEndTime: undefined,
-      plannedDurationMinutes: undefined,
-      updatedAt: new Date().toISOString(),
-    });
-    setAutoFocusTimeTaskId(taskId);
-  };
-
-  /**
-   * 将日程任务移回无时间待办，清理待填状态和全部排程字段。
-   */
-  const moveTaskToQuick = (taskId: string) => {
-    const task = shown.find((item) => item.id === taskId);
-    if (!task) return;
-    update({
-      ...task,
-      schedulePendingTime: false,
-      plannedStartTime: undefined,
-      plannedEndTime: undefined,
-      plannedDurationMinutes: undefined,
-      updatedAt: new Date().toISOString(),
-    });
-  };
-
-  /**
-   * 记录拖拽源以呈现视觉反馈；不锁定落点，避免阻断原生 drop 事件。
-   */
-  const handleTaskDragStart = (taskId: string) => {
-    if (annotationInteractionLocked) return;
-    draggingTaskIdRef.current = taskId;
-    setDraggingTaskId(taskId);
-  };
-
-  /**
-   * 无论任务是否落入有效区域，都清理本次原生拖拽的临时视觉状态。
-   */
-  const handleTaskDragEnd = () => {
-    draggingTaskIdRef.current = null;
-    setDraggingTaskId(null);
-    setDropTarget(null);
-  };
-
-  /**
-   * 从标准或自定义拖拽载荷读取任务 ID，并兼容 WebView 未回传载荷的情况。
-   */
-  const getDraggedTaskId = (event: React.DragEvent) =>
-    event.dataTransfer.getData('text/task-id') ||
-    event.dataTransfer.getData('text/plain') ||
-    draggingTaskIdRef.current;
-
-  /**
-   * 从当前鼠标坐标识别任务可落入的面板，供 Windows WebView2 的 Pointer Events 拖拽使用。
-   */
-  const getDropZoneAtPoint = (clientX: number, clientY: number) => {
-    const element = document.elementFromPoint(clientX, clientY);
-    const zone = element?.closest<HTMLElement>('[data-task-drop-zone]')?.dataset
-      .taskDropZone;
-    return zone === 'schedule' || zone === 'quick' ? zone : null;
-  };
-
-  /** 从 React PointerEvent 读取最终屏幕坐标，统一交给按点命中的落点解析器。 */
-  const getDropZoneAtPointer = (event: React.PointerEvent) =>
-    getDropZoneAtPoint(event.clientX, event.clientY);
-
-  /** 完成一次明确拖拽柄的移动；命中面板后只改变任务排程状态。 */
-  const finishPointerDrag = (pointerId: number, clientX: number, clientY: number) => {
-    const activePointerDrag = pointerDragRef.current;
-    const fallbackTaskId = draggingTaskIdRef.current;
-    const taskId = activePointerDrag?.taskId ?? fallbackTaskId;
-    if (!taskId || (activePointerDrag && pointerId !== activePointerDrag.pointerId))
-      return;
-    const target = getDropZoneAtPoint(clientX, clientY);
-    if (target === 'schedule') moveTaskToSchedule(taskId);
-    if (target === 'quick') moveTaskToQuick(taskId);
-    pointerDragRef.current = undefined;
-    draggingTaskIdRef.current = null;
-    setDraggingTaskId(null);
-    setDropTarget(null);
-  };
-
-  /**
-   * 从明确的六点拖拽柄开始桌面鼠标拖拽，避免依赖 WebView2 不稳定的原生 draggable 事件。
-   */
-  const handlePointerDragStart = (
-    taskId: string,
-    event: React.PointerEvent<HTMLButtonElement>,
-  ) => {
-    if (
-      annotationInteractionLocked ||
-      event.pointerType !== 'mouse' ||
-      event.button !== 0
-    )
-      return;
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    const nextPointerDrag = { taskId, pointerId: event.pointerId };
-    pointerDragRef.current = nextPointerDrag;
-    draggingTaskIdRef.current = taskId;
-    setDraggingTaskId(taskId);
-
-    /** 在滚动容器接管事件时，仍从窗口捕获阶段完成本次拖拽。 */
-    const finishFromWindow = (nativeEvent: PointerEvent) => {
-      finishPointerDrag(
-        nativeEvent.pointerId,
-        nativeEvent.clientX,
-        nativeEvent.clientY,
-      );
-      window.removeEventListener('pointerup', finishFromWindow, true);
-    };
-    window.addEventListener('pointerup', finishFromWindow, true);
-  };
-
-  /**
-   * 随鼠标移动高亮当前有效的落点面板。
-   */
-  const handlePointerDragMove = (event: React.PointerEvent) => {
-    const activePointerDrag = pointerDragRef.current;
-    if (!activePointerDrag || event.pointerId !== activePointerDrag.pointerId) return;
-    const nextTarget = getDropZoneAtPointer(event);
-    setDropTarget((current) => (current === nextTarget ? current : nextTarget));
-  };
-
-  /**
-   * 松开鼠标后按落点移动原任务；没有有效落点时只清理临时拖拽状态。
-   */
-  const handlePointerDragEnd = (event: React.PointerEvent) => {
-    finishPointerDrag(event.pointerId, event.clientX, event.clientY);
-  };
-
-  /**
-   * 允许非批注状态下的任务落入日程面板；preventDefault 是浏览器接受 drop 的前提。
-   */
-  const handleScheduleDragOver = (event: React.DragEvent) => {
-    if (annotationInteractionLocked) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-    setDropTarget('schedule');
-  };
-
-  /**
-   * 将同一条无时间任务持久化为待填时间状态，并将时间输入聚焦给用户。
-   */
-  const handleScheduleDrop = (event: React.DragEvent) => {
-    if (annotationInteractionLocked) return;
-    event.preventDefault();
-    setDropTarget(null);
-    const taskId = getDraggedTaskId(event);
-    if (!taskId) return;
-    moveTaskToSchedule(taskId);
-    draggingTaskIdRef.current = null;
-    setDraggingTaskId(null);
-  };
-
-  /**
-   * 允许非批注状态下的任务落入无时间待办面板；preventDefault 保证 drop 可触发。
-   */
-  const handleQuickDragOver = (event: React.DragEvent) => {
-    if (annotationInteractionLocked) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-    setDropTarget('quick');
-  };
-
-  /**
-   * 取消任务的待填或已填写排程时间，但保留任务身份与其他业务字段。
-   */
-  const handleQuickDrop = (event: React.DragEvent) => {
-    if (annotationInteractionLocked) return;
-    event.preventDefault();
-    setDropTarget(null);
-    const taskId = getDraggedTaskId(event);
-    if (!taskId) return;
-    moveTaskToQuick(taskId);
-    draggingTaskIdRef.current = null;
-    setDraggingTaskId(null);
-  };
 
   const open = (task?: Task, mode: 'normal' | 'unscheduled' = 'normal') => {
     setEditing(task);
     setTaskDialogMode(mode);
     setTaskDialogOpen(true);
   };
+  /** 由动作层验证并写入 Dialog 内容；仅在成功时关闭原有弹窗。 */
   const save = (form: FormData): string | undefined => {
-    const title = String(form.get('title') ?? '').trim();
-    const startRaw = String(form.get('start') ?? '');
-    const endRaw = String(form.get('end') ?? '');
-    const start = startRaw ? normalizeTime(startRaw) : undefined;
-    const end = endRaw ? normalizeTime(endRaw) : undefined;
-    const parsed = taskFormSchema.safeParse({
-      title,
-      projectId: String(form.get('project') ?? ''),
-      plannedMinutes: numberOrUndefined(form.get('planned')),
-      actualMinutes: numberOrUndefined(form.get('actual')),
-    });
-    if (!parsed.success) return parsed.error.issues[0]?.message ?? '请检查任务信息';
-    if (startRaw && !start) return '开始时间格式应为 1420 或 14:20';
-    if (endRaw && !end) return '结束时间格式应为 1530 或 15:30';
-    if (end && !start) return '填写结束时间前，请先填写开始时间';
-    if (end && start && end < start) return '暂不支持跨午夜任务，请选择同一天内的时间';
-    const automatic = calculateDuration(start, end);
-    const planned = automatic ?? numberOrUndefined(form.get('planned'));
-    const base =
-      editing ??
-      makeTask(
-        getLocalDateKey(),
-        crypto.randomUUID(),
-        String(form.get('project')),
-        title,
-      );
-    update({
-      ...base,
-      title,
-      projectId: String(form.get('project')),
-      date: editing?.date ?? selectedDate,
-      plannedStartTime: start,
-      plannedEndTime: end,
-      plannedDurationMinutes: planned,
-      actualDurationMinutes: numberOrUndefined(form.get('actual')),
-      updatedAt: new Date().toISOString(),
-    });
-    if (!editing)
-      updateTasks((current) => [
-        ...current,
-        {
-          ...base,
-          title,
-          projectId: String(form.get('project')),
-          date: selectedDate,
-          plannedStartTime: start,
-          plannedEndTime: end,
-          plannedDurationMinutes: planned,
-          actualDurationMinutes: numberOrUndefined(form.get('actual')),
-          updatedAt: new Date().toISOString(),
-        },
-      ]);
-    setTaskDialogOpen(false);
-    return undefined;
+    const message = saveTask(form);
+    if (!message) setTaskDialogOpen(false);
+    return message;
   };
-  const appendHistory = (
-    type: string,
-    taskId?: string,
-    payload: Record<string, string> = {},
-  ) =>
-    updateHistory((current) => [
-      {
-        id: crypto.randomUUID(),
-        taskId,
-        type,
-        occurredAt: new Date().toISOString(),
-        payload,
-      },
-      ...current,
-    ]);
-  const move = (id: string, status: TaskStatus) => {
-    const task = tasks.find((item) => item.id === id);
-    if (!task || !canTransitionTask(task, status)) return;
-    if (status === 'trashed') {
-      updateAnnotationStrokes((current) =>
-        current.filter((stroke) => stroke.targetTaskId !== id),
-      );
-      updateWorkstationTaskIds((current) => current.filter((taskId) => taskId !== id));
-    }
-    updateTasks((current) =>
-      current.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              status,
-              date: status === 'active' ? t.date : undefined,
-              postponedFrom:
-                status !== 'active' ? (t.date ?? t.postponedFrom) : t.postponedFrom,
-              abandonedAt:
-                status === 'abandoned' ? new Date().toISOString() : t.abandonedAt,
-              deletedAt: status === 'trashed' ? new Date().toISOString() : t.deletedAt,
-              updatedAt: new Date().toISOString(),
-            }
-          : t,
-      ),
-    );
-    appendHistory(status, id, { fromDate: task?.date ?? selectedDate });
-  };
+  /** 将当前移期弹窗的任务交给 workflow，并只在成功后关闭弹窗。 */
   const reschedule = (targetDate: string) => {
-    if (!rescheduling) return;
-    if (!canTransitionTask(rescheduling, 'rescheduled')) return '请先取消完成再移期';
-    const sourceDate = rescheduling.date ?? selectedDate;
-    if (targetDate <= sourceDate) return '请选择晚于原计划日期的未来日期';
-    updateTasks((current) =>
-      current.map((task) =>
-        task.id === rescheduling.id
-          ? {
-              ...task,
-              status: 'active',
-              date: targetDate,
-              completed: false,
-              completedAt: undefined,
-              postponedFrom: sourceDate,
-              postponedTo: targetDate,
-              updatedAt: new Date().toISOString(),
-            }
-          : task,
-      ),
-    );
-    appendHistory('rescheduled', rescheduling.id, {
-      fromDate: sourceDate,
-      toDate: targetDate,
-    });
-    setRescheduling(undefined);
-    return undefined;
+    const message = rescheduleTask(rescheduling, targetDate);
+    if (!message && rescheduling) setRescheduling(undefined);
+    return message;
   };
   if (isMiniToday)
     return (
@@ -869,63 +362,24 @@ export function TaskDashboard() {
         onPointerMove={handlePointerDragMove}
         onPointerUp={handlePointerDragEnd}
       >
-        <Surface
-          className={`schedule-panel${dropTarget === 'schedule' ? 'is-drop-target' : ''}`}
-          data-task-drop-zone="schedule"
-          onDragOver={handleScheduleDragOver}
+        <SchedulePanel
+          annotationTool={annotationTool}
+          highlightColor={highlightColor}
+          isDropTarget={dropTarget === 'schedule'}
+          isFullWorkspace={!isMiniToday}
+          isResizing={isResizingSchedule}
+          onAdd={() => {
+            setAddingTimedRow(true);
+            setNewTimedProjectId(workspaceProjects[0]?.id ?? 'work');
+          }}
           onDragLeave={() => setDropTarget(null)}
+          onDragOver={handleScheduleDragOver}
           onDrop={handleScheduleDrop}
+          onResizeStart={startResizeSchedule}
+          onSelectAnnotationTool={setAnnotationTool}
+          onSetHighlightColor={updateHighlightColor}
+          onToggleEraser={() => toggleAnnotationTool('eraser')}
         >
-          <header className="schedule-panel-header">
-            <h2>今日日程</h2>
-            <div className="schedule-panel-actions">
-              <div className="annotation-tools" role="group" aria-label="批注工具">
-                <button
-                  type="button"
-                  className={`annotation-tool-btn${annotationTool === 'none' ? 'is-active' : ''}`}
-                  aria-label="选择模式"
-                  title="选择模式"
-                  onClick={() => setAnnotationTool('none')}
-                >
-                  <MousePointer2 size={15} />
-                </button>
-                <AnnotationColorPicker
-                  active={annotationTool === 'highlight'}
-                  color={highlightColor}
-                  onActivate={() => setAnnotationTool('highlight')}
-                  onColorChange={updateHighlightColor}
-                />
-                <button
-                  type="button"
-                  className={`annotation-tool-btn${annotationTool === 'eraser' ? 'is-active' : ''}`}
-                  aria-label="橡皮擦"
-                  title="橡皮擦（Esc 退出）"
-                  onClick={() => toggleAnnotationTool('eraser')}
-                >
-                  <Eraser size={15} />
-                </button>
-              </div>
-              <button
-                className="add-link"
-                onClick={() => {
-                  setAddingTimedRow(true);
-                  setNewTimedProjectId(workspaceProjects[0]?.id ?? 'work');
-                }}
-              >
-                <Plus size={19} /> 添加
-              </button>
-              {!isMiniToday && (
-                <button
-                  type="button"
-                  className={`schedule-resize-handle ${isResizingSchedule ? 'is-resizing' : ''}`}
-                  onPointerDown={startResizeSchedule}
-                  title="按住向右拖动以扩展今日日程宽度"
-                >
-                  <GripVertical size={16} />
-                </button>
-              )}
-            </div>
-          </header>
           <div className="timeline-scroll">
             <div className="timeline-head">
               <span className="timeline-col-time">时间</span>
@@ -1127,28 +581,19 @@ export function TaskDashboard() {
               </div>
             )}
           </div>
-        </Surface>
+        </SchedulePanel>
         {!isMiniToday && (
           <div className="side-column">
-            <Surface
-              className={`quick-panel${dropTarget === 'quick' ? 'is-drop-target' : ''}`}
-              data-task-drop-zone="quick"
-              onDragOver={handleQuickDragOver}
+            <QuickTaskPanel
+              isDropTarget={dropTarget === 'quick'}
+              onAdd={() => {
+                setAddingQuickRow(true);
+                setNewQuickProjectId(workspaceProjects[0]?.id ?? 'other');
+              }}
               onDragLeave={() => setDropTarget(null)}
+              onDragOver={handleQuickDragOver}
               onDrop={handleQuickDrop}
             >
-              <header>
-                <h2>无时间待办</h2>
-                <button
-                  className="add-link"
-                  onClick={() => {
-                    setAddingQuickRow(true);
-                    setNewQuickProjectId(workspaceProjects[0]?.id ?? 'other');
-                  }}
-                >
-                  <Plus size={19} /> 添加
-                </button>
-              </header>
               <div className="quick-tasks">
                 {quick.length === 0 && !addingQuickRow ? (
                   <p className="empty-copy">暂无未定时间的待办事项</p>
@@ -1290,7 +735,7 @@ export function TaskDashboard() {
                   </div>
                 )}
               </div>
-            </Surface>
+            </QuickTaskPanel>
             <DailyPanel
               items={daily}
               history={dailyHistory}
@@ -1466,802 +911,5 @@ export function TaskDashboard() {
     </div>
   );
 }
-function CloseDialog({
-  dialog,
-  tasks,
-  actual,
-  dailyDone,
-  dailyCount,
-  dailyActual,
-  tomorrow,
-  onCloseDay,
-}: {
-  dialog: React.RefObject<HTMLDialogElement | null>;
-  tasks: Task[];
-  actual: number;
-  dailyDone: number;
-  dailyCount: number;
-  dailyActual: number;
-  tomorrow: string;
-  onCloseDay: (data: FormData) => void;
-}) {
-  const unfinished = tasks.filter((task) => !task.completed);
-  return (
-    <dialog className="task-dialog close-dialog" ref={dialog}>
-      <form action={onCloseDay}>
-        <header>
-          <div>
-            <p>每日收尾</p>
-            <h2>结束今天</h2>
-          </div>
-          <button formMethod="dialog" aria-label="关闭">
-            ×
-          </button>
-        </header>
-        <div className="close-metrics">
-          <span>
-            普通任务{' '}
-            <b>
-              {tasks.filter((task) => task.completed).length}/{tasks.length}
-            </b>
-          </span>
-          <span>
-            Daily{' '}
-            <b>
-              {dailyDone}/{dailyCount}
-            </b>
-          </span>
-          <span>
-            普通实际 <b>{formatMinutes(actual)}</b>
-          </span>
-          <span>
-            Daily 实际 <b>{formatMinutes(dailyActual)}</b>
-          </span>
-          <span>
-            今日总实际 <b>{formatMinutes(actual + dailyActual)}</b>
-          </span>
-        </div>
-        <h3>未完成普通任务</h3>
-        {unfinished.length === 0 ? (
-          <p>所有普通任务均已完成。</p>
-        ) : (
-          unfinished.map((task) => (
-            <div className="close-task" key={task.id}>
-              <b>{task.title}</b>
-              <select name={`action-${task.id}`} defaultValue="tomorrow">
-                <option value="tomorrow">移到明天</option>
-                <option value="date">选择日期</option>
-                <option value="backlog">待安排</option>
-                <option value="abandoned">放弃</option>
-              </select>
-              <Input name={`date-${task.id}`} type="date" defaultValue={tomorrow} />
-            </div>
-          ))
-        )}
-        <p>未完成 Daily 只记录为今日未完成，不会顺延。</p>
-        <footer>
-          <button formMethod="dialog">稍后处理</button>
-          <button type="submit">确认结束今天</button>
-        </footer>
-      </form>
-    </dialog>
-  );
-}
-function PlanningQueue({
-  tasks,
-  projects,
-  onUpdate,
-  onMove,
-  onArrange,
-}: {
-  tasks: Task[];
-  projects: Project[];
-  onUpdate: (task: Task) => void;
-  onMove: (id: string, status: TaskStatus) => void;
-  onArrange: (id: string) => void;
-}) {
-  return (
-    <Surface className="planning-queue">
-      <header>
-        <h2>待安排</h2>
-        <span>重要 / 不重要 · DDL 可选</span>
-      </header>
-      {tasks.length === 0 ? (
-        <p>还没有待安排事项。任务选择“待安排”后会出现在这里。</p>
-      ) : (
-        tasks.map((task) => {
-          const project =
-            projects.find((item) => item.id === task.projectId) ??
-            createProjectSeed()[4];
-          return (
-            <div className="queue-row" key={task.id}>
-              <ProjectTag name={project.name} color={project.color} />
-              <b>{task.title}</b>
-              <select
-                aria-label={`${task.title}重要性`}
-                value={task.backlogImportance ?? 'important'}
-                onChange={(event) =>
-                  onUpdate({
-                    ...task,
-                    backlogImportance: event.target.value as
-                      'important' | 'not_important',
-                  })
-                }
-              >
-                <option value="important">重要</option>
-                <option value="not_important">不重要</option>
-              </select>
-              <Input
-                aria-label={`${task.title} DDL`}
-                type="datetime-local"
-                value={task.ddlAt ?? ''}
-                onChange={(event) =>
-                  onUpdate({ ...task, ddlAt: event.target.value || undefined })
-                }
-              />
-              <button onClick={() => onArrange(task.id)}>安排到今天</button>
-              {!task.completed && (
-                <button onClick={() => onMove(task.id, 'abandoned')}>放弃</button>
-              )}
-              <button onClick={() => onMove(task.id, 'trashed')}>删除</button>
-            </div>
-          );
-        })
-      )}
-    </Surface>
-  );
-}
-function numberOrUndefined(value: FormDataEntryValue | null) {
-  return value === null || value === '' ? undefined : Number(value);
-}
-/**
- * 任务单行组件（支持时间线视图、无时间待办与持久化的待填时间状态）。
- */
-function TaskLine({
-  task,
-  onUpdate,
-  onEdit,
-  onMove,
-  onReschedule,
-  projects,
-  onAddProject,
-  draggable = false,
-  isDragging = false,
-  autoFocusTime = false,
-  onTimeFocused,
-  interactionLocked = false,
-  onDragStart,
-  onDragEnd,
-  onPointerDragStart,
-  onPointerDragMove,
-  onPointerDragEnd,
-  inSchedulePanel = false,
-  inWorkstation = false,
-  onToggleWorkstation,
-}: {
-  task: Task;
-  onUpdate: (t: Task) => void;
-  onEdit: () => void;
-  onMove: (id: string, s: TaskStatus) => void;
-  onReschedule: () => void;
-  projects: Project[];
-  onAddProject?: (name: string) => Project | void;
-  draggable?: boolean;
-  isDragging?: boolean;
-  autoFocusTime?: boolean;
-  onTimeFocused?: () => void;
-  interactionLocked?: boolean;
-  onDragStart?: () => void;
-  onDragEnd?: () => void;
-  onPointerDragStart?: (event: React.PointerEvent<HTMLButtonElement>) => void;
-  onPointerDragMove?: (event: React.PointerEvent<HTMLButtonElement>) => void;
-  onPointerDragEnd?: (event: React.PointerEvent<HTMLButtonElement>) => void;
-  inSchedulePanel?: boolean;
-  inWorkstation?: boolean;
-  onToggleWorkstation?: (taskId: string) => void;
-}) {
-  const project =
-    projects.find((p) => p.id === task.projectId) ?? createProjectSeed()[4];
-  const timed = inSchedulePanel || Boolean(task.plannedStartTime);
-  const canDrag = draggable && !interactionLocked;
-  const canChangeWorkflow = !task.completed;
-  const [editingField, setEditingField] = useState<
-    'time' | 'project' | 'title' | 'planned' | 'actual' | undefined
-  >();
-  const [isAddingProject, setIsAddingProject] = useState(false);
-  const [newProjectName, setNewProjectName] = useState('');
-  const projectPickerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!autoFocusTime) return;
-    const frame = window.requestAnimationFrame(() => {
-      setEditingField('time');
-      onTimeFocused?.();
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [autoFocusTime, onTimeFocused]);
 
-  useEffect(() => {
-    if (editingField !== 'project') return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        projectPickerRef.current &&
-        !projectPickerRef.current.contains(e.target as Node)
-      ) {
-        setEditingField(undefined);
-        setIsAddingProject(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [editingField]);
-
-  const handleCreateProject = () => {
-    if (!newProjectName.trim() || !onAddProject) return;
-    const created = onAddProject(newProjectName.trim());
-    if (created) {
-      onUpdate({
-        ...task,
-        projectId: created.id,
-        updatedAt: new Date().toISOString(),
-      });
-    }
-    setNewProjectName('');
-    setIsAddingProject(false);
-    setEditingField(undefined);
-  };
-
-  /**
-   * 保存时间输入；空输入保留待填状态，合法开始时间则完成排程并移除待填标记。
-   */
-  const saveTime = (input: string) => {
-    const { start, end, duration } = parseTimeInput(input);
-    onUpdate({
-      ...task,
-      plannedStartTime: start,
-      plannedEndTime: end,
-      plannedDurationMinutes: duration ?? task.plannedDurationMinutes,
-      schedulePendingTime: start ? false : task.schedulePendingTime,
-      updatedAt: new Date().toISOString(),
-    });
-    setEditingField(undefined);
-  };
-
-  const saveTitle = (input: string) => {
-    const trimmed = input.trim();
-    if (trimmed && trimmed !== task.title) {
-      onUpdate({
-        ...task,
-        title: trimmed,
-        updatedAt: new Date().toISOString(),
-      });
-    }
-    setEditingField(undefined);
-  };
-
-  const savePlanned = (input: string) => {
-    const duration = parseDurationInput(input);
-    onUpdate({
-      ...task,
-      plannedDurationMinutes: duration,
-      updatedAt: new Date().toISOString(),
-    });
-    setEditingField(undefined);
-  };
-
-  const saveActual = (input: string) => {
-    const duration = parseDurationInput(input);
-    onUpdate({
-      ...task,
-      actualDurationMinutes: duration,
-      updatedAt: new Date().toISOString(),
-    });
-    setEditingField(undefined);
-  };
-
-  const timeDisplay = task.plannedStartTime
-    ? `${task.plannedStartTime}${task.plannedEndTime ? `–${task.plannedEndTime}` : ''}`
-    : '';
-
-  const stopDragOnControl = (event: React.DragEvent) => {
-    event.stopPropagation();
-  };
-
-  return (
-    <div
-      className={`${timed ? 'timeline-row' : 'quick-task-row'} task-row-draggable${task.completed ? 'completed' : ''}${isDragging ? 'is-dragging' : ''}${!canDrag ? 'is-drag-disabled' : ''}`}
-      draggable={canDrag && !editingField}
-      onDragStart={(event) => {
-        if (!canDrag || editingField) {
-          event.preventDefault();
-          return;
-        }
-        event.dataTransfer.setData('text/task-id', task.id);
-        event.dataTransfer.setData('text/plain', task.id);
-        event.dataTransfer.effectAllowed = 'move';
-        onDragStart?.();
-      }}
-      onDragEnd={() => onDragEnd?.()}
-    >
-      {timed ? (
-        editingField === 'time' ? (
-          <input
-            className="tl-inline-input timeline-time-input"
-            defaultValue={timeDisplay}
-            placeholder="08:30"
-            autoFocus
-            draggable={false}
-            onDragStart={stopDragOnControl}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') saveTime(e.currentTarget.value);
-              if (e.key === 'Escape') setEditingField(undefined);
-            }}
-            onBlur={(e) => saveTime(e.currentTarget.value)}
-          />
-        ) : (
-          <time
-            className={`timeline-time tl-clickable-cell${!task.plannedStartTime ? 'is-pending-time' : ''}`}
-            onClick={() => !interactionLocked && setEditingField('time')}
-            title="点击直接修改时间（支持 08:30 或 08:30-10:00）"
-          >
-            {timeDisplay || '—'}
-          </time>
-        )
-      ) : null}
-
-      <div className="task-check-wrap">
-        <Checkbox
-          aria-label={`完成${task.title}`}
-          checked={task.completed}
-          onChange={(e) =>
-            onUpdate({
-              ...task,
-              completed: e.target.checked,
-              completedAt: e.target.checked ? new Date().toISOString() : undefined,
-            })
-          }
-        />
-      </div>
-
-      <div
-        className="task-project-cell"
-        style={{ position: 'relative' }}
-        ref={projectPickerRef}
-      >
-        {editingField === 'project' ? (
-          <div className="project-picker-popover">
-            <div className="project-picker-list">
-              {projects
-                .filter((p) => p.status === 'active' || p.id === task.projectId)
-                .map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    className={`project-picker-item ${p.id === task.projectId ? 'is-selected' : ''}`}
-                    onClick={() => {
-                      onUpdate({
-                        ...task,
-                        projectId: p.id,
-                        updatedAt: new Date().toISOString(),
-                      });
-                      setEditingField(undefined);
-                    }}
-                  >
-                    <ProjectTag name={p.name} color={p.color} />
-                  </button>
-                ))}
-            </div>
-            {onAddProject && (
-              <>
-                <div className="project-picker-divider" />
-                {isAddingProject ? (
-                  <div className="project-picker-new-form">
-                    <input
-                      placeholder="新项目名称"
-                      value={newProjectName}
-                      autoFocus
-                      onChange={(e) => setNewProjectName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleCreateProject();
-                        }
-                        if (e.key === 'Escape') {
-                          setIsAddingProject(false);
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="tl-inline-confirm-btn"
-                      onClick={handleCreateProject}
-                      title="创建新项目"
-                    >
-                      <Check size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      className="tl-inline-cancel-btn"
-                      onClick={() => setIsAddingProject(false)}
-                      title="取消"
-                    >
-                      <X size={13} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="project-picker-new-btn"
-                    onClick={() => setIsAddingProject(true)}
-                  >
-                    <Plus size={13} /> 新增项目
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        ) : null}
-        <span
-          className="tl-clickable-cell"
-          onClick={() => setEditingField('project')}
-          title="点击切换所属项目或新增项目"
-        >
-          <ProjectTag name={project.name} color={project.color} />
-        </span>
-      </div>
-
-      {editingField === 'title' ? (
-        <input
-          className="tl-inline-input task-title-input"
-          defaultValue={task.title}
-          autoFocus
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') saveTitle(e.currentTarget.value);
-            if (e.key === 'Escape') setEditingField(undefined);
-          }}
-          onBlur={(e) => saveTitle(e.currentTarget.value)}
-        />
-      ) : (
-        <span
-          className="task-title tl-clickable-cell"
-          onClick={() => setEditingField('title')}
-          title={task.title}
-        >
-          {task.title}
-        </span>
-      )}
-
-      {timed && (
-        <>
-          {editingField === 'planned' ? (
-            <input
-              className="tl-inline-input task-duration-input"
-              defaultValue={
-                task.plannedDurationMinutes !== undefined
-                  ? `${task.plannedDurationMinutes}min`
-                  : ''
-              }
-              placeholder="45min"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') savePlanned(e.currentTarget.value);
-                if (e.key === 'Escape') setEditingField(undefined);
-              }}
-              onBlur={(e) => savePlanned(e.currentTarget.value)}
-            />
-          ) : (
-            <span
-              className="task-duration task-duration-planned tl-clickable-cell"
-              onClick={() => setEditingField('planned')}
-              title="点击直接修改预计时长（如 45min 或 1h）"
-            >
-              {formatMinutes(task.plannedDurationMinutes)}
-            </span>
-          )}
-
-          {editingField === 'actual' ? (
-            <input
-              className="tl-inline-input task-duration-input"
-              defaultValue={
-                task.actualDurationMinutes !== undefined
-                  ? `${task.actualDurationMinutes}min`
-                  : ''
-              }
-              placeholder="30min"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') saveActual(e.currentTarget.value);
-                if (e.key === 'Escape') setEditingField(undefined);
-              }}
-              onBlur={(e) => saveActual(e.currentTarget.value)}
-            />
-          ) : (
-            <span
-              className="task-duration task-duration-actual tl-clickable-cell"
-              onClick={() => setEditingField('actual')}
-              title="点击直接输入实际时长（如 30min 或 1h20min）"
-            >
-              {formatMinutes(task.actualDurationMinutes)}
-            </span>
-          )}
-        </>
-      )}
-
-      <div className="task-actions-cell">
-        <div className="task-actions">
-          {onToggleWorkstation && (
-            <button
-              type="button"
-              className={`task-workstation-action${inWorkstation ? 'is-active' : ''}`}
-              aria-label={`${inWorkstation ? '从工作站移除' : '加入工作站'}${task.title}`}
-              title={inWorkstation ? '从工作站移除' : '加入工作站'}
-              onClick={() => onToggleWorkstation(task.id)}
-            >
-              <Plus size={15} />
-            </button>
-          )}
-          <button aria-label={`${task.title}更多操作`}>
-            <MoreHorizontal size={17} />
-          </button>
-          <div>
-            <button onClick={onEdit}>
-              <Pencil size={13} />
-              详细编辑
-            </button>
-            {canChangeWorkflow && <button onClick={onReschedule}>移期</button>}
-            {canChangeWorkflow && (
-              <button onClick={() => onMove(task.id, 'backlog')}>待安排</button>
-            )}
-            {canChangeWorkflow && (
-              <button onClick={() => onMove(task.id, 'abandoned')}>放弃</button>
-            )}
-            <button onClick={() => onMove(task.id, 'trashed')}>
-              <Trash2 size={13} />
-              删除
-            </button>
-          </div>
-        </div>
-        <button
-          type="button"
-          className="task-drag-handle"
-          aria-label={`拖动${task.title}`}
-          title="按住并拖到另一面板"
-          disabled={!canDrag || Boolean(editingField)}
-          onPointerDown={onPointerDragStart}
-          onPointerMove={onPointerDragMove}
-          onPointerUp={onPointerDragEnd}
-        >
-          <GripVertical size={16} />
-        </button>
-      </div>
-    </div>
-  );
-}
-function RescheduleDialog({
-  task,
-  defaultDate,
-  onSave,
-  onClose,
-}: {
-  task?: Task;
-  defaultDate: string;
-  onSave: (date: string) => string | undefined;
-  onClose: () => void;
-}) {
-  const [error, setError] = useState<string>();
-  if (!task) return null;
-  return (
-    <div className="task-dialog-backdrop" role="presentation">
-      <form
-        className="task-dialog reschedule-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-label="移期任务"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const date = String(new FormData(event.currentTarget).get('date') ?? '');
-          const message = onSave(date);
-          setError(message);
-        }}
-      >
-        <header>
-          <div>
-            <h2>移期</h2>
-            <p>{task.title}</p>
-          </div>
-          <button type="button" aria-label="关闭移期" onClick={onClose}>
-            ×
-          </button>
-        </header>
-        <label>
-          新日期
-          <Input
-            aria-label="移期日期"
-            name="date"
-            type="date"
-            defaultValue={defaultDate}
-          />
-        </label>
-        <p className="dialog-hint">
-          默认明天；也可选择任意未来日期。原日期历史会保留。
-        </p>
-        {error && <p className="form-error">{error}</p>}
-        <footer>
-          <button type="button" onClick={onClose}>
-            取消
-          </button>
-          <button type="submit">确认移期</button>
-        </footer>
-      </form>
-    </div>
-  );
-}
-function TaskDialog({
-  open,
-  mode = 'normal',
-  editing,
-  projects,
-  onSave,
-  onClose,
-}: {
-  open: boolean;
-  mode?: 'normal' | 'unscheduled';
-  editing?: Task;
-  projects: Project[];
-  onSave: (data: FormData) => string | undefined;
-  onClose: () => void;
-}) {
-  const [error, setError] = useState<string>();
-  if (!open) return null;
-  const isUnscheduled = mode === 'unscheduled' && !editing?.plannedStartTime;
-
-  return (
-    <div className="task-dialog-backdrop" role="presentation">
-      <section
-        className="task-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-label={
-          editing
-            ? isUnscheduled
-              ? '修改无时间待办'
-              : '编辑任务'
-            : isUnscheduled
-              ? '添加无时间待办'
-              : '添加任务'
-        }
-      >
-        <form
-          action={(data) => {
-            const message = onSave(data);
-            setError(message);
-          }}
-        >
-          <header>
-            <div>
-              <p>
-                {editing
-                  ? isUnscheduled
-                    ? '编辑无时间待办'
-                    : '编辑任务'
-                  : isUnscheduled
-                    ? '无时间待办'
-                    : '快速新建'}
-              </p>
-              <h2>
-                {editing
-                  ? isUnscheduled
-                    ? '修改待办事项'
-                    : '修改任务'
-                  : isUnscheduled
-                    ? '添加无时间待办'
-                    : '添加任务'}
-              </h2>
-            </div>
-            <button type="button" onClick={onClose} aria-label="关闭">
-              ×
-            </button>
-          </header>
-          <label>
-            任务名称
-            <Input
-              name="title"
-              defaultValue={editing?.title}
-              placeholder="准备要做的事情"
-              required
-              autoFocus
-            />
-          </label>
-
-          {isUnscheduled ? (
-            <div className="task-form-grid" style={{ gridTemplateColumns: '1fr' }}>
-              <label>
-                项目
-                <select name="project" defaultValue={editing?.projectId ?? 'other'}>
-                  {projects
-                    .filter(
-                      (project) =>
-                        project.status === 'active' ||
-                        project.id === editing?.projectId,
-                    )
-                    .map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-            </div>
-          ) : (
-            <div className="task-form-grid">
-              <label>
-                项目
-                <select name="project" defaultValue={editing?.projectId ?? 'other'}>
-                  {projects
-                    .filter(
-                      (project) =>
-                        project.status === 'active' ||
-                        project.id === editing?.projectId,
-                    )
-                    .map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label>
-                开始时间
-                <Input
-                  name="start"
-                  defaultValue={editing?.plannedStartTime}
-                  placeholder="1420 或 14:20"
-                />
-              </label>
-              <label>
-                结束时间
-                <Input
-                  name="end"
-                  defaultValue={editing?.plannedEndTime}
-                  placeholder="可选"
-                />
-              </label>
-              <label>
-                预计时长（分钟）
-                <Input
-                  name="planned"
-                  type="number"
-                  defaultValue={editing?.plannedDurationMinutes}
-                />
-              </label>
-              <label>
-                实际时长（分钟）
-                <Input
-                  name="actual"
-                  type="number"
-                  defaultValue={editing?.actualDurationMinutes}
-                />
-              </label>
-            </div>
-          )}
-
-          {!isUnscheduled && (
-            <p>开始和结束同时填写时自动计算预计时长；不支持跨午夜。</p>
-          )}
-
-          {error && (
-            <p className="form-error" role="alert">
-              {error}
-            </p>
-          )}
-          <footer>
-            <button type="button" onClick={onClose}>
-              取消
-            </button>
-            <button type="submit">保存</button>
-          </footer>
-        </form>
-      </section>
-    </div>
-  );
-}

@@ -1,0 +1,90 @@
+/**
+ * @fileoverview 定义设置面板样式。
+ */
+
+.settings-tabs {
+  display: flex;
+  gap: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.settings-tabs button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.settings-tabs button:hover,
+.settings-tabs button.is-active {
+  color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.desktop-settings dl {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 18px;
+}
+
+.desktop-settings dl div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.desktop-settings dt {
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.desktop-settings dd {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.desktop-settings .tl-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 54px;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+  font-size: 0.75rem;
+}
+
+.bar-row i {
+  height: 6px;
+  overflow: hidden;
+  background: var(--surface-secondary);
+  border-radius: 6px;
+}
+
+.bar-row b {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+}
+
+.bar-row small {
+  color: var(--text-secondary);
+}
+
+

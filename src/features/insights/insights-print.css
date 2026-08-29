@@ -1,0 +1,49 @@
+/**
+ * @fileoverview 定义 Insights 报告的打印媒体样式，并由全局入口最后加载。
+ */
+
+@media print {
+  .tl-sidebar,
+  .tl-header,
+  .full-window-chrome,
+  .insights-toolbar,
+  .insights-filters,
+  .insights-summary,
+  .insights-charts {
+    display: none !important;
+  }
+  .tl-main {
+    padding: 0;
+  }
+  .report-document {
+    display: block;
+    color: #111;
+  }
+  .report-document header {
+    border-bottom: 2px solid #111;
+  }
+  .report-document dl {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .report-document dt {
+    color: #555;
+  }
+  .report-document dd {
+    margin: 4px 0 0;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .report-document table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .report-document th,
+  .report-document td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+  }
+}
+
