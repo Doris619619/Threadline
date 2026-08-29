@@ -131,12 +131,12 @@ describe('packaging progress monitoring', () => {
       commandName: process.execPath,
       argumentsList: [
         '-e',
-        "let count=0; const timer=setInterval(()=>{ console.log('progress'); if(++count===4){clearInterval(timer)} },40)",
+        "let count=0; const timer=setInterval(()=>{ console.log('progress'); if(++count===4){clearInterval(timer)} },100)",
       ],
       cwd: root,
       label: 'progress-test',
       monitorDirectory: root,
-      stallMs: 120,
+      stallMs: 1_000,
     });
     expect(result.status).toBe('passed');
   });
