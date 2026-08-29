@@ -10,51 +10,10 @@ import { Input } from '@/components/ui/input';
 import { ProjectTag } from '@/components/ui/project-tag';
 import { Surface } from '@/components/ui/surface';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
+import { resolveActiveProject } from '@/lib/project-rules';
 import type { Project } from '@/types/domain';
 
 export type { Daily, DailyHistoryEntry } from '@/features/daily/types';
-export const seedDaily: Daily[] = [
-  {
-    id: 'listen',
-    projectId: 'life',
-    project: '健身',
-    color: '#e9a04b',
-    title: '听力训练',
-    actual: 30,
-    result: '完成听力训练',
-    completed: true,
-    children: [
-      { title: '精听', completed: true, actual: 20 },
-      { title: '跟读', completed: true, actual: 10 },
-      { title: '复盘错题', completed: false, actual: 0 },
-    ],
-  },
-  {
-    id: 'vocab',
-    projectId: 'course',
-    project: '六级',
-    color: '#8b7cf6',
-    title: '背单词',
-    actual: 0,
-    result: '',
-    completed: false,
-    children: [
-      { title: '新词', completed: false, actual: 0 },
-      { title: '复习', completed: false, actual: 0 },
-    ],
-  },
-  {
-    id: 'weekly',
-    projectId: 'work',
-    project: 'GitHub',
-    color: '#4f8cff',
-    title: '发布周报',
-    actual: 0,
-    result: '',
-    completed: false,
-    children: [],
-  },
-];
 /**
  * Daily 任务面板主体组件。
  */
@@ -76,12 +35,13 @@ export function DailyPanel({
   onRecord: (entry: DailyHistoryEntry) => void;
 }) {
   const [newTitle, setNewTitle] = useState('');
-  const [projectId, setProjectId] = useState('other');
+  const [projectId, setProjectId] = useState('');
   const [childTitles, setChildTitles] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string>();
   const [editingTitle, setEditingTitle] = useState('');
-  const [editingProjectId, setEditingProjectId] = useState('other');
+  const [editingProjectId, setEditingProjectId] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const selectedProjectId = resolveActiveProject(projects, projectId)?.id ?? '';
   const update = (id: string, fn: (daily: Daily) => Daily) =>
     onChange(items.map((item) => (item.id === id ? fn(item) : item)));
   const record = (daily: Daily) =>
@@ -142,7 +102,9 @@ export function DailyPanel({
                   <button
                     className="daily-save-btn"
                     onClick={() => {
-                      const project = projects.find((item) => item.id === editingProjectId);
+                      const project = projects.find(
+                        (item) => item.id === editingProjectId,
+                      );
                       if (!editingTitle.trim() || !project) return;
                       update(daily.id, (item) => ({
                         ...item,
@@ -226,7 +188,9 @@ export function DailyPanel({
                         }
                       />
                     ) : (
-                      <span className="daily-child-duration">实际 {child.actual}min</span>
+                      <span className="daily-child-duration">
+                        实际 {child.actual}min
+                      </span>
                     )}
                   </div>
                 ))}
@@ -252,7 +216,10 @@ export function DailyPanel({
                       if (!title) return;
                       update(daily.id, (item) => ({
                         ...item,
-                        children: [...item.children, { title, completed: false, actual: 0 }],
+                        children: [
+                          ...item.children,
+                          { title, completed: false, actual: 0 },
+                        ],
                       }));
                       setChildTitles((current) => ({ ...current, [daily.id]: '' }));
                     }}
@@ -278,7 +245,10 @@ export function DailyPanel({
                     aria-label={`${daily.title}今日结果`}
                     value={daily.result}
                     onChange={(event) =>
-                      update(daily.id, (item) => ({ ...item, result: event.target.value }))
+                      update(daily.id, (item) => ({
+                        ...item,
+                        result: event.target.value,
+                      }))
                     }
                     placeholder="今日结果"
                   />
@@ -305,7 +275,7 @@ export function DailyPanel({
           />
           <select
             aria-label="新 Daily 所属项目"
-            value={projectId}
+            value={selectedProjectId}
             onChange={(event) => setProjectId(event.target.value)}
           >
             {projects
@@ -321,7 +291,7 @@ export function DailyPanel({
               className="daily-add-confirm"
               onClick={() => {
                 if (!newTitle.trim()) return;
-                const project = projects.find((item) => item.id === projectId) ?? projects[0];
+                const project = resolveActiveProject(projects, selectedProjectId);
                 if (!project) return;
                 onAdd({
                   id: crypto.randomUUID(),
@@ -378,4 +348,3 @@ export function DailyPanel({
     </Surface>
   );
 }
-

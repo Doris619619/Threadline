@@ -12,7 +12,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "pnpm build:web",
-    "build:web": "next build && node scripts/generate-sw-precache.mjs .next && node scripts/verify-next-build-boundary.mjs web && node scripts/verify-web-csp.mjs",
+    "build:web": "node scripts/validate-cloud-env.mjs web && node scripts/prepare-next-output.mjs web && next build && node scripts/generate-sw-precache.mjs .next && node scripts/verify-next-build-boundary.mjs web && node scripts/verify-web-csp.mjs",
     "start": "next start",
     "desktop:dev": "node scripts/electron.mjs dev",
     "desktop:preview": "node scripts/electron.mjs preview",
@@ -31,8 +31,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "playwright": "playwright",
-    "test:e2e": "playwright test",
-    "test:electron": "pnpm desktop:compile && pnpm build && node scripts/test-electron.mjs"
+    "test:e2e": "node scripts/test-web.mjs",
+    "test:electron": "node scripts/test-electron-suite.mjs",
+    "supabase:start": "supabase start",
+    "supabase:lint": "supabase db lint --local",
+    "test:db": "supabase test db",
+    "test:supabase:integration": "node scripts/test-supabase-integration.mjs",
+    "test:sql:static": "node scripts/verify-supabase-contract.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
@@ -64,6 +69,7 @@
     "jsdom": "^30.0.1",
     "prettier": "^3.9.6",
     "prettier-plugin-tailwindcss": "^0.8.1",
+    "supabase": "^2.116.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11"

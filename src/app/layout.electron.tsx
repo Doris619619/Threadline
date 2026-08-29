@@ -3,7 +3,7 @@
  */
 
 import { ThreadlineDocument, threadlineMetadata } from '@/app/root-document';
-import './globals.css';
+import '@/app/global-styles';
 
 export const metadata = threadlineMetadata;
 

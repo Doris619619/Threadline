@@ -1,18 +1,71 @@
 /** @fileoverview 工作台首开种子、过期回收站清理与按日期 Daily 实例化规则。 */
 
-import { seedDaily, type Daily } from '@/features/daily/daily-panel';
+import type { Daily } from '@/features/daily/types';
 import { getLocalDateKey } from '@/lib/local-date';
+import { makeTask } from '@/lib/task-factory';
 import type { Project, Task } from '@/types/domain';
+
+/** 仅供显式本地 test adapter 使用的旧版 Daily fixture，云初始化不会读取。 */
+const seedDaily: Daily[] = [
+  {
+    id: 'listen',
+    projectId: 'life',
+    project: '健身',
+    color: '#e9a04b',
+    title: '听力训练',
+    actual: 30,
+    result: '完成听力训练',
+    completed: true,
+    children: [
+      { title: '精听', completed: true, actual: 20 },
+      { title: '跟读', completed: true, actual: 10 },
+      { title: '复盘错题', completed: false, actual: 0 },
+    ],
+  },
+  {
+    id: 'vocab',
+    projectId: 'course',
+    project: '六级',
+    color: '#8b7cf6',
+    title: '背单词',
+    actual: 0,
+    result: '',
+    completed: false,
+    children: [
+      { title: '新词', completed: false, actual: 0 },
+      { title: '复习', completed: false, actual: 0 },
+    ],
+  },
+  {
+    id: 'weekly',
+    projectId: 'work',
+    project: 'GitHub',
+    color: '#4f8cff',
+    title: '发布周报',
+    actual: 0,
+    result: '',
+    completed: false,
+    children: [],
+  },
+];
 
 /** 创建内置项目，并让创建日期保持用户本地业务日期。 */
 export function createProjectSeed(today = getLocalDateKey()): Project[] {
   return [
-    { id: 'work', name: '工作', color: '#4f8cff', status: 'active', createdAt: today },
+    {
+      id: 'work',
+      name: '工作',
+      color: '#4f8cff',
+      status: 'active',
+      position: 0,
+      createdAt: today,
+    },
     {
       id: 'course',
       name: '课程',
       color: '#8b7cf6',
       status: 'active',
+      position: 1,
       createdAt: today,
     },
     {
@@ -20,39 +73,27 @@ export function createProjectSeed(today = getLocalDateKey()): Project[] {
       name: 'AI研究',
       color: '#38a774',
       status: 'active',
+      position: 2,
       createdAt: today,
     },
-    { id: 'life', name: '生活', color: '#e9a04b', status: 'active', createdAt: today },
-    { id: 'other', name: '其他', color: '#8793a7', status: 'active', createdAt: today },
+    {
+      id: 'life',
+      name: '生活',
+      color: '#e9a04b',
+      status: 'active',
+      position: 3,
+      createdAt: today,
+    },
+    {
+      id: 'other',
+      name: '其他',
+      color: '#8793a7',
+      status: 'active',
+      position: 4,
+      isFallback: true,
+      createdAt: today,
+    },
   ];
-}
-
-/** 创建任务实体，使业务日期和首次元数据保持同一日期语义。 */
-export function makeTask(
-  today: string,
-  id: string,
-  projectId: string,
-  title: string,
-  plannedStartTime?: string,
-  plannedEndTime?: string,
-  plannedDurationMinutes?: number,
-  actualDurationMinutes?: number,
-  completed = false,
-): Task {
-  return {
-    id,
-    projectId,
-    title,
-    date: today,
-    plannedStartTime,
-    plannedEndTime,
-    plannedDurationMinutes,
-    actualDurationMinutes,
-    completed,
-    status: 'active',
-    createdAt: today,
-    updatedAt: today,
-  };
 }
 
 /** 创建首次打开时的演示任务。 */

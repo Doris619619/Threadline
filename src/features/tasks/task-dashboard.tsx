@@ -16,9 +16,9 @@ import { RecordsPanel } from '@/features/records/records-panel';
 import { RhythmPanel } from '@/features/rhythm/rhythm-panel';
 import { SettingsPanel } from '@/features/settings/settings-panel';
 import { useWorkspaceData } from '@/features/workspace/workspace-data-provider';
-import { createDailyInstance } from '@/features/workspace/workspace-seed';
 import { CompactWindowHeader, useWorkspaceView } from '@/components/app-shell';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
+import { resolveActiveProject } from '@/lib/project-rules';
 import { MiniTodayPanel, WorkstationPanel } from '@/features/tasks/compact-workspace';
 import { formatMinutes } from '@/features/tasks/task-time';
 import { TaskLine } from '@/features/tasks/components/task-line';
@@ -48,22 +48,23 @@ export function TaskDashboard() {
     updateProjects,
     dailyByDate,
     updateDailyByDate,
-    dailyTemplates,
     updateDailyTemplates,
     dailyHistory,
-    updateDailyHistory,
     history,
-    updateHistory,
     closeRecords,
-    updateCloseRecords,
     annotationStrokes,
     updateAnnotationStrokes,
     workstationTaskIds,
     updateWorkstationTaskIds,
     highlightColor,
     updateHighlightColor,
+    createTask,
+    transitionTask,
+    recordDaily,
+    closeDay: commitCloseDay,
     hydrated,
   } = useWorkspaceData();
+  const defaultProjectId = resolveActiveProject(workspaceProjects)?.id ?? '';
   const [annotationTool, setAnnotationTool] = useState<AnnotationTool>('none');
   const createDrafts = useTaskCreateDrafts();
 
@@ -93,7 +94,6 @@ export function TaskDashboard() {
   const {
     actual,
     analyticsInput,
-    appendHistory,
     autoFocusTimeTaskId,
     backlog,
     clearWorkstation,
@@ -132,15 +132,14 @@ export function TaskDashboard() {
     closeRecords,
     dailyByDate,
     dailyHistory,
-    dailyTemplates,
     interactionLocked: annotationInteractionLocked,
     projects: workspaceProjects,
     selectedDate,
     tasks,
     updateAnnotationStrokes,
-    updateHistory,
     updateTasks,
     updateWorkstationTaskIds,
+    transitionTask,
   });
 
   const {
@@ -151,25 +150,21 @@ export function TaskDashboard() {
     createTimedTask,
     saveTask,
   } = useTaskCreateAndEdit({
-    appendHistory,
+    createTask,
     editing,
     projects: workspaceProjects,
     selectedDate,
     updateProjectList: updateProjects,
     updateTask: update,
-    updateTasks,
   });
 
   const closeDay = useCloseDay({
+    closeDay: commitCloseDay,
     daily,
     projects: workspaceProjects,
     selectedDate,
     shown,
     tomorrow,
-    updateCloseRecords,
-    updateDailyHistory,
-    updateHistory,
-    updateTasks,
   });
   if (!hydrated)
     return (
@@ -322,7 +317,7 @@ export function TaskDashboard() {
           isFullWorkspace={!isMiniToday}
           isResizing={isResizingSchedule}
           isAdding={createDrafts.timedOpen}
-          onAdd={() => createDrafts.openTimed(workspaceProjects[0]?.id ?? 'work')}
+          onAdd={() => createDrafts.openTimed(defaultProjectId)}
           onCloseAdd={createDrafts.closeTimed}
           onDragLeave={() => setDropTarget(null)}
           onDragOver={handleScheduleDragOver}
@@ -375,9 +370,7 @@ export function TaskDashboard() {
                 onCreate={createTimedTask}
                 onCreateProject={createProjectDirectly}
                 onChange={createDrafts.updateTimedDraft}
-                onReset={() =>
-                  createDrafts.resetTimed(workspaceProjects[0]?.id ?? 'work')
-                }
+                onReset={() => createDrafts.resetTimed(defaultProjectId)}
                 onClose={createDrafts.closeTimed}
               />
             </div>
@@ -388,7 +381,7 @@ export function TaskDashboard() {
             <QuickTaskPanel
               isDropTarget={dropTarget === 'quick'}
               isAdding={createDrafts.quickOpen}
-              onAdd={() => createDrafts.openQuick(workspaceProjects[0]?.id ?? 'other')}
+              onAdd={() => createDrafts.openQuick(defaultProjectId)}
               onCloseAdd={createDrafts.closeQuick}
               onDragLeave={() => setDropTarget(null)}
               onDragOver={handleQuickDragOver}
@@ -431,9 +424,7 @@ export function TaskDashboard() {
                     onCreate={createQuickTask}
                     onCreateProject={createProjectDirectly}
                     onChange={createDrafts.updateQuickDraft}
-                    onReset={() =>
-                      createDrafts.resetQuick(workspaceProjects[0]?.id ?? 'other')
-                    }
+                    onReset={() => createDrafts.resetQuick(defaultProjectId)}
                     onClose={createDrafts.closeQuick}
                   />
                 </div>
@@ -450,13 +441,13 @@ export function TaskDashboard() {
               onAdd={(item) => {
                 updateDailyTemplates((current) => [...current, item]);
                 updateDailyByDate((current) => {
-                  const existing =
-                    current[selectedDate] ??
-                    createDailyInstance(selectedDate, dailyTemplates);
+                  const existing = current[selectedDate] ?? [];
                   return { ...current, [selectedDate]: [...existing, item] };
                 });
               }}
-              onRecord={(entry) => updateDailyHistory((current) => [entry, ...current])}
+              onRecord={(entry) =>
+                void recordDaily(entry.dailyId, entry.date).catch(() => undefined)
+              }
             />
           </div>
         )}
@@ -468,19 +459,7 @@ export function TaskDashboard() {
           onUpdate={update}
           onMove={move}
           onArrange={(id) => {
-            updateTasks((current) =>
-              current.map((task) =>
-                task.id === id
-                  ? {
-                      ...task,
-                      status: 'active',
-                      date: selectedDate,
-                      updatedAt: new Date().toISOString(),
-                    }
-                  : task,
-              ),
-            );
-            appendHistory('scheduled', id, { toDate: selectedDate });
+            void transitionTask(id, 'scheduled', selectedDate).catch(() => undefined);
           }}
         />
       )}

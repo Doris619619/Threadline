@@ -2,9 +2,17 @@
 
 'use client';
 
-import { Database, Info, MonitorCog, RotateCcw, ShieldCheck } from 'lucide-react';
+import {
+  Database,
+  Info,
+  LogOut,
+  MonitorCog,
+  RotateCcw,
+  ShieldCheck,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Surface } from '@/components/ui/surface';
+import { useOptionalCloudRuntime } from '@/features/auth/cloud-runtime-provider';
 import { TrashPanel } from '@/features/history/history-panel';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import type { Task } from '@/types/domain';
@@ -20,6 +28,7 @@ export function SettingsPanel({
   onUpdateTask: (task: Task) => void;
 }) {
   const { mode, resetWindowStates } = useDesktopWindow();
+  const cloudRuntime = useOptionalCloudRuntime();
   const [section, setSection] = useState<SettingsSection>('data');
   return (
     <div className="settings-panel" data-testid="settings-panel">
@@ -54,9 +63,21 @@ export function SettingsPanel({
         <Surface className="settings-copy">
           <h2>隐私边界</h2>
           <p>
-            Rhythm 只保存在本设备，默认不进入 Insights、PDF 或 Records
-            搜索；此处没有需要额外开启的追踪功能。
+            任务、项目、Daily、工作站与 Rhythm 会通过同一 Supabase 账号跨设备同步。
+            Annotation 笔迹和高亮颜色只保存在当前设备，不会上传。
           </p>
+          {cloudRuntime && (
+            <>
+              <p>当前账号：{cloudRuntime.user.email ?? cloudRuntime.user.id}</p>
+              <button
+                type="button"
+                className="tl-button tl-button--secondary"
+                onClick={() => void cloudRuntime.signOut()}
+              >
+                <LogOut size={16} aria-hidden="true" /> 退出登录
+              </button>
+            </>
+          )}
         </Surface>
       )}
       {section === 'desktop' && (

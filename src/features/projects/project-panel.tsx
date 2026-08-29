@@ -1,3 +1,5 @@
+/** @fileoverview 管理 UUID 项目列表、fallback 保护、归档恢复与项目详情入口。 */
+
 'use client';
 import { ArchiveRestore, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -37,6 +39,8 @@ export function ProjectPanel({
         name: name.trim(),
         color,
         status: 'active',
+        position: Math.max(-1, ...items.map((item) => item.position ?? -1)) + 1,
+        isFallback: false,
         createdAt: getLocalDateKey(),
       },
     ]);
@@ -128,8 +132,8 @@ export function ProjectPanel({
                 累计 {actual + projectDailyMinutes}min · 普通任务 {completed}/
                 {projectTasks.length} · Daily {projectDaily.length}
               </span>
-              {project.id === 'other' ? (
-                <small>内置项目</small>
+              {project.isFallback ? (
+                <small>默认承接项目</small>
               ) : (
                 <Button
                   size="compact"
@@ -143,7 +147,7 @@ export function ProjectPanel({
                   <Pencil size={15} /> 编辑
                 </Button>
               )}
-              {project.id !== 'other' && (
+              {!project.isFallback && (
                 <Button
                   size="compact"
                   variant="quiet"

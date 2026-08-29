@@ -31,6 +31,19 @@ function readNonce(policy) {
   return match[1];
 }
 
+/** 配置 Supabase 时要求 connect-src 同时精确包含 REST/Auth 与 Realtime origin。 */
+function verifySupabaseOrigins(policy) {
+  const configured = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  if (!configured) return;
+  const url = new URL(configured);
+  const realtime = `${url.protocol === 'https:' ? 'wss' : 'ws'}://${url.host}`;
+  if (!policy.includes(url.origin) || !policy.includes(realtime))
+    throw new Error('Web CSP is missing the exact Supabase HTTPS/WS origins.');
+  const connectSource = policy.match(/connect-src ([^;]+)/)?.[1] ?? '';
+  if (connectSource.includes('*'))
+    throw new Error('Web CSP must not use a wildcard Supabase connect source.');
+}
+
 const server = spawn(
   process.execPath,
   ['node_modules/next/dist/bin/next', 'start', '--port', String(port)],
@@ -43,6 +56,7 @@ server.stderr.on('data', (chunk) => {
 try {
   const first = await waitForResponse();
   const firstPolicy = first.headers.get('content-security-policy') ?? '';
+  verifySupabaseOrigins(firstPolicy);
   const firstNonce = readNonce(firstPolicy);
   const html = await first.text();
   if (!html.includes(`nonce="${firstNonce}"`))

@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { formatMinutes } from '@/features/tasks/task-time';
+import { resolveActiveProject } from '@/lib/project-rules';
 import type { Project, Task } from '@/types/domain';
 export function CloseDialog({
   dialog,
@@ -173,6 +174,8 @@ export function TaskDialog({
   const [error, setError] = useState<string>();
   if (!open) return null;
   const isUnscheduled = mode === 'unscheduled' && !editing?.plannedStartTime;
+  const defaultProjectId =
+    editing?.projectId ?? resolveActiveProject(projects)?.id ?? '';
 
   return (
     <div className="task-dialog-backdrop" role="presentation">
@@ -236,7 +239,7 @@ export function TaskDialog({
             <div className="task-form-grid" style={{ gridTemplateColumns: '1fr' }}>
               <label>
                 项目
-                <select name="project" defaultValue={editing?.projectId ?? 'other'}>
+                <select name="project" defaultValue={defaultProjectId}>
                   {projects
                     .filter(
                       (project) =>
@@ -255,7 +258,7 @@ export function TaskDialog({
             <div className="task-form-grid">
               <label>
                 项目
-                <select name="project" defaultValue={editing?.projectId ?? 'other'}>
+                <select name="project" defaultValue={defaultProjectId}>
                   {projects
                     .filter(
                       (project) =>
@@ -324,4 +327,3 @@ export function TaskDialog({
     </div>
   );
 }
-

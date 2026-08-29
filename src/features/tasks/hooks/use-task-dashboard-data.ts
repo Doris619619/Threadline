@@ -2,7 +2,6 @@
  * @fileoverview 汇总任务首页的派生数据，不执行持久化或交互副作用。
  */
 
-import { createDailyInstance } from '@/features/workspace/workspace-seed';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 import { addLocalDateDays } from '@/lib/local-date';
 import type { CloseRecord, Project, Task } from '@/types/domain';
@@ -14,7 +13,6 @@ export function useTaskDashboardData({
   tasks,
   projects,
   dailyByDate,
-  dailyTemplates,
   dailyHistory,
   closeRecords,
   selectedDate,
@@ -22,19 +20,20 @@ export function useTaskDashboardData({
   tasks: Task[];
   projects: Project[];
   dailyByDate: Record<string, Daily[]>;
-  dailyTemplates: Daily[];
   dailyHistory: DailyHistoryEntry[];
   closeRecords: CloseRecord[];
   selectedDate: string;
 }) {
-  const shown = tasks.filter((task) => task.status === 'active' && task.date === selectedDate);
+  const shown = tasks.filter(
+    (task) => task.status === 'active' && task.date === selectedDate,
+  );
   const movedFromSelectedDate = tasks.filter(
     (task) =>
       task.status === 'active' &&
       task.date !== selectedDate &&
       task.postponedFrom === selectedDate,
   );
-  const daily = dailyByDate[selectedDate] ?? createDailyInstance(selectedDate, dailyTemplates);
+  const daily = dailyByDate[selectedDate] ?? [];
   const timed = shown
     .filter((task) => Boolean(task.plannedStartTime) || task.schedulePendingTime)
     .sort((left, right) => {
@@ -46,10 +45,15 @@ export function useTaskDashboardData({
       if (right.plannedStartTime) return 1;
       return 0;
     });
-  const quick = shown.filter((task) => !task.plannedStartTime && !task.schedulePendingTime);
+  const quick = shown.filter(
+    (task) => !task.plannedStartTime && !task.schedulePendingTime,
+  );
   const backlog = tasks.filter((task) => task.status === 'backlog');
   const done = shown.filter((task) => task.completed).length;
-  const actual = shown.reduce((sum, task) => sum + (task.actualDurationMinutes ?? 0), 0);
+  const actual = shown.reduce(
+    (sum, task) => sum + (task.actualDurationMinutes ?? 0),
+    0,
+  );
   const dailyActual = daily.reduce((sum, item) => sum + item.actual, 0);
   const dailyDone = daily.filter(
     (item) => item.completed || item.children.some((child) => child.completed),

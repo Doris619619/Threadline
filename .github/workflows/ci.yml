@@ -7,6 +7,25 @@ on:
     branches: [main]
 
 jobs:
+  supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm supabase:start
+      - run: pnpm supabase:lint
+      - run: pnpm test:db
+      - run: pnpm test:supabase:integration
+      - if: always()
+        run: pnpm exec supabase stop
+
   web:
     runs-on: ubuntu-latest
     steps:
@@ -28,6 +47,8 @@ jobs:
 
   windows-electron:
     runs-on: windows-latest
+    env:
+      NEXT_PUBLIC_THREADLINE_TEST_ADAPTER: 'true'
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4

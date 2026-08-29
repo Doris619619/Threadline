@@ -311,14 +311,24 @@ test('completion can be toggled without a dialog', async ({ page }) => {
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
-test('does not offer incomplete-work transitions for a completed task', async ({ page }) => {
+test('does not offer incomplete-work transitions for a completed task', async ({
+  page,
+}) => {
   const completed = page.locator('.timeline-row').filter({ hasText: '领域论文' });
   await completed.getByRole('button', { name: '领域论文更多操作' }).click();
 
-  await expect(completed.getByRole('button', { name: '移期', exact: true })).toHaveCount(0);
-  await expect(completed.getByRole('button', { name: '待安排', exact: true })).toHaveCount(0);
-  await expect(completed.getByRole('button', { name: '放弃', exact: true })).toHaveCount(0);
-  await expect(completed.getByRole('button', { name: '删除', exact: true })).toBeVisible();
+  await expect(
+    completed.getByRole('button', { name: '移期', exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    completed.getByRole('button', { name: '待安排', exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    completed.getByRole('button', { name: '放弃', exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    completed.getByRole('button', { name: '删除', exact: true }),
+  ).toBeVisible();
 });
 
 test('persists task changes and navigates across dates', async ({ page }) => {
@@ -364,6 +374,44 @@ test('keeps drawn date annotations on their original day after navigation and re
   await expect(
     page.locator('.tl-annotation-layer path[data-annotation-date]'),
   ).toHaveCount(1);
+});
+
+test('keeps dynamic styles functional without CSP console violations', async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'desktop',
+    '动态 Annotation 样式使用桌面鼠标路径。',
+  );
+  const cspErrors: string[] = [];
+  page.on('console', (message) => {
+    if (
+      message.type() === 'error' &&
+      /content security policy|refused to apply|violates.*style-src/i.test(
+        message.text(),
+      )
+    )
+      cspErrors.push(message.text());
+  });
+  await page.reload();
+  await page.getByRole('heading', { name: '我的工作台' }).waitFor();
+  await expect(page.locator('.dashboard-columns')).toHaveCSS('--schedule-ratio', /fr$/);
+  await expect(page.locator('.tl-project-tag').first()).toHaveCSS(
+    '--project-color',
+    /#[0-9a-f]{6}/i,
+  );
+  await page.getByRole('button', { name: '荧光笔' }).click();
+  const canvas = page.locator('.tl-annotation-layer');
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('批注画布不可见。');
+  await page.mouse.move(box.x + 40, box.y + 40);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 130, box.y + 70, { steps: 4 });
+  await page.mouse.up();
+  await expect(
+    page.locator('.tl-annotation-layer path[data-annotation-date]').first(),
+  ).toHaveCSS('mix-blend-mode', 'multiply');
+  expect(cspErrors).toEqual([]);
 });
 
 test('uses the selected highlighter color for cursor, saved strokes, and reload preference', async ({
@@ -459,7 +507,9 @@ test('keeps all timed task creation controls visible in a compact desktop schedu
   await expect(timeline).toHaveCSS('overflow-x', 'auto');
 });
 
-test('starts the full workspace with a wider schedule column', async ({ page }, testInfo) => {
+test('starts the full workspace with a wider schedule column', async ({
+  page,
+}, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', '初始分栏仅在完整桌面工作台生效。');
   await page.setViewportSize({ width: 1440, height: 900 });
   const scheduleBox = await page.locator('.schedule-panel').boundingBox();
@@ -497,11 +547,13 @@ test('keeps every highlighter color option in stable swatch label and check slot
   expect(check.x).toBeGreaterThan(label.x);
 });
 
-test('reopens the cached PWA offline without returning HTML for a Next script', async (
-  { browser }: { browser: Browser },
-  testInfo: { project: { name: string } },
-) => {
-  test.skip(testInfo.project.name !== 'desktop', '离线缓存由 Desktop Chromium 回归覆盖。');
+test('reopens the cached PWA offline without returning HTML for a Next script', async ({
+  browser,
+}: { browser: Browser }, testInfo: { project: { name: string } }) => {
+  test.skip(
+    testInfo.project.name !== 'desktop',
+    '离线缓存由 Desktop Chromium 回归覆盖。',
+  );
   const context = await browser.newContext({
     serviceWorkers: 'allow',
     timezoneId: 'Asia/Shanghai',

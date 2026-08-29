@@ -4,7 +4,7 @@
 
 import type { Dispatch, SetStateAction } from 'react';
 import { canTransitionTask } from '@/lib/task-rules';
-import type { AnnotationStroke, HistoryEvent, Task, TaskStatus } from '@/types/domain';
+import type { AnnotationStroke, Task, TaskStatus } from '@/types/domain';
 
 /**
  * 返回既有任务更新与状态流转动作；调用方继续拥有 Dialog 的打开和关闭状态。
@@ -13,37 +13,26 @@ export function useTaskWorkflow({
   tasks,
   selectedDate,
   updateTasks,
-  updateHistory,
   updateAnnotationStrokes,
   updateWorkstationTaskIds,
+  transitionTask,
 }: {
   tasks: Task[];
   selectedDate: string;
   updateTasks: Dispatch<SetStateAction<Task[]>>;
-  updateHistory: Dispatch<SetStateAction<HistoryEvent[]>>;
   updateAnnotationStrokes: Dispatch<SetStateAction<AnnotationStroke[]>>;
   updateWorkstationTaskIds: Dispatch<SetStateAction<string[]>>;
+  transitionTask: (
+    taskId: string,
+    transition: 'scheduled' | 'rescheduled' | 'backlog' | 'abandoned' | 'trashed',
+    targetDate?: string,
+  ) => Promise<Task>;
 }) {
   /** 用同一任务身份替换集合中的记录。 */
   const updateTask = (task: Task) =>
-    updateTasks((current) => current.map((item) => (item.id === task.id ? task : item)));
-
-  /** 以既有 newest-first 顺序追加领域历史。 */
-  const appendHistory = (
-    type: string,
-    taskId?: string,
-    payload: Record<string, string> = {},
-  ) =>
-    updateHistory((current) => [
-      {
-        id: crypto.randomUUID(),
-        taskId,
-        type,
-        occurredAt: new Date().toISOString(),
-        payload,
-      },
-      ...current,
-    ]);
+    updateTasks((current) =>
+      current.map((item) => (item.id === task.id ? task : item)),
+    );
 
   /** 迁移任务到指定状态，并保留删除与放弃的既有副作用。 */
   const moveTask = (id: string, status: TaskStatus) => {
@@ -55,23 +44,19 @@ export function useTaskWorkflow({
       );
       updateWorkstationTaskIds((current) => current.filter((taskId) => taskId !== id));
     }
-    updateTasks((current) =>
-      current.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              status,
-              date: status === 'active' ? item.date : undefined,
-              postponedFrom:
-                status !== 'active' ? (item.date ?? item.postponedFrom) : item.postponedFrom,
-              abandonedAt: status === 'abandoned' ? new Date().toISOString() : item.abandonedAt,
-              deletedAt: status === 'trashed' ? new Date().toISOString() : item.deletedAt,
-              updatedAt: new Date().toISOString(),
-            }
-          : item,
-      ),
-    );
-    appendHistory(status, id, { fromDate: task.date ?? selectedDate });
+    if (status === 'active') {
+      updateTask({
+        ...task,
+        status: 'active',
+        date: selectedDate,
+        completed: false,
+        completedAt: undefined,
+        deletedAt: undefined,
+        updatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+    void transitionTask(id, status).catch(() => undefined);
   };
 
   /**
@@ -82,25 +67,9 @@ export function useTaskWorkflow({
     if (!canTransitionTask(task, 'rescheduled')) return '请先取消完成再移期';
     const sourceDate = task.date ?? selectedDate;
     if (targetDate <= sourceDate) return '请选择晚于原计划日期的未来日期';
-    updateTasks((current) =>
-      current.map((item) =>
-        item.id === task.id
-          ? {
-              ...item,
-              status: 'active',
-              date: targetDate,
-              completed: false,
-              completedAt: undefined,
-              postponedFrom: sourceDate,
-              postponedTo: targetDate,
-              updatedAt: new Date().toISOString(),
-            }
-          : item,
-      ),
-    );
-    appendHistory('rescheduled', task.id, { fromDate: sourceDate, toDate: targetDate });
+    void transitionTask(task.id, 'rescheduled', targetDate).catch(() => undefined);
     return undefined;
   };
 
-  return { appendHistory, moveTask, rescheduleTask, updateTask };
+  return { moveTask, rescheduleTask, updateTask };
 }

@@ -1,0 +1,74 @@
+/** @fileoverview 在 Docker 不可用时静态守卫已审核的 Supabase 领域与安全边界。 */
+
+import { readFile } from 'node:fs/promises';
+
+const migration = await readFile(
+  'supabase/migrations/202608300001_authoritative_workspace.sql',
+  'utf8',
+);
+
+/** 要求迁移包含关键片段，错误信息直接指出缺失的审核约束。 */
+function requirePattern(pattern, description) {
+  if (!pattern.test(migration))
+    throw new Error(`Supabase contract missing: ${description}`);
+}
+
+/** 禁止迁移重新引入明确排除的模型。 */
+function rejectPattern(pattern, description) {
+  if (pattern.test(migration))
+    throw new Error(`Supabase contract violation: ${description}`);
+}
+
+requirePattern(/create table public\.rhythm_marks/i, 'cloud Rhythm table');
+requirePattern(
+  /alter table public\.daily_subtask_instances alter column id set default gen_random_uuid\(\)/i,
+  'server-generated UUIDs for date-only Daily items',
+);
+requirePattern(/create table public\.daily_history_entries/i, 'formal Daily history');
+requirePattern(
+  /'daily_history_entries', 'history_events', 'daily_close_records'/i,
+  'append-only history invalidation publication',
+);
+requirePattern(
+  /unique \(owner_id, template_id, entry_date\)/i,
+  'Daily identity uniqueness',
+);
+requirePattern(
+  /alter column template_item_id drop not null/i,
+  'nullable Daily template item mapping',
+);
+requirePattern(
+  /DAILY_TEMPLATE_ITEM_MISMATCH/i,
+  'Daily entry items cannot map across templates',
+);
+requirePattern(/deferrable initially immediate/i, 'deferrable workstation positions');
+requirePattern(
+  /set constraints workstation_owner_position_key deferred/i,
+  'atomic reorder defer',
+);
+requirePattern(
+  /p_transition not in \('scheduled', 'rescheduled', 'backlog', 'abandoned', 'trashed'\)/i,
+  'atomic scheduled task transition',
+);
+requirePattern(
+  /security definer\s+set search_path = pg_catalog/is,
+  'fixed purge search_path',
+);
+for (const role of ['public', 'anon', 'authenticated'])
+  requirePattern(
+    new RegExp(
+      `revoke all on function private\\.purge_expired_tasks\\(\\) from ${role}`,
+      'i',
+    ),
+    `purge execute revoked from ${role}`,
+  );
+for (const projectName of ['工作', '课程', 'AI研究', '生活', '其他'])
+  requirePattern(new RegExp(`'${projectName}'`), `default project ${projectName}`);
+rejectPattern(/annotation_strokes/i, 'Annotation must remain local-only');
+rejectPattern(/status\s*=\s*'purged'|\b'purged'\b/i, 'purged is not a TaskStatus');
+rejectPattern(
+  /expected_?version|\bversion\s+(?:integer|bigint)/i,
+  'version conflicts are out of scope',
+);
+
+console.log('Verified static Supabase architecture contract.');

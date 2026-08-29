@@ -4,7 +4,7 @@
 
 import { headers } from 'next/headers';
 import { ThreadlineDocument, threadlineMetadata } from '@/app/root-document';
-import './globals.css';
+import '@/app/global-styles';
 
 export const metadata = threadlineMetadata;
 export const dynamic = 'force-dynamic';
