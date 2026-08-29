@@ -8,7 +8,10 @@ import { AnnotationColorPicker } from '@/components/annotation-color-picker';
 import { Surface } from '@/components/ui/surface';
 import type { AnnotationTool } from '@/components/annotation-layer';
 
-/** 保持日程 drop 契约、批注工具和 resize 控制，内容由调用方原样传入。 */
+type SchedulePanelChildren =
+  ReactNode | ((controls: { isAdding: boolean; closeAdd: () => void }) => ReactNode);
+
+/** 保持日程 drop 契约、批注工具和 resize 控制；新增行开关由跨页面草稿控制器提供。 */
 export function SchedulePanel({
   children,
   annotationTool,
@@ -16,7 +19,9 @@ export function SchedulePanel({
   isDropTarget,
   isFullWorkspace,
   isResizing,
+  isAdding,
   onAdd,
+  onCloseAdd,
   onDragLeave,
   onDragOver,
   onDrop,
@@ -25,13 +30,15 @@ export function SchedulePanel({
   onToggleEraser,
   onSetHighlightColor,
 }: {
-  children: ReactNode;
+  children: SchedulePanelChildren;
   annotationTool: AnnotationTool;
   highlightColor: string;
   isDropTarget: boolean;
   isFullWorkspace: boolean;
   isResizing: boolean;
+  isAdding: boolean;
   onAdd: () => void;
+  onCloseAdd: () => void;
   onDragLeave: () => void;
   onDragOver: (event: React.DragEvent) => void;
   onDrop: (event: React.DragEvent) => void;
@@ -92,7 +99,9 @@ export function SchedulePanel({
           )}
         </div>
       </header>
-      {children}
+      {typeof children === 'function'
+        ? children({ isAdding, closeAdd: onCloseAdd })
+        : children}
     </Surface>
   );
 }

@@ -1,0 +1,6 @@
+/** @fileoverview Insights 报告文档基础样式；必须在 Rhythm 后加载以保持历史规则顺序。 */
+
+.report-document {
+  display: none;
+}
+

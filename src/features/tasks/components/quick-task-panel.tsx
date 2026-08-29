@@ -6,18 +6,25 @@ import type { ReactNode } from 'react';
 import { Plus } from 'lucide-react';
 import { Surface } from '@/components/ui/surface';
 
-/** 保持无时间待办的 drop 契约与标题区域，内部行内容由调用方原样传入。 */
+type QuickTaskPanelChildren =
+  ReactNode | ((controls: { isAdding: boolean; closeAdd: () => void }) => ReactNode);
+
+/** 保持无时间待办的 drop 契约与标题区域；新增行开关由跨页面草稿控制器提供。 */
 export function QuickTaskPanel({
   children,
   isDropTarget,
+  isAdding,
   onAdd,
+  onCloseAdd,
   onDragLeave,
   onDragOver,
   onDrop,
 }: {
-  children: ReactNode;
+  children: QuickTaskPanelChildren;
   isDropTarget: boolean;
+  isAdding: boolean;
   onAdd: () => void;
+  onCloseAdd: () => void;
   onDragLeave: () => void;
   onDragOver: (event: React.DragEvent) => void;
   onDrop: (event: React.DragEvent) => void;
@@ -36,7 +43,9 @@ export function QuickTaskPanel({
           <Plus size={19} /> 添加
         </button>
       </header>
-      {children}
+      {typeof children === 'function'
+        ? children({ isAdding, closeAdd: onCloseAdd })
+        : children}
     </Surface>
   );
 }

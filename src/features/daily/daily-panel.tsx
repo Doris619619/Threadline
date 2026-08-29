@@ -9,19 +9,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { ProjectTag } from '@/components/ui/project-tag';
 import { Surface } from '@/components/ui/surface';
+import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 import type { Project } from '@/types/domain';
 
-export type Daily = {
-  id: string;
-  projectId: string;
-  project: string;
-  color: string;
-  title: string;
-  actual: number;
-  result: string;
-  completed: boolean;
-  children: { title: string; completed: boolean; actual: number }[];
-};
+export type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 export const seedDaily: Daily[] = [
   {
     id: 'listen',
@@ -64,15 +55,6 @@ export const seedDaily: Daily[] = [
     children: [],
   },
 ];
-export type DailyHistoryEntry = {
-  dailyId: string;
-  projectId: string;
-  date: string;
-  completed: boolean;
-  actual: number;
-  result: string;
-};
-
 /**
  * Daily 任务面板主体组件。
  */

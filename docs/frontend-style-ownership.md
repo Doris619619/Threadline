@@ -18,6 +18,10 @@
 - `src/features/feature-pages.css`：Calendar、Insights、Records、Rhythm 共用的页面信息架构 selector；只有 selector 本身跨多个 feature 时才允许放入这里。
 - `src/features/<feature>/`：该 feature 自己渲染的业务 selector 和已审计的响应式规则。
 
+为严格保持历史 CSS rule order，少数 grouped selector 仍随其原始连续规则块落在最接近的 feature 文件中：例如 `calendar.css` 可包含 Rhythm selector，`insights.css` 可包含 Records 输入 selector。这是有意的兼容层设计，不代表 CSS ownership 漏分。
+
+Insights 使用 `insights.css`（主页面）、`insights-report.css`（必须晚于 Rhythm 的报告基础规则）与始终最后加载的 `insights-print.css`；Settings 使用 `settings.css` 与为保持原位置而晚加载的 `settings-page.css`。未来定位样式时必须同时检查同一 feature 的这些文件，而不能假定所有规则都在单一 CSS 文件中。
+
 ## 响应式 collision 审计
 
 `src/styles/responsive-overrides.css` 保留原始层叠中位于跨功能页面规则之前的响应式覆盖；`src/styles/responsive-overrides-late.css` 保留必须位于这些规则之后的 760px 覆盖。两者共同构成小型兼容层，不是新样式归属地。

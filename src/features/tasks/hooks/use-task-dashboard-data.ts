@@ -3,7 +3,7 @@
  */
 
 import { createDailyInstance } from '@/features/workspace/workspace-seed';
-import type { Daily, DailyHistoryEntry } from '@/features/daily/daily-panel';
+import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 import { addLocalDateDays } from '@/lib/local-date';
 import type { CloseRecord, Project, Task } from '@/types/domain';
 

@@ -1,0 +1,87 @@
+/** @fileoverview Calendar 页面样式；为保持既有层叠顺序，含与 Rhythm 共享的相邻规则。 */
+
+.calendar-intro > span {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.calendar-surface,
+.rhythm-calendar {
+  padding: 20px;
+}
+
+.calendar-toolbar {
+  margin-bottom: 16px;
+}
+
+.calendar-toolbar button,
+.rhythm-calendar > header button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.calendar-weekdays,
+.calendar-grid,
+.rhythm-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.calendar-weekdays {
+  margin-bottom: 6px;
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.calendar-day,
+.rhythm-grid button {
+  min-height: 72px;
+  padding: 8px;
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.calendar-day small {
+  display: block;
+  margin-top: 8px;
+  color: inherit;
+  font-size: 0.6875rem;
+}
+
+.calendar-day[data-heat='1'] {
+  background: #e5f4ed;
+  color: #276b4f;
+}
+.calendar-day[data-heat='2'] {
+  background: #bfe6d1;
+  color: #1b5a3f;
+}
+.calendar-day[data-heat='3'] {
+  background: #7dc89e;
+  color: #13472f;
+}
+.calendar-day[data-heat='4'] {
+  background: #3d9d69;
+  color: #fff;
+}
+.calendar-day.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgb(79 140 255 / 18%);
+}
+.calendar-day.is-outside,
+.rhythm-grid button.is-outside {
+  opacity: 0.42;
+}
+
