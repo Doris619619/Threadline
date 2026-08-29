@@ -1,0 +1,22 @@
+/** @fileoverview Rhythm 页面样式。 */
+
+.rhythm-intro {
+  justify-content: flex-start;
+  padding: 18px;
+}
+.rhythm-intro > svg {
+  color: var(--accent);
+  flex: 0 0 auto;
+}
+.rhythm-calendar > header {
+  margin-bottom: 16px;
+}
+.rhythm-grid button {
+  min-height: 54px;
+  text-align: center;
+}
+.rhythm-grid button.is-marked {
+  color: #fff;
+  background: #7659c7;
+}
+
