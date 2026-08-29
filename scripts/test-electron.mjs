@@ -118,6 +118,23 @@ try {
     'Windows menu bar must be disabled before any compact surface is shown',
   );
   if (packagedExecutable) {
+    assert.equal(
+      await application.evaluate(({ app }) => app.isPackaged),
+      true,
+      'packaged smoke must run with app.isPackaged enabled',
+    );
+    assert.match(
+      page.url(),
+      /^threadline:\/\/app\//,
+      'packaged Main must load through the production threadline protocol',
+    );
+    assert.equal(
+      (await inspectWindows(application)).some((window) =>
+        /^(https?:|file:)/.test(window.url),
+      ),
+      false,
+      'packaged windows must not load a dev server or file URL',
+    );
     const csp = await application.evaluate(async ({ net }) => {
       const response = await net.fetch('threadline://app/');
       return response.headers.get('content-security-policy');

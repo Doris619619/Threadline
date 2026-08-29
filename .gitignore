@@ -5,6 +5,7 @@ node_modules/
 public/sw-precache.json
 dist-electron/
 release/
+release-candidate/
 out/
 dist/
 .tmp/

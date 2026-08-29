@@ -16,4 +16,4 @@ electron-builder 继续输出 `app.asar`，并在 `afterPack` 后只对最终 Wi
 
 `scripts/test-electron.mjs` 覆盖开发壳的完整 Full→Mini→Workstation→Edge→Main、Edge 状态第二实例与确定退出。Windows CI 对 win-unpacked 读取 `app.asar`、最终 fuse wire 并完成 NSIS 构建；打包版的 protocol、视觉与 DPI/双屏交互仍由下方人工验收执行。
 
-GitHub Actions 的 Windows job 会生成 win-unpacked、验证 `app.asar` 与最终 fuse wire、执行 packaged smoke，并构建 NSIS。仓库管理员仍需在 GitHub branch protection 中把这些检查设为 required；工作流文件本身不能替代该设置。
+GitHub Actions 的 Windows job 会生成 win-unpacked、验证 `app.asar` 与最终 fuse wire，并构建 NSIS。打包版窗口交互由本机验收覆盖，不为自动化兼容而放宽正式 fuses。仓库管理员仍需在 GitHub branch protection 中把这些检查设为 required；工作流文件本身不能替代该设置。

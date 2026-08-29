@@ -7,6 +7,7 @@ const { join } = require('node:path');
 /** Electron Builder afterPack hook：只处理 Windows x64 产物，不影响 desktop:dev。 */
 exports.default = async function afterPack(context) {
   if (context.electronPlatformName !== 'win32') return;
+  const startedAt = Date.now();
   const executable = join(
     context.appOutDir,
     `${context.packager.appInfo.productFilename}.exe`,
@@ -22,4 +23,5 @@ exports.default = async function afterPack(context) {
     if (result.status !== 0)
       throw new Error(`${script} failed with status ${result.status}`);
   }
+  console.log(`THREADLINE_STAGE after-pack-fuses ${Date.now() - startedAt}`);
 };
