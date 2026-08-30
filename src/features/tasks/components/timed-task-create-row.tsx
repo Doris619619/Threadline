@@ -62,19 +62,6 @@ export function TimedTaskCreateRow({
   if (!open) return null;
   return (
     <div className="timeline-row timeline-row-adding">
-      <div className="task-check-wrap">
-        <Checkbox
-          checked={draft.completed}
-          onChange={(event) => onChange({ completed: event.target.checked })}
-        />
-      </div>
-      <input
-        className="tl-inline-input task-title-input task-title"
-        placeholder="任务名称（按 Enter 保存）"
-        value={draft.title}
-        onChange={(event) => onChange({ title: event.target.value })}
-        onKeyDown={onKeyDown}
-      />
       <div className="timeline-meta">
         <div className="timeline-time-range-inputs">
           <input
@@ -103,6 +90,14 @@ export function TimedTaskCreateRow({
             <span className="timeline-inline-error">{draft.timeError}</span>
           )}
         </div>
+      </div>
+      <div className="task-check-wrap">
+        <Checkbox
+          checked={draft.completed}
+          onChange={(event) => onChange({ completed: event.target.checked })}
+        />
+      </div>
+      <div className="timeline-meta">
         <div className="task-project-cell" style={{ position: 'relative' }}>
           <select
             className="tl-inline-select project-inline-select"
@@ -156,6 +151,15 @@ export function TimedTaskCreateRow({
             </div>
           )}
         </div>
+      </div>
+      <input
+        className="tl-inline-input task-title-input task-title"
+        placeholder="任务名称（按 Enter 保存）"
+        value={draft.title}
+        onChange={(event) => onChange({ title: event.target.value })}
+        onKeyDown={onKeyDown}
+      />
+      <div className="timeline-meta">
         <input
           className="tl-inline-input task-duration-input task-duration task-duration-planned"
           placeholder="45min"
@@ -165,7 +169,7 @@ export function TimedTaskCreateRow({
         />
         <input
           className="tl-inline-input task-duration-input task-duration task-duration-actual"
-          placeholder="实际耗时"
+          placeholder="实际"
           value={draft.actual}
           onChange={(event) => onChange({ actual: event.target.value })}
           onKeyDown={onKeyDown}

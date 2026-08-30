@@ -91,7 +91,8 @@
 
 .tl-input:focus {
   border-color: var(--accent);
-  outline: 3px solid color-mix(in srgb, var(--accent) 16%, transparent);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .tl-checkbox {
@@ -134,8 +135,8 @@
 }
 
 .tl-checkbox input:focus-visible + span {
-  outline: 3px solid color-mix(in srgb, var(--accent) 50%, transparent);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .tl-project-tag {

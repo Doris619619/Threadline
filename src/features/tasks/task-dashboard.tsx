@@ -12,7 +12,6 @@ import { DailyPanel } from '@/features/daily/daily-panel';
 import { CalendarPanel } from '@/features/calendar/calendar-panel';
 import { InsightsPanel } from '@/features/insights/insights-panel';
 import { ProjectPanel } from '@/features/projects/project-panel';
-import { RecordsPanel } from '@/features/records/records-panel';
 import { RhythmPanel } from '@/features/rhythm/rhythm-panel';
 import { SettingsPanel } from '@/features/settings/settings-panel';
 import { useWorkspaceData } from '@/features/workspace/workspace-data-provider';
@@ -54,7 +53,6 @@ export function TaskDashboard() {
     updateDailyByDate,
     updateDailyTemplates,
     dailyHistory,
-    history,
     closeRecords,
     annotationStrokes,
     updateAnnotationStrokes,
@@ -247,16 +245,6 @@ export function TaskDashboard() {
   if (active === 'insights')
     return (
       <InsightsPanel analyticsInput={analyticsInput} selectedDate={selectedDate} />
-    );
-  if (active === 'records')
-    return (
-      <RecordsPanel
-        tasks={tasks}
-        projects={workspaceProjects}
-        history={history}
-        dailyHistory={dailyHistory}
-        closeRecords={closeRecords}
-      />
     );
   if (active === 'rhythm') return <RhythmPanel selectedDate={selectedDate} />;
   if (active === 'settings')

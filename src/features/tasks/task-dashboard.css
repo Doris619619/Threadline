@@ -188,11 +188,16 @@
   font-size: 0.8125rem;
   color: var(--text-primary);
   background: var(--surface);
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
   outline: none;
   box-sizing: border-box;
+  transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+}
+
+.tl-inline-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .tl-inline-input.timeline-time-input {
@@ -217,11 +222,16 @@
   font-weight: 500;
   color: var(--text-primary);
   background: var(--surface);
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
   outline: none;
   cursor: pointer;
+  transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+}
+
+.tl-inline-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .completed .task-title {
@@ -251,7 +261,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 2px;
-  min-width: 52px;
+  min-width: 48px;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -364,9 +374,8 @@
 /* ================= 今日日程（精确网格与独立预计/实际两列） ================= */
 
 .schedule-panel {
-  /* 已有任务的时间列仅容纳单行时间；新增行保留双时间输入所需的空间。 */
-  --timeline-columns: 92px 20px 64px minmax(120px, 1fr) 68px 68px 52px;
-  --timeline-add-columns: 154px 20px 64px minmax(120px, 1fr) 68px 68px 52px;
+  /* 统一桌面单一日程网格定义，时间、复选框、项目、任务、预计、实际、操作共 7 列 */
+  --timeline-grid-columns: 86px 20px 64px minmax(130px, 1fr) 58px 58px 48px;
   overflow: visible;
 }
 
@@ -379,12 +388,12 @@
 
 .timeline-head {
   display: grid;
-  min-width: 500px;
-  grid-template-columns: var(--timeline-columns);
+  min-width: 480px;
+  grid-template-columns: var(--timeline-grid-columns);
   grid-template-areas: 'time check project title planned actual actions';
   align-items: center;
   gap: 6px;
-  padding: 7px 10px;
+  padding: 6px 8px;
   color: var(--text-tertiary);
   background: var(--surface-secondary);
   border-radius: var(--radius-sm);
@@ -442,13 +451,13 @@
 
 .timeline-row {
   display: grid;
-  min-width: 500px;
-  grid-template-columns: var(--timeline-columns);
+  min-width: 480px;
+  grid-template-columns: var(--timeline-grid-columns);
   grid-template-areas: 'time check project title planned actual actions';
   align-items: center;
   gap: 6px;
-  min-height: 40px;
-  padding: 4px 10px;
+  min-height: 38px;
+  padding: 3px 8px;
   border-bottom: 1px solid var(--border-subtle);
   transition: background-color var(--motion-fast) ease;
 }
@@ -463,13 +472,13 @@
 }
 
 .timeline-row-adding {
-  grid-template-columns: var(--timeline-add-columns);
+  grid-template-columns: var(--timeline-grid-columns);
   gap: 6px;
   position: relative;
-  background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+  background: color-mix(in srgb, var(--accent) 3%, var(--surface));
   border-radius: var(--radius-sm);
   animation: tl-fade-in 180ms ease;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .timeline-row-adding .tl-inline-input,
@@ -482,12 +491,21 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 3px;
+  gap: 2px;
+  width: 100%;
+}
+
+.timeline-time-range-inputs .timeline-time-input {
+  padding: 2px 2px;
+  text-align: center;
+  font-size: var(--text-caption-size);
+  height: 24px;
 }
 
 .timeline-time-range-inputs > span[aria-hidden='true'] {
   color: var(--text-tertiary);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
+  line-height: 1;
 }
 
 .timeline-inline-error {
@@ -577,8 +595,8 @@
 
 .tl-inline-confirm-btn {
   display: grid;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   place-items: center;
   border: 0;
   border-radius: 4px;
@@ -590,13 +608,12 @@
 
 .tl-inline-confirm-btn:hover {
   background: color-mix(in srgb, var(--accent) 85%, #000);
-  transform: scale(1.05);
 }
 
 .tl-inline-cancel-btn {
   display: grid;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   place-items: center;
   border: 0;
   border-radius: 4px;
@@ -615,6 +632,7 @@
   display: flex;
   grid-area: actions;
   align-items: center;
+  justify-content: flex-end;
   gap: 2px;
 }
 

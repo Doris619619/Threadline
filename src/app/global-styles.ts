@@ -20,7 +20,6 @@ import '../styles/responsive-overrides.css';
 import '../features/feature-pages.css';
 import '../features/calendar/calendar.css';
 import '../features/insights/insights.css';
-import '../features/records/records.css';
 import '../features/rhythm/rhythm.css';
 import '../features/insights/insights-report.css';
 import '../features/settings/settings-page.css';

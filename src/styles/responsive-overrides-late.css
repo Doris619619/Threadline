@@ -3,8 +3,7 @@
  */
 
 @media (max-width: 760px) {
-  .insights-toolbar,
-  .records-heading {
+  .insights-toolbar {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -12,14 +11,5 @@
   .insights-summary,
   .insights-charts {
     grid-template-columns: 1fr;
-  }
-
-  .records-search {
-    width: 100%;
-  }
-
-  .records-timeline li {
-    grid-template-columns: 1fr;
-    gap: 4px;
   }
 }

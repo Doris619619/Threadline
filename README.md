@@ -2,7 +2,7 @@
 
 # Threadline
 
-面向桌面浏览器、iPhone PWA 与 Windows 桌面端的个人任务工作台。界面以“今日执行”为中心：普通任务、Daily、待安排、项目、收尾、日历、洞察、记录和节律在同一工作区中协作。
+面向桌面浏览器、iPhone PWA 与 Windows 桌面端的个人任务工作台。界面以“今日执行”为中心：普通任务、Daily、待安排、项目、收尾、日历、洞察和节律在同一工作区中协作。
 
 ## 产品与运行形态
 
@@ -108,7 +108,7 @@ pnpm test:supabase:integration
 ```text
 src/app/                 App Router 页面、全局样式与元数据
 src/components/          壳层与通用 UI 原子组件
-src/features/            任务、Daily、项目、日历、洞察、记录、节律与领域状态视图
+src/features/            任务、Daily、项目、日历、洞察、节律与领域状态视图
 src/styles/              design token、基础规则、Electron 窗口与有序响应式覆盖
 src/lib/                 规则、日期范围、analytics、Zod schema、仓储接口与 seed
 src/types/               领域类型

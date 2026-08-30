@@ -15,6 +15,7 @@ import {
   parseTimeInput,
 } from '@/features/tasks/task-time';
 import { resolveTaskProject } from '@/lib/project-rules';
+import { cn } from '@/lib/cn';
 import type { Project, Task, TaskStatus } from '@/types/domain';
 
 /**
@@ -191,7 +192,11 @@ export function TaskLine({
       />
     ) : (
       <time
-        className={`timeline-time tl-clickable-cell${!task.plannedStartTime ? 'is-pending-time' : ''}`}
+        className={cn(
+          'timeline-time',
+          'tl-clickable-cell',
+          !task.plannedStartTime && 'is-pending-time',
+        )}
         onClick={() => !interactionLocked && setEditingField('time')}
         title="点击直接修改时间（支持 08:30 或 08:30-10:00）"
       >
@@ -259,7 +264,13 @@ export function TaskLine({
 
   return (
     <div
-      className={`${timed ? 'timeline-row' : 'quick-task-row'} task-row-draggable${task.completed ? 'completed' : ''}${isDragging ? 'is-dragging' : ''}${!canDrag ? 'is-drag-disabled' : ''}`}
+      className={cn(
+        timed ? 'timeline-row' : 'quick-task-row',
+        'task-row-draggable',
+        task.completed && 'completed',
+        isDragging && 'is-dragging',
+        !canDrag && 'is-drag-disabled',
+      )}
       draggable={canDrag && !editingField}
       onDragStart={(event) => {
         if (!canDrag || editingField) {
@@ -320,7 +331,10 @@ export function TaskLine({
                     <button
                       key={p.id}
                       type="button"
-                      className={`project-picker-item ${p.id === task.projectId ? 'is-selected' : ''}`}
+                      className={cn(
+                        'project-picker-item',
+                        p.id === task.projectId && 'is-selected',
+                      )}
                       onClick={() => {
                         onUpdate({
                           ...task,

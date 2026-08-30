@@ -8,6 +8,7 @@ import { Surface } from '@/components/ui/surface';
 import { useRhythmState } from '@/features/rhythm/rhythm-state';
 import { getMonthGrid } from '@/lib/date-range';
 import { addLocalDateDays } from '@/lib/local-date';
+import { cn } from '@/lib/cn';
 
 /** 渲染随账号同步的私密节律月历，并允许用户按日期切换标记。 */
 export function RhythmPanel({ selectedDate }: { selectedDate: string }) {
@@ -17,12 +18,9 @@ export function RhythmPanel({ selectedDate }: { selectedDate: string }) {
   const grid = getMonthGrid(monthAnchor);
   return (
     <div className="rhythm-panel" data-testid="rhythm-panel">
-      <Surface className="rhythm-intro">
-        <ShieldCheck aria-hidden="true" size={22} />
-        <div>
-          <h2>节律</h2>
-          <p>日期标记随账号同步，但不会进入洞察、报告或记录搜索。</p>
-        </div>
+      <Surface className="rhythm-intro" variant="flat">
+        <ShieldCheck aria-hidden="true" size={18} />
+        <span>仅你可见 · 日期标记随账号同步，不进入洞察与报告</span>
       </Surface>
       <Surface className="rhythm-calendar">
         <header>
@@ -47,7 +45,10 @@ export function RhythmPanel({ selectedDate }: { selectedDate: string }) {
             <button
               type="button"
               key={date}
-              className={`${date.startsWith(anchor) ? '' : 'is-outside'}${marks[date] ? 'is-marked' : ''}`.trim()}
+              className={cn(
+                !date.startsWith(anchor) && 'is-outside',
+                marks[date] && 'is-marked',
+              )}
               aria-pressed={Boolean(marks[date])}
               onClick={() => toggleMark(date)}
             >

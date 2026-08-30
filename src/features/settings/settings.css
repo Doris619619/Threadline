@@ -58,50 +58,60 @@
   font-style: normal;
 }
 .settings-group {
-  margin-top: var(--space-8);
+  margin-top: var(--space-6);
 }
+
 .settings-group h3 {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   color: var(--text-secondary);
-  font-size: 0.9rem;
-  font-weight: 650;
+  font-size: var(--text-label-size);
+  font-weight: 600;
 }
+
 .settings-row {
   display: grid;
   width: 100%;
-  min-height: 78px;
-  grid-template-columns: 32px minmax(0, 1fr) 24px;
+  min-height: 56px;
+  grid-template-columns: 24px minmax(0, 1fr) 20px;
   align-items: center;
-  gap: var(--space-4);
-  padding: 16px var(--space-6);
+  gap: var(--space-3);
+  padding: 12px var(--space-4);
   color: var(--text-primary);
   background: transparent;
   border: 0;
   border-bottom: 1px solid var(--border-subtle);
   text-align: left;
   cursor: pointer;
+  transition: background-color var(--motion-fast) ease;
 }
+
 .settings-row:last-child {
   border-bottom: 0;
 }
+
 .settings-row > svg:first-child {
   color: var(--accent);
 }
+
 .settings-row > svg:last-child {
   color: var(--text-tertiary);
 }
+
 .settings-row span {
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
+
 .settings-row b {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: var(--text-body-size);
+  font-weight: 500;
 }
+
 .settings-row small {
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--text-caption-size);
 }
+
 .settings-row:hover {
   background: var(--surface-secondary);
 }

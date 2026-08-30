@@ -16,7 +16,7 @@
 - `src/components/app-shell.css`：Web/PWA 导航、主内容区、日期栏、账户 disclosure 与 **760px 底栏导航**；disclosure 使用普通 button/popover 语义，不添加 `role="menu"`。
 - `src/styles/desktop-window.css`：Electron Full、Compact、Edge 与 `-webkit-app-region`；Full 使用纵向 flex，避免 Web 无标题栏时预留空行。窄屏将 `.tl-window-body` 改为单列，让固定底栏不占用侧栏网格。
 - `src/features/tasks/task-dashboard.css`：首页仪表盘、今日日程七列网格、手机纵向任务行（同一 DOM，760px 切换 `grid-template-areas`）、无时间待办与首页胶囊统计。
-- `src/features/feature-pages.css`：Calendar、Insights、Records、Rhythm 共用的页面信息架构 selector；只有 selector 本身跨多个 feature 时才允许放入这里。
+- `src/features/feature-pages.css`：Calendar、Insights、Rhythm 共用的页面信息架构 selector；只有 selector 本身跨多个 feature 时才允许放入这里。
 - `src/features/<feature>/`：该 feature 自己渲染的业务 selector 和已审计的响应式规则。
 
 为严格保持历史 CSS rule order，少数 grouped selector 仍随其原始连续规则块落在最接近的 feature 文件中：例如 `calendar.css` 可包含 Rhythm selector，`insights.css` 可包含 Records 输入 selector。这是有意的兼容层设计，不代表 CSS ownership 漏分。

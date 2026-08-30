@@ -12,7 +12,6 @@ import {
   Maximize2,
   Minimize2,
   MoreHorizontal,
-  NotebookTabs,
   Orbit,
   Settings,
   Spline,
@@ -49,16 +48,10 @@ const navigation = [
     description: '统一查看投入、估时与项目重心',
   },
   {
-    id: 'records',
-    label: '记录',
-    icon: NotebookTabs,
-    description: '搜索当前可可靠获得的历史记录',
-  },
-  {
     id: 'rhythm',
     label: '节律',
     icon: Orbit,
-    description: '私密日期标记随账号同步，不进入 analytics、报告或记录',
+    description: '私密日期标记随账号同步，不进入 analytics 与报告',
   },
   {
     id: 'settings',

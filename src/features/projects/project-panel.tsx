@@ -68,11 +68,7 @@ export function ProjectPanel({
   };
   return (
     <Surface className="project-panel" data-testid="project-panel">
-      <header>
-        <div>
-          <h2>项目</h2>
-          <p>项目颜色、归档状态与累计投入会长期保留。</p>
-        </div>
+      <header className="project-toolbar">
         <div className="project-create">
           <Input
             aria-label="新项目名称"

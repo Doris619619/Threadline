@@ -36,7 +36,7 @@ button,
 }
 
 :focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 

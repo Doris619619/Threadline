@@ -1,10 +1,9 @@
 /**
- * @fileoverview 跨 Calendar、Insights、Records、Rhythm 的共享页面信息架构样式。
+ * @fileoverview 跨 Calendar、Insights、Rhythm 的共享页面信息架构样式。
  */
 
 .calendar-panel,
 .insights-panel,
-.records-panel,
 .rhythm-panel {
   display: grid;
   gap: var(--space-4);
@@ -12,7 +11,6 @@
 }
 
 .insights-toolbar,
-.records-heading,
 .rhythm-intro,
 .rhythm-calendar > header {
   display: flex;
@@ -22,7 +20,6 @@
 }
 
 .insights-toolbar h2,
-.records-heading h2,
 .rhythm-intro h2,
 .rhythm-calendar h2 {
   margin: 0;
@@ -32,7 +29,6 @@
 }
 
 .insights-toolbar p,
-.records-heading p,
 .rhythm-intro p {
   margin: 4px 0 0;
   color: var(--text-secondary);

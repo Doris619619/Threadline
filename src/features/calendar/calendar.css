@@ -114,8 +114,8 @@
 
 .calendar-day,
 .rhythm-grid button {
-  min-height: 96px;
-  padding: 10px 8px;
+  min-height: 60px;
+  padding: 6px 4px;
   color: var(--text-primary);
   background: var(--surface);
   border: 0;
@@ -124,6 +124,7 @@
   border-radius: 0;
   text-align: center;
   cursor: pointer;
+  transition: background-color var(--motion-fast) ease;
 }
 
 .calendar-day:nth-child(7n) {
@@ -132,20 +133,21 @@
 
 .calendar-day > span {
   display: grid;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   margin: 0 auto;
   place-items: center;
   border-radius: 50%;
-  font-size: var(--text-label-size);
+  font-size: var(--text-secondary-size);
   font-weight: 500;
 }
 
 .calendar-day small {
   display: block;
-  margin-top: 6px;
+  margin-top: 3px;
   color: var(--text-tertiary);
-  font-size: var(--text-caption-size);
+  font-size: 0.68rem;
+  line-height: 1.2;
 }
 
 .calendar-day[data-heat='1'] {
