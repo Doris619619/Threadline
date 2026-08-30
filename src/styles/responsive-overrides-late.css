@@ -3,32 +3,13 @@
  */
 
 @media (max-width: 760px) {
-  .calendar-intro,
-  .insights-toolbar,
-  .records-heading {
+  .insights-toolbar {
     align-items: flex-start;
     flex-direction: column;
   }
-  .calendar-surface,
-  .rhythm-calendar {
-    padding: 14px 10px;
-  }
-  .calendar-day {
-    min-height: 54px;
-    padding: 6px;
-  }
-  .calendar-day small {
-    display: none;
-  }
+
   .insights-summary,
   .insights-charts {
     grid-template-columns: 1fr;
-  }
-  .records-search {
-    width: 100%;
-  }
-  .records-timeline li {
-    grid-template-columns: 1fr;
-    gap: 4px;
   }
 }

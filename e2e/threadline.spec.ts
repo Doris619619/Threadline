@@ -66,11 +66,6 @@ test.beforeEach(async ({ page }) => {
   await page.waitForTimeout(100);
 });
 
-/** 进入独立记录页，供任务流转与收尾历史流程复用。 */
-async function openRecords(page: Page) {
-  await openWorkspaceSection(page, '记录');
-}
-
 /** 进入设置概览中的真实回收站入口，供恢复与保留期流程复用。 */
 async function openSettingsData(page: Page) {
   await openWorkspaceSection(page, '设置');
@@ -109,9 +104,6 @@ test('gives every workspace destination a distinct working page', async ({ page 
   await openWorkspaceSection(page, '洞察');
   await expect(page.getByTestId('insights-panel')).toBeVisible();
   await expect(page.getByText('工作投入趋势')).toBeVisible();
-
-  await openWorkspaceSection(page, '记录');
-  await expect(page.getByTestId('records-panel')).toBeVisible();
 
   await openWorkspaceSection(page, '节律');
   await expect(page.getByTestId('rhythm-panel')).toBeVisible();
@@ -649,15 +641,14 @@ test('records rescheduling and abandonment in history', async ({ page }) => {
   const pickup = page.locator('.quick-task-row').filter({ hasText: '取快递' });
   await pickup.getByRole('button', { name: '取快递更多操作' }).click();
   await pickup.getByRole('button', { name: '放弃', exact: true }).click();
+  await expect(pickup).not.toBeVisible();
 
   const email = page.locator('.timeline-row').filter({ hasText: '邮件处理' });
   await email.getByRole('button', { name: '邮件处理更多操作' }).click();
   await email.getByRole('button', { name: '移期', exact: true }).click();
   const reschedule = page.getByRole('dialog', { name: '移期任务' });
   await reschedule.getByRole('button', { name: '确认移期' }).click();
-  await openRecords(page);
-  await expect(page.getByText('已移期', { exact: true })).toBeVisible();
-  await expect(page.getByText('放弃', { exact: true })).toHaveCount(1);
+  await expect(email).not.toBeVisible();
 });
 
 test('can choose a future date when rescheduling', async ({ page }) => {
@@ -718,18 +709,6 @@ test('closes today and moves unfinished work into planning', async ({ page }) =>
   await expect(planning).toContainText('邮件处理');
   await expect(planning.getByLabel('邮件处理 DDL')).toBeVisible();
   await expect(page.getByRole('button', { name: '今日已结束' })).toBeDisabled();
-});
-
-test('keeps closeout records in the history view', async ({ page }) => {
-  await page.getByRole('button', { name: '结束今天', exact: true }).click();
-  await page
-    .getByRole('dialog')
-    .getByRole('button', { name: '确认结束今天', exact: true })
-    .click();
-  await openRecords(page);
-  await expect(page.getByText('结束今天', { exact: true })).toBeVisible();
-  await expect(page.getByText('完成听力训练')).toBeVisible();
-  await expect(page.getByText('收尾：移至明天', { exact: true }).first()).toBeVisible();
 });
 
 test('keeps postponed work in the original date task denominator', async ({ page }) => {

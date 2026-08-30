@@ -2,28 +2,34 @@
  * @fileoverview 定义 components/ui 输出的共享 UI primitive 样式。
  */
 
-/* ================= 通用 UI 控件 ================= */
-
 .tl-surface {
   background: var(--surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-surface);
+}
+
+.tl-surface--raised {
   box-shadow: var(--shadow-card);
 }
 
+.tl-surface--flat {
+  box-shadow: none;
+}
+
 .tl-button {
-  min-height: 36px;
+  min-height: var(--control-height);
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-control);
   padding: 0 var(--space-4);
+  font-size: var(--text-label-size);
   font-weight: 600;
   line-height: 1;
   cursor: pointer;
   transition:
-    background-color 160ms ease,
-    border-color 160ms ease,
-    color 160ms ease,
-    opacity 160ms ease;
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    opacity var(--motion-fast) ease;
 }
 
 .tl-button:disabled {
@@ -32,9 +38,8 @@
 }
 
 .tl-button--compact {
-  min-height: 30px;
+  min-height: var(--control-height-compact);
   padding: 0 var(--space-3);
-  font-size: 0.875rem;
 }
 
 .tl-button--primary {
@@ -57,28 +62,27 @@
 }
 
 .tl-button--quiet {
-  color: var(--text-secondary);
+  color: var(--accent);
   background: transparent;
 }
 
 .tl-button--quiet:hover:not(:disabled) {
-  color: var(--text-primary);
-  background: var(--surface-secondary);
+  background: var(--accent-soft);
 }
 
 .tl-button--danger {
-  color: #fff;
+  color: var(--text-on-accent);
   background: var(--danger);
 }
 
 .tl-input {
   width: 100%;
-  min-height: 36px;
+  min-height: var(--control-height);
   padding: 0 var(--space-3);
   color: var(--text-primary);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-control);
 }
 
 .tl-input::placeholder {
@@ -87,7 +91,8 @@
 
 .tl-input:focus {
   border-color: var(--accent);
-  outline: 3px solid color-mix(in srgb, var(--accent) 16%, transparent);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .tl-checkbox {
@@ -110,14 +115,17 @@
 
 .tl-checkbox span {
   display: grid;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   place-items: center;
   color: transparent;
   background: var(--surface);
   border: 1.5px solid var(--border-strong);
-  border-radius: 4px;
-  transition: 160ms ease;
+  border-radius: 6px;
+  transition:
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    color var(--motion-fast) ease;
 }
 
 .tl-checkbox input:checked + span {
@@ -127,35 +135,39 @@
 }
 
 .tl-checkbox input:focus-visible + span {
-  outline: 3px solid color-mix(in srgb, var(--accent) 50%, transparent);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .tl-project-tag {
   display: inline-flex;
   align-items: center;
-  color: color-mix(in srgb, var(--project-color) 75%, var(--text-primary));
-  font-size: 0.8125rem;
-  font-weight: 500;
+  color: var(--accent-text);
+  font-size: var(--text-caption-size);
+  font-weight: var(--text-caption-weight);
+  line-height: var(--text-caption-leading);
   white-space: nowrap;
 }
 
 .tl-sidebar-item {
+  position: relative;
   display: flex;
   width: 100%;
-  min-height: 38px;
+  min-height: 40px;
   align-items: center;
-  gap: 8px;
-  padding: 0 10px;
+  gap: var(--space-3);
+  padding: 0 12px;
   color: var(--text-secondary);
   background: transparent;
   border: 0;
   border-radius: var(--radius-md);
-  font-size: 0.8125rem;
-  font-weight: 500;
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
   text-align: left;
   cursor: pointer;
-  transition: all 140ms ease;
+  transition:
+    background-color var(--motion-fast) ease,
+    color var(--motion-fast) ease;
 }
 
 .tl-sidebar-item:hover {
@@ -165,14 +177,25 @@
 
 .tl-sidebar-item.is-active {
   color: var(--accent);
-  background: var(--accent-muted);
+  background: var(--accent-soft);
   font-weight: 600;
+}
+
+.tl-sidebar-item.is-active::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 0;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--accent);
 }
 
 .tl-stat {
   min-width: 0;
   padding: 0 var(--space-5);
-  border-left: 1px solid var(--border);
+  border-left: 1px solid var(--border-subtle);
 }
 
 .tl-stat:first-child {
@@ -183,17 +206,34 @@
 .tl-stat span {
   display: block;
   color: var(--text-secondary);
-  font-size: 0.8125rem;
-  font-weight: 500;
+  font-size: var(--text-caption-size);
+  font-weight: var(--text-caption-weight);
+  line-height: var(--text-caption-leading);
 }
 
 .tl-stat strong {
   display: block;
   margin-top: 6px;
-  color: var(--accent);
-  font-size: clamp(1.4rem, 2.2vw, 1.85rem);
+  color: var(--text-primary);
+  font-size: var(--text-page-size);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.04em;
-  line-height: 1.1;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
   font-weight: 650;
+}
+
+@media (max-width: 760px) {
+  .tl-checkbox {
+    width: var(--touch-target);
+    height: var(--touch-target);
+  }
+
+  .tl-checkbox span {
+    width: 22px;
+    height: 22px;
+  }
+
+  .tl-sidebar-item.is-active::before {
+    display: none;
+  }
 }

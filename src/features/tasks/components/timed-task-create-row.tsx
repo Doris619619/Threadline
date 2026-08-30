@@ -62,32 +62,34 @@ export function TimedTaskCreateRow({
   if (!open) return null;
   return (
     <div className="timeline-row timeline-row-adding">
-      <div className="timeline-time-range-inputs">
-        <input
-          className="tl-inline-input timeline-time-input"
-          aria-label="开始时间"
-          placeholder="08:30"
-          value={draft.startTime}
-          autoFocus
-          onChange={(event) =>
-            onChange({ startTime: event.target.value, timeError: undefined })
-          }
-          onKeyDown={onKeyDown}
-        />
-        <span aria-hidden="true">→</span>
-        <input
-          className="tl-inline-input timeline-time-input"
-          aria-label="结束时间"
-          placeholder="10:00"
-          value={draft.endTime}
-          onChange={(event) =>
-            onChange({ endTime: event.target.value, timeError: undefined })
-          }
-          onKeyDown={onKeyDown}
-        />
-        {draft.timeError && (
-          <span className="timeline-inline-error">{draft.timeError}</span>
-        )}
+      <div className="timeline-meta">
+        <div className="timeline-time-range-inputs">
+          <input
+            className="tl-inline-input timeline-time-input"
+            aria-label="开始时间"
+            placeholder="08:30"
+            value={draft.startTime}
+            autoFocus
+            onChange={(event) =>
+              onChange({ startTime: event.target.value, timeError: undefined })
+            }
+            onKeyDown={onKeyDown}
+          />
+          <span aria-hidden="true">→</span>
+          <input
+            className="tl-inline-input timeline-time-input"
+            aria-label="结束时间"
+            placeholder="10:00"
+            value={draft.endTime}
+            onChange={(event) =>
+              onChange({ endTime: event.target.value, timeError: undefined })
+            }
+            onKeyDown={onKeyDown}
+          />
+          {draft.timeError && (
+            <span className="timeline-inline-error">{draft.timeError}</span>
+          )}
+        </div>
       </div>
       <div className="task-check-wrap">
         <Checkbox
@@ -95,80 +97,84 @@ export function TimedTaskCreateRow({
           onChange={(event) => onChange({ completed: event.target.checked })}
         />
       </div>
-      <div style={{ position: 'relative' }}>
-        <select
-          className="tl-inline-select project-inline-select"
-          value={draft.projectId}
-          onChange={(event) =>
-            event.target.value === '__new__'
-              ? onChange({ isAddingProject: true })
-              : onChange({ projectId: event.target.value })
-          }
-        >
-          {projects
-            .filter((project) => project.status === 'active')
-            .map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          <option value="__new__">+ 新增项目…</option>
-        </select>
-        {draft.isAddingProject && (
-          <div className="project-picker-popover">
-            <div className="project-picker-new-form">
-              <input
-                placeholder="新项目名称"
-                value={draft.projectName}
-                autoFocus
-                onChange={(event) => onChange({ projectName: event.target.value })}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    addProject();
-                  }
-                  if (event.key === 'Escape') onChange({ isAddingProject: false });
-                }}
-              />
-              <button
-                type="button"
-                className="tl-inline-confirm-btn"
-                onClick={addProject}
-              >
-                <Check size={13} />
-              </button>
-              <button
-                type="button"
-                className="tl-inline-cancel-btn"
-                onClick={() => onChange({ isAddingProject: false })}
-              >
-                <X size={13} />
-              </button>
+      <div className="timeline-meta">
+        <div className="task-project-cell" style={{ position: 'relative' }}>
+          <select
+            className="tl-inline-select project-inline-select"
+            value={draft.projectId}
+            onChange={(event) =>
+              event.target.value === '__new__'
+                ? onChange({ isAddingProject: true })
+                : onChange({ projectId: event.target.value })
+            }
+          >
+            {projects
+              .filter((project) => project.status === 'active')
+              .map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            <option value="__new__">+ 新增项目…</option>
+          </select>
+          {draft.isAddingProject && (
+            <div className="project-picker-popover">
+              <div className="project-picker-new-form">
+                <input
+                  placeholder="新项目名称"
+                  value={draft.projectName}
+                  autoFocus
+                  onChange={(event) => onChange({ projectName: event.target.value })}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      addProject();
+                    }
+                    if (event.key === 'Escape') onChange({ isAddingProject: false });
+                  }}
+                />
+                <button
+                  type="button"
+                  className="tl-inline-confirm-btn"
+                  onClick={addProject}
+                >
+                  <Check size={13} />
+                </button>
+                <button
+                  type="button"
+                  className="tl-inline-cancel-btn"
+                  onClick={() => onChange({ isAddingProject: false })}
+                >
+                  <X size={13} />
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
       <input
-        className="tl-inline-input task-title-input"
+        className="tl-inline-input task-title-input task-title"
         placeholder="任务名称（按 Enter 保存）"
         value={draft.title}
         onChange={(event) => onChange({ title: event.target.value })}
         onKeyDown={onKeyDown}
       />
-      <input
-        className="tl-inline-input task-duration-input"
-        placeholder="45min"
-        value={draft.planned}
-        onChange={(event) => onChange({ planned: event.target.value })}
-        onKeyDown={onKeyDown}
-      />
-      <input
-        className="tl-inline-input task-duration-input"
-        placeholder="实际耗时"
-        value={draft.actual}
-        onChange={(event) => onChange({ actual: event.target.value })}
-        onKeyDown={onKeyDown}
-      />
+      <div className="timeline-meta">
+        <input
+          className="tl-inline-input task-duration-input task-duration task-duration-planned"
+          placeholder="45min"
+          value={draft.planned}
+          onChange={(event) => onChange({ planned: event.target.value })}
+          onKeyDown={onKeyDown}
+        />
+        <input
+          className="tl-inline-input task-duration-input task-duration task-duration-actual"
+          placeholder="实际"
+          value={draft.actual}
+          onChange={(event) => onChange({ actual: event.target.value })}
+          onKeyDown={onKeyDown}
+        />
+      </div>
       <div className="tl-inline-actions-cell">
         <button
           type="button"

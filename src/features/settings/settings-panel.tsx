@@ -39,12 +39,12 @@ function SettingsRow({
 }) {
   return (
     <button type="button" className="settings-row" onClick={onClick}>
-      <Icon aria-hidden="true" size={26} />
+      <Icon aria-hidden="true" size={20} />
       <span>
         <b>{title}</b>
         <small>{description}</small>
       </span>
-      <ChevronRight aria-hidden="true" size={22} />
+      <ChevronRight aria-hidden="true" size={18} />
     </button>
   );
 }
@@ -200,10 +200,6 @@ export function SettingsPanel({
     );
   return (
     <div className="settings-panel" data-testid="settings-panel">
-      <div className="settings-overview-heading">
-        <h2>设置</h2>
-        <p>管理你的账号、应用信息与数据边界。</p>
-      </div>
       {identity && (
         <Surface className="settings-account-summary">
           <span className="settings-avatar" aria-hidden="true">

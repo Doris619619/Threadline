@@ -8,6 +8,7 @@ import { Surface } from '@/components/ui/surface';
 import { getMonthGrid, getMonthRange } from '@/lib/date-range';
 import { createAnalyticsResult, type AnalyticsInput } from '@/lib/analytics';
 import { addLocalDateDays, getLocalDateKey, parseLocalDateKey } from '@/lib/local-date';
+import { cn } from '@/lib/cn';
 
 /** 将分钟显示为简短小时分钟，供日历 tooltip 和读屏文本共享。 */
 function formatMinutes(minutes: number): string {
@@ -61,13 +62,6 @@ export function CalendarPanel({
 
   return (
     <div className="calendar-panel" data-testid="calendar-panel">
-      <Surface className="calendar-intro">
-        <div>
-          <h2>项目投入热力</h2>
-          <p>颜色表示当天实际有记录投入时间的去重项目数，不表示完成任务数。</p>
-        </div>
-        <span>0 / 1 / 2 / 3 / 4+ 项目</span>
-      </Surface>
       <Surface className="calendar-surface">
         <header className="calendar-toolbar">
           <div className="calendar-toolbar-actions">
@@ -110,7 +104,11 @@ export function CalendarPanel({
                 aria-label={label}
                 title={label}
                 data-heat={getHeatLevel(heatCount)}
-                className={`calendar-day${!inMonth ? 'is-outside' : ''}${date === selectedDate ? 'is-selected' : ''}`}
+                className={cn(
+                  'calendar-day',
+                  !inMonth && 'is-outside',
+                  date === selectedDate && 'is-selected',
+                )}
                 onClick={() => selectDate(date)}
               >
                 <span>{date.slice(-2)}</span>

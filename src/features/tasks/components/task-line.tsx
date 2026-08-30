@@ -4,25 +4,23 @@
 
 'use client';
 
-import {
-  Check,
-  GripVertical,
-  MoreHorizontal,
-  Pencil,
-  Plus,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { Check, Plus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ProjectTag } from '@/components/ui/project-tag';
+import { TaskRowActions } from '@/features/tasks/components/task-row-actions';
 import {
   formatMinutes,
   parseDurationInput,
   parseTimeInput,
 } from '@/features/tasks/task-time';
 import { resolveTaskProject } from '@/lib/project-rules';
+import { cn } from '@/lib/cn';
 import type { Project, Task, TaskStatus } from '@/types/domain';
+
+/**
+ * 渲染日程或无时间待办的一行。桌面用七列网格，手机用同一 DOM 叠成标题+metadata 列表。
+ */
 export function TaskLine({
   task,
   onUpdate,
@@ -101,6 +99,7 @@ export function TaskLine({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [editingField]);
 
+  /** 根据名称创建项目并写回当前任务归属。 */
   const handleCreateProject = () => {
     if (!newProjectName.trim() || !onAddProject) return;
     const created = onAddProject(newProjectName.trim());
@@ -132,6 +131,7 @@ export function TaskLine({
     setEditingField(undefined);
   };
 
+  /** 保存标题；空串或未变化则只退出编辑。 */
   const saveTitle = (input: string) => {
     const trimmed = input.trim();
     if (trimmed && trimmed !== task.title) {
@@ -144,6 +144,7 @@ export function TaskLine({
     setEditingField(undefined);
   };
 
+  /** 解析并写入预计时长。 */
   const savePlanned = (input: string) => {
     const duration = parseDurationInput(input);
     onUpdate({
@@ -154,6 +155,7 @@ export function TaskLine({
     setEditingField(undefined);
   };
 
+  /** 解析并写入实际时长。 */
   const saveActual = (input: string) => {
     const duration = parseDurationInput(input);
     onUpdate({
@@ -172,9 +174,103 @@ export function TaskLine({
     event.stopPropagation();
   };
 
+  const timeNode =
+    timed &&
+    (editingField === 'time' ? (
+      <input
+        className="tl-inline-input timeline-time-input timeline-time"
+        defaultValue={timeDisplay}
+        placeholder="08:30"
+        autoFocus
+        draggable={false}
+        onDragStart={stopDragOnControl}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') saveTime(e.currentTarget.value);
+          if (e.key === 'Escape') setEditingField(undefined);
+        }}
+        onBlur={(e) => saveTime(e.currentTarget.value)}
+      />
+    ) : (
+      <time
+        className={cn(
+          'timeline-time',
+          'tl-clickable-cell',
+          !task.plannedStartTime && 'is-pending-time',
+        )}
+        onClick={() => !interactionLocked && setEditingField('time')}
+        title="点击直接修改时间（支持 08:30 或 08:30-10:00）"
+      >
+        {timeDisplay || '—'}
+      </time>
+    ));
+
+  const plannedNode =
+    timed &&
+    (editingField === 'planned' ? (
+      <input
+        className="tl-inline-input task-duration-input task-duration task-duration-planned"
+        defaultValue={
+          task.plannedDurationMinutes !== undefined
+            ? `${task.plannedDurationMinutes}min`
+            : ''
+        }
+        placeholder="45min"
+        autoFocus
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') savePlanned(e.currentTarget.value);
+          if (e.key === 'Escape') setEditingField(undefined);
+        }}
+        onBlur={(e) => savePlanned(e.currentTarget.value)}
+      />
+    ) : (
+      <span
+        className="task-duration task-duration-planned tl-clickable-cell"
+        onClick={() => setEditingField('planned')}
+        title="点击直接修改预计时长（如 45min 或 1h）"
+      >
+        <span className="task-duration-prefix">预计 </span>
+        {formatMinutes(task.plannedDurationMinutes)}
+      </span>
+    ));
+
+  const actualNode =
+    timed &&
+    (editingField === 'actual' ? (
+      <input
+        className="tl-inline-input task-duration-input task-duration task-duration-actual"
+        defaultValue={
+          task.actualDurationMinutes !== undefined
+            ? `${task.actualDurationMinutes}min`
+            : ''
+        }
+        placeholder="30min"
+        autoFocus
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') saveActual(e.currentTarget.value);
+          if (e.key === 'Escape') setEditingField(undefined);
+        }}
+        onBlur={(e) => saveActual(e.currentTarget.value)}
+      />
+    ) : (
+      <span
+        className="task-duration task-duration-actual tl-clickable-cell"
+        onClick={() => setEditingField('actual')}
+        title="点击直接输入实际时长（如 30min 或 1h20min）"
+      >
+        <span className="task-duration-prefix">实际 </span>
+        {formatMinutes(task.actualDurationMinutes)}
+      </span>
+    ));
+
   return (
     <div
-      className={`${timed ? 'timeline-row' : 'quick-task-row'} task-row-draggable${task.completed ? 'completed' : ''}${isDragging ? 'is-dragging' : ''}${!canDrag ? 'is-drag-disabled' : ''}`}
+      className={cn(
+        timed ? 'timeline-row' : 'quick-task-row',
+        'task-row-draggable',
+        task.completed && 'completed',
+        isDragging && 'is-dragging',
+        !canDrag && 'is-drag-disabled',
+      )}
       draggable={canDrag && !editingField}
       onDragStart={(event) => {
         if (!canDrag || editingField) {
@@ -188,32 +284,6 @@ export function TaskLine({
       }}
       onDragEnd={() => onDragEnd?.()}
     >
-      {timed ? (
-        editingField === 'time' ? (
-          <input
-            className="tl-inline-input timeline-time-input"
-            defaultValue={timeDisplay}
-            placeholder="08:30"
-            autoFocus
-            draggable={false}
-            onDragStart={stopDragOnControl}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') saveTime(e.currentTarget.value);
-              if (e.key === 'Escape') setEditingField(undefined);
-            }}
-            onBlur={(e) => saveTime(e.currentTarget.value)}
-          />
-        ) : (
-          <time
-            className={`timeline-time tl-clickable-cell${!task.plannedStartTime ? 'is-pending-time' : ''}`}
-            onClick={() => !interactionLocked && setEditingField('time')}
-            title="点击直接修改时间（支持 08:30 或 08:30-10:00）"
-          >
-            {timeDisplay || '—'}
-          </time>
-        )
-      ) : null}
-
       <div className="task-check-wrap">
         <Checkbox
           aria-label={`完成${task.title}`}
@@ -228,99 +298,9 @@ export function TaskLine({
         />
       </div>
 
-      <div
-        className="task-project-cell"
-        style={{ position: 'relative' }}
-        ref={projectPickerRef}
-      >
-        {editingField === 'project' ? (
-          <div className="project-picker-popover">
-            <div className="project-picker-list">
-              {projects
-                .filter((p) => p.status === 'active' || p.id === task.projectId)
-                .map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    className={`project-picker-item ${p.id === task.projectId ? 'is-selected' : ''}`}
-                    onClick={() => {
-                      onUpdate({
-                        ...task,
-                        projectId: p.id,
-                        updatedAt: new Date().toISOString(),
-                      });
-                      setEditingField(undefined);
-                    }}
-                  >
-                    <ProjectTag name={p.name} color={p.color} />
-                  </button>
-                ))}
-            </div>
-            {onAddProject && (
-              <>
-                <div className="project-picker-divider" />
-                {isAddingProject ? (
-                  <div className="project-picker-new-form">
-                    <input
-                      placeholder="新项目名称"
-                      value={newProjectName}
-                      autoFocus
-                      onChange={(e) => setNewProjectName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleCreateProject();
-                        }
-                        if (e.key === 'Escape') {
-                          setIsAddingProject(false);
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="tl-inline-confirm-btn"
-                      onClick={handleCreateProject}
-                      title="创建新项目"
-                    >
-                      <Check size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      className="tl-inline-cancel-btn"
-                      onClick={() => setIsAddingProject(false)}
-                      title="取消"
-                    >
-                      <X size={13} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="project-picker-new-btn"
-                    onClick={() => setIsAddingProject(true)}
-                  >
-                    <Plus size={13} /> 新增项目
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        ) : null}
-        <span
-          className="tl-clickable-cell"
-          onClick={() => setEditingField('project')}
-          title="点击切换所属项目或新增项目"
-        >
-          <ProjectTag
-            name={project?.name ?? '未配置项目'}
-            color={project?.color ?? '#8793a7'}
-          />
-        </span>
-      </div>
-
       {editingField === 'title' ? (
         <input
-          className="tl-inline-input task-title-input"
+          className="tl-inline-input task-title-input task-title"
           defaultValue={task.title}
           autoFocus
           onKeyDown={(e) => {
@@ -339,109 +319,115 @@ export function TaskLine({
         </span>
       )}
 
-      {timed && (
-        <>
-          {editingField === 'planned' ? (
-            <input
-              className="tl-inline-input task-duration-input"
-              defaultValue={
-                task.plannedDurationMinutes !== undefined
-                  ? `${task.plannedDurationMinutes}min`
-                  : ''
-              }
-              placeholder="45min"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') savePlanned(e.currentTarget.value);
-                if (e.key === 'Escape') setEditingField(undefined);
-              }}
-              onBlur={(e) => savePlanned(e.currentTarget.value)}
+      <div className="timeline-meta">
+        {timeNode}
+        <div className="task-project-cell" ref={projectPickerRef}>
+          {editingField === 'project' ? (
+            <div className="project-picker-popover">
+              <div className="project-picker-list">
+                {projects
+                  .filter((p) => p.status === 'active' || p.id === task.projectId)
+                  .map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className={cn(
+                        'project-picker-item',
+                        p.id === task.projectId && 'is-selected',
+                      )}
+                      onClick={() => {
+                        onUpdate({
+                          ...task,
+                          projectId: p.id,
+                          updatedAt: new Date().toISOString(),
+                        });
+                        setEditingField(undefined);
+                      }}
+                    >
+                      <ProjectTag name={p.name} color={p.color} />
+                    </button>
+                  ))}
+              </div>
+              {onAddProject && (
+                <>
+                  <div className="project-picker-divider" />
+                  {isAddingProject ? (
+                    <div className="project-picker-new-form">
+                      <input
+                        placeholder="新项目名称"
+                        value={newProjectName}
+                        autoFocus
+                        onChange={(e) => setNewProjectName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleCreateProject();
+                          }
+                          if (e.key === 'Escape') {
+                            setIsAddingProject(false);
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="tl-inline-confirm-btn"
+                        onClick={handleCreateProject}
+                        title="创建新项目"
+                      >
+                        <Check size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        className="tl-inline-cancel-btn"
+                        onClick={() => setIsAddingProject(false)}
+                        title="取消"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="project-picker-new-btn"
+                      onClick={() => setIsAddingProject(true)}
+                    >
+                      <Plus size={13} /> 新增项目
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          ) : null}
+          <span
+            className="tl-clickable-cell"
+            onClick={() => setEditingField('project')}
+            title="点击切换所属项目或新增项目"
+          >
+            <ProjectTag
+              name={project?.name ?? '未配置项目'}
+              color={project?.color ?? '#8793a7'}
             />
-          ) : (
-            <span
-              className="task-duration task-duration-planned tl-clickable-cell"
-              onClick={() => setEditingField('planned')}
-              title="点击直接修改预计时长（如 45min 或 1h）"
-            >
-              {formatMinutes(task.plannedDurationMinutes)}
-            </span>
-          )}
-
-          {editingField === 'actual' ? (
-            <input
-              className="tl-inline-input task-duration-input"
-              defaultValue={
-                task.actualDurationMinutes !== undefined
-                  ? `${task.actualDurationMinutes}min`
-                  : ''
-              }
-              placeholder="30min"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') saveActual(e.currentTarget.value);
-                if (e.key === 'Escape') setEditingField(undefined);
-              }}
-              onBlur={(e) => saveActual(e.currentTarget.value)}
-            />
-          ) : (
-            <span
-              className="task-duration task-duration-actual tl-clickable-cell"
-              onClick={() => setEditingField('actual')}
-              title="点击直接输入实际时长（如 30min 或 1h20min）"
-            >
-              {formatMinutes(task.actualDurationMinutes)}
-            </span>
-          )}
-        </>
-      )}
-
-      <div className="task-actions-cell">
-        <div className="task-actions">
-          {onToggleWorkstation && (
-            <button
-              type="button"
-              className={`task-workstation-action${inWorkstation ? 'is-active' : ''}`}
-              aria-label={`${inWorkstation ? '从工作站移除' : '加入工作站'}${task.title}`}
-              title={inWorkstation ? '从工作站移除' : '加入工作站'}
-              onClick={() => onToggleWorkstation(task.id)}
-            >
-              <Plus size={15} />
-            </button>
-          )}
-          <button aria-label={`${task.title}更多操作`}>
-            <MoreHorizontal size={17} />
-          </button>
-          <div>
-            <button onClick={onEdit}>
-              <Pencil size={13} />
-              详细编辑
-            </button>
-            {canChangeWorkflow && <button onClick={onReschedule}>移期</button>}
-            {canChangeWorkflow && (
-              <button onClick={() => onMove(task.id, 'backlog')}>待安排</button>
-            )}
-            {canChangeWorkflow && (
-              <button onClick={() => onMove(task.id, 'abandoned')}>放弃</button>
-            )}
-            <button onClick={() => onMove(task.id, 'trashed')}>
-              <Trash2 size={13} />
-              删除
-            </button>
-          </div>
+          </span>
         </div>
-        <button
-          type="button"
-          className="task-drag-handle"
-          aria-label={`拖动${task.title}`}
-          title="按住并拖到另一面板"
-          disabled={!canDrag || Boolean(editingField)}
-          onPointerDown={onPointerDragStart}
-          onPointerMove={onPointerDragMove}
-          onPointerUp={onPointerDragEnd}
-        >
-          <GripVertical size={16} />
-        </button>
+        {plannedNode}
+        {actualNode}
       </div>
+
+      <TaskRowActions
+        taskId={task.id}
+        title={task.title}
+        canChangeWorkflow={canChangeWorkflow}
+        canDrag={canDrag}
+        editingLocked={Boolean(editingField)}
+        inWorkstation={inWorkstation}
+        onEdit={onEdit}
+        onMove={onMove}
+        onReschedule={onReschedule}
+        onToggleWorkstation={onToggleWorkstation}
+        onPointerDragStart={onPointerDragStart}
+        onPointerDragMove={onPointerDragMove}
+        onPointerDragEnd={onPointerDragEnd}
+      />
     </div>
   );
 }

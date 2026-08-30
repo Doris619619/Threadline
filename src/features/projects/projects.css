@@ -17,13 +17,14 @@
 
 .project-panel h2 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: var(--text-section-size);
+  font-weight: var(--text-section-weight);
 }
 
 .project-panel p {
   margin: 4px 0 0;
   color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-size: var(--text-secondary-size);
 }
 
 .project-create {
@@ -53,13 +54,13 @@
 
 .project-row {
   display: grid;
-  grid-template-columns: 140px 65px minmax(0, 1fr) auto auto;
+  grid-template-columns: 140px 72px minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 10px;
-  min-height: 48px;
-  padding: 0 16px;
+  gap: 12px;
+  min-height: 44px;
+  padding: 4px 14px;
   border-top: 1px solid var(--border-subtle);
-  font-size: 0.8125rem;
+  font-size: var(--text-secondary-size);
 }
 
 .project-row:first-child {
@@ -67,16 +68,19 @@
 }
 
 .project-row b {
-  color: var(--text-secondary);
-  font-weight: 600;
+  color: var(--text-tertiary);
+  font-size: var(--text-caption-size);
+  font-weight: 500;
 }
 
 .project-row span {
   color: var(--text-secondary);
+  font-size: var(--text-caption-size);
 }
 
 .project-row small {
   color: var(--text-tertiary);
+  font-size: var(--text-caption-size);
 }
 
 .project-select {
@@ -98,4 +102,26 @@
   justify-content: space-between;
 }
 
+@media (max-width: 760px) {
+  .project-panel header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
 
+  .project-create {
+    flex-wrap: wrap;
+  }
+
+  .project-row {
+    grid-template-columns: 1fr auto;
+    gap: 6px 12px;
+    min-height: var(--touch-target);
+    padding: 12px 4px;
+    font-size: var(--text-secondary-size);
+  }
+
+  .project-row span {
+    grid-column: 1 / -1;
+  }
+}

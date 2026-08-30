@@ -104,9 +104,37 @@ export function InsightsPanel({
   return (
     <div className="insights-panel" data-testid="insights-panel">
       <header className="insights-toolbar">
-        <div>
-          <h2>洞察</h2>
-          <p>所有图表、热力和报告均使用同一 analytics 口径。</p>
+        <div className="insights-filters" aria-label="洞察范围">
+          {(['day', 'week', 'month', 'custom'] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              className={preset === value ? 'is-active' : ''}
+              onClick={() => setPreset(value)}
+            >
+              {{ day: '当天', week: '本周', month: '本月', custom: '自定义' }[value]}
+            </button>
+          ))}
+          {preset === 'custom' && (
+            <>
+              <label>
+                开始
+                <input
+                  type="date"
+                  value={customStart}
+                  onChange={(event) => setCustomStart(event.target.value)}
+                />
+              </label>
+              <label>
+                结束
+                <input
+                  type="date"
+                  value={customEnd}
+                  onChange={(event) => setCustomEnd(event.target.value)}
+                />
+              </label>
+            </>
+          )}
         </div>
         <div className="insights-actions">
           <button
@@ -118,38 +146,6 @@ export function InsightsPanel({
           </button>
         </div>
       </header>
-      <div className="insights-filters" aria-label="洞察范围">
-        {(['day', 'week', 'month', 'custom'] as const).map((value) => (
-          <button
-            key={value}
-            type="button"
-            className={preset === value ? 'is-active' : ''}
-            onClick={() => setPreset(value)}
-          >
-            {{ day: '当天', week: '本周', month: '本月', custom: '自定义' }[value]}
-          </button>
-        ))}
-        {preset === 'custom' && (
-          <>
-            <label>
-              开始
-              <input
-                type="date"
-                value={customStart}
-                onChange={(event) => setCustomStart(event.target.value)}
-              />
-            </label>
-            <label>
-              结束
-              <input
-                type="date"
-                value={customEnd}
-                onChange={(event) => setCustomEnd(event.target.value)}
-              />
-            </label>
-          </>
-        )}
-      </div>
       <div className="insights-summary">
         <Surface>
           <span>实际投入</span>
@@ -190,14 +186,14 @@ export function InsightsPanel({
                   type="monotone"
                   dataKey="actual"
                   name="实际"
-                  stroke="#4f8cff"
+                  stroke="var(--accent)"
                   strokeWidth={2}
                 />
                 <Line
                   type="monotone"
                   dataKey="planned"
                   name="预计"
-                  stroke="#8b7cf6"
+                  stroke="var(--text-tertiary)"
                   strokeDasharray="4 4"
                 />
               </LineChart>
@@ -221,7 +217,7 @@ export function InsightsPanel({
                 <Bar
                   dataKey="minutes"
                   name="实际投入"
-                  fill="#38a774"
+                  fill="var(--success)"
                   radius={[4, 4, 4, 4]}
                 />
               </BarChart>

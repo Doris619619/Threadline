@@ -1,3 +1,7 @@
+/**
+ * @fileoverview 共享按钮原语，统一高度、圆角与主次样式。
+ */
+
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
@@ -7,6 +11,9 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: 'compact' | 'default';
 };
 
+/**
+ * 渲染符合 design token 的按钮。variant 控制强调程度，size 只改变高度与内边距。
+ */
 export function Button({
   children,
   className,

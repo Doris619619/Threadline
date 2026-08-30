@@ -12,9 +12,9 @@ import {
   Maximize2,
   Minimize2,
   MoreHorizontal,
-  NotebookTabs,
   Orbit,
   Settings,
+  Spline,
   X,
 } from 'lucide-react';
 import { createContext, useContext, useRef, useState } from 'react';
@@ -48,16 +48,10 @@ const navigation = [
     description: '统一查看投入、估时与项目重心',
   },
   {
-    id: 'records',
-    label: '记录',
-    icon: NotebookTabs,
-    description: '搜索当前可可靠获得的历史记录',
-  },
-  {
     id: 'rhythm',
     label: '节律',
     icon: Orbit,
-    description: '私密日期标记随账号同步，不进入 analytics、报告或记录',
+    description: '私密日期标记随账号同步，不进入 analytics 与报告',
   },
   {
     id: 'settings',
@@ -231,7 +225,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {!isCompact && (
           <aside className="tl-sidebar">
             <a className="tl-brand" href="#main-content">
-              我的工作台
+              <span className="tl-brand-mark" aria-hidden="true">
+                <Spline size={16} strokeWidth={2.4} />
+              </span>
+              Threadline
             </a>
             <nav className="tl-desktop-nav" aria-label="主导航">
               {navigation.map(({ id, label, icon: Icon }) => (

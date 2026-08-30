@@ -9,12 +9,12 @@
 }
 
 .insights-filters button {
-  min-height: 36px;
+  min-height: var(--control-height);
   padding: 6px 12px;
   color: var(--text-secondary);
   background: var(--surface-secondary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
 }
 
 .insights-filters button.is-active {
@@ -31,8 +31,7 @@
   font-size: 0.75rem;
 }
 
-.insights-filters input,
-.records-search input {
+.insights-filters input {
   min-height: 36px;
   padding: 6px 8px;
   color: var(--text-primary);
@@ -41,42 +40,65 @@
   border-radius: 8px;
 }
 
-.insights-summary,
-.insights-charts {
+.insights-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: var(--space-4);
+}
+
+.insights-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
 }
 
 .insights-summary .tl-surface {
-  display: grid;
-  gap: 5px;
-  min-height: 130px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  min-height: 110px;
+  padding: var(--space-4) var(--space-5);
 }
 
-.insights-summary span,
-.insights-summary small,
-.insight-chart header span {
+.insights-summary span {
   color: var(--text-tertiary);
-  font-size: 0.75rem;
+  font-size: var(--text-caption-size);
+  font-weight: 500;
 }
 
 .insights-summary strong {
-  font-size: 1.1rem;
+  color: var(--text-primary);
+  font-size: var(--text-page-size);
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
 }
-.insights-charts {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+.insights-summary small {
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
 }
+
+.insight-chart header span {
+  color: var(--text-tertiary);
+  font-size: var(--text-caption-size);
+}
+
 .insight-chart {
-  min-height: 300px;
+  min-height: 320px;
+  padding: var(--space-5);
 }
+
 .insight-chart header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
-}
-.insight-chart h3 {
-  margin: 0;
-  font-size: 0.9375rem;
+  align-items: center;
+  margin-bottom: var(--space-4);
 }
 
+.insight-chart h3 {
+  margin: 0;
+  font-size: var(--text-card-size);
+  font-weight: var(--text-card-weight);
+}

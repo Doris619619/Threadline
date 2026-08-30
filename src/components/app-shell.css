@@ -5,24 +5,39 @@
 .tl-sidebar {
   display: flex;
   flex-direction: column;
-  padding: 46px 10px 16px;
-  border-right: 1px solid var(--border);
+  width: var(--sidebar-width);
+  padding: var(--space-5) var(--space-3) var(--space-4);
+  border-right: 1px solid var(--border-subtle);
   background: var(--surface);
 }
 
 .tl-brand {
-  margin: 0 6px 20px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 6px 24px;
   color: var(--text-primary);
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: var(--text-card-size);
+  font-weight: 650;
   letter-spacing: -0.02em;
   text-decoration: none;
+}
+
+.tl-brand-mark {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--text-on-accent);
+  background: var(--accent);
+  border-radius: 8px;
 }
 
 .tl-sidebar nav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .tl-sidebar .tl-mobile-nav {
@@ -34,6 +49,7 @@
   margin-top: auto;
   padding-top: var(--space-4);
 }
+
 .tl-profile {
   display: flex;
   width: 100%;
@@ -42,17 +58,17 @@
   gap: var(--space-3);
   padding: var(--space-2);
   color: var(--text-secondary);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
   text-align: left;
   cursor: pointer;
-  box-shadow: var(--shadow-card);
 }
+
 .tl-profile:hover {
-  background: var(--surface-secondary);
-  border-color: var(--border-strong);
+  background: var(--accent-soft);
 }
+
 .tl-avatar {
   display: grid;
   width: 36px;
@@ -61,39 +77,45 @@
   color: var(--text-on-accent);
   background: var(--accent);
   border-radius: 50%;
-  font-size: 0.9rem;
+  font-size: var(--text-label-size);
   font-weight: 650;
   flex-shrink: 0;
 }
+
 .tl-avatar--large {
   width: 48px;
   height: 48px;
-  font-size: 1.15rem;
+  font-size: var(--text-section-size);
 }
+
 .tl-profile-copy {
   display: grid;
   min-width: 0;
   gap: 2px;
 }
+
 .tl-profile b {
   color: var(--text-primary);
-  font-size: 0.875rem;
+  font-size: var(--text-label-size);
   font-weight: 650;
   line-height: 1.2;
 }
+
 .tl-profile small {
   overflow: hidden;
   color: var(--text-tertiary);
-  font-size: 0.72rem;
+  font-size: var(--text-caption-size);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .tl-profile-chevron {
   margin-left: auto;
   color: var(--text-tertiary);
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   line-height: 1;
 }
+
 .tl-account-popover {
   position: absolute;
   z-index: 40;
@@ -102,42 +124,48 @@
   width: min(336px, calc(100vw - 32px));
   overflow: hidden;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-surface);
   box-shadow: var(--shadow-popover);
 }
+
 .tl-account-popover header {
   display: flex;
   gap: var(--space-3);
   padding: var(--space-5);
   border-bottom: 1px solid var(--border-subtle);
 }
+
 .tl-account-popover header > span:last-child {
   display: grid;
   min-width: 0;
   gap: 3px;
 }
+
 .tl-account-popover header small {
   overflow-wrap: anywhere;
   color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-size: var(--text-secondary-size);
 }
+
 .tl-account-popover header em {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   color: var(--success);
-  font-size: 0.78rem;
+  font-size: var(--text-caption-size);
   font-style: normal;
 }
+
 .tl-account-actions {
   display: grid;
   padding: var(--space-2);
   gap: 2px;
 }
+
 .tl-account-actions button {
   display: flex;
-  min-height: 42px;
+  min-height: var(--touch-target);
   align-items: center;
   gap: var(--space-3);
   padding: 0 var(--space-3);
@@ -149,26 +177,30 @@
   text-align: left;
   cursor: pointer;
 }
+
 .tl-account-actions button:hover:not(:disabled) {
   background: var(--surface-secondary);
 }
+
 .tl-account-actions button.is-danger {
   color: var(--danger);
 }
+
 .tl-account-actions button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
+
 .tl-account-error {
   margin: 0;
   padding: 0 var(--space-5) var(--space-4);
   color: var(--danger);
-  font-size: 0.78rem;
+  font-size: var(--text-caption-size);
 }
 
 .tl-main {
   min-width: 0;
-  padding: 24px 28px 32px;
+  padding: var(--space-6) 28px 32px;
 }
 
 .tl-header {
@@ -176,7 +208,8 @@
   min-height: 48px;
   align-items: center;
   justify-content: space-between;
-  padding: 0 4px 16px;
+  gap: var(--space-4);
+  padding: 0 4px var(--space-4);
 }
 
 .tl-header-actions {
@@ -187,16 +220,17 @@
 
 .tl-header h1 {
   margin: 0;
-  font-size: 1.45rem;
-  font-weight: 700;
-  line-height: 1.2;
+  font-size: var(--text-page-size);
+  font-weight: var(--text-page-weight);
+  line-height: var(--text-page-leading);
   letter-spacing: -0.03em;
 }
 
 .tl-header p {
   margin: 4px 0 0;
   color: var(--text-tertiary);
-  font-size: 0.78rem;
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-leading);
 }
 
 .tl-date {
@@ -208,15 +242,17 @@
 
 .tl-date button {
   display: grid;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   place-items: center;
   color: var(--text-secondary);
   background: transparent;
   border: 0;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-control);
   cursor: pointer;
-  transition: all 140ms ease;
+  transition:
+    background-color var(--motion-fast) ease,
+    color var(--motion-fast) ease;
 }
 
 .tl-date button:hover {
@@ -225,9 +261,131 @@
 }
 
 .tl-date time {
-  padding: 4px 6px;
-  font-size: 0.875rem;
+  padding: 4px 8px;
+  font-size: var(--text-label-size);
   font-weight: 500;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 760px) {
+  .tl-sidebar {
+    position: fixed;
+    z-index: 20;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+    padding: 4px 8px env(safe-area-inset-bottom);
+    background: var(--surface);
+    border-top: 1px solid var(--border-subtle);
+    border-right: 0;
+  }
+
+  .tl-brand,
+  .tl-profile {
+    display: none;
+  }
+
+  .tl-sidebar .tl-desktop-nav {
+    display: none;
+  }
+
+  .tl-sidebar .tl-mobile-nav {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    height: 100%;
+  }
+
+  .tl-sidebar .tl-sidebar-item {
+    min-height: var(--touch-target);
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 2px;
+    font-size: var(--text-caption-size);
+    text-align: center;
+    border-radius: var(--radius-md);
+  }
+
+  .tl-sidebar .tl-sidebar-item.is-active {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .tl-mobile-more {
+    position: relative;
+  }
+
+  .tl-mobile-more > button {
+    width: 100%;
+    min-height: var(--touch-target);
+  }
+
+  .tl-mobile-more-menu {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 8px);
+    display: grid;
+    min-width: 148px;
+    gap: 4px;
+    padding: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-popover);
+  }
+
+  .tl-mobile-more-menu button {
+    display: flex;
+    min-height: var(--touch-target);
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-sm);
+    text-align: left;
+  }
+
+  .tl-mobile-more-menu button.is-active {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .tl-main {
+    padding: 16px 16px
+      calc(var(--bottom-nav-height) + 20px + env(safe-area-inset-bottom));
+  }
+
+  .tl-header {
+    align-items: flex-start;
+    padding: 4px 0 12px;
+  }
+
+  .tl-header > div:first-child {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .tl-header h1 {
+    white-space: nowrap;
+  }
+
+  .tl-header p {
+    display: none;
+  }
+
+  .tl-date button {
+    width: var(--touch-target);
+    height: var(--touch-target);
+  }
+
+  .tl-date time {
+    padding: 0 2px;
+    font-size: var(--text-secondary-size);
+  }
 }
