@@ -15,6 +15,7 @@ import {
   NotebookTabs,
   Orbit,
   Settings,
+  Spline,
   X,
 } from 'lucide-react';
 import { createContext, useContext, useRef, useState } from 'react';
@@ -231,7 +232,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {!isCompact && (
           <aside className="tl-sidebar">
             <a className="tl-brand" href="#main-content">
-              我的工作台
+              <span className="tl-brand-mark" aria-hidden="true">
+                <Spline size={16} strokeWidth={2.4} />
+              </span>
+              Threadline
             </a>
             <nav className="tl-desktop-nav" aria-label="主导航">
               {navigation.map(({ id, label, icon: Icon }) => (

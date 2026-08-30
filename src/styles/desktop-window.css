@@ -8,7 +8,7 @@
   min-height: 100dvh;
   margin: 0;
   overflow: hidden;
-  background: var(--surface);
+  background: var(--background);
   border: 0;
   border-radius: 0;
   box-shadow: none;
@@ -16,17 +16,18 @@
 }
 
 .tl-window.mode-full {
-  display: grid;
-  grid-template-rows: 40px minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
 }
 
 .tl-window-body {
   min-height: 0;
+  flex: 1;
 }
 
 .mode-full .tl-window-body {
   display: grid;
-  grid-template-columns: 160px minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
 }
 
 .tl-window.mode-compact {
@@ -62,8 +63,8 @@
 
 .full-window-caption {
   color: var(--text-secondary);
-  font-size: 0.75rem;
-  font-weight: 720;
+  font-size: var(--text-caption-size);
+  font-weight: 600;
   letter-spacing: 0.03em;
 }
 
@@ -85,8 +86,8 @@
   align-items: center;
   gap: 8px;
   color: var(--text-primary);
-  font-size: 1rem;
-  font-weight: 760;
+  font-size: var(--text-card-size);
+  font-weight: 650;
   letter-spacing: 0.01em;
 }
 .compact-window-actions {
@@ -114,8 +115,8 @@
   color: var(--text-secondary);
   background: transparent;
   border-radius: 7px;
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: var(--text-caption-size);
+  font-weight: 600;
   cursor: pointer;
 }
 .compact-window-actions button:first-child {
@@ -152,13 +153,13 @@
 }
 .edge-tab span {
   writing-mode: vertical-rl;
-  font-size: 0.82rem;
-  font-weight: 750;
+  font-size: var(--text-caption-size);
+  font-weight: 600;
   letter-spacing: 0.16em;
 }
 .edge-tab small {
   color: #98712e;
-  font-size: 0.62rem;
+  font-size: var(--text-caption-size);
 }
 .tl-header {
   -webkit-app-region: drag;
@@ -182,8 +183,8 @@
   background: #fff;
   border: 1px solid #b9d3ff;
   border-radius: 7px;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: var(--text-caption-size);
+  font-weight: 600;
   cursor: pointer;
 }
 .full-window-entries button:hover {
@@ -203,4 +204,12 @@
   border-color: var(--border);
 }
 
+@media (max-width: 760px) {
+  .tl-window.mode-full {
+    display: block;
+  }
 
+  .mode-full .tl-window-body {
+    display: block;
+  }
+}
