@@ -573,7 +573,7 @@ test('reopens the cached PWA offline without returning HTML for a Next script', 
   }
 });
 
-test('creates a fresh Daily instance for another date', async ({ page }) => {
+test('creates a fresh Daily instance for another date without inheriting child completion', async ({ page }) => {
   await expect(
     page.getByRole('checkbox', { name: '完成 Daily 听力训练' }),
   ).toBeChecked();
@@ -587,7 +587,7 @@ test('creates a fresh Daily instance for another date', async ({ page }) => {
     page.getByRole('checkbox', { name: '完成 Daily 背单词' }),
   ).not.toBeChecked();
   await page.getByRole('button', { name: '后一天' }).click();
-  await expect(page.getByRole('checkbox', { name: '完成 Daily 背单词' })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: '完成 Daily 背单词' })).not.toBeChecked();
 });
 
 test('creates a task on the selected future date', async ({ page }) => {
@@ -619,10 +619,10 @@ test('moves an item through planning and returns it to today', async ({ page }) 
   await expect(page.getByRole('checkbox', { name: '完成邮件处理' })).toBeVisible();
 });
 
-test('daily subtask completion completes its parent', async ({ page }) => {
+test('daily subtask completion does not complete its parent', async ({ page }) => {
   const child = page.getByRole('checkbox', { name: '完成 新词' });
   await child.check();
-  await expect(page.getByRole('checkbox', { name: '完成 Daily 背单词' })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: '完成 Daily 背单词' })).not.toBeChecked();
 });
 
 test('creates Daily under a selected project with a subtask', async ({ page }) => {

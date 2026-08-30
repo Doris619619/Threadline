@@ -47,6 +47,7 @@ export function TaskDashboard() {
   const { isMiniToday, isWorkstation } = useDesktopWindow();
   const {
     tasks,
+    taskTimeEntries,
     updateTasks,
     projects: workspaceProjects,
     updateProjects,
@@ -62,6 +63,8 @@ export function TaskDashboard() {
     highlightColor,
     updateHighlightColor,
     createTask,
+    createProject,
+    saveDailyTemplate,
     transitionTask,
     recordDaily,
     closeDay: commitCloseDay,
@@ -139,6 +142,7 @@ export function TaskDashboard() {
     projects: workspaceProjects,
     selectedDate,
     tasks,
+    taskTimeEntries,
     updateAnnotationStrokes,
     updateTasks,
     updateWorkstationTaskIds,
@@ -154,10 +158,10 @@ export function TaskDashboard() {
     saveTask,
   } = useTaskCreateAndEdit({
     createTask,
+    createProject,
     editing,
     projects: workspaceProjects,
     selectedDate,
-    updateProjectList: updateProjects,
     updateTask: update,
   });
 
@@ -182,10 +186,14 @@ export function TaskDashboard() {
     setTaskDialogOpen(true);
   };
   /** 由动作层验证并写入 Dialog 内容；仅在成功时关闭原有弹窗。 */
-  const save = (form: FormData): string | undefined => {
-    const message = saveTask(form);
-    if (!message) setTaskDialogOpen(false);
-    return message;
+  const save = async (form: FormData): Promise<string | undefined> => {
+    try {
+      const message = await saveTask(form);
+      if (!message) setTaskDialogOpen(false);
+      return message;
+    } catch (error) {
+      return error instanceof Error ? error.message : '保存任务失败，请重试。';
+    }
   };
   /** 将当前移期弹窗的任务交给 workflow，并只在成功后关闭弹窗。 */
   const reschedule = (targetDate: string) => {
@@ -438,6 +446,7 @@ export function TaskDashboard() {
                   return { ...current, [selectedDate]: [...existing, item] };
                 });
               }}
+              onUpdateTemplate={saveDailyTemplate}
               onRecord={(entry) =>
                 void recordDaily(entry.dailyId, entry.date).catch(() => undefined)
               }

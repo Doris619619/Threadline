@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { ProjectTag } from '@/components/ui/project-tag';
 import { Surface } from '@/components/ui/surface';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
+import { getDailyActualMinutes, isDailyCompleted } from '@/features/daily/daily-rules';
 import { resolveActiveProject } from '@/lib/project-rules';
 import type { Project } from '@/types/domain';
 
@@ -24,6 +25,7 @@ export function DailyPanel({
   projects,
   onChange,
   onAdd,
+  onUpdateTemplate,
   onRecord,
 }: {
   items: Daily[];
@@ -32,6 +34,7 @@ export function DailyPanel({
   projects: Project[];
   onChange: (items: Daily[]) => void;
   onAdd: (item: Daily) => void;
+  onUpdateTemplate: (item: Daily) => Promise<void>;
   onRecord: (entry: DailyHistoryEntry) => void;
 }) {
   const [newTitle, setNewTitle] = useState('');
@@ -41,6 +44,8 @@ export function DailyPanel({
   const [editingTitle, setEditingTitle] = useState('');
   const [editingProjectId, setEditingProjectId] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [saveError, setSaveError] = useState<string>();
+  const [savingTemplateId, setSavingTemplateId] = useState<string>();
   const selectedProjectId = resolveActiveProject(projects, projectId)?.id ?? '';
   const update = (id: string, fn: (daily: Daily) => Daily) =>
     onChange(items.map((item) => (item.id === id ? fn(item) : item)));
@@ -49,8 +54,8 @@ export function DailyPanel({
       dailyId: daily.id,
       projectId: daily.projectId,
       date,
-      completed: daily.completed || daily.children.some((child) => child.completed),
-      actual: daily.actual,
+      completed: isDailyCompleted(daily),
+      actual: getDailyActualMinutes(daily),
       result: daily.result,
     });
   return (
@@ -59,8 +64,7 @@ export function DailyPanel({
         <h2>Daily 任务</h2>
       </header>
       {items.map((daily) => {
-        const complete =
-          daily.completed || daily.children.some((child) => child.completed);
+        const complete = isDailyCompleted(daily);
         const recordedToday = history.some(
           (entry) => entry.dailyId === daily.id && entry.date === date,
         );
@@ -101,22 +105,35 @@ export function DailyPanel({
                   />
                   <button
                     className="daily-save-btn"
-                    onClick={() => {
+                    disabled={savingTemplateId === daily.id}
+                    onClick={async () => {
                       const project = projects.find(
                         (item) => item.id === editingProjectId,
                       );
                       if (!editingTitle.trim() || !project) return;
-                      update(daily.id, (item) => ({
-                        ...item,
+                      const next: Daily = {
+                        ...daily,
                         title: editingTitle.trim(),
                         projectId: project.id,
                         project: project.name,
                         color: project.color,
-                      }));
-                      setEditingId(undefined);
+                      };
+                      setSaveError(undefined);
+                      setSavingTemplateId(daily.id);
+                      try {
+                        await onUpdateTemplate(next);
+                        update(daily.id, () => next);
+                        setEditingId(undefined);
+                      } catch (error) {
+                        setSaveError(
+                          error instanceof Error ? error.message : 'Daily 模板保存失败，请重试。',
+                        );
+                      } finally {
+                        setSavingTemplateId(undefined);
+                      }
                     }}
                   >
-                    保存
+                  {savingTemplateId === daily.id ? '保存中…' : '保存'}
                   </button>
                   <button
                     className="daily-cancel-btn"
@@ -151,7 +168,10 @@ export function DailyPanel({
             {daily.children.length > 0 && (
               <div className="daily-children">
                 {daily.children.map((child, index) => (
-                  <div className="daily-child-row" key={child.title}>
+                  <div
+                    className="daily-child-row"
+                    key={child.id ?? child.templateItemId ?? `${daily.id}:${index}`}
+                  >
                     <div className="daily-check-wrap">
                       <Checkbox
                         aria-label={`完成 ${child.title}`}
@@ -168,7 +188,22 @@ export function DailyPanel({
                         }
                       />
                     </div>
-                    <span className="daily-child-name">{child.title}</span>
+                    {editingId === daily.id ? (
+                      <Input
+                        aria-label={`${daily.title}子任务名称${index + 1}`}
+                        value={child.title}
+                        onChange={(event) =>
+                          update(daily.id, (item) => ({
+                            ...item,
+                            children: item.children.map((value, i) =>
+                              i === index ? { ...value, title: event.target.value } : value,
+                            ),
+                          }))
+                        }
+                      />
+                    ) : (
+                      <span className="daily-child-name">{child.title}</span>
+                    )}
                     {editingId === daily.id ? (
                       <Input
                         aria-label={`${daily.title} ${child.title}实际耗时`}
@@ -218,7 +253,7 @@ export function DailyPanel({
                         ...item,
                         children: [
                           ...item.children,
-                          { title, completed: false, actual: 0 },
+                          { id: crypto.randomUUID(), title, completed: false, actual: 0 },
                         ],
                       }));
                       setChildTitles((current) => ({ ...current, [daily.id]: '' }));
@@ -345,6 +380,7 @@ export function DailyPanel({
           </tbody>
         </table>
       )}
+      {saveError && <p className="workspace-sync-error" role="alert">{saveError}</p>}
     </Surface>
   );
 }

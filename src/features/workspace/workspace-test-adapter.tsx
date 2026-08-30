@@ -7,6 +7,7 @@
 import { useCallback, useMemo, type ReactNode } from 'react';
 import { useWorkspaceView } from '@/components/app-shell';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
+import { getDailyActualMinutes, isDailyCompleted } from '@/features/daily/daily-rules';
 import {
   WorkspaceContextProviders,
   type CloseAction,
@@ -21,7 +22,7 @@ import {
 import { useAnnotationStrokes } from '@/hooks/use-annotation-strokes';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import { getLocalDateKey } from '@/lib/local-date';
-import type { CloseRecord, HistoryEvent, Task } from '@/types/domain';
+import type { CloseRecord, HistoryEvent, Project, Task } from '@/types/domain';
 
 /**
  * 仅供 Playwright/Electron 显式测试构建使用的本地适配器；生产构建不会挂载。
@@ -92,6 +93,15 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
       return task;
     },
     [updateHistory, updateTasks],
+  );
+
+  /** 测试适配器也先确认项目进入本地真源，再返回可用于 task 的稳定 project。 */
+  const createProject = useCallback(
+    async (project: Project) => {
+      updateProjects((current) => [...current, project]);
+      return project;
+    },
+    [updateProjects],
   );
 
   const transitionTask = useCallback(
@@ -172,9 +182,8 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
                 dailyId: templateId,
                 projectId: daily.projectId,
                 date,
-                completed:
-                  daily.completed || daily.children.some((child) => child.completed),
-                actual: daily.actual,
+                completed: isDailyCompleted(daily),
+                actual: getDailyActualMinutes(daily),
                 result: daily.result,
               },
               ...current,
@@ -259,7 +268,7 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
     workstationHydrated &&
     annotationHydrated &&
     highlightHydrated;
-  const taskState = useMemo(() => ({ tasks }), [tasks]);
+  const taskState = useMemo(() => ({ tasks, taskTimeEntries: [] }), [tasks]);
   const taskActions = useMemo(() => ({ updateTasks }), [updateTasks]);
   const projectState = useMemo(() => ({ projects }), [projects]);
   const projectActions = useMemo(() => ({ updateProjects }), [updateProjects]);
@@ -287,9 +296,25 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
     () => ({ updateAnnotationStrokes, updateWorkstationTaskIds, updateHighlightColor }),
     [updateAnnotationStrokes, updateHighlightColor, updateWorkstationTaskIds],
   );
+  /** 在显式测试适配器中模拟模板 RPC 的成功回写，保证本地与云端编辑语义一致。 */
+  const saveDailyTemplate = useCallback(
+    async (next: Daily) => {
+      updateDailyTemplates((current) =>
+        current.map((item) => (item.id === next.id ? next : item)),
+      );
+    },
+    [updateDailyTemplates],
+  );
   const commands = useMemo(
-    () => ({ createTask, transitionTask, recordDaily, closeDay }),
-    [closeDay, createTask, recordDaily, transitionTask],
+    () => ({
+      createTask,
+      createProject,
+      saveDailyTemplate,
+      transitionTask,
+      recordDaily,
+      closeDay,
+    }),
+    [closeDay, createProject, createTask, recordDaily, saveDailyTemplate, transitionTask],
   );
 
   return (

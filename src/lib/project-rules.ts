@@ -2,15 +2,18 @@
 
 import type { Project } from '@/types/domain';
 
-/** 返回首选 active 项目，否则选择 owner 唯一 fallback，最终退回任一 active 项目。 */
+/**
+ * 未指定项目时选择 fallback；一旦调用方明确给出 ID，找不到就返回 undefined，绝不静默改投别的项目。
+ */
 export function resolveActiveProject(
   projects: Project[],
   preferredId?: string,
 ): Project | undefined {
-  return (
-    projects.find(
+  if (preferredId)
+    return projects.find(
       (project) => project.id === preferredId && project.status === 'active',
-    ) ??
+    );
+  return (
     projects.find((project) => project.isFallback && project.status === 'active') ??
     projects.find((project) => project.status === 'active')
   );

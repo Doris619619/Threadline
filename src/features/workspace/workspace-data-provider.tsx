@@ -64,6 +64,10 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     queryKey: ['workspace', ownerKey, 'tasks'],
     queryFn: () => repository.listTasks(),
   });
+  const taskTimeEntriesQuery = useQuery({
+    queryKey: ['workspace', ownerKey, 'task-time-entries'],
+    queryFn: () => repository.listTaskTimeEntries(),
+  });
   const dailyQuery = useQuery({
     queryKey: ['workspace', ownerKey, 'daily'],
     queryFn: () => repository.listDailyBundle(),
@@ -86,6 +90,10 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
   });
 
   const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data]);
+  const taskTimeEntries = useMemo(
+    () => taskTimeEntriesQuery.data ?? [],
+    [taskTimeEntriesQuery.data],
+  );
   const projects = useMemo(() => projectsQuery.data ?? [], [projectsQuery.data]);
   const dailyByDate = useMemo(
     () => dailyQuery.data?.dailyByDate ?? {},
@@ -158,6 +166,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     const tables = [
       'projects',
       'tasks',
+      'task_time_entries',
       'daily_templates',
       'daily_template_items',
       'daily_entries',
@@ -265,7 +274,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
             );
             for (const daily of nextItems) {
               if (daily.entryId && changed(currentById.get(daily.id), daily))
-                await repository.saveDailyEntry(daily, date);
+                await repository.saveDailyEntry(daily);
             }
           }
           queryClient.setQueryData(
@@ -478,6 +487,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
   const hydrated =
     projectsQuery.isSuccess &&
     tasksQuery.isSuccess &&
+    taskTimeEntriesQuery.isSuccess &&
     dailyQuery.isSuccess &&
     dailyHistoryQuery.isSuccess &&
     historyQuery.isSuccess &&
@@ -488,6 +498,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
   const queryError = [
     projectsQuery.error,
     tasksQuery.error,
+    taskTimeEntriesQuery.error,
     dailyQuery.error,
     dailyHistoryQuery.error,
     historyQuery.error,
@@ -495,7 +506,49 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     workstationQuery.error,
   ].find(Boolean);
 
-  const taskState = useMemo(() => ({ tasks }), [tasks]);
+  const taskState = useMemo(
+    () => ({ tasks, taskTimeEntries }),
+    [tasks, taskTimeEntries],
+  );
+
+  /** 先等待 server-confirmed project，再让调用方使用其 ID 创建或改派任务。 */
+  const createProject = useCallback(
+    async (project: Project) => {
+      try {
+        if (!navigator.onLine) throw new Error('当前离线，无法创建项目。');
+        setMutationError(undefined);
+        const saved = await repository.saveProject(project);
+        queryClient.setQueryData<Project[]>(
+          ['workspace', ownerKey, 'projects'],
+          (current = []) => [...current.filter((item) => item.id !== saved.id), saved],
+        );
+        return saved;
+      } catch (error) {
+        setMutationError(error instanceof Error ? error.message : '项目创建失败');
+        throw error;
+      }
+    },
+    [ownerKey, queryClient, repository],
+  );
+
+  /** 保存长期 Daily template 后刷新 bundle；失败时调用方保留编辑态并可直接重试。 */
+  const saveDailyTemplate = useCallback(
+    async (daily: Daily) => {
+      try {
+        if (!navigator.onLine) throw new Error('当前离线，无法保存 Daily 模板。');
+        setMutationError(undefined);
+        await repository.updateDailyTemplate(daily);
+        queryClient.setQueryData(
+          ['workspace', ownerKey, 'daily'],
+          await repository.listDailyBundle(),
+        );
+      } catch (error) {
+        setMutationError(error instanceof Error ? error.message : 'Daily 模板保存失败');
+        throw error;
+      }
+    },
+    [ownerKey, queryClient, repository],
+  );
   const taskActions = useMemo(() => ({ updateTasks }), [updateTasks]);
   const projectState = useMemo(() => ({ projects }), [projects]);
   const projectActions = useMemo(() => ({ updateProjects }), [updateProjects]);
@@ -524,8 +577,15 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     [updateAnnotationStrokes, updateHighlightColor, updateWorkstationTaskIds],
   );
   const commands = useMemo(
-    () => ({ createTask, transitionTask, recordDaily, closeDay }),
-    [closeDay, createTask, recordDaily, transitionTask],
+    () => ({
+      createProject,
+      createTask,
+      saveDailyTemplate,
+      transitionTask,
+      recordDaily,
+      closeDay,
+    }),
+    [closeDay, createProject, createTask, recordDaily, saveDailyTemplate, transitionTask],
   );
 
   return (

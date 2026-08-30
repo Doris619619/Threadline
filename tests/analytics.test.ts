@@ -52,6 +52,37 @@ describe('analytics adapter', () => {
     });
   });
 
+  it('keeps actual time on its original date after the task is rescheduled', () => {
+    const result = createAnalyticsResult({
+      tasks: [task({ date: '2026-08-31', actualDurationMinutes: 120 })],
+      taskTimeEntries: [
+        {
+          id: 'time-1',
+          taskId: 'task-1',
+          projectId: 'research',
+          date: '2026-08-30',
+          minutes: 40,
+        },
+        {
+          id: 'time-2',
+          taskId: 'task-1',
+          projectId: 'research',
+          date: '2026-08-31',
+          minutes: 80,
+        },
+      ],
+      projects,
+      dailyByDate: {},
+      dailyHistory: [],
+      closeRecords: [],
+      range: { start: '2026-08-30', end: '2026-08-31' },
+    });
+    expect(result.days.map((day) => [day.date, day.taskActualMinutes])).toEqual([
+      ['2026-08-30', 40],
+      ['2026-08-31', 80],
+    ]);
+  });
+
   it('keeps an unambiguous close record as a legacy aggregate without task inference', () => {
     const result = createAnalyticsResult({
       tasks: [],
@@ -135,6 +166,28 @@ describe('analytics adapter', () => {
     });
     expect(result.totalActualMinutes).toBe(45);
     expect(result.days[0]?.dailyActualMinutes).toBe(45);
+  });
+
+  it('includes Daily child actuals in the shared analytics total', () => {
+    const result = createAnalyticsResult({
+      tasks: [],
+      projects,
+      dailyByDate: {
+        '2026-08-20': [
+          {
+            id: 'template-children',
+            projectId: 'research',
+            title: '阅读论文',
+            actual: 20,
+            completed: false,
+            children: [{ actual: 30 }, { actual: 40 }],
+          },
+        ],
+      },
+      dailyHistory: [],
+      closeRecords: [],
+    });
+    expect(result.totalActualMinutes).toBe(90);
   });
 
   it('deduplicates a formal Daily record and its same template/date entry', () => {

@@ -2,9 +2,10 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(82);
+select plan(88);
 
 select has_table('public', 'daily_history_entries', 'Daily history has an explicit table');
+select has_table('public', 'task_time_entries', 'Task actual time has an immutable date-bound table');
 select has_table('public', 'rhythm_marks', 'Rhythm is cloud-backed');
 select hasnt_table('public', 'annotation_strokes', 'Annotations stay local-only');
 select has_function('public', 'initialize_workspace', array[]::text[], 'Workspace initializer exists');
@@ -60,20 +61,24 @@ select table_privs_are(
   'Authenticated Repository can read and save tasks without physical delete'
 );
 select table_privs_are(
-  'public', 'daily_templates', 'authenticated', array['SELECT', 'INSERT'],
-  'Authenticated Daily commands can read and create templates'
+  'public', 'task_time_entries', 'authenticated', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'],
+  'Authenticated analytics can read owner-scoped task time entries'
 );
 select table_privs_are(
-  'public', 'daily_template_items', 'authenticated', array['SELECT', 'INSERT'],
-  'Authenticated Daily flow can read and create template items'
+  'public', 'daily_templates', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
+  'Authenticated Daily commands can read, create, and update templates'
+);
+select table_privs_are(
+  'public', 'daily_template_items', 'authenticated', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'],
+  'Authenticated Daily flow can atomically replace template items'
 );
 select table_privs_are(
   'public', 'daily_entries', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
   'Authenticated Daily flow can materialize and edit date entries'
 );
 select table_privs_are(
-  'public', 'daily_entry_items', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
-  'Authenticated Daily flow can materialize and edit date items'
+  'public', 'daily_entry_items', 'authenticated', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'],
+  'Authenticated Daily flow can atomically replace date items'
 );
 select table_privs_are(
   'public', 'daily_history_entries', 'authenticated', array['SELECT', 'INSERT'],
@@ -145,6 +150,14 @@ select function_privs_are(
   'public', 'close_day', array['date', 'jsonb', 'jsonb'],
   'authenticated', array['EXECUTE'], 'Authenticated can close day'
 );
+select function_privs_are(
+  'public', 'save_daily_entry_bundle', array['uuid', 'uuid', 'text', 'boolean', 'integer', 'text', 'jsonb'],
+  'authenticated', array['EXECUTE'], 'Authenticated can atomically save a Daily entry bundle'
+);
+select function_privs_are(
+  'public', 'update_daily_template_bundle', array['uuid', 'uuid', 'text', 'jsonb'],
+  'authenticated', array['EXECUTE'], 'Authenticated can atomically update a Daily template'
+);
 
 select function_privs_are(
   'public', 'initialize_workspace', array[]::text[],
@@ -177,6 +190,14 @@ select function_privs_are(
 select function_privs_are(
   'public', 'close_day', array['date', 'jsonb', 'jsonb'],
   'anon', array[]::text[], 'Anonymous clients cannot close day'
+);
+select function_privs_are(
+  'public', 'save_daily_entry_bundle', array['uuid', 'uuid', 'text', 'boolean', 'integer', 'text', 'jsonb'],
+  'anon', array[]::text[], 'Anonymous clients cannot save a Daily entry bundle'
+);
+select function_privs_are(
+  'public', 'update_daily_template_bundle', array['uuid', 'uuid', 'text', 'jsonb'],
+  'anon', array[]::text[], 'Anonymous clients cannot update a Daily template'
 );
 
 insert into auth.users(id, email)

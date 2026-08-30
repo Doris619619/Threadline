@@ -24,8 +24,8 @@ type CompactWorkspaceProps = {
   onToggleWorkstation: (taskId: string) => void;
   onClearWorkstation: () => void;
   onReorderWorkstation: (sourceId: string, targetId: string) => void;
-  onCreateTimedTask: (draft: CompactTimedTaskDraft) => void;
-  onCreateQuickTask: (draft: CompactQuickTaskDraft) => void;
+  onCreateTimedTask: (draft: CompactTimedTaskDraft) => Promise<void>;
+  onCreateQuickTask: (draft: CompactQuickTaskDraft) => Promise<void>;
 };
 
 /** 从动态项目集合解析任务项目；历史缺失项目保留可读的其他标签。 */
@@ -146,23 +146,33 @@ function CompactTimedAddRow({
   onCreate,
 }: {
   projects: Project[];
-  onCreate: (draft: CompactTimedTaskDraft) => void;
+  onCreate: (draft: CompactTimedTaskDraft) => Promise<void>;
 }) {
   const [projectId, setProjectId] = useState(() => projects[0]?.id ?? '');
   const [title, setTitle] = useState('');
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [error, setError] = useState<string>();
+  const [saving, setSaving] = useState(false);
   /** 验证紧凑行时间并在成功后将字段交给 Dashboard 统一持久化。 */
-  const submit = () => {
+  const submit = async () => {
+    if (saving) return;
     if (!title.trim()) return setError('请输入任务名称');
     if (end && (!start || end <= start)) return setError('结束时间需晚于开始时间');
-    onCreate({
-      projectId,
-      title: title.trim(),
-      start: start || undefined,
-      end: end || undefined,
-    });
+    setSaving(true);
+    try {
+      await onCreate({
+        projectId,
+        title: title.trim(),
+        start: start || undefined,
+        end: end || undefined,
+      });
+      setTitle('');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : '保存失败，请重试。');
+    } finally {
+      setSaving(false);
+    }
   };
   return (
     <li className="compact-add-row compact-timed-add-row">
@@ -217,6 +227,7 @@ function CompactTimedAddRow({
         className="compact-add-confirm"
         aria-label="保存日程任务"
         onClick={submit}
+        disabled={saving}
       >
         <Plus size={16} />
       </button>
@@ -231,15 +242,25 @@ function CompactQuickAddRow({
   onCreate,
 }: {
   projects: Project[];
-  onCreate: (draft: CompactQuickTaskDraft) => void;
+  onCreate: (draft: CompactQuickTaskDraft) => Promise<void>;
 }) {
   const [projectId, setProjectId] = useState(() => projects[0]?.id ?? '');
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string>();
+  const [saving, setSaving] = useState(false);
   /** 阻止空标题写入，并将有效的轻量草稿交由 Dashboard 创建。 */
-  const submit = () => {
+  const submit = async () => {
+    if (saving) return;
     if (!title.trim()) return setError('请输入任务名称');
-    onCreate({ projectId, title: title.trim() });
+    setSaving(true);
+    try {
+      await onCreate({ projectId, title: title.trim() });
+      setTitle('');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : '保存失败，请重试。');
+    } finally {
+      setSaving(false);
+    }
   };
   return (
     <li className="compact-add-row compact-quick-add-row">
@@ -273,6 +294,7 @@ function CompactQuickAddRow({
         className="compact-add-confirm"
         aria-label="保存待办任务"
         onClick={submit}
+        disabled={saving}
       >
         <Plus size={16} />
       </button>
@@ -317,8 +339,8 @@ export function MiniTodayPanel(props: CompactWorkspaceProps) {
           {addingTimed && (
             <CompactTimedAddRow
               projects={props.projects}
-              onCreate={(draft) => {
-                props.onCreateTimedTask(draft);
+              onCreate={async (draft) => {
+                await props.onCreateTimedTask(draft);
                 setAddingTimed(false);
               }}
             />
@@ -353,8 +375,8 @@ export function MiniTodayPanel(props: CompactWorkspaceProps) {
           {addingQuick && (
             <CompactQuickAddRow
               projects={props.projects}
-              onCreate={(draft) => {
-                props.onCreateQuickTask(draft);
+              onCreate={async (draft) => {
+                await props.onCreateQuickTask(draft);
                 setAddingQuick(false);
               }}
             />

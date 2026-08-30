@@ -3,7 +3,7 @@
  */
 
 import { iterateLocalDateRange, type LocalDateRange } from '@/lib/date-range';
-import type { CloseRecord, Project, Task } from '@/types/domain';
+import type { CloseRecord, Project, Task, TaskTimeEntry } from '@/types/domain';
 
 export type AnalyticsQuality = 'exact' | 'legacy-aggregate' | 'incomplete';
 export type AnalyticsSource = 'task' | 'daily' | 'legacy-aggregate';
@@ -14,6 +14,7 @@ export type AnalyticsDailyItem = {
   title: string;
   actual: number;
   completed: boolean;
+  children?: readonly { actual: number }[];
 };
 
 export type AnalyticsDailyHistoryEntry = {
@@ -70,6 +71,8 @@ export type AnalyticsInput = {
   dailyByDate: Readonly<Record<string, readonly AnalyticsDailyItem[]>>;
   dailyHistory: readonly AnalyticsDailyHistoryEntry[];
   closeRecords: readonly CloseRecord[];
+  /** 已迁移工作区提供 immutable 日粒度实际投入；缺省时兼容旧测试/旧快照。 */
+  taskTimeEntries?: readonly TaskTimeEntry[];
   range?: LocalDateRange;
 };
 
@@ -155,8 +158,9 @@ export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
     input.dailyHistory.map((entry) => `${entry.dailyId}:${entry.date}`),
   );
 
+  const timeEntries = input.taskTimeEntries;
   for (const task of input.tasks) {
-    const actualMinutes = safeMinutes(task.actualDurationMinutes);
+    const actualMinutes = timeEntries ? 0 : safeMinutes(task.actualDurationMinutes);
     const plannedMinutes = safeMinutes(task.plannedDurationMinutes);
     if (actualMinutes > 0 && !task.date) incompleteCount += 1;
     if (!task.date || task.status === 'trashed' || !isInRange(task.date, input.range))
@@ -174,6 +178,23 @@ export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
       });
       if (actualMinutes > 0) exactDateProject.add(`${task.date}:${task.projectId}`);
     }
+  }
+
+  for (const entry of timeEntries ?? []) {
+    const actualMinutes = safeMinutes(entry.minutes);
+    if (actualMinutes === 0 || !isInRange(entry.date, input.range)) continue;
+    const task = input.tasks.find((item) => item.id === entry.taskId);
+    entries.push({
+      id: `task-time:${entry.id}`,
+      date: entry.date,
+      projectId: entry.projectId,
+      actualMinutes,
+      plannedMinutes: 0,
+      source: 'task',
+      quality: 'exact',
+      title: task?.title,
+    });
+    exactDateProject.add(`${entry.date}:${entry.projectId}`);
   }
 
   for (const entry of input.dailyHistory) {
@@ -195,7 +216,11 @@ export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
     if (!isInRange(date, input.range)) continue;
     for (const item of items) {
       if (recordedDaily.has(`${item.id}:${date}`)) continue;
-      const actualMinutes = safeMinutes(item.actual);
+      const actualMinutes = safeMinutes(item.actual) +
+        (item.children ?? []).reduce(
+          (total, child) => total + safeMinutes(child.actual),
+          0,
+        );
       if (actualMinutes === 0) continue;
       entries.push({
         id: `daily-current:${item.id}:${date}`,

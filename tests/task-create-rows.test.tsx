@@ -1,7 +1,7 @@
 /** @fileoverview 验证新增行关闭、首页卸载和空标题取消均不会丢失跨页面草稿。 */
 
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { QuickTaskCreateRow } from '@/features/tasks/components/quick-task-create-row';
 import { TimedTaskCreateRow } from '@/features/tasks/components/timed-task-create-row';
 import { useTaskCreateDrafts } from '@/features/tasks/hooks/use-task-create-drafts';
@@ -37,4 +37,41 @@ describe('task create row draft lifecycle', () => {
     expect(screen.getByPlaceholderText('任务名称（按 Enter 保存）')).toHaveValue('日程草稿');
     expect(screen.getByPlaceholderText('待办内容（按 Enter 保存）')).toHaveValue('待办草稿');
   });
+});
+
+it('retains a timed draft and exposes a retryable error when persistence rejects', async () => {
+  const onReset = vi.fn();
+  const onClose = vi.fn();
+  const onChange = vi.fn();
+  render(
+    <TimedTaskCreateRow
+      open
+      draft={{
+        title: '不能丢失的任务',
+        projectId: 'work',
+        projectName: '',
+        startTime: '08:30',
+        endTime: '',
+        planned: '',
+        actual: '',
+        completed: false,
+        isAddingProject: false,
+      }}
+      projects={projects}
+      onCreate={async () => {
+        throw new Error('网络写入失败');
+      }}
+      onCreateProject={async () => projects[0]}
+      onChange={onChange}
+      onReset={onReset}
+      onClose={onClose}
+    />,
+  );
+  fireEvent.click(screen.getAllByTitle('保存任务').at(-1)!);
+  await waitFor(() => expect(onChange).toHaveBeenCalledWith({ timeError: '网络写入失败' }));
+  expect(onReset).not.toHaveBeenCalled();
+  expect(onClose).not.toHaveBeenCalled();
+  expect(screen.getAllByPlaceholderText('任务名称（按 Enter 保存）').at(-1)).toHaveValue(
+    '不能丢失的任务',
+  );
 });

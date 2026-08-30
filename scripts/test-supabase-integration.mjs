@@ -228,6 +228,89 @@ try {
   if (entries.error) throw entries.error;
   check(entries.count === 1, 'Concurrent Daily materialization created duplicates.');
 
+  const timeTracked = await ownerA.client
+    .from('tasks')
+    .insert({
+      project_id: projectA.id,
+      title: 'Date-bound actual probe',
+      scheduled_date: '2026-08-30',
+      actual_duration_minutes: 40,
+      completed: false,
+      status: 'active',
+    })
+    .select('id')
+    .single();
+  if (timeTracked.error) throw timeTracked.error;
+  const rescheduledActual = await ownerA.client
+    .from('tasks')
+    .update({ scheduled_date: '2026-08-31', actual_duration_minutes: 120 })
+    .eq('id', timeTracked.data.id)
+    .select('id')
+    .single();
+  if (rescheduledActual.error) throw rescheduledActual.error;
+  const timeEntries = await ownerA.client
+    .from('task_time_entries')
+    .select('entry_date, minutes')
+    .eq('task_id', timeTracked.data.id)
+    .order('entry_date');
+  if (timeEntries.error) throw timeEntries.error;
+  check(
+    JSON.stringify(timeEntries.data) ===
+      JSON.stringify([
+        { entry_date: '2026-08-30', minutes: 40 },
+        { entry_date: '2026-08-31', minutes: 80 },
+      ]),
+    'Task actual time drifted when its scheduled date changed.',
+  );
+  const completed = await ownerA.client
+    .from('tasks')
+    .update({ completed: true, completed_at: new Date().toISOString() })
+    .eq('id', timeTracked.data.id);
+  if (completed.error) throw completed.error;
+  const reopened = await ownerA.client
+    .from('tasks')
+    .update({ completed: false, completed_at: null })
+    .eq('id', timeTracked.data.id);
+  if (reopened.error) throw reopened.error;
+  const completionHistory = await ownerA.client
+    .from('history_events')
+    .select('event_type')
+    .eq('task_id', timeTracked.data.id)
+    .in('event_type', ['completed', 'reopened'])
+    .order('occurred_at');
+  if (completionHistory.error) throw completionHistory.error;
+  check(
+    JSON.stringify(completionHistory.data) ===
+      JSON.stringify([{ event_type: 'completed' }, { event_type: 'reopened' }]),
+    'Task completion transitions did not produce exactly one formal history event each.',
+  );
+
+  const templateUpdate = await ownerA.client.rpc('update_daily_template_bundle', {
+    p_template_id: template.data.id,
+    p_project_id: projectA.id,
+    p_title: 'Updated Daily template',
+    p_items: [{ id: templateItem.data?.id ?? null, title: 'Updated child', position: 0 }],
+  });
+  if (templateUpdate.error) throw templateUpdate.error;
+  const futureMaterialized = await ownerA.client.rpc('ensure_daily_entries_for_date', {
+    p_entry_date: '2026-08-31',
+  });
+  if (futureMaterialized.error) throw futureMaterialized.error;
+  const snapshots = await ownerA.client
+    .from('daily_entries')
+    .select('entry_date, title_snapshot')
+    .eq('template_id', template.data.id)
+    .order('entry_date');
+  if (snapshots.error) throw snapshots.error;
+  check(
+    JSON.stringify(snapshots.data) ===
+      JSON.stringify([
+        { entry_date: '2026-08-30', title_snapshot: 'Concurrent Daily' },
+        { entry_date: '2026-08-31', title_snapshot: 'Updated Daily template' },
+      ]),
+    'Daily template edit did not preserve history while changing future instances.',
+  );
+
   console.log('Local Supabase Auth/privileges/RLS/Realtime/Daily integration passed.');
 } finally {
   for (const [client, channel] of channels) await client.removeChannel(channel);

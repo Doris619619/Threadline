@@ -95,7 +95,7 @@ pnpm test:db
 pnpm test:supabase:integration
 ```
 
-迁移包含 UUID、same-owner FK、RLS、Daily 幂等实例化、正式 Daily History、原子任务流转/收尾/工作站排序、Realtime publication，以及受保护的 30 天物理 purge。客户端只使用 Email/password 与 publishable key；Main/Preload 不持有 Supabase secret。`test:supabase:integration` 会在本地创建并清理两个临时账号，真实验证 publishable-key Auth、REST/RLS、owner-filter Realtime、Rhythm 和 Daily 并发幂等。Docker 不可用时可先执行 `pnpm test:sql:static`，但不能把本地 SQL/pgTAP 标记为通过。
+迁移包含 UUID、same-owner FK、RLS、Daily 幂等实例化、正式 Daily History、原子任务流转/收尾/工作站排序、按日固定的 task actual entries、Realtime publication，以及受保护的 30 天物理 purge。客户端只使用 Email/password 与 publishable key；Main/Preload 不持有 Supabase secret。`test:supabase:integration` 会在本地创建并清理两个临时账号，真实验证 publishable-key Auth、REST/RLS、owner-filter Realtime、Rhythm 和 Daily 并发幂等。Docker 不可用时可先执行 `pnpm test:sql:static`，但不能把本地 SQL/pgTAP 标记为通过。持久化、Daily template 与实际耗时的行为边界见 [数据完整性规则](docs/data-integrity.md)。
 
 远端 Supabase、Cron、Vercel Production/Preview 和真实手机验收步骤见 [Supabase、Vercel 与跨端验收](docs/supabase-deployment.md)。Supabase 后端配置完成不等于已有公网 HTTPS PWA URL；没有部署 URL 时，PC + 手机 hosted acceptance 必须保持 pending。
 

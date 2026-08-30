@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { formatMinutes } from '@/features/tasks/task-time';
 import { resolveActiveProject } from '@/lib/project-rules';
 import type { Project, Task } from '@/types/domain';
+/** 渲染每日收尾表单，并在原子命令成功前保留对话框与可见错误。 */
 export function CloseDialog({
   dialog,
   tasks,
@@ -26,15 +27,28 @@ export function CloseDialog({
   dailyCount: number;
   dailyActual: number;
   tomorrow: string;
-  onCloseDay: (data: FormData) => void;
+  onCloseDay: (data: FormData) => Promise<void>;
 }) {
   const unfinished = tasks.filter((task) => !task.completed);
+  const [error, setError] = useState<string>();
+  const [saving, setSaving] = useState(false);
   return (
     <dialog className="task-dialog close-dialog" ref={dialog}>
       <form
-        action={(data) => {
-          onCloseDay(data);
-          dialog.current?.close();
+        action={async (data) => {
+          if (saving) return;
+          setSaving(true);
+          setError(undefined);
+          try {
+            await onCloseDay(data);
+            dialog.current?.close();
+          } catch (submitError) {
+            setError(
+              submitError instanceof Error ? submitError.message : '收尾保存失败，请重试。',
+            );
+          } finally {
+            setSaving(false);
+          }
         }}
       >
         <header>
@@ -87,9 +101,12 @@ export function CloseDialog({
           ))
         )}
         <p>未完成 Daily 只记录为今日未完成，不会顺延。</p>
+        {error && <p className="form-error">{error}</p>}
         <footer>
           <button formMethod="dialog">稍后处理</button>
-          <button type="submit">确认结束今天</button>
+          <button type="submit" disabled={saving}>
+            {saving ? '保存中…' : '确认结束今天'}
+          </button>
         </footer>
       </form>
     </dialog>
@@ -168,7 +185,7 @@ export function TaskDialog({
   mode?: 'normal' | 'unscheduled';
   editing?: Task;
   projects: Project[];
-  onSave: (data: FormData) => string | undefined;
+  onSave: (data: FormData) => Promise<string | undefined>;
   onClose: () => void;
 }) {
   const [error, setError] = useState<string>();
@@ -194,8 +211,8 @@ export function TaskDialog({
         }
       >
         <form
-          action={(data) => {
-            const message = onSave(data);
+          action={async (data) => {
+            const message = await onSave(data);
             setError(message);
           }}
         >
