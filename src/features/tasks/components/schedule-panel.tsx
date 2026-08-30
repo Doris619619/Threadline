@@ -5,6 +5,7 @@
 import type { ReactNode } from 'react';
 import { Eraser, GripVertical, MousePointer2, Plus } from 'lucide-react';
 import { AnnotationColorPicker } from '@/components/annotation-color-picker';
+import { cn } from '@/lib/cn';
 import { Surface } from '@/components/ui/surface';
 import type { AnnotationTool } from '@/components/annotation-layer';
 
@@ -49,7 +50,7 @@ export function SchedulePanel({
 }) {
   return (
     <Surface
-      className={`schedule-panel${isDropTarget ? 'is-drop-target' : ''}`}
+      className={cn('schedule-panel', isDropTarget && 'is-drop-target')}
       data-task-drop-zone="schedule"
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
@@ -61,7 +62,7 @@ export function SchedulePanel({
           <div className="annotation-tools" role="group" aria-label="批注工具">
             <button
               type="button"
-              className={`annotation-tool-btn${annotationTool === 'none' ? 'is-active' : ''}`}
+              className={cn('annotation-tool-btn', annotationTool === 'none' && 'is-active')}
               aria-label="选择模式"
               title="选择模式"
               onClick={() => onSelectAnnotationTool('none')}
@@ -76,7 +77,7 @@ export function SchedulePanel({
             />
             <button
               type="button"
-              className={`annotation-tool-btn${annotationTool === 'eraser' ? 'is-active' : ''}`}
+              className={cn('annotation-tool-btn', annotationTool === 'eraser' && 'is-active')}
               aria-label="橡皮擦"
               title="橡皮擦（Esc 退出）"
               onClick={onToggleEraser}

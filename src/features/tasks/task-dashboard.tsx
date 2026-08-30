@@ -33,6 +33,7 @@ import {
   TaskDialog,
 } from '@/features/tasks/components/task-dialogs';
 import { useTaskCreateAndEdit } from '@/features/tasks/hooks/use-task-create-and-edit';
+import { cn } from '@/lib/cn';
 import { useTaskCreateDrafts } from '@/features/tasks/hooks/use-task-create-drafts';
 import { useTaskDashboardController } from '@/features/tasks/hooks/use-task-dashboard-controller';
 import { useCloseDay } from '@/features/tasks/hooks/use-close-day';
@@ -306,7 +307,7 @@ export function TaskDashboard() {
         </>
       )}
       <div
-        className={`dashboard-columns${isMiniToday ? 'is-mini-today' : ''}`}
+        className={cn('dashboard-columns', isMiniToday && 'is-mini-today')}
         style={{ '--schedule-ratio': `${scheduleRatio}fr` } as React.CSSProperties}
         onPointerMove={handlePointerDragMove}
         onPointerUp={handlePointerDragEnd}

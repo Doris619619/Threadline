@@ -298,6 +298,100 @@ export function TaskLine({
         />
       </div>
 
+      {timed && (
+        <>
+          {timeNode}
+          <div className="task-project-cell" ref={projectPickerRef}>
+            {editingField === 'project' ? (
+              <div className="project-picker-popover">
+                <div className="project-picker-list">
+                  {projects
+                    .filter((p) => p.status === 'active' || p.id === task.projectId)
+                    .map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        className={cn(
+                          'project-picker-item',
+                          p.id === task.projectId && 'is-selected',
+                        )}
+                        onClick={() => {
+                          onUpdate({
+                            ...task,
+                            projectId: p.id,
+                            updatedAt: new Date().toISOString(),
+                          });
+                          setEditingField(undefined);
+                        }}
+                      >
+                        <ProjectTag name={p.name} color={p.color} />
+                      </button>
+                    ))}
+                </div>
+                {onAddProject && (
+                  <>
+                    <div className="project-picker-divider" />
+                    {isAddingProject ? (
+                      <div className="project-picker-new-form">
+                        <input
+                          placeholder="新项目名称"
+                          value={newProjectName}
+                          autoFocus
+                          onChange={(e) => setNewProjectName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleCreateProject();
+                            }
+                            if (e.key === 'Escape') {
+                              setIsAddingProject(false);
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="tl-inline-confirm-btn"
+                          onClick={handleCreateProject}
+                          title="创建新项目"
+                        >
+                          <Check size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          className="tl-inline-cancel-btn"
+                          onClick={() => setIsAddingProject(false)}
+                          title="取消"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="project-picker-new-btn"
+                        onClick={() => setIsAddingProject(true)}
+                      >
+                        <Plus size={13} /> 新增项目
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            ) : null}
+            <span
+              className="tl-clickable-cell"
+              onClick={() => setEditingField('project')}
+              title="点击切换所属项目或新增项目"
+            >
+              <ProjectTag
+                name={project?.name ?? '未配置项目'}
+                color={project?.color ?? '#8793a7'}
+              />
+            </span>
+          </div>
+        </>
+      )}
+
       {editingField === 'title' ? (
         <input
           className="tl-inline-input task-title-input task-title"
@@ -319,8 +413,7 @@ export function TaskLine({
         </span>
       )}
 
-      <div className="timeline-meta">
-        {timeNode}
+      {!timed && (
         <div className="task-project-cell" ref={projectPickerRef}>
           {editingField === 'project' ? (
             <div className="project-picker-popover">
@@ -409,9 +502,14 @@ export function TaskLine({
             />
           </span>
         </div>
-        {plannedNode}
-        {actualNode}
-      </div>
+      )}
+
+      {timed && (
+        <>
+          {plannedNode}
+          {actualNode}
+        </>
+      )}
 
       <TaskRowActions
         taskId={task.id}

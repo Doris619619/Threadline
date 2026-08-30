@@ -169,7 +169,8 @@ export function TimedTaskCreateRow({
         />
         <input
           className="tl-inline-input task-duration-input task-duration task-duration-actual"
-          placeholder="实际"
+          placeholder="实际耗时"
+          aria-label="实际耗时"
           value={draft.actual}
           onChange={(event) => onChange({ actual: event.target.value })}
           onKeyDown={onKeyDown}

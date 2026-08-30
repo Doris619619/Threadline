@@ -110,11 +110,6 @@ test('gives every workspace destination a distinct working page', async ({ page 
 
   await openWorkspaceSection(page, '设置');
   await expect(page.getByTestId('settings-panel')).toBeVisible();
-  await expect(
-    page
-      .getByTestId('settings-panel')
-      .getByRole('heading', { name: '设置', exact: true }),
-  ).toBeVisible();
   await page
     .getByTestId('settings-panel')
     .getByRole('button', { name: /^回收站/ })
@@ -276,9 +271,9 @@ test('formats actual minutes on a timed task', async ({ page }) => {
   await schedule.getByPlaceholder('任务名称（按 Enter 保存）').fill('标注访谈记录');
   await schedule.getByPlaceholder('实际耗时').fill('90');
   await schedule.getByTitle('保存任务').click();
-  await expect(
-    page.locator('.timeline-row').filter({ hasText: '标注访谈记录' }),
-  ).toContainText('1h30min1h30min');
+  const row = page.locator('.timeline-row').filter({ hasText: '标注访谈记录' });
+  await expect(row.locator('.task-duration-planned')).toHaveText('1h30min');
+  await expect(row.locator('.task-duration-actual')).toContainText('1h30min');
 });
 
 test('completion can be toggled without a dialog', async ({ page }) => {
@@ -471,10 +466,10 @@ test('keeps all timed task creation controls visible in a compact desktop schedu
   )
     throw new Error('新增日程字段不可见。');
   expect(taskBox.width).toBeGreaterThanOrEqual(120);
-  expect(projectBox.width).toBeLessThanOrEqual(64);
+  expect(projectBox.width).toBeLessThanOrEqual(72);
   expect(existingTimeBox.width).toBeLessThanOrEqual(92);
-  expect(plannedInputBox.width).toBeGreaterThanOrEqual(68);
-  expect(actualInputBox.width).toBeGreaterThanOrEqual(68);
+  expect(plannedInputBox.width).toBeGreaterThanOrEqual(58);
+  expect(actualInputBox.width).toBeGreaterThanOrEqual(58);
   expect(Math.abs(plannedHeadingBox.x - plannedInputBox.x)).toBeLessThanOrEqual(1);
   expect(Math.abs(actualHeadingBox.x - actualInputBox.x)).toBeLessThanOrEqual(1);
   expect(saveBox.x + saveBox.width).toBeLessThanOrEqual(

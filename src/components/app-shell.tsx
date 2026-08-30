@@ -26,6 +26,7 @@ import { getUserIdentity } from '@/features/auth/user-identity';
 import { useOptionalCloudRuntime } from '@/features/auth/cloud-runtime-provider';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import { addLocalDateDays, getLocalDateKey, parseLocalDateKey } from '@/lib/local-date';
+import { cn } from '@/lib/cn';
 
 const navigation = [
   { id: 'home', label: '首页', icon: Home, description: '安排、执行、记录今天' },
@@ -85,7 +86,7 @@ export function CompactWindowHeader({
   const { isMiniToday, isWorkstation, setMode, collapseCompactView, closeMainWindow } =
     useDesktopWindow();
   return (
-    <header className={`compact-window-header${isWorkstation ? 'is-workstation' : ''}`}>
+    <header className={cn('compact-window-header', isWorkstation && 'is-workstation')}>
       <span className="compact-window-title">
         <CalendarDays size={20} />
         {isMiniToday ? '迷你今日' : '工作站'}
@@ -262,7 +263,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div className="tl-mobile-more">
                 <button
                   type="button"
-                  className={`tl-sidebar-item${navigation.slice(4).some((item) => item.id === active) ? 'is-active' : ''}`}
+                  className={cn(
+                    'tl-sidebar-item',
+                    navigation.slice(4).some((item) => item.id === active) && 'is-active',
+                  )}
                   aria-expanded={mobileMoreOpen}
                   aria-controls="mobile-more-navigation"
                   onClick={() => setMobileMoreOpen((open) => !open)}

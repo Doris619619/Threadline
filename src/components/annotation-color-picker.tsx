@@ -2,6 +2,7 @@
 
 'use client';
 
+import { cn } from '@/lib/cn';
 import { Check, ChevronDown, Highlighter } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
@@ -62,7 +63,7 @@ export function AnnotationColorPicker({
     <div className="annotation-highlighter-control" ref={controlRef}>
       <button
         type="button"
-        className={`annotation-tool-btn annotation-highlighter-button${active ? 'is-active' : ''}`}
+        className={cn('annotation-tool-btn', 'annotation-highlighter-button', active && 'is-active')}
         aria-label="荧光笔"
         title="荧光笔（Esc 退出）"
         onClick={onActivate}

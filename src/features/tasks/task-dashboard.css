@@ -833,11 +833,18 @@
     grid-template-columns: var(--touch-target) minmax(0, 1fr) auto;
     grid-template-areas:
       'check title actions'
+      'check time actions'
       'check meta actions';
     gap: 2px 8px;
     min-height: var(--touch-target);
     padding: 10px 2px;
     border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .timeline-row .timeline-time,
+  .timeline-row .timeline-time-range-inputs {
+    grid-area: time;
+    width: auto;
   }
 
   .timeline-meta {
@@ -849,8 +856,6 @@
     min-width: 0;
   }
 
-  .timeline-row .timeline-time,
-  .timeline-row .timeline-time-range-inputs,
   .timeline-row .task-project-cell,
   .timeline-row .task-duration-planned,
   .timeline-row .task-duration-actual {

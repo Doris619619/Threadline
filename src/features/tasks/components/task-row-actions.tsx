@@ -6,6 +6,7 @@
 
 import { GripVertical, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { cn } from '@/lib/cn';
 import type { TaskStatus } from '@/types/domain';
 
 /**
@@ -56,11 +57,11 @@ export function TaskRowActions({
 
   return (
     <div className="task-actions-cell">
-      <div className={`task-actions${menuOpen ? 'is-open' : ''}`} ref={rootRef}>
+      <div className={cn('task-actions', menuOpen && 'is-open')} ref={rootRef}>
         {onToggleWorkstation && (
           <button
             type="button"
-            className={`task-workstation-action${inWorkstation ? 'is-active' : ''}`}
+            className={cn('task-workstation-action', inWorkstation && 'is-active')}
             aria-label={`${inWorkstation ? '从工作站移除' : '加入工作站'}${title}`}
             title={inWorkstation ? '从工作站移除' : '加入工作站'}
             onClick={() => onToggleWorkstation(taskId)}

@@ -4,6 +4,7 @@
 
 import type { ReactNode } from 'react';
 import { Plus } from 'lucide-react';
+import { cn } from '@/lib/cn';
 import { Surface } from '@/components/ui/surface';
 
 type QuickTaskPanelChildren =
@@ -31,7 +32,7 @@ export function QuickTaskPanel({
 }) {
   return (
     <Surface
-      className={`quick-panel${isDropTarget ? 'is-drop-target' : ''}`}
+      className={cn('quick-panel', isDropTarget && 'is-drop-target')}
       data-task-drop-zone="quick"
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
