@@ -11,6 +11,9 @@ import { getLocalDateKey } from '@/lib/local-date';
 import type { Project, Task } from '@/types/domain';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/daily-panel';
 
+/**
+ * 渲染项目列表、创建入口与选中项目详情，不改写任务归属规则。
+ */
 export function ProjectPanel({
   items,
   tasks,
@@ -64,7 +67,7 @@ export function ProjectPanel({
     setEditingId(undefined);
   };
   return (
-    <Surface className="project-panel">
+    <Surface className="project-panel" data-testid="project-panel">
       <header>
         <div>
           <h2>项目</h2>

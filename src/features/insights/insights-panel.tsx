@@ -190,14 +190,14 @@ export function InsightsPanel({
                   type="monotone"
                   dataKey="actual"
                   name="实际"
-                  stroke="#4f8cff"
+                  stroke="var(--accent)"
                   strokeWidth={2}
                 />
                 <Line
                   type="monotone"
                   dataKey="planned"
                   name="预计"
-                  stroke="#8b7cf6"
+                  stroke="var(--text-tertiary)"
                   strokeDasharray="4 4"
                 />
               </LineChart>
@@ -221,7 +221,7 @@ export function InsightsPanel({
                 <Bar
                   dataKey="minutes"
                   name="实际投入"
-                  fill="#38a774"
+                  fill="var(--success)"
                   radius={[4, 4, 4, 4]}
                 />
               </BarChart>

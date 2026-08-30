@@ -47,7 +47,7 @@ export function RhythmPanel({ selectedDate }: { selectedDate: string }) {
             <button
               type="button"
               key={date}
-              className={`${date.startsWith(anchor) ? '' : 'is-outside'}${marks[date] ? 'is-marked' : ''}`}
+              className={`${date.startsWith(anchor) ? '' : 'is-outside'}${marks[date] ? 'is-marked' : ''}`.trim()}
               aria-pressed={Boolean(marks[date])}
               onClick={() => toggleMark(date)}
             >

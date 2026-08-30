@@ -16,7 +16,6 @@
   text-align: center;
 }
 .rhythm-grid button.is-marked {
-  color: #fff;
-  background: #7659c7;
+  color: var(--text-on-accent);
+  background: color-mix(in srgb, var(--accent) 72%, #5b4db0);
 }
-

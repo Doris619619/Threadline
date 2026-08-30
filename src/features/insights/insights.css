@@ -9,12 +9,12 @@
 }
 
 .insights-filters button {
-  min-height: 36px;
+  min-height: var(--control-height);
   padding: 6px 12px;
   color: var(--text-secondary);
   background: var(--surface-secondary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
 }
 
 .insights-filters button.is-active {
@@ -58,11 +58,11 @@
 .insights-summary small,
 .insight-chart header span {
   color: var(--text-tertiary);
-  font-size: 0.75rem;
+  font-size: var(--text-caption-size);
 }
 
 .insights-summary strong {
-  font-size: 1.1rem;
+  font-size: var(--text-section-size);
 }
 .insights-charts {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -77,6 +77,5 @@
 }
 .insight-chart h3 {
   margin: 0;
-  font-size: 0.9375rem;
+  font-size: var(--text-card-size);
 }
-

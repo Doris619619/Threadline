@@ -10,8 +10,10 @@
 .settings-overview-heading h2,
 .settings-detail h2 {
   margin: 0;
-  font-size: clamp(1.7rem, 3vw, 2.15rem);
-  letter-spacing: -0.035em;
+  font-size: var(--text-page-size);
+  font-weight: var(--text-page-weight);
+  line-height: var(--text-page-leading);
+  letter-spacing: -0.03em;
 }
 .settings-overview-heading p {
   margin: 8px 0 0;
