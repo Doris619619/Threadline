@@ -10,7 +10,10 @@ export type Project = {
   name: string;
   color: string;
   status: ProjectStatus;
+  position?: number;
+  isFallback?: boolean;
   createdAt: string;
+  updatedAt?: string;
   archivedAt?: string;
 };
 export type Task = {

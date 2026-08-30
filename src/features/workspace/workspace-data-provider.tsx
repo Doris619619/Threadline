@@ -1,209 +1,568 @@
-/** @fileoverview 按领域组合本地持久化状态与动作，避免把 TaskDashboard 的职责转移成单一全局对象。 */
+/**
+ * @fileoverview 以 Supabase 为业务真源组合细粒度查询、命令和本机 Annotation UI 状态。
+ */
 
 'use client';
 
 import {
-  createContext,
-  useContext,
+  useCallback,
+  useEffect,
   useMemo,
+  useState,
   type Dispatch,
   type ReactNode,
   type SetStateAction,
 } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useWorkspaceView } from '@/components/app-shell';
+import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
+import { useCloudRuntime } from '@/features/auth/cloud-runtime-provider';
 import {
-  type Daily,
-  seedDaily,
-  type DailyHistoryEntry,
-} from '@/features/daily/daily-panel';
-import {
-  createInitialTasks,
-  createProjectSeed,
-  withoutExpiredTasks,
-} from '@/features/workspace/workspace-seed';
+  WorkspaceContextProviders,
+  type CloseAction,
+  type TaskTransition,
+} from '@/features/workspace/workspace-data-context';
+export { useWorkspaceData } from '@/features/workspace/workspace-data-context';
+import { LocalWorkspaceTestAdapter } from '@/features/workspace/workspace-test-adapter';
 import { useAnnotationStrokes } from '@/hooks/use-annotation-strokes';
 import { usePersistentState } from '@/hooks/use-persistent-state';
-import { getLocalDateKey } from '@/lib/local-date';
-import type {
-  AnnotationStroke,
-  CloseRecord,
-  HistoryEvent,
-  Project,
-  Task,
-} from '@/types/domain';
+import { reconcileTaskAnnotations } from '@/lib/annotation-reconciliation';
+import type { CloseRecord, HistoryEvent, Project, Task } from '@/types/domain';
 
-type TaskState = { tasks: Task[] };
-type TaskActions = { updateTasks: Dispatch<SetStateAction<Task[]>> };
-type ProjectState = { projects: Project[] };
-type ProjectActions = { updateProjects: Dispatch<SetStateAction<Project[]>> };
-type DailyState = {
-  dailyByDate: Record<string, Daily[]>;
-  dailyTemplates: Daily[];
-  dailyHistory: DailyHistoryEntry[];
-};
-type DailyActions = {
-  updateDailyByDate: Dispatch<SetStateAction<Record<string, Daily[]>>>;
-  updateDailyTemplates: Dispatch<SetStateAction<Daily[]>>;
-  updateDailyHistory: Dispatch<SetStateAction<DailyHistoryEntry[]>>;
-};
-type HistoryState = { history: HistoryEvent[]; closeRecords: CloseRecord[] };
-type HistoryActions = {
-  updateHistory: Dispatch<SetStateAction<HistoryEvent[]>>;
-  updateCloseRecords: Dispatch<SetStateAction<CloseRecord[]>>;
-};
-type WorkspaceSurfaceState = {
-  annotationStrokes: AnnotationStroke[];
-  workstationTaskIds: string[];
-  highlightColor: string;
-};
-type WorkspaceSurfaceActions = {
-  updateAnnotationStrokes: Dispatch<SetStateAction<AnnotationStroke[]>>;
-  updateWorkstationTaskIds: Dispatch<SetStateAction<string[]>>;
-  updateHighlightColor: Dispatch<SetStateAction<string>>;
-};
-
-const TaskStateContext = createContext<TaskState | null>(null);
-const TaskActionsContext = createContext<TaskActions | null>(null);
-const ProjectStateContext = createContext<ProjectState | null>(null);
-const ProjectActionsContext = createContext<ProjectActions | null>(null);
-const DailyStateContext = createContext<DailyState | null>(null);
-const DailyActionsContext = createContext<DailyActions | null>(null);
-const HistoryStateContext = createContext<HistoryState | null>(null);
-const HistoryActionsContext = createContext<HistoryActions | null>(null);
-const WorkspaceSurfaceStateContext = createContext<WorkspaceSurfaceState | null>(null);
-const WorkspaceSurfaceActionsContext = createContext<WorkspaceSurfaceActions | null>(
-  null,
-);
-const WorkspaceHydrationContext = createContext(false);
-
-/** 读取必需领域 Context；在 Provider 外调用时立即失败，避免静默退化为另一份状态。 */
-function useRequiredContext<T>(context: React.Context<T | null>, name: string): T {
-  const value = useContext(context);
-  if (!value) throw new Error(`${name} must be used inside WorkspaceDataProvider.`);
-  return value;
+/** 解析 React setter，并保证异步写入读取 Query cache 中的最新集合。 */
+function resolveState<T>(current: T, action: SetStateAction<T>): T {
+  return typeof action === 'function'
+    ? (action as (previous: T) => T)(current)
+    : action;
 }
 
-/** 将各领域 storage hydration 协调为单一就绪信号，不在这里写入业务规则或 analytics。 */
-export function WorkspaceDataProvider({ children }: { children: ReactNode }) {
-  const [tasks, updateTasks, tasksHydrated] = usePersistentState(
-    'threadline.tasks.v1',
-    () => withoutExpiredTasks(createInitialTasks()),
-    withoutExpiredTasks,
-  );
-  const [projects, updateProjects, projectsHydrated] = usePersistentState(
-    'threadline.projects.v1',
-    createProjectSeed,
-  );
-  const [dailyByDate, updateDailyByDate, dailyByDateHydrated] = usePersistentState<
-    Record<string, Daily[]>
-  >('threadline.daily-by-date.v1', () => ({ [getLocalDateKey()]: seedDaily }));
-  const [dailyTemplates, updateDailyTemplates, dailyTemplatesHydrated] =
-    usePersistentState<Daily[]>('threadline.daily-templates.v1', seedDaily);
-  const [dailyHistory, updateDailyHistory, dailyHistoryHydrated] = usePersistentState<
-    DailyHistoryEntry[]
-  >('threadline.daily-history.v1', []);
-  const [history, updateHistory, historyHydrated] = usePersistentState<HistoryEvent[]>(
-    'threadline.history.v1',
-    [],
-  );
-  const [closeRecords, updateCloseRecords, closeRecordsHydrated] = usePersistentState<
-    CloseRecord[]
-  >('threadline.close-records.v1', []);
+/** 用稳定 JSON 比较领域 snapshot；server-returned row 最终替换 Query cache。 */
+function changed(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) !== JSON.stringify(right);
+}
+
+/** 云端 Workspace Provider；普通字段细粒度写，复合业务交给显式原子命令。 */
+function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
+  const { selectedDate } = useWorkspaceView();
+  const { client, repository, user } = useCloudRuntime();
+  const queryClient = useQueryClient();
+  const ownerKey = user.id;
+  const [mutationError, setMutationError] = useState<string>();
   const [annotationStrokes, updateAnnotationStrokes, annotationHydrated] =
     useAnnotationStrokes();
-  const [workstationTaskIds, updateWorkstationTaskIds, workstationHydrated] =
-    usePersistentState<string[]>('threadline.workstation.v1', [], (value) =>
-      Array.isArray(value)
-        ? [...new Set(value.filter((id) => typeof id === 'string'))]
-        : [],
-    );
   const [highlightColor, updateHighlightColor, highlightHydrated] =
     usePersistentState<string>(
       'threadline.annotation-highlight-color.v1',
       'rgba(255, 225, 53, 0.42)',
     );
 
+  const projectsQuery = useQuery({
+    queryKey: ['workspace', ownerKey, 'projects'],
+    queryFn: () => repository.listProjects(),
+  });
+  const tasksQuery = useQuery({
+    queryKey: ['workspace', ownerKey, 'tasks'],
+    queryFn: () => repository.listTasks(),
+  });
+  const dailyQuery = useQuery({
+    queryKey: ['workspace', ownerKey, 'daily'],
+    queryFn: () => repository.listDailyBundle(),
+  });
+  const dailyHistoryQuery = useQuery({
+    queryKey: ['workspace', ownerKey, 'daily-history'],
+    queryFn: () => repository.listDailyHistory(),
+  });
+  const historyQuery = useQuery({
+    queryKey: ['workspace', ownerKey, 'history'],
+    queryFn: () => repository.listHistory(),
+  });
+  const closeRecordsQuery = useQuery({
+    queryKey: ['workspace', ownerKey, 'close-records'],
+    queryFn: () => repository.listCloseRecords(),
+  });
+  const workstationQuery = useQuery({
+    queryKey: ['workspace', ownerKey, 'workstation'],
+    queryFn: () => repository.listWorkstationTaskIds(),
+  });
+
+  const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data]);
+  const projects = useMemo(() => projectsQuery.data ?? [], [projectsQuery.data]);
+  const dailyByDate = useMemo(
+    () => dailyQuery.data?.dailyByDate ?? {},
+    [dailyQuery.data?.dailyByDate],
+  );
+  const dailyTemplates = useMemo(
+    () => dailyQuery.data?.dailyTemplates ?? [],
+    [dailyQuery.data?.dailyTemplates],
+  );
+  const dailyHistory = useMemo(
+    () => dailyHistoryQuery.data ?? [],
+    [dailyHistoryQuery.data],
+  );
+  const history = useMemo(() => historyQuery.data ?? [], [historyQuery.data]);
+  const closeRecords = useMemo(
+    () => closeRecordsQuery.data ?? [],
+    [closeRecordsQuery.data],
+  );
+  const workstationTaskIds = useMemo(
+    () => workstationQuery.data ?? [],
+    [workstationQuery.data],
+  );
+
+  /** 拒绝离线写并把失败暴露到页面；第一版不建立离线队列。 */
+  const runMutation = useCallback(async (operation: () => Promise<void>) => {
+    if (!navigator.onLine) {
+      setMutationError('当前离线。Threadline 第一版不会排队写入，请联网后重试。');
+      return;
+    }
+    setMutationError(undefined);
+    try {
+      await operation();
+    } catch (error) {
+      setMutationError(error instanceof Error ? error.message : '云端写入失败');
+    }
+  }, []);
+
+  const invalidateWorkspace = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ['workspace', ownerKey] }),
+    [ownerKey, queryClient],
+  );
+
+  useEffect(() => {
+    if (!dailyQuery.isSuccess || Object.hasOwn(dailyByDate, selectedDate)) return;
+    if (!navigator.onLine) return;
+    void repository
+      .ensureDailyDate(selectedDate)
+      .then((bundle) =>
+        queryClient.setQueryData(['workspace', ownerKey, 'daily'], bundle),
+      )
+      .catch((error: unknown) =>
+        setMutationError(error instanceof Error ? error.message : 'Daily 实例化失败'),
+      );
+  }, [
+    dailyByDate,
+    dailyQuery.isSuccess,
+    ownerKey,
+    queryClient,
+    repository,
+    selectedDate,
+  ]);
+
+  useEffect(() => {
+    if (!tasksQuery.isSuccess) return;
+    updateAnnotationStrokes((current) => reconcileTaskAnnotations(current, tasks));
+  }, [tasks, tasksQuery.isSuccess, updateAnnotationStrokes]);
+
+  useEffect(() => {
+    const invalidate = () => void invalidateWorkspace();
+    const tables = [
+      'projects',
+      'tasks',
+      'daily_templates',
+      'daily_template_items',
+      'daily_entries',
+      'daily_entry_items',
+      'workstation_entries',
+      'rhythm_marks',
+      'daily_history_entries',
+      'history_events',
+      'daily_close_records',
+    ];
+    let channel = client.channel(`workspace:${ownerKey}`);
+    for (const table of tables) {
+      channel = channel
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table,
+            filter: `owner_id=eq.${ownerKey}`,
+          },
+          invalidate,
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table,
+            filter: `owner_id=eq.${ownerKey}`,
+          },
+          invalidate,
+        )
+        .on(
+          'postgres_changes',
+          { event: 'DELETE', schema: 'public', table },
+          invalidate,
+        );
+    }
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') invalidateWorkspace();
+    });
+    return () => {
+      void client.removeChannel(channel);
+    };
+  }, [client, invalidateWorkspace, ownerKey]);
+
+  const updateTasks: Dispatch<SetStateAction<Task[]>> = useCallback(
+    (action) => {
+      void runMutation(async () => {
+        const current =
+          queryClient.getQueryData<Task[]>(['workspace', ownerKey, 'tasks']) ?? tasks;
+        const next = resolveState(current, action);
+        const currentById = new Map(current.map((task) => [task.id, task]));
+        const changedTasks = next.filter((task) =>
+          changed(currentById.get(task.id), task),
+        );
+        const saved = await Promise.all(
+          changedTasks.map((task) => repository.saveTask(task)),
+        );
+        queryClient.setQueryData<Task[]>(
+          ['workspace', ownerKey, 'tasks'],
+          next.map((task) => saved.find((row) => row.id === task.id) ?? task),
+        );
+      });
+    },
+    [ownerKey, queryClient, repository, runMutation, tasks],
+  );
+
+  const updateProjects: Dispatch<SetStateAction<Project[]>> = useCallback(
+    (action) => {
+      void runMutation(async () => {
+        const current =
+          queryClient.getQueryData<Project[]>(['workspace', ownerKey, 'projects']) ??
+          projects;
+        const next = resolveState(current, action);
+        const currentById = new Map(current.map((project) => [project.id, project]));
+        const saved = await Promise.all(
+          next
+            .filter((project) => changed(currentById.get(project.id), project))
+            .map((project) => repository.saveProject(project)),
+        );
+        queryClient.setQueryData<Project[]>(
+          ['workspace', ownerKey, 'projects'],
+          next.map((project) => saved.find((row) => row.id === project.id) ?? project),
+        );
+      });
+    },
+    [ownerKey, projects, queryClient, repository, runMutation],
+  );
+
+  const updateDailyByDate: Dispatch<SetStateAction<Record<string, Daily[]>>> =
+    useCallback(
+      (action) => {
+        void runMutation(async () => {
+          const current =
+            queryClient.getQueryData<{
+              dailyByDate: Record<string, Daily[]>;
+              dailyTemplates: Daily[];
+            }>(['workspace', ownerKey, 'daily'])?.dailyByDate ?? dailyByDate;
+          const next = resolveState(current, action);
+          for (const [date, nextItems] of Object.entries(next)) {
+            const currentById = new Map(
+              (current[date] ?? []).map((daily) => [daily.id, daily]),
+            );
+            for (const daily of nextItems) {
+              if (daily.entryId && changed(currentById.get(daily.id), daily))
+                await repository.saveDailyEntry(daily, date);
+            }
+          }
+          queryClient.setQueryData(
+            ['workspace', ownerKey, 'daily'],
+            await repository.listDailyBundle(),
+          );
+        });
+      },
+      [dailyByDate, ownerKey, queryClient, repository, runMutation],
+    );
+
+  const updateDailyTemplates: Dispatch<SetStateAction<Daily[]>> = useCallback(
+    (action) => {
+      void runMutation(async () => {
+        const current = dailyTemplates;
+        const next = resolveState(current, action);
+        const existing = new Set(current.map((daily) => daily.id));
+        for (const daily of next.filter((item) => !existing.has(item.id)))
+          await repository.createDailyTemplate(daily, selectedDate);
+        queryClient.setQueryData(
+          ['workspace', ownerKey, 'daily'],
+          await repository.listDailyBundle(),
+        );
+      });
+    },
+    [dailyTemplates, ownerKey, queryClient, repository, runMutation, selectedDate],
+  );
+
+  const updateDailyHistory: Dispatch<SetStateAction<DailyHistoryEntry[]>> = useCallback(
+    (action) => {
+      void runMutation(async () => {
+        const next = resolveState(dailyHistory, action);
+        const currentKeys = new Set(
+          dailyHistory.map((entry) => `${entry.dailyId}:${entry.date}`),
+        );
+        for (const entry of next.filter(
+          (item) => !currentKeys.has(`${item.dailyId}:${item.date}`),
+        ))
+          await repository.recordDaily(entry.dailyId, entry.date, 'manual');
+        await queryClient.invalidateQueries({
+          queryKey: ['workspace', ownerKey, 'daily-history'],
+        });
+      });
+    },
+    [dailyHistory, ownerKey, queryClient, repository, runMutation],
+  );
+
+  const updateHistory: Dispatch<SetStateAction<HistoryEvent[]>> = useCallback(
+    (action) => {
+      void runMutation(async () => {
+        const next = resolveState(history, action);
+        const existing = new Set(history.map((event) => event.id));
+        for (const event of next.filter((item) => !existing.has(item.id)))
+          await repository.appendHistory(
+            event,
+            event.taskId ? tasks.find((task) => task.id === event.taskId) : undefined,
+          );
+        await queryClient.invalidateQueries({
+          queryKey: ['workspace', ownerKey, 'history'],
+        });
+      });
+    },
+    [history, ownerKey, queryClient, repository, runMutation, tasks],
+  );
+
+  const updateCloseRecords: Dispatch<SetStateAction<CloseRecord[]>> =
+    useCallback(() => {
+      setMutationError('每日收尾必须通过 closeDay 原子命令提交。');
+    }, []);
+
+  const updateWorkstationTaskIds: Dispatch<SetStateAction<string[]>> = useCallback(
+    (action) => {
+      void runMutation(async () => {
+        const current = workstationTaskIds;
+        const next = [...new Set(resolveState(current, action))];
+        const currentSet = new Set(current);
+        const nextSet = new Set(next);
+        for (const taskId of next.filter((id) => !currentSet.has(id)))
+          await repository.addWorkstationTask(taskId);
+        for (const taskId of current.filter((id) => !nextSet.has(id)))
+          await repository.removeWorkstationTask(taskId);
+        await repository.reorderWorkstation(next);
+        queryClient.setQueryData(['workspace', ownerKey, 'workstation'], next);
+      });
+    },
+    [ownerKey, queryClient, repository, runMutation, workstationTaskIds],
+  );
+
+  /** 顺序创建可能刚新建的项目、task 与 created history，避免 FK 写入竞态。 */
+  const createTask = useCallback(
+    async (task: Task) => {
+      try {
+        if (!navigator.onLine) throw new Error('当前离线，无法创建任务。');
+        setMutationError(undefined);
+        const project = projects.find((item) => item.id === task.projectId);
+        if (!project) throw new Error('任务项目不存在。');
+        if (!project.updatedAt) {
+          const savedProject = await repository.saveProject(project);
+          queryClient.setQueryData<Project[]>(
+            ['workspace', ownerKey, 'projects'],
+            (current = []) =>
+              current.map((item) =>
+                item.id === savedProject.id ? savedProject : item,
+              ),
+          );
+        }
+        const savedTask = await repository.saveTask(task);
+        await repository.appendHistory(
+          {
+            id: crypto.randomUUID(),
+            taskId: savedTask.id,
+            type: 'created',
+            occurredAt: new Date().toISOString(),
+            payload: { title: savedTask.title },
+          },
+          savedTask,
+        );
+        queryClient.setQueryData<Task[]>(
+          ['workspace', ownerKey, 'tasks'],
+          (current = []) => [...current, savedTask],
+        );
+        await queryClient.invalidateQueries({
+          queryKey: ['workspace', ownerKey, 'history'],
+        });
+        return savedTask;
+      } catch (error) {
+        setMutationError(error instanceof Error ? error.message : '任务创建失败');
+        throw error;
+      }
+    },
+    [ownerKey, projects, queryClient, repository],
+  );
+
+  const transitionTask = useCallback(
+    async (taskId: string, transition: TaskTransition, targetDate?: string) => {
+      try {
+        if (!navigator.onLine) throw new Error('当前离线，无法提交任务流转。');
+        setMutationError(undefined);
+        const task = await repository.transitionTask(taskId, transition, targetDate);
+        queryClient.setQueryData<Task[]>(
+          ['workspace', ownerKey, 'tasks'],
+          (current = []) => current.map((item) => (item.id === task.id ? task : item)),
+        );
+        if (transition === 'trashed') {
+          updateAnnotationStrokes((current) =>
+            current.filter((stroke) => stroke.targetTaskId !== taskId),
+          );
+          queryClient.setQueryData<string[]>(
+            ['workspace', ownerKey, 'workstation'],
+            (current = []) => current.filter((id) => id !== taskId),
+          );
+        }
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: ['workspace', ownerKey, 'history'],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: ['workspace', ownerKey, 'workstation'],
+          }),
+        ]);
+        return task;
+      } catch (error) {
+        setMutationError(error instanceof Error ? error.message : '任务流转失败');
+        throw error;
+      }
+    },
+    [ownerKey, queryClient, repository, updateAnnotationStrokes],
+  );
+
+  const recordDaily = useCallback(
+    async (
+      templateId: string,
+      date: string,
+      source: 'manual' | 'close_day' = 'manual',
+    ) => {
+      try {
+        if (!navigator.onLine) throw new Error('当前离线，无法记录 Daily。');
+        setMutationError(undefined);
+        await repository.recordDaily(templateId, date, source);
+        await queryClient.invalidateQueries({
+          queryKey: ['workspace', ownerKey, 'daily-history'],
+        });
+      } catch (error) {
+        setMutationError(error instanceof Error ? error.message : 'Daily 记录失败');
+        throw error;
+      }
+    },
+    [ownerKey, queryClient, repository],
+  );
+
+  const closeDay = useCallback(
+    async (
+      date: string,
+      actions: CloseAction[],
+      projectMinutes: Record<string, number>,
+    ) => {
+      try {
+        if (!navigator.onLine) throw new Error('当前离线，无法完成每日收尾。');
+        setMutationError(undefined);
+        await repository.closeDay(date, actions, projectMinutes);
+        await invalidateWorkspace();
+      } catch (error) {
+        setMutationError(error instanceof Error ? error.message : '每日收尾失败');
+        throw error;
+      }
+    },
+    [invalidateWorkspace, repository],
+  );
+
   const hydrated =
-    tasksHydrated &&
-    projectsHydrated &&
-    dailyByDateHydrated &&
-    dailyTemplatesHydrated &&
-    dailyHistoryHydrated &&
-    historyHydrated &&
-    closeRecordsHydrated &&
+    projectsQuery.isSuccess &&
+    tasksQuery.isSuccess &&
+    dailyQuery.isSuccess &&
+    dailyHistoryQuery.isSuccess &&
+    historyQuery.isSuccess &&
+    closeRecordsQuery.isSuccess &&
+    workstationQuery.isSuccess &&
     annotationHydrated &&
-    workstationHydrated &&
     highlightHydrated;
+  const queryError = [
+    projectsQuery.error,
+    tasksQuery.error,
+    dailyQuery.error,
+    dailyHistoryQuery.error,
+    historyQuery.error,
+    closeRecordsQuery.error,
+    workstationQuery.error,
+  ].find(Boolean);
+
   const taskState = useMemo(() => ({ tasks }), [tasks]);
+  const taskActions = useMemo(() => ({ updateTasks }), [updateTasks]);
   const projectState = useMemo(() => ({ projects }), [projects]);
+  const projectActions = useMemo(() => ({ updateProjects }), [updateProjects]);
   const dailyState = useMemo(
     () => ({ dailyByDate, dailyTemplates, dailyHistory }),
-    [dailyByDate, dailyTemplates, dailyHistory],
+    [dailyByDate, dailyHistory, dailyTemplates],
+  );
+  const dailyActions = useMemo(
+    () => ({ updateDailyByDate, updateDailyTemplates, updateDailyHistory }),
+    [updateDailyByDate, updateDailyHistory, updateDailyTemplates],
   );
   const historyState = useMemo(
     () => ({ history, closeRecords }),
-    [history, closeRecords],
-  );
-  const surfaceState = useMemo(
-    () => ({ annotationStrokes, workstationTaskIds, highlightColor }),
-    [annotationStrokes, workstationTaskIds, highlightColor],
-  );
-  const taskActions = useMemo(() => ({ updateTasks }), [updateTasks]);
-  const projectActions = useMemo(() => ({ updateProjects }), [updateProjects]);
-  const dailyActions = useMemo(
-    () => ({ updateDailyByDate, updateDailyTemplates, updateDailyHistory }),
-    [updateDailyByDate, updateDailyTemplates, updateDailyHistory],
+    [closeRecords, history],
   );
   const historyActions = useMemo(
     () => ({ updateHistory, updateCloseRecords }),
-    [updateHistory, updateCloseRecords],
+    [updateCloseRecords, updateHistory],
+  );
+  const surfaceState = useMemo(
+    () => ({ annotationStrokes, workstationTaskIds, highlightColor }),
+    [annotationStrokes, highlightColor, workstationTaskIds],
   );
   const surfaceActions = useMemo(
     () => ({ updateAnnotationStrokes, updateWorkstationTaskIds, updateHighlightColor }),
-    [updateAnnotationStrokes, updateWorkstationTaskIds, updateHighlightColor],
+    [updateAnnotationStrokes, updateHighlightColor, updateWorkstationTaskIds],
   );
+  const commands = useMemo(
+    () => ({ createTask, transitionTask, recordDaily, closeDay }),
+    [closeDay, createTask, recordDaily, transitionTask],
+  );
+
   return (
-    <WorkspaceHydrationContext.Provider value={hydrated}>
-      <TaskStateContext.Provider value={taskState}>
-        <TaskActionsContext.Provider value={taskActions}>
-          <ProjectStateContext.Provider value={projectState}>
-            <ProjectActionsContext.Provider value={projectActions}>
-              <DailyStateContext.Provider value={dailyState}>
-                <DailyActionsContext.Provider value={dailyActions}>
-                  <HistoryStateContext.Provider value={historyState}>
-                    <HistoryActionsContext.Provider value={historyActions}>
-                      <WorkspaceSurfaceStateContext.Provider value={surfaceState}>
-                        <WorkspaceSurfaceActionsContext.Provider value={surfaceActions}>
-                          {children}
-                        </WorkspaceSurfaceActionsContext.Provider>
-                      </WorkspaceSurfaceStateContext.Provider>
-                    </HistoryActionsContext.Provider>
-                  </HistoryStateContext.Provider>
-                </DailyActionsContext.Provider>
-              </DailyStateContext.Provider>
-            </ProjectActionsContext.Provider>
-          </ProjectStateContext.Provider>
-        </TaskActionsContext.Provider>
-      </TaskStateContext.Provider>
-    </WorkspaceHydrationContext.Provider>
+    <WorkspaceContextProviders
+      values={{
+        hydrated,
+        taskState,
+        taskActions,
+        projectState,
+        projectActions,
+        dailyState,
+        dailyActions,
+        historyState,
+        historyActions,
+        surfaceState,
+        surfaceActions,
+        commands,
+      }}
+      notice={
+        (mutationError || queryError) && (
+          <p className="workspace-sync-error" role="alert">
+            {mutationError ??
+              (queryError instanceof Error ? queryError.message : '云工作区载入失败')}
+          </p>
+        )
+      }
+    >
+      {children}
+    </WorkspaceContextProviders>
   );
 }
 
-/** 组合当前页面所需领域读取与动作；组件仍可按单独 Context 订阅，避免全局对象广播。 */
-export function useWorkspaceData() {
-  return {
-    ...useRequiredContext(TaskStateContext, 'TaskStateContext'),
-    ...useRequiredContext(TaskActionsContext, 'TaskActionsContext'),
-    ...useRequiredContext(ProjectStateContext, 'ProjectStateContext'),
-    ...useRequiredContext(ProjectActionsContext, 'ProjectActionsContext'),
-    ...useRequiredContext(DailyStateContext, 'DailyStateContext'),
-    ...useRequiredContext(DailyActionsContext, 'DailyActionsContext'),
-    ...useRequiredContext(HistoryStateContext, 'HistoryStateContext'),
-    ...useRequiredContext(HistoryActionsContext, 'HistoryActionsContext'),
-    ...useRequiredContext(WorkspaceSurfaceStateContext, 'WorkspaceSurfaceStateContext'),
-    ...useRequiredContext(
-      WorkspaceSurfaceActionsContext,
-      'WorkspaceSurfaceActionsContext',
-    ),
-    hydrated: useContext(WorkspaceHydrationContext),
-  };
+/** 按显式构建标记选择测试适配器；缺少 Supabase 时绝不自动切换。 */
+export function WorkspaceDataProvider({ children }: { children: ReactNode }) {
+  return process.env.NEXT_PUBLIC_THREADLINE_TEST_ADAPTER === 'true' ? (
+    <LocalWorkspaceTestAdapter>{children}</LocalWorkspaceTestAdapter>
+  ) : (
+    <CloudWorkspaceDataProvider>{children}</CloudWorkspaceDataProvider>
+  );
 }

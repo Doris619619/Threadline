@@ -129,6 +129,15 @@ async function runBuildStage(label, argumentsList, environment = process.env) {
 
 /** 构建 Electron 专用静态 Next export、production CSP 与 service-worker precache。 */
 async function buildRenderer() {
+  const productionPackaging = Object.hasOwn(modeDefinitions, command);
+  const cloudEnvironment = await runBuildStage('cloud-env', [
+    'scripts/validate-cloud-env.mjs',
+    productionPackaging ? 'electron-production' : 'electron',
+  ]);
+  const outputPreparation = await runBuildStage('renderer-output', [
+    'scripts/prepare-next-output.mjs',
+    'electron',
+  ]);
   const renderer = await runBuildStage(
     'renderer',
     ['node_modules/next/dist/bin/next', 'build'],
@@ -142,10 +151,23 @@ async function buildRenderer() {
     'scripts/generate-sw-precache.mjs',
     '.next-electron',
   ]);
+  const boundary = await runBuildStage('next-boundary', [
+    'scripts/verify-next-build-boundary.mjs',
+    'electron',
+  ]);
   return {
+    cloudEnvironment: {
+      status: cloudEnvironment.status,
+      durationMs: cloudEnvironment.durationMs,
+    },
+    outputPreparation: {
+      status: outputPreparation.status,
+      durationMs: outputPreparation.durationMs,
+    },
     renderer: { status: renderer.status, durationMs: renderer.durationMs },
     csp: { status: csp.status, durationMs: csp.durationMs },
     precache: { status: precache.status, durationMs: precache.durationMs },
+    boundary: { status: boundary.status, durationMs: boundary.durationMs },
   };
 }
 

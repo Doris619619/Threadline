@@ -1,0 +1,29 @@
+/** @fileoverview 按 Web 与 Electron 共用的确定顺序加载全部全局和业务样式。 */
+
+import './globals.css';
+import '../styles/tokens.css';
+import '../styles/base.css';
+import '../components/ui/ui.css';
+import '../styles/desktop-window.css';
+import '../features/tasks/compact-workspace.css';
+import '../components/app-shell.css';
+import '../features/tasks/task-dashboard.css';
+import '../features/daily/daily.css';
+import '../features/tasks/task-planning.css';
+import '../features/tasks/task-dialogs.css';
+import '../features/projects/projects.css';
+import '../features/reviews/reviews.css';
+import '../features/stats/stats.css';
+import '../features/settings/settings.css';
+import '../features/history/history.css';
+import '../styles/responsive-overrides.css';
+import '../features/feature-pages.css';
+import '../features/calendar/calendar.css';
+import '../features/insights/insights.css';
+import '../features/records/records.css';
+import '../features/rhythm/rhythm.css';
+import '../features/insights/insights-report.css';
+import '../features/settings/settings-page.css';
+import '../styles/responsive-overrides-late.css';
+import '../features/insights/insights-print.css';
+import '../features/auth/auth.css';

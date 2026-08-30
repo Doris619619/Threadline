@@ -9,6 +9,7 @@ const e2ePort = process.env.THREADLINE_E2E_PORT ?? '3100';
 
 /** 统一 Playwright 页面访问地址与 webServer 健康检查地址。 */
 const e2eBaseUrl = `http://127.0.0.1:${e2ePort}`;
+const usesExternalTestServer = process.env.THREADLINE_EXTERNAL_TEST_SERVER === 'true';
 
 export default defineConfig({
   testDir: './e2e',
@@ -27,9 +28,14 @@ export default defineConfig({
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile', use: { ...devices['iPhone 13'] } },
   ],
-  webServer: {
-    command: `node scripts/web-server.mjs --port ${e2ePort}`,
-    url: e2eBaseUrl,
-    reuseExistingServer: false,
-  },
+  ...(usesExternalTestServer
+    ? {}
+    : {
+        webServer: {
+          command: `node node_modules/next/dist/bin/next start --port ${e2ePort}`,
+          url: e2eBaseUrl,
+          reuseExistingServer: false,
+          timeout: 120_000,
+        },
+      }),
 });

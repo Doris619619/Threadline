@@ -4,12 +4,24 @@
 
 'use client';
 
-import { Check, GripVertical, MoreHorizontal, Pencil, Plus, Trash2, X } from 'lucide-react';
+import {
+  Check,
+  GripVertical,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ProjectTag } from '@/components/ui/project-tag';
-import { createProjectSeed } from '@/features/workspace/workspace-seed';
-import { formatMinutes, parseDurationInput, parseTimeInput } from '@/features/tasks/task-time';
+import {
+  formatMinutes,
+  parseDurationInput,
+  parseTimeInput,
+} from '@/features/tasks/task-time';
+import { resolveTaskProject } from '@/lib/project-rules';
 import type { Project, Task, TaskStatus } from '@/types/domain';
 export function TaskLine({
   task,
@@ -54,8 +66,7 @@ export function TaskLine({
   inWorkstation?: boolean;
   onToggleWorkstation?: (taskId: string) => void;
 }) {
-  const project =
-    projects.find((p) => p.id === task.projectId) ?? createProjectSeed()[4];
+  const project = resolveTaskProject(projects, task.projectId);
   const timed = inSchedulePanel || Boolean(task.plannedStartTime);
   const canDrag = draggable && !interactionLocked;
   const canChangeWorkflow = !task.completed;
@@ -300,7 +311,10 @@ export function TaskLine({
           onClick={() => setEditingField('project')}
           title="点击切换所属项目或新增项目"
         >
-          <ProjectTag name={project.name} color={project.color} />
+          <ProjectTag
+            name={project?.name ?? '未配置项目'}
+            color={project?.color ?? '#8793a7'}
+          />
         </span>
       </div>
 
@@ -431,4 +445,3 @@ export function TaskLine({
     </div>
   );
 }
-

@@ -33,13 +33,28 @@ function routeFromFile(root, file) {
   );
 }
 
+/** 从构建配置解析唯一 Supabase HTTPS/WSS 或本地 loopback HTTP/WS origin，不允许通配。 */
+function getSupabaseConnectSources() {
+  const configured = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  if (!configured) return [];
+  const url = new URL(configured);
+  const loopback =
+    url.protocol === 'http:' &&
+    ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname);
+  if (url.protocol !== 'https:' && !loopback)
+    throw new Error('Electron CSP requires HTTPS or a local loopback Supabase URL.');
+  return [url.origin, `${url.protocol === 'https:' ? 'wss' : 'ws'}://${url.host}`];
+}
+
 /** 生成内容精确的 CSP 指令，禁止以 unsafe-inline 作为 hash 漂移回退。 */
 function createPolicy(hashes) {
+  const connectSources = getSupabaseConnectSources();
   return [
     "default-src 'self'",
     `script-src 'self' ${hashes.join(' ')}`,
     "style-src 'self'",
-    "connect-src 'self'",
+    "style-src-attr 'unsafe-inline'",
+    `connect-src 'self'${connectSources.length ? ` ${connectSources.join(' ')}` : ''}`,
     "img-src 'self'",
     "font-src 'self'",
     "manifest-src 'self'",

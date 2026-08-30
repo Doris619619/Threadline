@@ -55,10 +55,10 @@ export function useTaskCreateDrafts() {
   const [timedOpen, setTimedOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [timedDraft, setTimedDraft] = useState<TimedTaskCreateDraft>(
-    initialTimedDraft('work'),
+    initialTimedDraft(''),
   );
   const [quickDraft, setQuickDraft] = useState<QuickTaskCreateDraft>(
-    initialQuickDraft('other'),
+    initialQuickDraft(''),
   );
 
   const updateTimedDraft = (patch: Partial<TimedTaskCreateDraft>) =>

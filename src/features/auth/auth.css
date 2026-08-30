@@ -1,0 +1,55 @@
+/** 文件用途：定义云配置、会话恢复和 Email/password 登录门禁样式。 */
+
+.auth-gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--background);
+}
+
+.auth-card {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 16px;
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow-window);
+}
+
+.auth-card label {
+  display: grid;
+  gap: 6px;
+}
+
+.auth-card input {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: inherit;
+}
+
+.auth-card button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+}
+
+.auth-eyebrow {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.auth-error {
+  color: var(--danger);
+}

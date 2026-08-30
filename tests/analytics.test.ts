@@ -114,4 +114,58 @@ describe('analytics adapter', () => {
       expect.objectContaining({ projectId: 'research', actualMinutes: 180 }),
     ]);
   });
+
+  it('includes an unrecorded Daily entry in current Insights and Calendar totals', () => {
+    const result = createAnalyticsResult({
+      tasks: [],
+      projects,
+      dailyByDate: {
+        '2026-08-20': [
+          {
+            id: 'template-1',
+            projectId: 'research',
+            title: '阅读论文',
+            actual: 45,
+            completed: false,
+          },
+        ],
+      },
+      dailyHistory: [],
+      closeRecords: [],
+    });
+    expect(result.totalActualMinutes).toBe(45);
+    expect(result.days[0]?.dailyActualMinutes).toBe(45);
+  });
+
+  it('deduplicates a formal Daily record and its same template/date entry', () => {
+    const result = createAnalyticsResult({
+      tasks: [],
+      projects,
+      dailyByDate: {
+        '2026-08-20': [
+          {
+            id: 'template-1',
+            projectId: 'research',
+            title: '阅读论文',
+            actual: 99,
+            completed: true,
+          },
+        ],
+      },
+      dailyHistory: [
+        {
+          dailyId: 'template-1',
+          projectId: 'research',
+          date: '2026-08-20',
+          completed: true,
+          actual: 45,
+          result: '已记录',
+        },
+      ],
+      closeRecords: [],
+    });
+    expect(result.totalActualMinutes).toBe(45);
+    expect(result.entries.filter((entry) => entry.source === 'daily')).toHaveLength(1);
+    expect(result.entries[0]?.id).toBe('daily-history:template-1:2026-08-20');
+  });
 });

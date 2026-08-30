@@ -5,7 +5,7 @@
 import { Input } from '@/components/ui/input';
 import { ProjectTag } from '@/components/ui/project-tag';
 import { Surface } from '@/components/ui/surface';
-import { createProjectSeed } from '@/features/workspace/workspace-seed';
+import { resolveTaskProject } from '@/lib/project-rules';
 import type { Project, Task, TaskStatus } from '@/types/domain';
 export function PlanningQueue({
   tasks,
@@ -30,12 +30,13 @@ export function PlanningQueue({
         <p>还没有待安排事项。任务选择“待安排”后会出现在这里。</p>
       ) : (
         tasks.map((task) => {
-          const project =
-            projects.find((item) => item.id === task.projectId) ??
-            createProjectSeed()[4];
+          const project = resolveTaskProject(projects, task.projectId);
           return (
             <div className="queue-row" key={task.id}>
-              <ProjectTag name={project.name} color={project.color} />
+              <ProjectTag
+                name={project?.name ?? '未配置项目'}
+                color={project?.color ?? '#8793a7'}
+              />
               <b>{task.title}</b>
               <select
                 aria-label={`${task.title}重要性`}
@@ -74,4 +75,3 @@ export function PlanningQueue({
 /**
  * 任务单行组件（支持时间线视图、无时间待办与持久化的待填时间状态）。
  */
-

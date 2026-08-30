@@ -8,7 +8,7 @@ import { useTaskDashboardData } from '@/features/tasks/hooks/use-task-dashboard-
 import { useTaskDragAndDrop } from '@/features/tasks/hooks/use-task-drag-and-drop';
 import { useTaskWorkflow } from '@/features/tasks/hooks/use-task-workflow';
 import { useWorkstationMembership } from '@/features/tasks/hooks/use-workstation-membership';
-import type { AnnotationStroke, HistoryEvent, Task } from '@/types/domain';
+import type { AnnotationStroke, Task } from '@/types/domain';
 
 type DataInput = Parameters<typeof useTaskDashboardData>[0];
 
@@ -16,25 +16,29 @@ type DataInput = Parameters<typeof useTaskDashboardData>[0];
 export function useTaskDashboardController({
   interactionLocked,
   updateAnnotationStrokes,
-  updateHistory,
   updateTasks,
   updateWorkstationTaskIds,
+  transitionTask,
   ...dataInput
 }: DataInput & {
   interactionLocked: boolean;
   updateAnnotationStrokes: React.Dispatch<React.SetStateAction<AnnotationStroke[]>>;
-  updateHistory: React.Dispatch<React.SetStateAction<HistoryEvent[]>>;
   updateTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   updateWorkstationTaskIds: React.Dispatch<React.SetStateAction<string[]>>;
+  transitionTask: (
+    taskId: string,
+    transition: 'scheduled' | 'rescheduled' | 'backlog' | 'abandoned' | 'trashed',
+    targetDate?: string,
+  ) => Promise<Task>;
 }) {
   const data = useTaskDashboardData(dataInput);
   const workflow = useTaskWorkflow({
     selectedDate: dataInput.selectedDate,
     tasks: dataInput.tasks,
     updateAnnotationStrokes,
-    updateHistory,
     updateTasks,
     updateWorkstationTaskIds,
+    transitionTask,
   });
   const workstation = useWorkstationMembership(updateWorkstationTaskIds);
   const resize = useScheduleResize();

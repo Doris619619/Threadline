@@ -14,6 +14,8 @@ coverage/
 playwright-report/
 test-results/
 .pnpm-store/
+supabase/.temp/
+supabase/.branches/
 
 # local environment files
 .env.local
