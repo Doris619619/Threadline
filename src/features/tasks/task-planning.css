@@ -17,14 +17,14 @@
 
 .planning-queue h2 {
   margin: 0;
-  font-size: 1.0625rem;
+  font-size: var(--text-section-size);
 }
 
 .planning-queue header span,
 .planning-queue > p {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 0.78rem;
+  font-size: var(--text-secondary-size);
 }
 
 .queue-row {
@@ -74,5 +74,3 @@
   background: var(--surface-secondary);
   cursor: not-allowed;
 }
-
-

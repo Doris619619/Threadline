@@ -21,6 +21,7 @@ import { useDesktopWindow } from '@/lib/desktop-window-context';
 import { resolveActiveProject } from '@/lib/project-rules';
 import { MiniTodayPanel, WorkstationPanel } from '@/features/tasks/compact-workspace';
 import { formatMinutes } from '@/features/tasks/task-time';
+import { DesktopScheduleList } from '@/features/tasks/components/desktop-schedule-list';
 import { TaskLine } from '@/features/tasks/components/task-line';
 import { TimedTaskCreateRow } from '@/features/tasks/components/timed-task-create-row';
 import { QuickTaskCreateRow } from '@/features/tasks/components/quick-task-create-row';
@@ -38,6 +39,9 @@ import { useTaskDashboardController } from '@/features/tasks/hooks/use-task-dash
 import { useCloseDay } from '@/features/tasks/hooks/use-close-day';
 import type { Task } from '@/types/domain';
 
+/**
+ * 按当前工作台视图渲染首页、功能页或 Electron 紧凑窗口。
+ */
 export function TaskDashboard() {
   const { active, selectedDate, setSelectedDate } = useWorkspaceView();
   const { isMiniToday, isWorkstation } = useDesktopWindow();
@@ -260,50 +264,58 @@ export function TaskDashboard() {
   return (
     <div className="dashboard dashboard-annotatable" data-testid="home-panel">
       {!isMiniToday && (
-        <Surface className="metric-strip">
-          <StatItem
-            label="普通任务"
-            value={
-              <>
-                <em>{done}</em>
-                <small>/ {normalTaskTotal}</small>
-              </>
-            }
-          />
-          <StatItem
-            label="Daily"
-            value={
-              <>
-                <em>{dailyDone}</em>
-                <small>/ {daily.length}</small>
-              </>
-            }
-          />
-          <StatItem
-            label="普通实际"
-            value={
-              <>
-                <em>{formatMinutes(actual)}</em>
-              </>
-            }
-          />
-          <StatItem
-            label="Daily 实际"
-            value={
-              <>
-                <em>{formatMinutes(dailyActual)}</em>
-              </>
-            }
-          />
-          <StatItem
-            label="今日总实际"
-            value={
-              <>
-                <em>{formatMinutes(actual + dailyActual)}</em>
-              </>
-            }
-          />
-        </Surface>
+        <>
+          <p className="home-summary" aria-live="polite">
+            <span className="home-summary-check" aria-hidden="true">
+              ✓
+            </span>
+            今日任务 {normalTaskTotal} · 已完成 {done}
+          </p>
+          <Surface className="metric-strip" variant="flat">
+            <StatItem
+              label="普通任务"
+              value={
+                <>
+                  <em>{done}</em>
+                  <small>/ {normalTaskTotal}</small>
+                </>
+              }
+            />
+            <StatItem
+              label="Daily"
+              value={
+                <>
+                  <em>{dailyDone}</em>
+                  <small>/ {daily.length}</small>
+                </>
+              }
+            />
+            <StatItem
+              label="普通实际"
+              value={
+                <>
+                  <em>{formatMinutes(actual)}</em>
+                </>
+              }
+            />
+            <StatItem
+              label="Daily 实际"
+              value={
+                <>
+                  <em>{formatMinutes(dailyActual)}</em>
+                </>
+              }
+            />
+            <StatItem
+              label="今日总实际"
+              value={
+                <>
+                  <em>{formatMinutes(actual + dailyActual)}</em>
+                </>
+              }
+            />
+          </Surface>
+        </>
       )}
       <div
         className={`dashboard-columns${isMiniToday ? 'is-mini-today' : ''}`}
@@ -329,16 +341,7 @@ export function TaskDashboard() {
           onToggleEraser={() => toggleAnnotationTool('eraser')}
         >
           {() => (
-            <div className="timeline-scroll">
-              <div className="timeline-head">
-                <span className="timeline-col-time">时间</span>
-                <span className="timeline-col-check"></span>
-                <span className="timeline-col-project">项目</span>
-                <span className="timeline-col-title">任务</span>
-                <span className="timeline-col-planned">预计</span>
-                <span className="timeline-col-actual">实际</span>
-                <span className="timeline-col-actions">操作</span>
-              </div>
+            <DesktopScheduleList>
               {timed.map((task) => (
                 <TaskLine
                   key={task.id}
@@ -374,7 +377,7 @@ export function TaskDashboard() {
                 onReset={() => createDrafts.resetTimed(defaultProjectId)}
                 onClose={createDrafts.closeTimed}
               />
-            </div>
+            </DesktopScheduleList>
           )}
         </SchedulePanel>
         {!isMiniToday && (

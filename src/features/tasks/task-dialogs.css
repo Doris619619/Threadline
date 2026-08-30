@@ -42,7 +42,7 @@
 
 .task-dialog h2 {
   margin: 2px 0 0;
-  font-size: 1.25rem;
+  font-size: var(--text-section-size);
 }
 
 .task-dialog header p,
@@ -140,5 +140,3 @@
   min-height: 30px;
   font-size: 0.75rem;
 }
-
-

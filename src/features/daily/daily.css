@@ -30,7 +30,7 @@
 }
 
 .daily-parent-title {
-  font-size: 0.875rem;
+  font-size: var(--text-body-size);
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
@@ -138,7 +138,7 @@
 }
 
 .daily-child-name {
-  font-size: 0.8125rem;
+  font-size: var(--text-body-size);
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -146,7 +146,7 @@
 }
 
 .daily-child-duration {
-  font-size: 0.75rem;
+  font-size: var(--text-caption-size);
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -278,5 +278,3 @@
   font-size: 0.75rem;
   cursor: pointer;
 }
-
-
