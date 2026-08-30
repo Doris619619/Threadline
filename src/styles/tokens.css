@@ -1,41 +1,44 @@
 /**
- * @fileoverview 定义 Threadline 的全局设计 token。
+ * @fileoverview 定义 Threadline 的全局设计 token，作为颜色、字体、圆角、间距与阴影的单一事实来源。
  */
 
 html[data-theme='blue'] {
-  --background: #f6f7f9;
+  --background: #f5f5f7;
   --surface: #ffffff;
-  --surface-secondary: #f7f8fa;
-  --border: #dfe3e9;
-  --border-subtle: #edf0f4;
-  --border-strong: #cbd2dc;
-  --text-primary: #171b24;
-  --text-secondary: #566174;
-  --text-tertiary: #818c9d;
+  --surface-secondary: #f6f7f9;
+  --border: #e6e8ee;
+  --border-subtle: #eceef2;
+  --border-strong: #d7dbe3;
+  --text-primary: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --text-tertiary: #86868b;
   --text-on-accent: #ffffff;
   --accent: #007aff;
-  --accent-hover: #006fe6;
-  --accent-soft: #eaf3ff;
-  --accent-border: #b8d9ff;
-  --accent-text: #005fca;
+  --accent-hover: #0066d6;
+  --accent-soft: #e8f1ff;
+  --accent-border: #b6d4ff;
+  --accent-text: #0066d6;
   --accent-muted: var(--accent-soft);
   --success: #248a4d;
   --warning: #a86400;
   --danger: #d92d20;
-  --calendar-heat-1: color-mix(in srgb, var(--accent) 8%, var(--surface));
-  --calendar-heat-2: color-mix(in srgb, var(--accent) 16%, var(--surface));
-  --calendar-heat-3: color-mix(in srgb, var(--accent) 27%, var(--surface));
-  --calendar-heat-4: color-mix(in srgb, var(--accent) 43%, var(--surface));
+  --calendar-heat-1: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  --calendar-heat-2: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  --calendar-heat-3: color-mix(in srgb, var(--accent) 20%, var(--surface));
+  --calendar-heat-4: color-mix(in srgb, var(--accent) 32%, var(--surface));
   --calendar-heat-text-1: var(--accent-text);
-  --calendar-heat-text-2: #0052af;
-  --calendar-heat-text-3: #003f85;
-  --calendar-heat-text-4: #00356f;
-  --shadow-card: 0 8px 24px rgb(23 27 36 / 5%);
-  --shadow-window: 0 18px 44px rgb(23 27 36 / 10%);
-  --shadow-popover: 0 14px 34px rgb(23 27 36 / 14%);
-  --radius-sm: 6px;
-  --radius-md: 10px;
+  --calendar-heat-text-2: #0058c7;
+  --calendar-heat-text-3: #0046a3;
+  --calendar-heat-text-4: #003b8a;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 4%), 0 4px 12px rgb(0 0 0 / 4%);
+  --shadow-window: 0 8px 28px rgb(0 0 0 / 8%);
+  --shadow-popover: 0 8px 24px rgb(0 0 0 / 10%);
+  --radius-sm: 8px;
+  --radius-md: 12px;
   --radius-lg: 16px;
+  --radius-control: var(--radius-sm);
+  --radius-card: var(--radius-md);
+  --radius-surface: var(--radius-lg);
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -43,4 +46,43 @@ html[data-theme='blue'] {
   --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
+  --text-page-size: 1.375rem;
+  --text-page-leading: 1.2;
+  --text-page-weight: 700;
+  --text-section-size: 1.0625rem;
+  --text-section-leading: 1.3;
+  --text-section-weight: 650;
+  --text-card-size: 1rem;
+  --text-card-leading: 1.35;
+  --text-card-weight: 600;
+  --text-body-size: 0.9375rem;
+  --text-body-leading: 1.45;
+  --text-body-weight: 500;
+  --text-secondary-size: 0.8125rem;
+  --text-secondary-leading: 1.4;
+  --text-secondary-weight: 500;
+  --text-label-size: 0.8125rem;
+  --text-label-leading: 1.3;
+  --text-label-weight: 500;
+  --text-caption-size: 0.75rem;
+  --text-caption-leading: 1.35;
+  --text-caption-weight: 500;
+  --control-height: 36px;
+  --control-height-compact: 32px;
+  --touch-target: 44px;
+  --sidebar-width: 220px;
+  --bottom-nav-height: 64px;
+  --motion-fast: 140ms;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI',
+    'Microsoft YaHei UI', 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', sans-serif;
+}
+
+@media (max-width: 760px) {
+  html[data-theme='blue'] {
+    --text-page-size: 1.5rem;
+    --text-body-size: 1.0625rem;
+    --text-secondary-size: 0.875rem;
+    --text-caption-size: 0.8125rem;
+  }
 }
