@@ -66,6 +66,19 @@ const users = [];
 const channels = [];
 
 try {
+  const anonymous = createClient(status.API_URL, status.PUBLISHABLE_KEY, options);
+  const anonymousProjects = await anonymous.from('projects').select('id');
+  check(
+    anonymousProjects.error?.code === '42501',
+    'Anon must not receive business-table SELECT privileges.',
+  );
+  const anonymousInitializer = await anonymous.rpc('initialize_workspace');
+  check(
+    anonymousInitializer.error?.code === '42501',
+    'Anon must not receive workspace RPC EXECUTE privileges.',
+  );
+  anonymous.realtime.disconnect();
+
   for (const account of ['a', 'b']) {
     const email = `threadline-${account}-${suffix}@example.test`;
     const created = await admin.auth.admin.createUser({
@@ -215,7 +228,7 @@ try {
   if (entries.error) throw entries.error;
   check(entries.count === 1, 'Concurrent Daily materialization created duplicates.');
 
-  console.log('Local Supabase Auth/RLS/Realtime/Daily integration passed.');
+  console.log('Local Supabase Auth/privileges/RLS/Realtime/Daily integration passed.');
 } finally {
   for (const [client, channel] of channels) await client.removeChannel(channel);
   for (const user of users) {

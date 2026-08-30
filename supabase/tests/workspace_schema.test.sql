@@ -2,7 +2,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(51);
+select plan(82);
 
 select has_table('public', 'daily_history_entries', 'Daily history has an explicit table');
 select has_table('public', 'rhythm_marks', 'Rhythm is cloud-backed');
@@ -27,6 +27,156 @@ select function_privs_are(
   'authenticated',
   array[]::text[],
   'Authenticated clients cannot execute purge'
+);
+select function_privs_are(
+  'private',
+  'purge_expired_tasks',
+  array[]::text[],
+  'anon',
+  array[]::text[],
+  'Anonymous clients cannot execute purge'
+);
+select is(
+  (
+    select count(*)
+    from pg_class as relations
+    join pg_namespace as schemas on schemas.oid = relations.relnamespace
+    where schemas.nspname = 'public' and relations.relkind = 'S'
+  ),
+  0::bigint,
+  'UUID business schema requires no public sequence privileges'
+);
+
+select table_privs_are(
+  'public', 'workspace_profiles', 'authenticated', array['SELECT', 'INSERT'],
+  'Authenticated initializer can select and insert its workspace profile'
+);
+select table_privs_are(
+  'public', 'projects', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
+  'Authenticated Repository can read and save projects'
+);
+select table_privs_are(
+  'public', 'tasks', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
+  'Authenticated Repository can read and save tasks without physical delete'
+);
+select table_privs_are(
+  'public', 'daily_templates', 'authenticated', array['SELECT', 'INSERT'],
+  'Authenticated Daily commands can read and create templates'
+);
+select table_privs_are(
+  'public', 'daily_template_items', 'authenticated', array['SELECT', 'INSERT'],
+  'Authenticated Daily flow can read and create template items'
+);
+select table_privs_are(
+  'public', 'daily_entries', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
+  'Authenticated Daily flow can materialize and edit date entries'
+);
+select table_privs_are(
+  'public', 'daily_entry_items', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
+  'Authenticated Daily flow can materialize and edit date items'
+);
+select table_privs_are(
+  'public', 'daily_history_entries', 'authenticated', array['SELECT', 'INSERT'],
+  'Authenticated Daily recording can read and append formal history'
+);
+select table_privs_are(
+  'public', 'history_events', 'authenticated', array['SELECT', 'INSERT'],
+  'Authenticated task flow can read and append history events'
+);
+select table_privs_are(
+  'public', 'daily_close_records', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
+  'Authenticated close day can read and upsert close records'
+);
+select table_privs_are(
+  'public', 'workstation_entries', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
+  'Authenticated workstation can read, add, remove, and reorder memberships'
+);
+select table_privs_are(
+  'public', 'rhythm_marks', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
+  'Authenticated Rhythm can read and upsert marks'
+);
+select is(
+  (
+    select count(*)
+    from unnest(array[
+      'workspace_profiles', 'projects', 'tasks', 'daily_templates',
+      'daily_template_items', 'daily_entries', 'daily_entry_items',
+      'daily_history_entries', 'history_events', 'daily_close_records',
+      'workstation_entries', 'rhythm_marks'
+    ]) as business_tables(table_name)
+    where has_table_privilege('anon', format('public.%I', table_name), 'SELECT')
+       or has_table_privilege('anon', format('public.%I', table_name), 'INSERT')
+       or has_table_privilege('anon', format('public.%I', table_name), 'UPDATE')
+       or has_table_privilege('anon', format('public.%I', table_name), 'DELETE')
+  ),
+  0::bigint,
+  'Anonymous clients have no business-table privileges'
+);
+
+select function_privs_are(
+  'public', 'initialize_workspace', array[]::text[],
+  'authenticated', array['EXECUTE'], 'Authenticated can initialize workspace'
+);
+select function_privs_are(
+  'public', 'ensure_daily_entries_for_date', array['date'],
+  'authenticated', array['EXECUTE'], 'Authenticated can materialize Daily date'
+);
+select function_privs_are(
+  'public', 'record_daily_history', array['uuid', 'date', 'text'],
+  'authenticated', array['EXECUTE'], 'Authenticated can record Daily history'
+);
+select function_privs_are(
+  'public', 'create_daily_template_with_entry', array['uuid', 'uuid', 'text', 'date'],
+  'authenticated', array['EXECUTE'], 'Authenticated can create Daily atomically'
+);
+select function_privs_are(
+  'public', 'transition_task', array['uuid', 'text', 'date'],
+  'authenticated', array['EXECUTE'], 'Authenticated can transition tasks'
+);
+select function_privs_are(
+  'public', 'add_workstation_task', array['uuid'],
+  'authenticated', array['EXECUTE'], 'Authenticated can add workstation task'
+);
+select function_privs_are(
+  'public', 'reorder_workstation', array['uuid[]'],
+  'authenticated', array['EXECUTE'], 'Authenticated can reorder workstation'
+);
+select function_privs_are(
+  'public', 'close_day', array['date', 'jsonb', 'jsonb'],
+  'authenticated', array['EXECUTE'], 'Authenticated can close day'
+);
+
+select function_privs_are(
+  'public', 'initialize_workspace', array[]::text[],
+  'anon', array[]::text[], 'Anonymous clients cannot initialize workspace'
+);
+select function_privs_are(
+  'public', 'ensure_daily_entries_for_date', array['date'],
+  'anon', array[]::text[], 'Anonymous clients cannot materialize Daily date'
+);
+select function_privs_are(
+  'public', 'record_daily_history', array['uuid', 'date', 'text'],
+  'anon', array[]::text[], 'Anonymous clients cannot record Daily history'
+);
+select function_privs_are(
+  'public', 'create_daily_template_with_entry', array['uuid', 'uuid', 'text', 'date'],
+  'anon', array[]::text[], 'Anonymous clients cannot create Daily'
+);
+select function_privs_are(
+  'public', 'transition_task', array['uuid', 'text', 'date'],
+  'anon', array[]::text[], 'Anonymous clients cannot transition tasks'
+);
+select function_privs_are(
+  'public', 'add_workstation_task', array['uuid'],
+  'anon', array[]::text[], 'Anonymous clients cannot add workstation task'
+);
+select function_privs_are(
+  'public', 'reorder_workstation', array['uuid[]'],
+  'anon', array[]::text[], 'Anonymous clients cannot reorder workstation'
+);
+select function_privs_are(
+  'public', 'close_day', array['date', 'jsonb', 'jsonb'],
+  'anon', array[]::text[], 'Anonymous clients cannot close day'
 );
 
 insert into auth.users(id, email)
