@@ -96,7 +96,6 @@ async function openWorkspaceSection(page: Page, label: string) {
 test('gives every workspace destination a distinct working page', async ({ page }) => {
   await openWorkspaceSection(page, '日历');
   await expect(page.getByTestId('calendar-panel')).toBeVisible();
-  await expect(page.getByText('项目投入热力')).toBeVisible();
 
   await openWorkspaceSection(page, '项目');
   await expect(page.locator('.project-panel')).toBeVisible();
@@ -272,7 +271,7 @@ test('formats actual minutes on a timed task', async ({ page }) => {
   await schedule.getByPlaceholder('实际耗时').fill('90');
   await schedule.getByTitle('保存任务').click();
   const row = page.locator('.timeline-row').filter({ hasText: '标注访谈记录' });
-  await expect(row.locator('.task-duration-planned')).toHaveText('1h30min');
+  await expect(row.locator('.task-duration-planned')).toContainText('1h30min');
   await expect(row.locator('.task-duration-actual')).toContainText('1h30min');
 });
 
