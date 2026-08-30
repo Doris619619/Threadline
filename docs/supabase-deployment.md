@@ -42,9 +42,12 @@
 
    select has_function_privilege('anon', 'private.purge_expired_tasks()', 'execute'),
           has_function_privilege('authenticated', 'private.purge_expired_tasks()', 'execute');
+
+   select has_function_privilege('anon', 'public.rls_auto_enable()', 'execute'),
+          has_function_privilege('authenticated', 'public.rls_auto_enable()', 'execute');
    ```
 
-   最后一项必须均为 `false`。Cron history 至少出现一次成功运行后，才能把定时 purge 标记为已验收。
+   两组函数权限检查都必须均为 `false`。`public.rls_auto_enable()` 是 Supabase 平台可能创建的 RLS event-trigger helper；Threadline 的 hardening migration 会在该函数存在时撤销 Data API 普通角色的调用权，但不影响数据库执行 event trigger。Cron history 至少出现一次成功运行后，才能把定时 purge 标记为已验收。
 
 6. 分别用两个账号执行 cross-account 验证：账号 A 创建项目/任务/Daily/Rhythm，账号 B 的 REST 与 Realtime 均不得看到或修改 A 的 row。
 

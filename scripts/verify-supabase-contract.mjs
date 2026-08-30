@@ -2,10 +2,14 @@
 
 import { readFile } from 'node:fs/promises';
 
-const migration = await readFile(
-  'supabase/migrations/202608300001_authoritative_workspace.sql',
-  'utf8',
-);
+const migration = (
+  await Promise.all(
+    [
+      'supabase/migrations/202608300001_authoritative_workspace.sql',
+      'supabase/migrations/202608300002_harden_platform_helpers.sql',
+    ].map((path) => readFile(path, 'utf8')),
+  )
+).join('\n');
 
 /** 要求迁移包含关键片段，错误信息直接指出缺失的审核约束。 */
 function requirePattern(pattern, description) {
@@ -62,6 +66,10 @@ for (const role of ['public', 'anon', 'authenticated'])
     ),
     `purge execute revoked from ${role}`,
   );
+requirePattern(
+  /revoke execute on function public\.rls_auto_enable\(\) from public, anon, authenticated/i,
+  'platform RLS event-trigger helper cannot be invoked through Data API roles',
+);
 for (const projectName of ['工作', '课程', 'AI研究', '生活', '其他'])
   requirePattern(new RegExp(`'${projectName}'`), `default project ${projectName}`);
 rejectPattern(/annotation_strokes/i, 'Annotation must remain local-only');
