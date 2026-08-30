@@ -234,6 +234,7 @@ export function TaskDashboard() {
   if (active === 'calendar')
     return (
       <CalendarPanel
+        key={selectedDate}
         analyticsInput={analyticsInput}
         selectedDate={selectedDate}
         onSelectDate={setSelectedDate}

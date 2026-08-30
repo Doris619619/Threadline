@@ -15,13 +15,15 @@ import {
   NotebookTabs,
   Orbit,
   Settings,
-  Sparkles,
   X,
 } from 'lucide-react';
 import { createContext, useContext, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { SidebarItem } from '@/components/ui/sidebar-item';
+import { AccountDisclosure } from '@/features/auth/account-disclosure';
+import { getUserIdentity } from '@/features/auth/user-identity';
+import { useOptionalCloudRuntime } from '@/features/auth/cloud-runtime-provider';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import { addLocalDateDays, getLocalDateKey, parseLocalDateKey } from '@/lib/local-date';
 
@@ -55,13 +57,13 @@ const navigation = [
     id: 'rhythm',
     label: '节律',
     icon: Orbit,
-    description: '私密标记个人节律，不纳入普通分析',
+    description: '私密日期标记随账号同步，不进入 analytics、报告或记录',
   },
   {
     id: 'settings',
     label: '设置',
     icon: Settings,
-    description: '桌面窗口、历史与回收站',
+    description: '账户、同步与数据边界',
   },
 ] as const;
 export type WorkspaceViewId = (typeof navigation)[number]['id'];
@@ -130,12 +132,14 @@ export function CompactWindowHeader({
 /** 渲染 Full 无边框窗口的连续拖拽区与独立的模式、最小化、关闭控制。 */
 function FullWindowChrome() {
   const {
+    isNativeDesktop,
     setMode,
     minimizeMainWindow,
     closeMainWindow,
     isMainWindowMaximized,
     toggleMainWindowMaximized,
   } = useDesktopWindow();
+  if (!isNativeDesktop) return null;
   return (
     <header className="full-window-chrome">
       <span className="full-window-caption">Threadline</span>
@@ -212,7 +216,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [active, setActive] = useState<WorkspaceViewId>('home');
   const [selectedDate, setSelectedDate] = useState<string>(getLocalDateKey);
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
-  const { isCompact, isEdgeCollapsed } = useDesktopWindow();
+  const { isCompact, isEdgeCollapsed, isNativeDesktop } = useDesktopWindow();
+  const cloudRuntime = useOptionalCloudRuntime();
   const activeItem = navigation.find((item) => item.id === active) ?? navigation[0];
   /** 切换当前工作日期。 */
   const shiftDate = (amount: number) =>
@@ -221,7 +226,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (isEdgeCollapsed) return <EdgeTab />;
   return (
     <div className={`tl-window mode-${isCompact ? 'compact' : 'full'}`}>
-      {!isCompact && <FullWindowChrome />}
+      {!isCompact && isNativeDesktop && <FullWindowChrome />}
       <div className="tl-window-body">
         {!isCompact && (
           <aside className="tl-sidebar">
@@ -288,16 +293,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 )}
               </div>
             </nav>
-            <div className="tl-profile">
-              <div className="tl-avatar" aria-hidden="true">
-                柠
-              </div>
-              <span>
-                <b>柠檬同学</b>
-                <small>专注 · 高效 · 成长</small>
-              </span>
-              <Sparkles aria-hidden="true" size={16} />
-            </div>
+            {cloudRuntime && (
+              <AccountDisclosure
+                identity={getUserIdentity(cloudRuntime.user)}
+                onOpenSettings={() => {
+                  setActive('settings');
+                  setMobileMoreOpen(false);
+                }}
+                signOut={cloudRuntime.signOut}
+              />
+            )}
           </aside>
         )}
         <main id="main-content" className="tl-main">

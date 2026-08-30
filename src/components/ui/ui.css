@@ -38,12 +38,12 @@
 }
 
 .tl-button--primary {
-  color: #fff;
+  color: var(--text-on-accent);
   background: var(--accent);
 }
 
 .tl-button--primary:hover:not(:disabled) {
-  background: #1265ec;
+  background: var(--accent-hover);
 }
 
 .tl-button--secondary {
@@ -115,13 +115,13 @@
   place-items: center;
   color: transparent;
   background: var(--surface);
-  border: 1.5px solid #bcc4d0;
+  border: 1.5px solid var(--border-strong);
   border-radius: 4px;
   transition: 160ms ease;
 }
 
 .tl-checkbox input:checked + span {
-  color: #fff;
+  color: var(--text-on-accent);
   background: var(--accent);
   border-color: var(--accent);
 }
@@ -197,5 +197,3 @@
   line-height: 1.1;
   font-weight: 650;
 }
-
-

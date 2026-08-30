@@ -7,7 +7,7 @@ import { useMemo, useState } from 'react';
 import { Surface } from '@/components/ui/surface';
 import { getMonthGrid, getMonthRange } from '@/lib/date-range';
 import { createAnalyticsResult, type AnalyticsInput } from '@/lib/analytics';
-import { addLocalDateDays, parseLocalDateKey } from '@/lib/local-date';
+import { addLocalDateDays, getLocalDateKey, parseLocalDateKey } from '@/lib/local-date';
 
 /** 将分钟显示为简短小时分钟，供日历 tooltip 和读屏文本共享。 */
 function formatMinutes(minutes: number): string {
@@ -44,6 +44,20 @@ export function CalendarPanel({
     year: 'numeric',
     month: 'long',
   }).format(parseLocalDateKey(monthAnchor));
+  /** 仅变更可见月份，不改写当前选中的业务日期。 */
+  const shiftMonth = (days: number) =>
+    setAnchor(addLocalDateDays(monthAnchor, days).slice(0, 7));
+  /** 同时将工作区选择和可见月份恢复到用户本地的今天。 */
+  const selectToday = () => {
+    const today = getLocalDateKey();
+    setAnchor(today.slice(0, 7));
+    onSelectDate(today);
+  };
+  /** 选择日期并让跨月补齐格立即成为当前可见月份。 */
+  const selectDate = (date: string) => {
+    setAnchor(date.slice(0, 7));
+    onSelectDate(date);
+  };
 
   return (
     <div className="calendar-panel" data-testid="calendar-panel">
@@ -56,19 +70,20 @@ export function CalendarPanel({
       </Surface>
       <Surface className="calendar-surface">
         <header className="calendar-toolbar">
-          <button
-            type="button"
-            aria-label="上个月"
-            onClick={() => setAnchor(addLocalDateDays(monthAnchor, -1).slice(0, 7))}
-          >
-            <ChevronLeft aria-hidden="true" size={18} />
-          </button>
+          <div className="calendar-toolbar-actions">
+            <button type="button" aria-label="上个月" onClick={() => shiftMonth(-1)}>
+              <ChevronLeft aria-hidden="true" size={18} />
+            </button>
+            <button
+              type="button"
+              className="calendar-today-button"
+              onClick={selectToday}
+            >
+              今天
+            </button>
+          </div>
           <h2>{monthLabel}</h2>
-          <button
-            type="button"
-            aria-label="下个月"
-            onClick={() => setAnchor(addLocalDateDays(monthAnchor, 32).slice(0, 7))}
-          >
+          <button type="button" aria-label="下个月" onClick={() => shiftMonth(32)}>
             <ChevronRight aria-hidden="true" size={18} />
           </button>
         </header>
@@ -96,7 +111,7 @@ export function CalendarPanel({
                 title={label}
                 data-heat={getHeatLevel(heatCount)}
                 className={`calendar-day${!inMonth ? 'is-outside' : ''}${date === selectedDate ? 'is-selected' : ''}`}
-                onClick={() => onSelectDate(date)}
+                onClick={() => selectDate(date)}
               >
                 <span>{date.slice(-2)}</span>
                 <small>

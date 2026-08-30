@@ -1,25 +1,76 @@
-/** @fileoverview 设置页：只呈现当前真实的数据、隐私、桌面与关于功能，不以占位偏好填充分类。 */
+/** @fileoverview 呈现只连接真实能力的设置概览与详情，避免以占位偏好制造无响应入口。 */
 
 'use client';
 
 import {
+  ChevronLeft,
+  ChevronRight,
+  Cloud,
   Database,
   Info,
   LogOut,
   MonitorCog,
   RotateCcw,
   ShieldCheck,
+  Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Surface } from '@/components/ui/surface';
 import { useOptionalCloudRuntime } from '@/features/auth/cloud-runtime-provider';
+import { getUserIdentity } from '@/features/auth/user-identity';
 import { TrashPanel } from '@/features/history/history-panel';
+import { threadlineAppVersion } from '@/lib/app-info';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import type { Task } from '@/types/domain';
 
-type SettingsSection = 'data' | 'privacy' | 'desktop' | 'about';
+type SettingsSection = 'overview' | 'sync' | 'privacy' | 'desktop' | 'trash' | 'about';
 
-/** 渲染收缩后的设置入口，并把回收站恢复操作保持在数据分类下。 */
+/** 渲染有明确目标的设置行；仅在真实 section 可用时成为按钮。 */
+function SettingsRow({
+  icon: Icon,
+  title,
+  description,
+  onClick,
+}: {
+  icon: typeof Cloud;
+  title: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" className="settings-row" onClick={onClick}>
+      <Icon aria-hidden="true" size={26} />
+      <span>
+        <b>{title}</b>
+        <small>{description}</small>
+      </span>
+      <ChevronRight aria-hidden="true" size={22} />
+    </button>
+  );
+}
+
+/** 进入当前设置详情并给所有详情页提供一致返回路径。 */
+function SettingsDetail({
+  title,
+  children,
+  onBack,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onBack: () => void;
+}) {
+  return (
+    <div className="settings-detail">
+      <button type="button" className="settings-back" onClick={onBack}>
+        <ChevronLeft size={18} aria-hidden="true" /> 设置
+      </button>
+      <h2>{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+/** 渲染设置中心，入口按真实 Cloud 与 Electron capability 过滤。 */
 export function SettingsPanel({
   tasks,
   onUpdateTask,
@@ -27,87 +78,86 @@ export function SettingsPanel({
   tasks: Task[];
   onUpdateTask: (task: Task) => void;
 }) {
-  const { mode, resetWindowStates } = useDesktopWindow();
+  const { isNativeDesktop, mode, resetWindowStates } = useDesktopWindow();
   const cloudRuntime = useOptionalCloudRuntime();
-  const [section, setSection] = useState<SettingsSection>('data');
-  return (
-    <div className="settings-panel" data-testid="settings-panel">
-      <nav className="settings-tabs" aria-label="设置页面">
-        <button
-          className={section === 'data' ? 'is-active' : ''}
-          onClick={() => setSection('data')}
-        >
-          <Database size={17} aria-hidden="true" /> 数据
-        </button>
-        <button
-          className={section === 'privacy' ? 'is-active' : ''}
-          onClick={() => setSection('privacy')}
-        >
-          <ShieldCheck size={17} aria-hidden="true" /> 隐私
-        </button>
-        <button
-          className={section === 'desktop' ? 'is-active' : ''}
-          onClick={() => setSection('desktop')}
-        >
-          <MonitorCog size={17} aria-hidden="true" /> 桌面
-        </button>
-        <button
-          className={section === 'about' ? 'is-active' : ''}
-          onClick={() => setSection('about')}
-        >
-          <Info size={17} aria-hidden="true" /> 关于
-        </button>
-      </nav>
-      {section === 'data' && <TrashPanel tasks={tasks} onUpdate={onUpdateTask} />}
-      {section === 'privacy' && (
+  const [section, setSection] = useState<SettingsSection>('overview');
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string>();
+  const identity = cloudRuntime ? getUserIdentity(cloudRuntime.user) : undefined;
+  /** 发起真实 Supabase 注销，并将失败保留在当前隐私页供用户恢复。 */
+  const signOut = async () => {
+    if (!cloudRuntime) return;
+    setSigningOut(true);
+    setSignOutError(undefined);
+    try {
+      await cloudRuntime.signOut();
+    } catch (cause) {
+      setSignOutError(
+        cause instanceof Error ? cause.message : '退出登录失败，请重试。',
+      );
+      setSigningOut(false);
+    }
+  };
+  if (section === 'sync')
+    return (
+      <SettingsDetail title="数据与同步" onBack={() => setSection('overview')}>
         <Surface className="settings-copy">
-          <h2>隐私边界</h2>
+          <Cloud aria-hidden="true" size={24} />
           <p>
-            任务、项目、Daily、工作站与 Rhythm 会通过同一 Supabase 账号跨设备同步。
-            Annotation 笔迹和高亮颜色只保存在当前设备，不会上传。
+            任务、项目、Daily、工作站与节律以当前 Supabase 账号为真源，并在联网后通过
+            Realtime 刷新。
           </p>
+          <p>
+            批注笔迹、高亮颜色和桌面窗口尺寸只保存在当前设备，不会上传到 Cloud 工作区。
+          </p>
+        </Surface>
+      </SettingsDetail>
+    );
+  if (section === 'privacy')
+    return (
+      <SettingsDetail title="隐私" onBack={() => setSection('overview')}>
+        <Surface className="settings-copy">
+          <ShieldCheck aria-hidden="true" size={24} />
+          <p>业务数据按账号隔离；节律随账号同步，但不进入洞察、报告或记录搜索。</p>
+          {identity && <p>当前登录账号：{identity.email}</p>}
           {cloudRuntime && (
-            <>
-              <p>当前账号：{cloudRuntime.user.email ?? cloudRuntime.user.id}</p>
-              <button
-                type="button"
-                className="tl-button tl-button--secondary"
-                onClick={() => void cloudRuntime.signOut()}
-              >
-                <LogOut size={16} aria-hidden="true" /> 退出登录
-              </button>
-            </>
+            <button
+              type="button"
+              className="tl-button tl-button--secondary"
+              disabled={signingOut}
+              onClick={() => void signOut()}
+            >
+              <LogOut size={16} aria-hidden="true" />{' '}
+              {signingOut ? '正在退出…' : '退出登录'}
+            </button>
+          )}
+          {signOutError && (
+            <p className="settings-error" role="alert">
+              {signOutError}
+            </p>
           )}
         </Surface>
-      )}
-      {section === 'desktop' && (
+      </SettingsDetail>
+    );
+  if (section === 'desktop' && isNativeDesktop)
+    return (
+      <SettingsDetail title="桌面窗口" onBack={() => setSection('overview')}>
         <Surface className="desktop-settings">
-          <header>
-            <div>
-              <h2>Windows 桌面窗口</h2>
-              <p>完整工作台、迷你今日与工作站共用主窗口；紧凑视图可收起为右侧入口。</p>
-            </div>
-            <span>
-              当前：
-              {mode === 'full'
-                ? '完整工作台'
-                : mode === 'mini-today'
-                  ? '迷你今日'
-                  : '工作站'}
-            </span>
-          </header>
+          <p>完整工作台、迷你今日与工作站共用主窗口；紧凑视图可收起为右侧入口。</p>
           <dl>
             <div>
-              <dt>完整工作台</dt>
-              <dd>显示首页、日历、项目、洞察、记录、节律与设置。</dd>
+              <dt>当前窗口</dt>
+              <dd>
+                {mode === 'full'
+                  ? '完整工作台'
+                  : mode === 'mini-today'
+                    ? '迷你今日'
+                    : '工作站'}
+              </dd>
             </div>
             <div>
-              <dt>迷你今日</dt>
-              <dd>置顶快速查看今日日程与无时间待办。</dd>
-            </div>
-            <div>
-              <dt>工作站</dt>
-              <dd>置顶显示当前推进任务的引用；不会删除原任务。</dd>
+              <dt>重置范围</dt>
+              <dd>仅清除已保存的位置和尺寸，不修改任务、工作站或同步数据。</dd>
             </div>
           </dl>
           <button
@@ -118,14 +168,23 @@ export function SettingsPanel({
             <RotateCcw size={16} aria-hidden="true" /> 重置窗口尺寸与位置
           </button>
         </Surface>
-      )}
-      {section === 'about' && (
+      </SettingsDetail>
+    );
+  if (section === 'trash')
+    return (
+      <SettingsDetail title="回收站" onBack={() => setSection('overview')}>
+        <TrashPanel tasks={tasks} onUpdate={onUpdateTask} />
+      </SettingsDetail>
+    );
+  if (section === 'about')
+    return (
+      <SettingsDetail title="关于 Threadline" onBack={() => setSection('overview')}>
         <Surface className="settings-copy">
-          <h2>关于 Threadline</h2>
+          <Info aria-hidden="true" size={24} />
           <dl>
             <div>
               <dt>版本</dt>
-              <dd>0.1.0</dd>
+              <dd>{threadlineAppVersion}</dd>
             </div>
             <div>
               <dt>平台</dt>
@@ -137,7 +196,75 @@ export function SettingsPanel({
             </div>
           </dl>
         </Surface>
+      </SettingsDetail>
+    );
+  return (
+    <div className="settings-panel" data-testid="settings-panel">
+      <div className="settings-overview-heading">
+        <h2>设置</h2>
+        <p>管理你的账号、应用信息与数据边界。</p>
+      </div>
+      {identity && (
+        <Surface className="settings-account-summary">
+          <span className="settings-avatar" aria-hidden="true">
+            {identity.avatarLabel}
+          </span>
+          <span>
+            <b>{identity.displayName}</b>
+            <small>{identity.email}</small>
+            <em>
+              <Cloud size={14} aria-hidden="true" /> 已登录 · Cloud 工作区
+            </em>
+          </span>
+        </Surface>
       )}
+      <section className="settings-group" aria-labelledby="settings-general">
+        <h3 id="settings-general">通用</h3>
+        <Surface>
+          {isNativeDesktop && (
+            <SettingsRow
+              icon={MonitorCog}
+              title="桌面窗口"
+              description="管理应用窗口模式与位置"
+              onClick={() => setSection('desktop')}
+            />
+          )}
+          <SettingsRow
+            icon={Database}
+            title="数据与同步"
+            description="了解 Cloud 工作区与本地存储"
+            onClick={() => setSection('sync')}
+          />
+        </Surface>
+      </section>
+      <section className="settings-group" aria-labelledby="settings-privacy">
+        <h3 id="settings-privacy">隐私与数据</h3>
+        <Surface>
+          <SettingsRow
+            icon={ShieldCheck}
+            title="隐私"
+            description="了解数据如何按账号同步"
+            onClick={() => setSection('privacy')}
+          />
+          <SettingsRow
+            icon={Trash2}
+            title="回收站"
+            description="管理已删除的任务"
+            onClick={() => setSection('trash')}
+          />
+        </Surface>
+      </section>
+      <section className="settings-group" aria-labelledby="settings-about">
+        <h3 id="settings-about">关于</h3>
+        <Surface>
+          <SettingsRow
+            icon={Info}
+            title="关于 Threadline"
+            description={`版本 ${threadlineAppVersion}`}
+            onClick={() => setSection('about')}
+          />
+        </Surface>
+      </section>
     </div>
   );
 }

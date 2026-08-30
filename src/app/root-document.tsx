@@ -15,7 +15,7 @@ export function ThreadlineDocument({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" data-theme="blue">
       <body>{children}</body>
     </html>
   );

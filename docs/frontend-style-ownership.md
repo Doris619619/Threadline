@@ -13,7 +13,7 @@
 - `src/styles/tokens.css`：仅 CSS custom properties。
 - `src/styles/base.css`：reset、文档根节点、全局 focus 与 reduced motion。
 - `src/components/ui/ui.css`：只服务于 `components/ui` 输出的 `.tl-*` primitive，不放页面布局。
-- `src/components/app-shell.css`：Web/PWA 导航、主内容区、日期栏与移动导航。
+- `src/components/app-shell.css`：Web/PWA 导航、主内容区、日期栏、账户 disclosure 与移动导航；disclosure 使用普通 button/popover 语义，不添加 `role="menu"`。
 - `src/styles/desktop-window.css`：Electron Full、Compact、Edge 与 `-webkit-app-region`。
 - `src/features/feature-pages.css`：Calendar、Insights、Records、Rhythm 共用的页面信息架构 selector；只有 selector 本身跨多个 feature 时才允许放入这里。
 - `src/features/<feature>/`：该 feature 自己渲染的业务 selector 和已审计的响应式规则。

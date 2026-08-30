@@ -7,7 +7,7 @@
   flex-direction: column;
   padding: 46px 10px 16px;
   border-right: 1px solid var(--border);
-  background: #fbfcfd;
+  background: var(--surface);
 }
 
 .tl-brand {
@@ -29,52 +29,141 @@
   display: none;
 }
 
+.tl-account-disclosure {
+  position: relative;
+  margin-top: auto;
+  padding-top: var(--space-4);
+}
 .tl-profile {
   display: flex;
+  width: 100%;
+  min-height: 58px;
   align-items: center;
-  gap: 8px;
-  margin-top: auto;
-  padding: 8px 4px 0;
+  gap: var(--space-3);
+  padding: var(--space-2);
   color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
 }
-
+.tl-profile:hover {
+  background: var(--surface-secondary);
+  border-color: var(--border-strong);
+}
 .tl-avatar {
   display: grid;
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   place-items: center;
-  color: white;
-  background: linear-gradient(145deg, #42536b, #9bb1d0);
-  border: 2px solid var(--surface-secondary);
+  color: var(--text-on-accent);
+  background: var(--accent);
   border-radius: 50%;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 650;
   flex-shrink: 0;
 }
-
-.tl-profile b,
-.tl-profile small {
-  display: block;
+.tl-avatar--large {
+  width: 48px;
+  height: 48px;
+  font-size: 1.15rem;
 }
-
+.tl-profile-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
 .tl-profile b {
   color: var(--text-primary);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 650;
   line-height: 1.2;
 }
-
 .tl-profile small {
-  margin-top: 1px;
-  font-size: 0.625rem;
+  overflow: hidden;
   color: var(--text-tertiary);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-.tl-profile svg {
+.tl-profile-chevron {
   margin-left: auto;
   color: var(--text-tertiary);
-  flex-shrink: 0;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+.tl-account-popover {
+  position: absolute;
+  z-index: 40;
+  bottom: calc(100% + var(--space-3));
+  left: 0;
+  width: min(336px, calc(100vw - 32px));
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-popover);
+}
+.tl-account-popover header {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.tl-account-popover header > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+.tl-account-popover header small {
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+.tl-account-popover header em {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--success);
+  font-size: 0.78rem;
+  font-style: normal;
+}
+.tl-account-actions {
+  display: grid;
+  padding: var(--space-2);
+  gap: 2px;
+}
+.tl-account-actions button {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+  color: var(--text-primary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.tl-account-actions button:hover:not(:disabled) {
+  background: var(--surface-secondary);
+}
+.tl-account-actions button.is-danger {
+  color: var(--danger);
+}
+.tl-account-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.tl-account-error {
+  margin: 0;
+  padding: 0 var(--space-5) var(--space-4);
+  color: var(--danger);
+  font-size: 0.78rem;
 }
 
 .tl-main {
@@ -142,5 +231,3 @@
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-
-

@@ -1,4 +1,4 @@
-/** @fileoverview 节律页：仅在本地保存私密日期标记，刻意不接入普通 analytics、报告或记录搜索。 */
+/** @fileoverview 节律页：同步私密日期标记，刻意不接入 analytics、报告或 Records。 */
 
 'use client';
 
@@ -9,7 +9,7 @@ import { useRhythmState } from '@/features/rhythm/rhythm-state';
 import { getMonthGrid } from '@/lib/date-range';
 import { addLocalDateDays } from '@/lib/local-date';
 
-/** 渲染本地私密节律标记月历，并允许用户按日期切换标记。 */
+/** 渲染随账号同步的私密节律月历，并允许用户按日期切换标记。 */
 export function RhythmPanel({ selectedDate }: { selectedDate: string }) {
   const [anchor, setAnchor] = useState(selectedDate.slice(0, 7));
   const { marks, toggleMark } = useRhythmState();
@@ -21,7 +21,7 @@ export function RhythmPanel({ selectedDate }: { selectedDate: string }) {
         <ShieldCheck aria-hidden="true" size={22} />
         <div>
           <h2>节律</h2>
-          <p>日期标记只保存在本设备，默认不会进入洞察、报告或记录搜索。</p>
+          <p>日期标记随账号同步，但不会进入洞察、报告或记录搜索。</p>
         </div>
       </Surface>
       <Surface className="rhythm-calendar">

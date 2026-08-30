@@ -71,9 +71,13 @@ async function openRecords(page: Page) {
   await openWorkspaceSection(page, '记录');
 }
 
-/** 进入设置的数据分类，供回收站恢复与保留期流程复用。 */
+/** 进入设置概览中的真实回收站入口，供恢复与保留期流程复用。 */
 async function openSettingsData(page: Page) {
   await openWorkspaceSection(page, '设置');
+  await page
+    .getByTestId('settings-panel')
+    .getByRole('button', { name: /^回收站/ })
+    .click();
 }
 
 /** 根据当前断点选择可见的桌面侧栏或移动底栏，不依赖重复导航 DOM 的角色查询顺序。 */
@@ -115,74 +119,57 @@ test('gives every workspace destination a distinct working page', async ({ page 
   await openWorkspaceSection(page, '设置');
   await expect(page.getByTestId('settings-panel')).toBeVisible();
   await expect(
-    page.getByRole('heading', { name: '回收站', exact: true }),
+    page
+      .getByTestId('settings-panel')
+      .getByRole('heading', { name: '设置', exact: true }),
   ).toBeVisible();
+  await page
+    .getByTestId('settings-panel')
+    .getByRole('button', { name: /^回收站/ })
+    .click();
+  await expect(page.locator('.trash-panel')).toBeVisible();
 });
 
-test('uses direct three-state entries and keeps workstation membership independent from tasks', async ({
+test('keeps Web and PWA in the full workspace even when stale desktop preferences exist', async ({
   page,
 }) => {
-  await expect(
-    page.getByRole('button', { name: '迷你今日', exact: true }),
-  ).toBeVisible();
-  await expect(page.getByRole('button', { name: '工作站', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: '窗口模式' })).toHaveCount(0);
+  await page.evaluate(() => {
+    window.localStorage.setItem(
+      'threadline.desktop-mode.v3',
+      JSON.stringify('mini-today'),
+    );
+    window.localStorage.setItem(
+      'threadline.desktop-compact-presentation.v3',
+      JSON.stringify('edge-collapsed'),
+    );
+  });
+  await page.reload();
 
-  await page.getByRole('button', { name: '迷你今日', exact: true }).click();
-  await expect(page.getByTestId('mini-today-panel')).toBeVisible();
-  await expect(page.getByRole('heading', { name: '今日日程' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '无时间待办' })).toBeVisible();
-  await page.getByRole('button', { name: '加入工作站邮件处理' }).click();
-  await page.getByRole('button', { name: '工作站', exact: true }).click();
-  await expect(page.getByTestId('workstation-panel')).toContainText('邮件处理');
-  await page.getByRole('button', { name: '从工作站移除邮件处理' }).click();
-  await expect(page.getByTestId('workstation-panel')).not.toContainText('邮件处理');
-  await page.getByRole('button', { name: '打开完整工作台' }).click();
-  await expect(page.getByRole('checkbox', { name: '完成邮件处理' })).toBeVisible();
+  await expect(page.locator('.dashboard')).toBeVisible();
+  await expect(page.locator('.full-window-chrome')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '迷你今日', exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole('button', { name: '工作站', exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole('button', { name: '最小化窗口' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '最大化窗口' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '关闭窗口' })).toHaveCount(0);
 });
 
-test('clears only workstation references and restores the compact view from edge tab', async ({
+test('keeps the calendar anchor synchronized with selected dates and today', async ({
   page,
 }) => {
-  await page.getByRole('button', { name: '工作站', exact: true }).click();
-  await page.getByRole('button', { name: '今日', exact: true }).click();
-  await page.getByRole('button', { name: '加入工作站邮件处理' }).click();
-  await page.getByRole('button', { name: '工作站', exact: true }).click();
-  await page.getByRole('button', { name: '清空', exact: true }).click();
-  await expect(page.getByTestId('workstation-panel')).not.toContainText('邮件处理');
-  await page.getByRole('button', { name: '打开完整工作台' }).click();
-  await expect(page.getByRole('checkbox', { name: '完成邮件处理' })).toBeVisible();
-  await page.getByRole('button', { name: '迷你今日', exact: true }).click();
-  await page.getByRole('button', { name: '收起', exact: true }).click();
-  const edgeTab = page.getByRole('button', { name: '展开迷你今日' });
-  await expect(edgeTab).toBeVisible();
-  await edgeTab.hover();
-  await expect(page.getByTestId('mini-today-panel')).toBeVisible();
-});
+  await openWorkspaceSection(page, '日历');
+  await page.getByRole('button', { name: '上个月' }).click();
+  await expect(page.getByRole('heading', { name: '2026年7月' })).toBeVisible();
 
-test('keeps compact labels in one line and creates tasks from both Mini add controls', async ({
-  page,
-}) => {
-  await page.getByRole('button', { name: '迷你今日', exact: true }).click();
-  const scheduleSection = page.locator('.compact-section').first();
-  const quickSection = page.locator('.compact-section').nth(1);
+  await page.getByRole('gridcell', { name: /^2026-08-01：/ }).click();
+  await expect(page.getByRole('heading', { name: '2026年8月' })).toBeVisible();
 
-  await scheduleSection.getByRole('button', { name: '添加', exact: true }).click();
-  await page.getByLabel('紧凑新增开始时间').fill('09:00');
-  await page.getByLabel('紧凑新增结束时间').fill('10:00');
-  await page.getByLabel('紧凑新增日程任务').fill('紧凑日程任务');
-  await page.getByRole('button', { name: '保存日程任务' }).click();
-  await expect(scheduleSection).toContainText('紧凑日程任务');
-
-  await quickSection.getByRole('button', { name: '添加', exact: true }).click();
-  await page.getByLabel('紧凑新增待办任务').fill('紧凑待办任务');
-  await page.getByRole('button', { name: '保存待办任务' }).click();
-  await expect(quickSection).toContainText('紧凑待办任务');
-
-  const label = scheduleSection.locator('.compact-task-label').first();
-  await expect(label).toHaveCSS('display', 'flex');
-  await expect(label.locator('.tl-project-tag')).toBeVisible();
-  await expect(label.locator('strong')).toBeVisible();
+  await page.getByRole('button', { name: '今天' }).click();
+  await expect(page.getByRole('heading', { name: '2026年8月' })).toBeVisible();
 });
 
 test.describe('desktop task drag scheduling', () => {

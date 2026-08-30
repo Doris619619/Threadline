@@ -9,6 +9,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react';
 import { usePersistentState } from '@/hooks/use-persistent-state';
@@ -21,8 +22,10 @@ import {
   type WindowStateConfig,
 } from '@/lib/desktop-window-policy';
 import { getMainDesktopBridge } from '@/lib/desktop-bridge';
+import { resolveDesktopWindowCapability } from '@/lib/desktop-window-capability';
 
 type DesktopWindowContextValue = {
+  isNativeDesktop: boolean;
   mode: DesktopViewMode;
   presentation: CompactPresentation;
   setMode: (mode: DesktopViewMode) => Promise<void>;
@@ -40,6 +43,21 @@ type DesktopWindowContextValue = {
   isDesktopReady: boolean;
 };
 const DesktopWindowContext = createContext<DesktopWindowContextValue | null>(null);
+
+/** Electron preload 在当前 renderer 生命周期内不可热插拔，因此不需要实际事件订阅。 */
+function subscribeToDesktopBridge() {
+  return () => undefined;
+}
+
+/** 仅通过 Main Renderer bridge 存在性判定原生桌面能力。 */
+function getNativeDesktopSnapshot(): boolean {
+  return Boolean(getMainDesktopBridge());
+}
+
+/** SSR 和首次 hydration 均先保持 Web/PWA 完整工作台，随后读取客户端 bridge。 */
+function getServerDesktopSnapshot(): boolean {
+  return false;
+}
 
 /** 读取桌面视图状态；必须位于 DesktopWindowProvider 内。 */
 export function useDesktopWindow(): DesktopWindowContextValue {
@@ -60,6 +78,11 @@ function normalizeCompactMode(value: unknown): CompactViewMode {
 
 /** 提供 Web/PWA 业务状态和窄 Electron bridge 之间的单向桌面状态同步。 */
 export function DesktopWindowProvider({ children }: { children: ReactNode }) {
+  const isNativeDesktop = useSyncExternalStore(
+    subscribeToDesktopBridge,
+    getNativeDesktopSnapshot,
+    getServerDesktopSnapshot,
+  );
   const [mode, setModeState, modeHydrated] = usePersistentState<DesktopViewMode>(
     'threadline.desktop-mode.v3',
     'full',
@@ -99,13 +122,7 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
       nextWindowStates: Partial<Record<DesktopViewMode, WindowStateConfig>>,
     ) => {
       const bridge = getMainDesktopBridge();
-      if (!bridge) {
-        setModeState(nextMode);
-        setPresentation(nextPresentation);
-        setLastCompactMode(nextLastCompactMode);
-        setWindowStates(nextWindowStates);
-        return;
-      }
+      if (!bridge) return;
       const requestId = ++requestIdRef.current;
       const result = await bridge.transitionWindow({
         requestId,
@@ -129,7 +146,7 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     [setLastCompactMode, setModeState, setPresentation, setWindowStates],
   );
 
-  /** 切换业务 view；无 bridge 的浏览器只更新业务状态。 */
+  /** 切换仅由 Electron Main 支持的业务窗口 view。 */
   const setMode = useCallback(
     async (next: DesktopViewMode) => {
       if (next === mode && presentation === 'expanded') return;
@@ -142,7 +159,7 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     },
     [lastCompactMode, mode, presentation, transition, windowStates],
   );
-  /** 收起紧凑 view；Web/PWA 只保存 presentation，不调用任何原生 API。 */
+  /** 收起 Electron 紧凑 view 为受限的原生 Edge 窗口。 */
   const collapseCompactView = useCallback(async () => {
     if (mode !== 'full') await transition(mode, 'edge-collapsed', mode, windowStates);
   }, [mode, transition, windowStates]);
@@ -156,17 +173,17 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     async () => transition(mode, presentation, lastCompactMode, {}),
     [lastCompactMode, mode, presentation, transition],
   );
-  /** 请求 Electron Main 关闭窗口；Web/PWA 没有原生窗口时安全无操作。 */
+  /** 请求 Electron Main 关闭受管窗口。 */
   const closeMainWindow = useCallback(async () => {
     const bridge = getMainDesktopBridge();
     if (bridge) await bridge.closeMainWindow();
   }, []);
-  /** 请求 Electron Main 最小化窗口；Web/PWA 没有原生窗口时安全无操作。 */
+  /** 请求 Electron Main 最小化受管窗口。 */
   const minimizeMainWindow = useCallback(async () => {
     const bridge = getMainDesktopBridge();
     if (bridge) await bridge.minimizeMainWindow();
   }, []);
-  /** 切换 Main 的原生最大化；Web/PWA 无 native window 时保持无操作。 */
+  /** 切换 Electron Main 的原生最大化状态。 */
   const toggleMainWindowMaximized = useCallback(async () => {
     const bridge = getMainDesktopBridge();
     if (bridge) setIsMainWindowMaximized(await bridge.toggleMainWindowMaximized());
@@ -280,11 +297,14 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     });
   }, [setLastCompactMode, setModeState, setPresentation]);
 
+  const { mode: effectiveMode, presentation: effectivePresentation } =
+    resolveDesktopWindowCapability(isNativeDesktop, mode, presentation);
   return (
     <DesktopWindowContext.Provider
       value={{
-        mode,
-        presentation,
+        isNativeDesktop,
+        mode: effectiveMode,
+        presentation: effectivePresentation,
         setMode,
         collapseCompactView,
         restoreCompactView,
@@ -293,10 +313,10 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
         closeMainWindow,
         isMainWindowMaximized,
         toggleMainWindowMaximized,
-        isMiniToday: mode === 'mini-today',
-        isWorkstation: mode === 'workstation',
-        isCompact: mode !== 'full',
-        isEdgeCollapsed: presentation === 'edge-collapsed',
+        isMiniToday: effectiveMode === 'mini-today',
+        isWorkstation: effectiveMode === 'workstation',
+        isCompact: effectiveMode !== 'full',
+        isEdgeCollapsed: effectivePresentation === 'edge-collapsed',
         isDesktopReady,
       }}
     >
