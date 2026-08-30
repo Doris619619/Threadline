@@ -1,5 +1,7 @@
 <!-- 文件用途：记录首页 UI 视觉重构参考要求与设计对齐规范。 -->
 
+> 当前实现（2026-08-30）：桌面「今日日程」保持独立的预计/实际两列网格。手机首页不再压缩该表格，改为纵向任务列表（标题 + 项目/时间/时长 metadata）。本文件其余章节保留当时的桌面表格设计约束。
+
 你现在要修改的是我当前的 **Threadline** 项目。
 
 我已经附上了一张首页 UI 参考图。
@@ -218,11 +220,11 @@ Header
 
 不要让：
 
-* Sidebar
-* 顶部 Header
-* Summary
-* Card padding
-* 大量空白
+- Sidebar
+- 顶部 Header
+- Summary
+- Card padding
+- 大量空白
 
 抢走主要工作区域的空间。
 
@@ -253,11 +255,11 @@ Checkbox
 
 不要出现：
 
-* checkbox 每行位置不同
-* 项目名位置漂移
-* 任务名起始位置不同
-* 预计时间不对齐
-* 实际时间不对齐
+- checkbox 每行位置不同
+- 项目名位置漂移
+- 任务名起始位置不同
+- 预计时间不对齐
+- 实际时间不对齐
 
 整个列表应该像一个经过认真设计的桌面 productivity app，而不是普通 HTML table。
 
@@ -291,10 +293,10 @@ Checkbox
 
 项目标签应该：
 
-* 轻
-* 紧凑
-* 有适度颜色区分
-* 不抢任务名称的视觉权重
+- 轻
+- 紧凑
+- 有适度颜色区分
+- 不抢任务名称的视觉权重
 
 ---
 
@@ -369,10 +371,10 @@ Daily Group
 
 优先：
 
-* 调整左右区域比例
-* 减少次要信息
-* 使用 ellipsis
-* 把 Daily 移到下一行
+- 调整左右区域比例
+- 减少次要信息
+- 使用 ellipsis
+- 把 Daily 移到下一行
 
 也不要把中文任务名压成竖排。
 
@@ -478,11 +480,11 @@ Secondary Metadata
 
 但是：
 
-* 不要太宽
-* 导航 item 不要太高
-* icon 与文字严格对齐
-* active background 要克制
-* 不要让 Sidebar 抢主内容空间
+- 不要太宽
+- 导航 item 不要太高
+- icon 与文字严格对齐
+- active background 要克制
+- 不要让 Sidebar 抢主内容空间
 
 这是辅助导航，不是首页视觉主体。
 
@@ -583,19 +585,19 @@ Apple productivity apps
 
 不要加入：
 
-* 大面积渐变
-* 玻璃拟态
-* 霓虹色
-* Emoji 装饰
-* 巨型圆角
-* 巨型阴影
-* 花哨动画
-* AI 科技感
-* Dashboard 风格
-* 大块彩色背景
-* 无意义装饰
-* 每个元素都套 Card
-* 大量随机颜色
+- 大面积渐变
+- 玻璃拟态
+- 霓虹色
+- Emoji 装饰
+- 巨型圆角
+- 巨型阴影
+- 花哨动画
+- AI 科技感
+- Dashboard 风格
+- 大块彩色背景
+- 无意义装饰
+- 每个元素都套 Card
+- 大量随机颜色
 
 不要为了“重新设计”而把这张参考图完全推翻。
 
@@ -616,13 +618,13 @@ Responsive Design
 
 不要随意：
 
-* 删除功能
-* 改数据结构
-* 改任务逻辑
-* 改 Daily 业务规则
-* 改 Electron 桌面壳架构
-* 改现有数据
-* 重写整个项目
+- 删除功能
+- 改数据结构
+- 改任务逻辑
+- 改 Daily 业务规则
+- 改 Electron 桌面壳架构
+- 改现有数据
+- 重写整个项目
 
 ---
 
@@ -630,16 +632,16 @@ Responsive Design
 
 修改前直接读取：
 
-* 首页组件
-* Daily 组件
-* Schedule 组件
-* Sidebar
-* Summary
-* globals.css
-* Tailwind / CSS 配置
-* responsive layout
-* typography
-* Grid / Flexbox
+- 首页组件
+- Daily 组件
+- Schedule 组件
+- Sidebar
+- Summary
+- globals.css
+- Tailwind / CSS 配置
+- responsive layout
+- typography
+- Grid / Flexbox
 
 找到当前真实实现。
 
@@ -665,21 +667,21 @@ npm build 成功
 
 ## 今日日程
 
-* 时间列是否对齐
-* Checkbox 是否对齐
-* 项目列是否对齐
-* 任务列是否对齐
-* **预计列是否独立**
-* **实际列是否独立**
-* 每行是否还出现“预计”“实际”重复文字
+- 时间列是否对齐
+- Checkbox 是否对齐
+- 项目列是否对齐
+- 任务列是否对齐
+- **预计列是否独立**
+- **实际列是否独立**
+- 每行是否还出现“预计”“实际”重复文字
 
 ## Daily
 
-* 是否有中文竖排
-* Group / Item 层级是否清楚
-* Checkbox 是否对齐
-* 时间是否对齐
-* 信息密度是否合理
+- 是否有中文竖排
+- Group / Item 层级是否清楚
+- Checkbox 是否对齐
+- 时间是否对齐
+- 信息密度是否合理
 
 ## 整体
 

@@ -123,7 +123,7 @@ docs/                    PRD、目标、工程协作规范、桌面交互与 PR 
 
 ## 数据与交互约定
 
-前端结构约定见 [前端样式与模块归属](docs/frontend-style-ownership.md)：`src/app/globals.css` 只保留 Tailwind 和有序 CSS 入口，任务首页由展示组件及 data/create/workflow/drag/resize 等职责 Hook 组成。新增样式和任务交互前应先按该文档定位 owner，避免跨功能改动。
+前端结构约定见 [前端样式与模块归属](docs/frontend-style-ownership.md)：`src/app/globals.css` 只保留 Tailwind 和有序 CSS 入口，任务首页由展示组件及 data/create/workflow/drag/resize 等职责 Hook 组成。桌面今日日程为七列网格，手机为同一数据源下的纵向任务列表。新增样式和任务交互前应先按该文档定位 owner，避免跨功能改动。
 
 - 普通任务只有“重要 / 不重要”两档待安排优先级。
 - 删除进入回收站，恢复后回到当天；放弃、待安排、移期保留为可复盘历史。
