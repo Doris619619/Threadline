@@ -45,9 +45,19 @@
 
    select has_function_privilege('anon', 'public.rls_auto_enable()', 'execute'),
           has_function_privilege('authenticated', 'public.rls_auto_enable()', 'execute');
+
+   select c.relname,
+          has_table_privilege('authenticated', c.oid, 'select') as authenticated_select,
+          has_table_privilege('authenticated', c.oid, 'insert') as authenticated_insert,
+          has_table_privilege('authenticated', c.oid, 'update') as authenticated_update,
+          has_table_privilege('anon', c.oid, 'select') as anon_select
+   from pg_class as c
+   join pg_namespace as n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind = 'r'
+   order by c.relname;
    ```
 
-   两组函数权限检查都必须均为 `false`。`public.rls_auto_enable()` 是 Supabase 平台可能创建的 RLS event-trigger helper；Threadline 的 hardening migration 会在该函数存在时撤销 Data API 普通角色的调用权，但不影响数据库执行 event trigger。Cron history 至少出现一次成功运行后，才能把定时 purge 标记为已验收。
+   两组函数权限检查都必须均为 `false`。`public.rls_auto_enable()` 是 Supabase 平台可能创建的 RLS event-trigger helper；Threadline 的 hardening migration 会在该函数存在时撤销 Data API 普通角色的调用权，但不影响数据库执行 event trigger。业务表必须按 Repository/RPC 的实际读写显示 `authenticated` 权限，`anon_select` 必须始终为 `false`；RLS 继续负责 owner row 隔离，不能替代表级 GRANT。Cron history 至少出现一次成功运行后，才能把定时 purge 标记为已验收。
 
 6. 分别用两个账号执行 cross-account 验证：账号 A 创建项目/任务/Daily/Rhythm，账号 B 的 REST 与 Realtime 均不得看到或修改 A 的 row。
 

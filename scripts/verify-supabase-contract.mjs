@@ -7,6 +7,7 @@ const migration = (
     [
       'supabase/migrations/202608300001_authoritative_workspace.sql',
       'supabase/migrations/202608300002_harden_platform_helpers.sql',
+      'supabase/migrations/202608300003_fix_authenticated_runtime_privileges.sql',
     ].map((path) => readFile(path, 'utf8')),
   )
 ).join('\n');
@@ -70,6 +71,46 @@ requirePattern(
   /revoke execute on function public\.rls_auto_enable\(\) from public, anon, authenticated/i,
   'platform RLS event-trigger helper cannot be invoked through Data API roles',
 );
+for (const table of [
+  'workspace_profiles',
+  'projects',
+  'tasks',
+  'daily_templates',
+  'daily_template_items',
+  'daily_entries',
+  'daily_entry_items',
+  'daily_history_entries',
+  'history_events',
+  'daily_close_records',
+  'workstation_entries',
+  'rhythm_marks',
+])
+  requirePattern(
+    new RegExp(`grant [^;]+ on table public\\.${table} to authenticated`, 'i'),
+    `authenticated runtime table privileges for ${table}`,
+  );
+for (const rpc of [
+  'initialize_workspace\\(\\)',
+  'ensure_daily_entries_for_date\\(date\\)',
+  'record_daily_history\\(uuid, date, text\\)',
+  'create_daily_template_with_entry\\(uuid, uuid, text, date\\)',
+  'transition_task\\(uuid, text, date\\)',
+  'add_workstation_task\\(uuid\\)',
+  'reorder_workstation\\(uuid\\[\\]\\)',
+  'close_day\\(date, jsonb, jsonb\\)',
+]) {
+  requirePattern(
+    new RegExp(`grant execute on function public\\.${rpc} to authenticated`, 'i'),
+    `authenticated RPC execute for ${rpc}`,
+  );
+  requirePattern(
+    new RegExp(
+      `revoke all privileges on function public\\.${rpc}\\s+from public, anon, authenticated`,
+      'i',
+    ),
+    `anonymous RPC execute revoked for ${rpc}`,
+  );
+}
 for (const projectName of ['工作', '课程', 'AI研究', '生活', '其他'])
   requirePattern(new RegExp(`'${projectName}'`), `default project ${projectName}`);
 rejectPattern(/annotation_strokes/i, 'Annotation must remain local-only');
