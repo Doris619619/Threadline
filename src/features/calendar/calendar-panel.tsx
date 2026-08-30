@@ -61,7 +61,7 @@ export function CalendarPanel({
 
   return (
     <div className="calendar-panel" data-testid="calendar-panel">
-      <Surface className="calendar-intro">
+      <Surface className="calendar-intro" variant="flat">
         <div>
           <h2>项目投入热力</h2>
           <p>颜色表示当天实际有记录投入时间的去重项目数，不表示完成任务数。</p>
