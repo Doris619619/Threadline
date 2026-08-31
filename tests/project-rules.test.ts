@@ -14,14 +14,14 @@ const project = (overrides: Partial<Project>): Project => ({
 });
 
 describe('project fallback rules', () => {
-  it('uses the owner fallback UUID when the preferred project is unavailable', () => {
+  it('rejects an unavailable explicit project instead of silently falling back', () => {
     const fallback = project({ id: crypto.randomUUID(), isFallback: true });
     expect(
       resolveActiveProject(
         [project({ status: 'archived' }), fallback],
         crypto.randomUUID(),
       ),
-    ).toBe(fallback);
+    ).toBeUndefined();
   });
 
   it('never returns an archived fallback project', () => {

@@ -1,10 +1,11 @@
--- 文件用途：用 pgTAP 验证 Threadline RLS、Daily、工作站、回收站与权限边界。
+-- 文件用途：用 pgTAP 验证 Threadline RLS、任务投入账本、Daily、工作站、回收站与权限边界。
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(82);
+select plan(105);
 
 select has_table('public', 'daily_history_entries', 'Daily history has an explicit table');
+select has_table('public', 'task_time_entries', 'Task actual time has an immutable date-bound table');
 select has_table('public', 'rhythm_marks', 'Rhythm is cloud-backed');
 select hasnt_table('public', 'annotation_strokes', 'Annotations stay local-only');
 select has_function('public', 'initialize_workspace', array[]::text[], 'Workspace initializer exists');
@@ -60,20 +61,32 @@ select table_privs_are(
   'Authenticated Repository can read and save tasks without physical delete'
 );
 select table_privs_are(
-  'public', 'daily_templates', 'authenticated', array['SELECT', 'INSERT'],
-  'Authenticated Daily commands can read and create templates'
+  'public', 'task_time_entries', 'authenticated', array['SELECT'],
+  'Authenticated analytics can only read trigger-maintained task time entries'
+);
+select function_privs_are(
+  'public', 'capture_task_actual_time', array[]::text[],
+  'authenticated', array[]::text[], 'Authenticated clients cannot execute the task-time trigger function'
+);
+select function_privs_are(
+  'public', 'capture_task_actual_time', array[]::text[],
+  'anon', array[]::text[], 'Anonymous clients cannot execute the task-time trigger function'
 );
 select table_privs_are(
-  'public', 'daily_template_items', 'authenticated', array['SELECT', 'INSERT'],
-  'Authenticated Daily flow can read and create template items'
+  'public', 'daily_templates', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
+  'Authenticated Daily commands can read, create, and update templates'
+);
+select table_privs_are(
+  'public', 'daily_template_items', 'authenticated', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'],
+  'Authenticated Daily flow can atomically replace template items'
 );
 select table_privs_are(
   'public', 'daily_entries', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
   'Authenticated Daily flow can materialize and edit date entries'
 );
 select table_privs_are(
-  'public', 'daily_entry_items', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
-  'Authenticated Daily flow can materialize and edit date items'
+  'public', 'daily_entry_items', 'authenticated', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'],
+  'Authenticated Daily flow can atomically replace date items'
 );
 select table_privs_are(
   'public', 'daily_history_entries', 'authenticated', array['SELECT', 'INSERT'],
@@ -99,7 +112,7 @@ select is(
   (
     select count(*)
     from unnest(array[
-      'workspace_profiles', 'projects', 'tasks', 'daily_templates',
+      'workspace_profiles', 'projects', 'tasks', 'task_time_entries', 'daily_templates',
       'daily_template_items', 'daily_entries', 'daily_entry_items',
       'daily_history_entries', 'history_events', 'daily_close_records',
       'workstation_entries', 'rhythm_marks'
@@ -145,6 +158,22 @@ select function_privs_are(
   'public', 'close_day', array['date', 'jsonb', 'jsonb'],
   'authenticated', array['EXECUTE'], 'Authenticated can close day'
 );
+select function_privs_are(
+  'public', 'save_daily_entry_bundle', array['uuid', 'uuid', 'text', 'boolean', 'integer', 'text', 'jsonb'],
+  'authenticated', array['EXECUTE'], 'Authenticated can atomically save a Daily entry bundle'
+);
+select function_privs_are(
+  'public', 'update_daily_template_bundle', array['uuid', 'uuid', 'uuid', 'text', 'jsonb', 'jsonb'],
+  'authenticated', array['EXECUTE'], 'Authenticated can atomically update a Daily template and current entry'
+);
+select function_privs_are(
+  'public', 'daily_entry_total_actual', array['uuid'],
+  'authenticated', array['EXECUTE'], 'Authenticated can calculate an owner-scoped Daily total'
+);
+select function_privs_are(
+  'public', 'capture_daily_close_project_minutes', array[]::text[],
+  'authenticated', array[]::text[], 'Authenticated clients cannot execute the close-total trigger function'
+);
 
 select function_privs_are(
   'public', 'initialize_workspace', array[]::text[],
@@ -177,6 +206,22 @@ select function_privs_are(
 select function_privs_are(
   'public', 'close_day', array['date', 'jsonb', 'jsonb'],
   'anon', array[]::text[], 'Anonymous clients cannot close day'
+);
+select function_privs_are(
+  'public', 'save_daily_entry_bundle', array['uuid', 'uuid', 'text', 'boolean', 'integer', 'text', 'jsonb'],
+  'anon', array[]::text[], 'Anonymous clients cannot save a Daily entry bundle'
+);
+select function_privs_are(
+  'public', 'update_daily_template_bundle', array['uuid', 'uuid', 'uuid', 'text', 'jsonb', 'jsonb'],
+  'anon', array[]::text[], 'Anonymous clients cannot update a Daily template and current entry'
+);
+select function_privs_are(
+  'public', 'daily_entry_total_actual', array['uuid'],
+  'anon', array[]::text[], 'Anonymous clients cannot calculate Daily totals'
+);
+select function_privs_are(
+  'public', 'capture_daily_close_project_minutes', array[]::text[],
+  'anon', array[]::text[], 'Anonymous clients cannot execute the close-total trigger function'
 );
 
 insert into auth.users(id, email)
@@ -360,20 +405,105 @@ select is(
   'Close day does not overwrite a manual record'
 );
 
-insert into public.tasks(id, project_id, title, scheduled_date, completed, status)
+insert into public.tasks(
+  id, project_id, title, scheduled_date, actual_duration_minutes, completed, status
+)
 select
   values_to_insert.id,
   projects.id,
   values_to_insert.title,
   '2026-08-30',
+  values_to_insert.actual_duration_minutes,
   false,
   'active'
 from public.projects as projects
 cross join (values
-  ('40000000-0000-0000-0000-000000000004'::uuid, 'Task A'),
-  ('41000000-0000-0000-0000-000000000004'::uuid, 'Task B')
-) as values_to_insert(id, title)
+  ('40000000-0000-0000-0000-000000000004'::uuid, 'Task A', 37),
+  ('41000000-0000-0000-0000-000000000004'::uuid, 'Task B', 0)
+) as values_to_insert(id, title, actual_duration_minutes)
 where projects.owner_id = auth.uid() and projects.position = 0;
+
+reset role;
+alter table public.tasks disable trigger tasks_capture_actual_time;
+insert into public.tasks(
+  id, owner_id, project_id, title, scheduled_date,
+  actual_duration_minutes, completed, status
+)
+select
+  '42000000-0000-0000-0000-000000000004',
+  '10000000-0000-0000-0000-000000000001',
+  projects.id,
+  'Legacy undated actual',
+  null,
+  100,
+  false,
+  'active'
+from public.projects as projects
+where projects.owner_id = '10000000-0000-0000-0000-000000000001'
+  and projects.position = 0;
+alter table public.tasks enable trigger tasks_capture_actual_time;
+update public.tasks
+set scheduled_date = '2026-09-03'
+where id = '42000000-0000-0000-0000-000000000004';
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000001',
+  true
+);
+select throws_ok(
+  $$update public.tasks
+    set actual_duration_minutes = 90
+    where id = '42000000-0000-0000-0000-000000000004'$$,
+  '22023',
+  'TASK_ACTUAL_BELOW_FIXED_HISTORY',
+  'Reducing a legacy unattributed aggregate cannot invent a current-date ledger bucket'
+);
+select is(
+  (select actual_duration_minutes from public.tasks where id = '42000000-0000-0000-0000-000000000004'),
+  100,
+  'Rejected legacy correction preserves the aggregate actual minutes'
+);
+select is(
+  (select count(*) from public.task_time_entries where task_id = '42000000-0000-0000-0000-000000000004'),
+  0::bigint,
+  'Rejected legacy correction keeps unknown historical minutes unattributed'
+);
+
+reset role;
+select throws_ok(
+  $$insert into public.task_time_entries(owner_id, task_id, entry_date, project_id, minutes)
+    values (
+      '20000000-0000-0000-0000-000000000002',
+      '40000000-0000-0000-0000-000000000004',
+      '2026-09-01',
+      '21000000-0000-0000-0000-000000000002',
+      91
+    )$$,
+  '23503',
+  null,
+  'Composite owner-task foreign key rejects a task owned by another account'
+);
+select throws_ok(
+  $$insert into public.task_time_entries(owner_id, task_id, entry_date, project_id, minutes)
+    values (
+      '10000000-0000-0000-0000-000000000001',
+      '40000000-0000-0000-0000-000000000004',
+      '2026-09-02',
+      '21000000-0000-0000-0000-000000000002',
+      92
+    )$$,
+  '23503',
+  null,
+  'Composite owner-project foreign key rejects a project owned by another account'
+);
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000001',
+  true
+);
 
 select lives_ok(
   $$select public.add_workstation_task('40000000-0000-0000-0000-000000000004')$$,
@@ -495,6 +625,18 @@ select is(
   2::bigint,
   'Physical task deletion retains history snapshot'
 );
+select is(
+  (
+    select count(*)
+    from public.task_time_entries
+    where owner_id = '10000000-0000-0000-0000-000000000001'
+      and entry_date = '2026-08-30'
+      and minutes = 37
+      and task_id is null
+  ),
+  1::bigint,
+  'Physical task deletion retains dated actual time while clearing task_id'
+);
 
 set local role authenticated;
 select set_config(
@@ -506,7 +648,7 @@ select lives_ok(
   $$select public.close_day(
     '2026-08-30',
     '[{"task_id":"41000000-0000-0000-0000-000000000004","action":"abandoned"}]'::jsonb,
-    '{}'::jsonb
+    '{"forged-project":999999}'::jsonb
   )$$,
   'Close day can abandon unfinished work atomically'
 );
@@ -518,6 +660,59 @@ select is(
   ),
   'abandoned:2026-08-30:true',
   'Close-day abandonment retains its analytics date without inventing postponement'
+);
+select is(
+  (
+    select project_minutes
+    from public.daily_close_records
+    where owner_id = auth.uid() and close_date = '2026-08-30'
+  ),
+  (
+    select coalesce(jsonb_object_agg(totals.project_id::text, totals.minutes), '{}'::jsonb)
+    from (
+      select sources.project_id, sum(sources.minutes) as minutes
+      from (
+        select project_id, minutes::bigint as minutes
+        from public.task_time_entries
+        where owner_id = auth.uid() and entry_date = '2026-08-30'
+        union all
+        select entries.project_id, public.daily_entry_total_actual(entries.id)::bigint
+        from public.daily_entries as entries
+        where entries.owner_id = auth.uid() and entries.entry_date = '2026-08-30'
+      ) as sources
+      group by sources.project_id
+    ) as totals
+  ),
+  'Close day ignores forged client totals and stores the server-derived task plus Daily total'
+);
+select lives_ok(
+  $$update public.daily_close_records
+    set project_minutes = '{"forged-update":888888}'::jsonb
+    where owner_id = auth.uid() and close_date = '2026-08-30'$$,
+  'Direct close-record updates remain compatible with the server-derived total trigger'
+);
+select isnt(
+  (
+    select project_minutes
+    from public.daily_close_records
+    where owner_id = auth.uid() and close_date = '2026-08-30'
+  ),
+  '{"forged-update":888888}'::jsonb,
+  'Direct close-record updates cannot persist a forged project total'
+);
+select lives_ok(
+  $$insert into public.daily_close_records(owner_id, close_date, project_minutes)
+    values (auth.uid(), '2099-01-01', '{"forged-empty-day":1}'::jsonb)$$,
+  'A close record can be inserted for a date with no work'
+);
+select is(
+  (
+    select project_minutes
+    from public.daily_close_records
+    where owner_id = auth.uid() and close_date = '2099-01-01'
+  ),
+  '{}'::jsonb,
+  'A date with no task or Daily work stores an empty server-derived total'
 );
 
 set local role authenticated;

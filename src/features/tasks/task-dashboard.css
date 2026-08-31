@@ -375,7 +375,7 @@
 
 .schedule-panel {
   /* 统一桌面单一日程网格定义，时间、复选框、项目、任务、预计、实际、操作共 7 列 */
-  --timeline-grid-columns: 86px 20px 64px minmax(130px, 1fr) 58px 58px 48px;
+  --timeline-grid-columns: 86px 20px 64px minmax(130px, 1fr) 68px 68px 48px;
   overflow: visible;
 }
 

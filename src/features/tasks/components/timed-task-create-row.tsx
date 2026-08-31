@@ -3,6 +3,7 @@
 'use client';
 
 import { Check, X } from 'lucide-react';
+import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { TimedTaskCreateDraft } from '@/features/tasks/hooks/use-task-create-drafts';
 import type { TimedTaskDraft } from '@/features/tasks/task-drafts';
@@ -24,24 +25,29 @@ export function TimedTaskCreateRow({
   projects: Project[];
   onCreate: (
     draft: TimedTaskDraft,
-  ) =>
+  ) => Promise<
     | { cancelled: boolean; error?: undefined; task?: undefined }
     | { error: string; cancelled?: undefined; task?: undefined }
-    | { task: unknown; cancelled?: undefined; error?: undefined };
-  onCreateProject: (name: string) => Project;
+    | { task: unknown; cancelled?: undefined; error?: undefined }
+  >;
+  onCreateProject: (name: string) => Promise<Project>;
   onChange: (patch: Partial<TimedTaskCreateDraft>) => void;
   onReset: () => void;
   onClose: () => void;
 }) {
+  const [saving, setSaving] = useState(false);
   /** 创建项目后只更新当前日程草稿的项目选择。 */
-  const addProject = () => {
+  const addProject = async () => {
     if (!draft.projectName.trim()) return;
-    const created = onCreateProject(draft.projectName.trim());
+    const created = await onCreateProject(draft.projectName.trim());
     onChange({ projectId: created.id, projectName: '', isAddingProject: false });
   };
   /** 委托动作层验证；输入错误保留行，取消保留字段，成功后才重置。 */
-  const confirm = () => {
-    const result = onCreate({
+  const confirm = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const result = await onCreate({
       actual: draft.actual,
       completed: draft.completed,
       endTime: draft.endTime,
@@ -49,11 +55,16 @@ export function TimedTaskCreateRow({
       projectId: draft.projectId,
       startTime: draft.startTime,
       title: draft.title,
-    });
-    if ('error' in result) return onChange({ timeError: result.error });
-    if ('cancelled' in result) return onClose();
-    onReset();
-    onClose();
+      });
+      if ('error' in result) return onChange({ timeError: result.error });
+      if ('cancelled' in result) return onClose();
+      onReset();
+      onClose();
+    } catch (error) {
+      onChange({ timeError: error instanceof Error ? error.message : '保存失败，请重试。' });
+    } finally {
+      setSaving(false);
+    }
   };
   const onKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter') confirm();
@@ -182,6 +193,7 @@ export function TimedTaskCreateRow({
           className="tl-inline-confirm-btn"
           onClick={confirm}
           title="保存任务"
+          disabled={saving}
         >
           <Check size={14} />
         </button>

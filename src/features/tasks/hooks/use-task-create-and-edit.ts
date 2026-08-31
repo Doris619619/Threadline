@@ -2,7 +2,6 @@
  * @fileoverview 封装任务和项目创建、编辑保存；不持有面板草稿或弹窗开关状态。
  */
 
-import type { Dispatch, SetStateAction } from 'react';
 import { calculateDuration } from '@/lib/task-rules';
 import { taskFormSchema } from '@/lib/schemas';
 import { getLocalDateKey } from '@/lib/local-date';
@@ -20,21 +19,21 @@ import type { Project, Task } from '@/types/domain';
 /** 统一返回新增面板可显示的输入错误，空标题沿用既有的静默取消行为。 */
 export function useTaskCreateAndEdit({
   createTask,
+  createProject,
   editing,
   projects,
   selectedDate,
-  updateProjectList,
   updateTask,
 }: {
   createTask: (task: Task) => Promise<Task>;
+  createProject: (project: Project) => Promise<Project>;
   editing: Task | undefined;
   projects: Project[];
   selectedDate: string;
-  updateProjectList: Dispatch<SetStateAction<Project[]>>;
   updateTask: (task: Task) => void;
 }) {
-  /** 新建项目并沿用原有循环色板和本地日期字段。 */
-  const createProjectDirectly = (name: string): Project => {
+  /** 等待项目持久化确认后返回它，后续 task 写入不再与项目 FK 竞争。 */
+  const createProjectDirectly = async (name: string): Promise<Project> => {
     const trimmed = name.trim();
     const colors = ['#4f8cff', '#8b7cf6', '#38a774', '#e9a04b', '#ec4899', '#06b6d4'];
     const newProject: Project = {
@@ -46,12 +45,11 @@ export function useTaskCreateAndEdit({
       isFallback: false,
       createdAt: getLocalDateKey(),
     };
-    updateProjectList((current) => [...current, newProject]);
-    return newProject;
+    return createProject(newProject);
   };
 
   /** 从日程行草稿创建任务，不改变既有的同日时间范围限制。 */
-  const createTimedTask = (draft: TimedTaskDraft) => {
+  const createTimedTask = async (draft: TimedTaskDraft) => {
     if (!draft.title.trim()) return { cancelled: true };
     const projectId = resolveActiveProject(projects, draft.projectId)?.id;
     if (!projectId) return { error: '请先创建一个可用项目' };
@@ -78,12 +76,11 @@ export function useTaskCreateAndEdit({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    void createTask(task).catch(() => undefined);
-    return { task };
+    return { task: await createTask(task) };
   };
 
   /** 从无时间待办行草稿创建任务，不推断时间。 */
-  const createQuickTask = (draft: QuickTaskDraft) => {
+  const createQuickTask = async (draft: QuickTaskDraft) => {
     if (!draft.title.trim()) return { cancelled: true };
     const projectId = resolveActiveProject(projects, draft.projectId)?.id;
     if (!projectId) return { error: '请先创建一个可用项目' };
@@ -98,14 +95,13 @@ export function useTaskCreateAndEdit({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    void createTask(task).catch(() => undefined);
-    return { task };
+    return { task: await createTask(task) };
   };
 
   /** 从迷你今日写入有可选起止时间的任务，并复用完整工作台的持久化字段。 */
-  const createCompactTimedTask = (draft: CompactTimedTaskDraft) => {
+  const createCompactTimedTask = async (draft: CompactTimedTaskDraft) => {
     const projectId = resolveActiveProject(projects, draft.projectId)?.id;
-    if (!projectId) return;
+    if (!projectId) throw new Error('请先创建一个可用项目');
     const task: Task = {
       id: crypto.randomUUID(),
       projectId,
@@ -123,13 +119,13 @@ export function useTaskCreateAndEdit({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    void createTask(task).catch(() => undefined);
+    await createTask(task);
   };
 
   /** 从迷你今日写入无时间待办，不额外推断时间或完成状态。 */
-  const createCompactQuickTask = (draft: CompactQuickTaskDraft) => {
+  const createCompactQuickTask = async (draft: CompactQuickTaskDraft) => {
     const projectId = resolveActiveProject(projects, draft.projectId)?.id;
-    if (!projectId) return;
+    if (!projectId) throw new Error('请先创建一个可用项目');
     const task: Task = {
       id: crypto.randomUUID(),
       projectId,
@@ -140,11 +136,11 @@ export function useTaskCreateAndEdit({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    void createTask(task).catch(() => undefined);
+    await createTask(task);
   };
 
   /** 验证 Dialog FormData 并保留现有跨午夜拒绝和新建双写流程。 */
-  const saveTask = (form: FormData): string | undefined => {
+  const saveTask = async (form: FormData): Promise<string | undefined> => {
     const title = String(form.get('title') ?? '').trim();
     const startRaw = String(form.get('start') ?? '');
     const endRaw = String(form.get('end') ?? '');
@@ -183,7 +179,7 @@ export function useTaskCreateAndEdit({
       updatedAt: new Date().toISOString(),
     };
     if (editing) updateTask(nextTask);
-    else void createTask(nextTask).catch(() => undefined);
+    else await createTask(nextTask);
     return undefined;
   };
 

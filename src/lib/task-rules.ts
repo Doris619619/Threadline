@@ -13,12 +13,13 @@ export function calculateDuration(start?: string, end?: string): number | undefi
   const [eh, em] = end.split(':').map(Number);
   return eh * 60 + em - sh * 60 - sm;
 }
-/** Daily 父任务或任一子项完成时，Daily 视为完成。 */
+/** Daily 父完成独立于子项；child completion 仅表示该 breakdown 已完成。 */
 export function isDailyComplete(
   instance: DailyInstance,
   childCompleted: boolean,
 ): boolean {
-  return instance.completed || childCompleted;
+  void childCompleted;
+  return instance.completed;
 }
 
 /**

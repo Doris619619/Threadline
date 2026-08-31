@@ -3,6 +3,7 @@
 'use client';
 
 import { Check, X } from 'lucide-react';
+import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { QuickTaskCreateDraft } from '@/features/tasks/hooks/use-task-create-drafts';
 import type { QuickTaskDraft } from '@/features/tasks/task-drafts';
@@ -24,29 +25,40 @@ export function QuickTaskCreateRow({
   projects: Project[];
   onCreate: (
     draft: QuickTaskDraft,
-  ) =>
-    { cancelled: boolean; task?: undefined } | { task: unknown; cancelled?: undefined };
-  onCreateProject: (name: string) => Project;
+  ) => Promise<
+    { cancelled: boolean; task?: undefined } | { task: unknown; cancelled?: undefined }
+  >;
+  onCreateProject: (name: string) => Promise<Project>;
   onChange: (patch: Partial<QuickTaskCreateDraft>) => void;
   onReset: () => void;
   onClose: () => void;
 }) {
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string>();
   /** 创建项目后将其选入本行草稿，而不影响日程草稿。 */
-  const addProject = () => {
+  const addProject = async () => {
     if (!draft.projectName.trim()) return;
-    const created = onCreateProject(draft.projectName.trim());
+    const created = await onCreateProject(draft.projectName.trim());
     onChange({ projectId: created.id, projectName: '', isAddingProject: false });
   };
   /** 空标题沿用动作层的取消结果；只有真实创建成功才清空草稿。 */
-  const confirm = () => {
-    const result = onCreate({
+  const confirm = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const result = await onCreate({
       completed: draft.completed,
       projectId: draft.projectId,
       title: draft.title,
-    });
-    if ('cancelled' in result) return onClose();
-    onReset();
-    onClose();
+      });
+      if ('cancelled' in result) return onClose();
+      onReset();
+      onClose();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : '保存失败，请重试。');
+    } finally {
+      setSaving(false);
+    }
   };
   if (!open) return null;
   return (
@@ -127,6 +139,7 @@ export function QuickTaskCreateRow({
           className="tl-inline-confirm-btn"
           onClick={confirm}
           title="保存待办"
+          disabled={saving}
         >
           <Check size={14} />
         </button>
@@ -139,6 +152,7 @@ export function QuickTaskCreateRow({
           <X size={14} />
         </button>
       </div>
+      {saveError && <span className="timeline-inline-error" role="alert">{saveError}</span>}
     </div>
   );
 }

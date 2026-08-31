@@ -15,7 +15,7 @@ export type Daily = {
   result: string;
   completed: boolean;
   children: {
-    /** 当天 entry item UUID；模板预览或尚未持久化的新增项可以暂缺。 */
+    /** 当天 entry item UUID；新增子项在客户端先生成稳定 ID，历史 seed 可暂缺。 */
     id?: string;
     templateItemId?: string;
     title: string;

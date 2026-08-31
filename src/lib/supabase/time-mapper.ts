@@ -6,17 +6,36 @@ const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 const timePattern = /^\d{2}:\d{2}(?::\d{2})?$/;
 const localDateTimePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/;
 
+/** 校验 YYYY-MM-DD 的真实日历值，拒绝正则可通过但 PostgreSQL 会归一化的日期。 */
+function isRealDate(value: string): boolean {
+  if (!datePattern.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+/** 校验 HH:mm(:ss) 的真实墙钟值，不让 24:30 之类字符串越过客户端边界。 */
+function isRealTime(value: string): boolean {
+  if (!timePattern.test(value)) return false;
+  const [hour, minute, second = '0'] = value.split(':');
+  return Number(hour) < 24 && Number(minute) < 60 && Number(second) < 60;
+}
+
 /** 校验并返回 PostgreSQL date 字符串，不调用 Date。 */
 export function toDatabaseDate(value: string | undefined): string | null {
   if (value === undefined) return null;
-  if (!datePattern.test(value)) throw new Error(`Invalid business date: ${value}`);
+  if (!isRealDate(value)) throw new Error(`Invalid business date: ${value}`);
   return value;
 }
 
 /** 校验并返回本地墙钟 time；数据库秒位在 UI 中收敛为 HH:mm。 */
 export function toDatabaseWallTime(value: string | undefined): string | null {
   if (value === undefined) return null;
-  if (!timePattern.test(value)) throw new Error(`Invalid wall-clock time: ${value}`);
+  if (!isRealTime(value)) throw new Error(`Invalid wall-clock time: ${value}`);
   return value.length === 5 ? `${value}:00` : value;
 }
 
@@ -28,7 +47,7 @@ export function fromDatabaseWallTime(value: string | null): string | undefined {
 /** 校验 datetime-local 值并保持 timestamp without time zone，不附加时区。 */
 export function toDatabaseLocalDateTime(value: string | undefined): string | null {
   if (value === undefined) return null;
-  if (!localDateTimePattern.test(value))
+  if (!localDateTimePattern.test(value) || !isRealDate(value.slice(0, 10)) || !isRealTime(value.slice(11)))
     throw new Error(`Invalid local datetime: ${value}`);
   return value.length === 16 ? `${value}:00` : value;
 }

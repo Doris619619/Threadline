@@ -20,14 +20,11 @@ export function parseDurationInput(value: string): number | undefined {
   if (!clean || clean === '—' || clean === '-' || clean === '0' || clean === '0min') {
     return undefined;
   }
-  const hourMinMatch = clean.match(
-    /^(\d+(?:\.\d+)?)\s*h(?:our)?s?\s*(\d+)?(?:\s*m(?:in)?s?)?$/,
-  );
-  if (hourMinMatch) {
-    const hours = parseFloat(hourMinMatch[1]);
-    const mins = hourMinMatch[2] ? parseInt(hourMinMatch[2], 10) : 0;
-    return Math.round(hours * 60 + mins);
-  }
+  const decimalHourMatch = clean.match(/^(\d+(?:\.\d+)?)\s*h(?:our)?s?$/);
+  if (decimalHourMatch) return Math.round(parseFloat(decimalHourMatch[1]) * 60);
+  const hourMinMatch = clean.match(/^(\d+)\s*h(?:our)?s?\s*(\d+)\s*m(?:in)?s?$/);
+  if (hourMinMatch)
+    return parseInt(hourMinMatch[1], 10) * 60 + parseInt(hourMinMatch[2], 10);
   const minMatch = clean.match(/^(\d+)\s*(?:m|min|mins|minute|minutes)?$/);
   if (minMatch) return parseInt(minMatch[1], 10);
   return undefined;

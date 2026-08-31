@@ -12,7 +12,13 @@ import {
   toDatabaseLocalDateTime,
   toDatabaseWallTime,
 } from '@/lib/supabase/time-mapper';
-import type { CloseRecord, HistoryEvent, Project, Task } from '@/types/domain';
+import type {
+  CloseRecord,
+  HistoryEvent,
+  Project,
+  Task,
+  TaskTimeEntry,
+} from '@/types/domain';
 
 export type DailyBundle = {
   dailyByDate: Record<string, Daily[]>;
@@ -79,6 +85,28 @@ function mapTask(row: JsonRecord): Task {
   };
 }
 
+/** 将按日 task time entry 映射到领域层；受信清理后允许 taskId 为空。 */
+function mapTaskTimeEntry(row: JsonRecord): TaskTimeEntry {
+  return {
+    id: String(row.id),
+    taskId: row.task_id === null ? undefined : String(row.task_id),
+    projectId: String(row.project_id),
+    date: String(row.entry_date),
+    minutes: Number(row.minutes),
+  };
+}
+
+/** 复用服务端 entry item UUID 建立稳定模板映射；缺少 entry identity 时拒绝写入。 */
+function prepareDailyTemplateChildren(daily: Daily) {
+  return daily.children.map((item) => {
+    if (!item.id) throw new Error('update Daily template: child missing entry item id');
+    return {
+      ...item,
+      templateItemId: item.templateItemId ?? item.id,
+    };
+  });
+}
+
 /** 将 UI task 映射成数据库 row；本地墙钟字段绝不经过 Date。 */
 function taskRow(task: Task) {
   return {
@@ -123,6 +151,7 @@ function mapDailyBundle(
       .filter((item) => item.template_id === template.id)
       .sort((left, right) => Number(left.position) - Number(right.position))
       .map((item) => ({
+        id: String(item.id),
         templateItemId: String(item.id),
         title: String(item.title),
         completed: false,
@@ -199,6 +228,17 @@ export class SupabaseWorkspaceRepository {
     return (assertResponse('list tasks', response) as JsonRecord[]).map(mapTask);
   }
 
+  /** 查询按业务日固定的实际投入；analytics 不能由可变 scheduled_date 推断。 */
+  async listTaskTimeEntries(): Promise<TaskTimeEntry[]> {
+    const response = await this.client
+      .from('task_time_entries')
+      .select('*')
+      .order('entry_date');
+    return (assertResponse('list task time entries', response) as JsonRecord[]).map(
+      mapTaskTimeEntry,
+    );
+  }
+
   /** 直接保存普通 task 字段并返回数据库触发器更新后的 row。 */
   async saveTask(task: Task): Promise<Task> {
     const response = await this.client
@@ -264,54 +304,56 @@ export class SupabaseWorkspaceRepository {
     );
   }
 
-  /** 保存单个日期 Daily snapshot 以及当前 items，不修改长期模板。 */
-  async saveDailyEntry(daily: Daily, date: string): Promise<void> {
+  /** 以一个 RPC 原子保存某天 Daily 父字段和全部子项，不修改长期模板。 */
+  async saveDailyEntry(daily: Daily): Promise<void> {
     if (!daily.entryId) throw new Error('save Daily entry: missing entryId');
     assertResponse(
       'save Daily entry',
-      await this.client
-        .from('daily_entries')
-        .update({
-          project_id: daily.projectId,
-          title_snapshot: daily.title,
-          project_name_snapshot: daily.project,
-          color_snapshot: daily.color,
-          completed: daily.completed,
-          actual_duration_minutes: daily.actual,
-          result: daily.result,
-        })
-        .eq('id', daily.entryId)
-        .eq('entry_date', date)
-        .select()
-        .single(),
+      await this.client.rpc('save_daily_entry_bundle', {
+        p_entry_id: daily.entryId,
+        p_project_id: daily.projectId,
+        p_title: daily.title,
+        p_completed: daily.completed,
+        p_actual_duration_minutes: daily.actual,
+        p_result: daily.result,
+        p_items: daily.children.map((item, position) => ({
+          id: item.id,
+          template_item_id: item.templateItemId ?? null,
+          title: item.title,
+          position,
+          completed: item.completed,
+          actual: item.actual,
+        })),
+      }),
     );
-    for (const [position, item] of daily.children.entries()) {
-      const response = item.id
-        ? await this.client
-            .from('daily_entry_items')
-            .update({
-              title_snapshot: item.title,
-              position,
-              completed: item.completed,
-              actual_duration_minutes: item.actual,
-            })
-            .eq('id', item.id)
-            .select()
-            .single()
-        : await this.client
-            .from('daily_entry_items')
-            .insert({
-              entry_id: daily.entryId,
-              template_item_id: item.templateItemId ?? null,
-              title_snapshot: item.title,
-              position,
-              completed: item.completed,
-              actual_duration_minutes: item.actual,
-            })
-            .select()
-            .single();
-      assertResponse('save Daily entry item', response);
-    }
+  }
+
+  /** 同一 RPC 保存模板结构并 merge 当前 snapshot，保留服务端子项运行态。 */
+  async updateDailyTemplate(daily: Daily): Promise<void> {
+    if (!daily.entryId) throw new Error('update Daily template: missing entryId');
+    const children = prepareDailyTemplateChildren(daily);
+    assertResponse(
+      'update Daily template',
+      await this.client.rpc('update_daily_template_bundle', {
+        p_template_id: daily.id,
+        p_entry_id: daily.entryId,
+        p_project_id: daily.projectId,
+        p_title: daily.title,
+        p_template_items: children.map((item, position) => ({
+          id: item.templateItemId,
+          title: item.title,
+          position,
+        })),
+        p_entry_items: children.map((item, position) => ({
+          id: item.id,
+          template_item_id: item.templateItemId,
+          title: item.title,
+          position,
+          completed: item.completed,
+          actual: item.actual,
+        })),
+      }),
+    );
   }
 
   /** 写入或读取同一天唯一的正式 Daily history snapshot。 */

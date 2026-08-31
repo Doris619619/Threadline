@@ -15,8 +15,8 @@ describe('task rules', () => {
   });
   it('calculates planned duration', () =>
     expect(calculateDuration('12:00', '13:30')).toBe(90));
-  it('keeps daily completion separate', () =>
-    expect(isDailyComplete({ completed: false } as never, true)).toBe(true));
+  it('keeps Daily parent completion independent from child completion', () =>
+    expect(isDailyComplete({ completed: false } as never, true)).toBe(false));
   it('requires completed tasks to be explicitly reopened before workflow changes', () => {
     const completedTask = { completed: true, status: 'active' } as never;
 

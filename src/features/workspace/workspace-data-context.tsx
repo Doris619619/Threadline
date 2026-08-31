@@ -16,6 +16,7 @@ import type {
   HistoryEvent,
   Project,
   Task,
+  TaskTimeEntry,
 } from '@/types/domain';
 
 export type TaskTransition =
@@ -26,7 +27,9 @@ export type CloseAction = {
   targetDate?: string;
 };
 export type WorkspaceCommands = {
+  createProject: (project: Project) => Promise<Project>;
   createTask: (task: Task) => Promise<Task>;
+  saveDailyTemplate: (daily: Daily) => Promise<void>;
   transitionTask: (
     taskId: string,
     transition: TaskTransition,
@@ -46,7 +49,12 @@ export type WorkspaceCommands = {
 
 export type WorkspaceContextValues = {
   hydrated: boolean;
-  taskState: { tasks: Task[] };
+  taskState: {
+    tasks: Task[];
+    taskTimeEntries: TaskTimeEntry[];
+    /** 云端 ledger 即使为空也是实际耗时真源；显式测试适配器可声明 aggregate fallback。 */
+    taskTimeEntriesAuthoritative: boolean;
+  };
   taskActions: { updateTasks: Dispatch<SetStateAction<Task[]>> };
   projectState: { projects: Project[] };
   projectActions: { updateProjects: Dispatch<SetStateAction<Project[]>> };

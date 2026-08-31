@@ -49,7 +49,7 @@ export function TaskLine({
   onMove: (id: string, s: TaskStatus) => void;
   onReschedule: () => void;
   projects: Project[];
-  onAddProject?: (name: string) => Project | void;
+  onAddProject?: (name: string) => Promise<Project | void>;
   draggable?: boolean;
   isDragging?: boolean;
   autoFocusTime?: boolean;
@@ -73,6 +73,7 @@ export function TaskLine({
   >();
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [timeError, setTimeError] = useState<string>();
   const projectPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -100,9 +101,9 @@ export function TaskLine({
   }, [editingField]);
 
   /** 根据名称创建项目并写回当前任务归属。 */
-  const handleCreateProject = () => {
+  const handleCreateProject = async () => {
     if (!newProjectName.trim() || !onAddProject) return;
-    const created = onAddProject(newProjectName.trim());
+    const created = await onAddProject(newProjectName.trim());
     if (created) {
       onUpdate({
         ...task,
@@ -116,16 +117,25 @@ export function TaskLine({
   };
 
   /**
-   * 保存时间输入；空输入保留待填状态，合法开始时间则完成排程并移除待填标记。
+   * 保存时间输入；非法值绝不写库，主动清空也保留在日程的待填时间状态。
    */
   const saveTime = (input: string) => {
     const { start, end, duration } = parseTimeInput(input);
+    if (input.trim() && (!start || (input.match(/[-–~至到\s]+/) && !end))) {
+      setTimeError('请输入有效时间，如 08:30 或 08:30-10:00');
+      return;
+    }
+    if (start && end && end < start) {
+      setTimeError('结束时间需晚于开始时间');
+      return;
+    }
+    setTimeError(undefined);
     onUpdate({
       ...task,
       plannedStartTime: start,
       plannedEndTime: end,
       plannedDurationMinutes: duration ?? task.plannedDurationMinutes,
-      schedulePendingTime: start ? false : task.schedulePendingTime,
+      schedulePendingTime: start ? false : true,
       updatedAt: new Date().toISOString(),
     });
     setEditingField(undefined);
@@ -177,7 +187,8 @@ export function TaskLine({
   const timeNode =
     timed &&
     (editingField === 'time' ? (
-      <input
+      <>
+        <input
         className="tl-inline-input timeline-time-input timeline-time"
         defaultValue={timeDisplay}
         placeholder="08:30"
@@ -189,7 +200,9 @@ export function TaskLine({
           if (e.key === 'Escape') setEditingField(undefined);
         }}
         onBlur={(e) => saveTime(e.currentTarget.value)}
-      />
+        />
+        {timeError && <span className="timeline-inline-error" role="alert">{timeError}</span>}
+      </>
     ) : (
       <time
         className={cn(

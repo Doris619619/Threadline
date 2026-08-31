@@ -8,21 +8,25 @@ import { Input } from '@/components/ui/input';
 import { ProjectTag } from '@/components/ui/project-tag';
 import { Surface } from '@/components/ui/surface';
 import { getLocalDateKey } from '@/lib/local-date';
-import type { Project, Task } from '@/types/domain';
+import type { Project, Task, TaskTimeEntry } from '@/types/domain';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/daily-panel';
 
 /**
- * 渲染项目列表、创建入口与选中项目详情，不改写任务归属规则。
+ * 渲染项目列表、创建入口与选中项目详情；ledger 模式按历史项目归属汇总实际投入。
  */
 export function ProjectPanel({
   items,
   tasks,
+  taskTimeEntries,
+  taskTimeEntriesAuthoritative,
   daily,
   dailyHistory,
   onChange,
 }: {
   items: Project[];
   tasks: Task[];
+  taskTimeEntries: TaskTimeEntry[];
+  taskTimeEntriesAuthoritative: boolean;
   daily: Daily[];
   dailyHistory: DailyHistoryEntry[];
   onChange: (items: Project[]) => void;
@@ -55,6 +59,23 @@ export function ProjectPanel({
   const selectedDailyHistory = dailyHistory.filter(
     (item) => item.projectId === selectedId,
   );
+  const taskActualByProject = new Map<string, number>();
+  if (taskTimeEntriesAuthoritative) {
+    for (const entry of taskTimeEntries) {
+      taskActualByProject.set(
+        entry.projectId,
+        (taskActualByProject.get(entry.projectId) ?? 0) + entry.minutes,
+      );
+    }
+  } else {
+    for (const task of tasks) {
+      taskActualByProject.set(
+        task.projectId,
+        (taskActualByProject.get(task.projectId) ?? 0) +
+          (task.actualDurationMinutes ?? 0),
+      );
+    }
+  }
   const saveEdit = () => {
     if (!editingId || !editingName.trim()) return;
     onChange(
@@ -91,10 +112,7 @@ export function ProjectPanel({
         {items.map((project) => {
           const projectTasks = tasks.filter((task) => task.projectId === project.id);
           const completed = projectTasks.filter((task) => task.completed).length;
-          const actual = projectTasks.reduce(
-            (total, task) => total + (task.actualDurationMinutes ?? 0),
-            0,
-          );
+          const actual = taskActualByProject.get(project.id) ?? 0;
           const projectDaily = daily.filter((item) => item.projectId === project.id);
           const projectDailyMinutes = dailyHistory
             .filter((item) => item.projectId === project.id)
@@ -186,10 +204,7 @@ export function ProjectPanel({
               </p>
             </div>
             <strong>
-              {selectedTasks.reduce(
-                (total, task) => total + (task.actualDurationMinutes ?? 0),
-                0,
-              ) +
+              {(taskActualByProject.get(selected.id) ?? 0) +
                 selectedDailyHistory.reduce((total, entry) => total + entry.actual, 0)}
               min
             </strong>
