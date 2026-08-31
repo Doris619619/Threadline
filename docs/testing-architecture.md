@@ -28,7 +28,7 @@ Accessibility smoke 使用 axe 扫描 Workspace、Calendar、Projects、Settings
 
 ## Coverage gate
 
-V8 覆盖率只纳入会改变业务数据或云端边界的模块：task workflow、task create/edit、task/project/date/repository 规则，以及 Supabase config、time mapper 和 workspace repository。页面展示、响应式 CSS 和真实 Cloud provider 的端到端交互由 Playwright 覆盖，避免用无价值 DOM/className 单测抬高数字。
+V8 覆盖率只纳入会改变业务数据或云端边界的模块：Daily 规则、task workflow、task create/edit、关账与 dashboard 聚合、按日耗时、analytics、task/project/date/repository 规则，以及 Supabase config、time mapper 和 workspace repository。页面展示、响应式 CSS 和真实 Cloud provider 的端到端交互由 Playwright 覆盖，避免用无价值 DOM/className 单测抬高数字。
 
 初始门槛是根据当前明确纳入范围的实测值设置，而不是只统计被意外 import 的模块：statements `50%`、branches `50%`、functions `40%`、lines `55%`。门槛应随高风险模块测试增加而上调；不要通过缩小 include 或移除测试来让 CI 变绿。
 

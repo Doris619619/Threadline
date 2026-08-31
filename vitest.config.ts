@@ -14,8 +14,13 @@ export default defineConfig({
       // 只把会改变业务数据或云端边界的模块纳入 gate；页面展示组件由 Playwright 覆盖。
       // 显式 include 也会把尚未被任何单测导入的高风险模块按 0% 计入总分。
       include: [
+        'src/features/daily/daily-rules.ts',
+        'src/features/tasks/hooks/use-close-day.ts',
         'src/features/tasks/hooks/use-task-workflow.ts',
         'src/features/tasks/hooks/use-task-create-and-edit.ts',
+        'src/features/tasks/hooks/use-task-dashboard-data.ts',
+        'src/features/tasks/task-time.ts',
+        'src/lib/analytics.ts',
         'src/lib/task-rules.ts',
         'src/lib/task-factory.ts',
         'src/lib/project-rules.ts',

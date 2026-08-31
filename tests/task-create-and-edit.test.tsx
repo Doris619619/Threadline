@@ -1,7 +1,6 @@
 /** @fileoverview 验证任务创建与编辑在输入校验、项目解析和持久化模型上的关键约束。 */
 
 import { act, renderHook } from '@testing-library/react';
-import type { Dispatch, SetStateAction } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { useTaskCreateAndEdit } from '@/features/tasks/hooks/use-task-create-and-edit';
 import type { Project, Task } from '@/types/domain';
@@ -18,15 +17,15 @@ const activeProject: Project = {
 
 /** 返回稳定的 Hook 依赖，避免测试因界面层状态而失去对业务模型的断言。 */
 function createHookDependencies(editing?: Task) {
+  const createProject = vi.fn().mockImplementation(async (project: Project) => project);
   const createTask = vi.fn().mockImplementation(async (task: Task) => task);
   const updateTask = vi.fn();
-  const updateProjectList = vi.fn() as unknown as Dispatch<SetStateAction<Project[]>>;
   return {
+    createProject,
     createTask,
     editing,
     projects: [activeProject],
     selectedDate: '2026-08-21',
-    updateProjectList,
     updateTask,
   };
 }
@@ -39,11 +38,11 @@ function taskForm(fields: Record<string, string>): FormData {
 }
 
 describe('useTaskCreateAndEdit', () => {
-  it('rejects malformed timed drafts while preserving normalized times and explicit planned duration', () => {
+  it('rejects malformed timed drafts while preserving normalized times and explicit planned duration', async () => {
     const dependencies = createHookDependencies();
     const { result } = renderHook(() => useTaskCreateAndEdit(dependencies));
 
-    expect(
+    await expect(
       result.current.createTimedTask({
         title: '  ',
         projectId: activeProject.id,
@@ -53,8 +52,8 @@ describe('useTaskCreateAndEdit', () => {
         actual: '',
         completed: false,
       }),
-    ).toEqual({ cancelled: true });
-    expect(
+    ).resolves.toEqual({ cancelled: true });
+    await expect(
       result.current.createTimedTask({
         title: '格式错误',
         projectId: activeProject.id,
@@ -64,8 +63,8 @@ describe('useTaskCreateAndEdit', () => {
         actual: '',
         completed: false,
       }),
-    ).toEqual({ error: '开始时间格式应为 08:30' });
-    expect(
+    ).resolves.toEqual({ error: '开始时间格式应为 08:30' });
+    await expect(
       result.current.createTimedTask({
         title: '倒序时间',
         projectId: activeProject.id,
@@ -75,10 +74,10 @@ describe('useTaskCreateAndEdit', () => {
         actual: '',
         completed: false,
       }),
-    ).toEqual({ error: '结束时间需晚于有效的开始时间' });
+    ).resolves.toEqual({ error: '结束时间需晚于有效的开始时间' });
 
-    act(() => {
-      result.current.createTimedTask({
+    await act(async () => {
+      await result.current.createTimedTask({
         title: '  评审 PR  ',
         projectId: activeProject.id,
         startTime: '830',
@@ -105,7 +104,7 @@ describe('useTaskCreateAndEdit', () => {
     );
   });
 
-  it('keeps cross-midnight rejection and sends valid create or edit models to their separate persistence paths', () => {
+  it('keeps cross-midnight rejection and sends valid create or edit models to their separate persistence paths', async () => {
     const creating = createHookDependencies();
     const { result, rerender } = renderHook(
       (dependencies: ReturnType<typeof createHookDependencies>) =>
@@ -113,7 +112,7 @@ describe('useTaskCreateAndEdit', () => {
       { initialProps: creating },
     );
 
-    expect(
+    await expect(
       result.current.saveTask(
         taskForm({
           title: '跨午夜',
@@ -124,11 +123,11 @@ describe('useTaskCreateAndEdit', () => {
           actual: '',
         }),
       ),
-    ).toBe('暂不支持跨午夜任务，请选择同一天内的时间');
+    ).resolves.toBe('暂不支持跨午夜任务，请选择同一天内的时间');
     expect(creating.createTask).not.toHaveBeenCalled();
 
-    act(() => {
-      expect(
+    await act(async () => {
+      await expect(
         result.current.saveTask(
           taskForm({
             title: '新建任务',
@@ -139,7 +138,7 @@ describe('useTaskCreateAndEdit', () => {
             actual: '30',
           }),
         ),
-      ).toBeUndefined();
+      ).resolves.toBeUndefined();
     });
     expect(creating.createTask).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -166,8 +165,8 @@ describe('useTaskCreateAndEdit', () => {
     const updating = createHookDependencies(editing);
     rerender(updating);
 
-    act(() => {
-      expect(
+    await act(async () => {
+      await expect(
         result.current.saveTask(
           taskForm({
             title: '编辑后的标题',
@@ -178,7 +177,7 @@ describe('useTaskCreateAndEdit', () => {
             actual: '',
           }),
         ),
-      ).toBeUndefined();
+      ).resolves.toBeUndefined();
     });
     expect(updating.updateTask).toHaveBeenCalledWith(
       expect.objectContaining({
