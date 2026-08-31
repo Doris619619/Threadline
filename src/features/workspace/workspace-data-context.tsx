@@ -49,7 +49,12 @@ export type WorkspaceCommands = {
 
 export type WorkspaceContextValues = {
   hydrated: boolean;
-  taskState: { tasks: Task[]; taskTimeEntries: TaskTimeEntry[] };
+  taskState: {
+    tasks: Task[];
+    taskTimeEntries: TaskTimeEntry[];
+    /** 云端 ledger 即使为空也是实际耗时真源；显式测试适配器可声明 aggregate fallback。 */
+    taskTimeEntriesAuthoritative: boolean;
+  };
   taskActions: { updateTasks: Dispatch<SetStateAction<Task[]>> };
   projectState: { projects: Project[] };
   projectActions: { updateProjects: Dispatch<SetStateAction<Project[]>> };

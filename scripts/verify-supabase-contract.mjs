@@ -1,14 +1,16 @@
 /** @fileoverview 在 Docker 不可用时静态守卫已审核的 Supabase 领域与安全边界。 */
 
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
+const migrationsDirectory = join('supabase', 'migrations');
+const migrationFiles = (await readdir(migrationsDirectory))
+  .filter((name) => name.endsWith('.sql'))
+  .sort();
+if (migrationFiles.length === 0) throw new Error('No Supabase migrations found.');
 const migration = (
   await Promise.all(
-    [
-      'supabase/migrations/202608300001_authoritative_workspace.sql',
-      'supabase/migrations/202608300002_harden_platform_helpers.sql',
-      'supabase/migrations/202608300003_fix_authenticated_runtime_privileges.sql',
-    ].map((path) => readFile(path, 'utf8')),
+    migrationFiles.map((name) => readFile(join(migrationsDirectory, name), 'utf8')),
   )
 ).join('\n');
 
@@ -22,6 +24,38 @@ function requirePattern(pattern, description) {
 function rejectPattern(pattern, description) {
   if (pattern.test(migration))
     throw new Error(`Supabase contract violation: ${description}`);
+}
+
+/** 提取具名表的 create 定义，使约束断言不会误命中其他业务表。 */
+function readTableDefinition(tableName) {
+  const match = migration.match(
+    new RegExp(
+      `create table(?: if not exists)? public\\.${tableName}\\s*\\(([\\s\\S]*?)\\n\\);`,
+      'i',
+    ),
+  );
+  if (!match)
+    throw new Error(`Supabase contract missing table definition: ${tableName}`);
+  return match[1];
+}
+
+/** 提取具名函数的完整定义，使 RPC 内部 scope guard 必须出现在正确函数中。 */
+function readFunctionDefinition(functionName) {
+  const match = migration.match(
+    new RegExp(
+      `create or replace function\\s+(?:public|private)\\.${functionName}\\s*\\([\\s\\S]*?\\$\\$;`,
+      'i',
+    ),
+  );
+  if (!match)
+    throw new Error(`Supabase contract missing function definition: ${functionName}`);
+  return match[0];
+}
+
+/** 在指定定义内要求关键片段，避免全迁移级正则产生跨对象误报。 */
+function requireDefinitionPattern(definition, pattern, description) {
+  if (!pattern.test(definition))
+    throw new Error(`Supabase contract missing: ${description}`);
 }
 
 requirePattern(/create table public\.rhythm_marks/i, 'cloud Rhythm table');
@@ -45,6 +79,135 @@ requirePattern(
 requirePattern(
   /DAILY_TEMPLATE_ITEM_MISMATCH/i,
   'Daily entry items cannot map across templates',
+);
+const taskTimeEntriesTable = readTableDefinition('task_time_entries');
+requireDefinitionPattern(
+  taskTimeEntriesTable,
+  /foreign key\s*\(\s*owner_id\s*,\s*task_id\s*\)\s*references\s+public\.tasks\s*\(\s*owner_id\s*,\s*id\s*\)\s*on delete set null\s*\(\s*task_id\s*\)/i,
+  'task time entries preserve history with a same-owner task foreign key',
+);
+requireDefinitionPattern(
+  taskTimeEntriesTable,
+  /foreign key\s*\(\s*owner_id\s*,\s*project_id\s*\)\s*references\s+public\.projects\s*\(\s*owner_id\s*,\s*id\s*\)\s*on delete no action/i,
+  'task time entries protect direct project deletion without blocking whole-account cascades',
+);
+if (/task_id\s+uuid\s+not\s+null/i.test(taskTimeEntriesTable))
+  throw new Error(
+    'Supabase contract violation: task time task_id must allow retained rows after task purge',
+  );
+requirePattern(
+  /revoke all(?: privileges)? on(?: table)? public\.task_time_entries from public, anon, authenticated/i,
+  'task time direct writes revoked from Data API roles',
+);
+requirePattern(
+  /grant select on(?: table)? public\.task_time_entries to authenticated/i,
+  'authenticated task time access is read-only',
+);
+rejectPattern(
+  /grant\s+[^;]*\b(?:insert|update|delete)\b[^;]*\s+on(?: table)? public\.task_time_entries\s+to authenticated/i,
+  'authenticated task time access must not permit direct writes',
+);
+const captureTaskActualTime = readFunctionDefinition('capture_task_actual_time');
+requireDefinitionPattern(
+  captureTaskActualTime,
+  /security definer\s+set search_path = pg_catalog, public/is,
+  'task actual capture uses a fixed-path security definer trigger',
+);
+requireDefinitionPattern(
+  captureTaskActualTime,
+  /if delta < 0 then[\s\S]*?update public\.task_time_entries[\s\S]*?entry_date\s*=\s*new\.scheduled_date[\s\S]*?entries\.minutes \+ delta >= 0[\s\S]*?if not found then[\s\S]*?TASK_ACTUAL_BELOW_FIXED_HISTORY/i,
+  'negative actual corrections only reduce an existing current-date ledger bucket',
+);
+if (/next_minutes\s*-\s*fixed_minutes/i.test(captureTaskActualTime))
+  throw new Error(
+    'Supabase contract violation: legacy unattributed actual must not be materialized by a negative correction',
+  );
+requirePattern(
+  /lock table public\.tasks in share row exclusive mode/i,
+  'task writes are locked across ledger backfill and trigger installation',
+);
+requirePattern(
+  /revoke all(?: privileges)? on function (?:public|private)\.capture_task_actual_time\(\) from public, anon, authenticated/i,
+  'task actual capture cannot be invoked through Data API roles',
+);
+requirePattern(
+  /alter publication supabase_realtime add table public\.task_time_entries/i,
+  'task time entries participate in workspace invalidation',
+);
+const saveDailyEntryBundle = readFunctionDefinition('save_daily_entry_bundle');
+requireDefinitionPattern(
+  saveDailyEntryBundle,
+  /jsonb_to_recordset[\s\S]*?join public\.daily_entry_items[\s\S]*?entry_id\s*<>\s*p_entry_id[\s\S]*?DAILY_ENTRY_ITEM_SCOPE_MISMATCH/i,
+  'Daily entry item IDs are scoped to the target entry before replacement',
+);
+const updateDailyTemplateBundle = readFunctionDefinition(
+  'update_daily_template_bundle',
+);
+requireDefinitionPattern(
+  updateDailyTemplateBundle,
+  /jsonb_to_recordset[\s\S]*?join public\.daily_template_items[\s\S]*?template_id\s*<>\s*p_template_id[\s\S]*?DAILY_TEMPLATE_ITEM_SCOPE_MISMATCH/i,
+  'Daily template item IDs are scoped to the target template before replacement',
+);
+requireDefinitionPattern(
+  updateDailyTemplateBundle,
+  /p_entry_items[\s\S]*?join public\.daily_entry_items[\s\S]*?entry_id\s*<>\s*p_entry_id[\s\S]*?DAILY_ENTRY_ITEM_SCOPE_MISMATCH/i,
+  'Daily template edits scope current entry item IDs before replacement',
+);
+requireDefinitionPattern(
+  updateDailyTemplateBundle,
+  /from public\.daily_templates[\s\S]*?for update[\s\S]*?from public\.daily_entries[\s\S]*?entries\.id\s*=\s*p_entry_id[\s\S]*?entries\.template_id\s*=\s*p_template_id[\s\S]*?for update[\s\S]*?from public\.daily_entry_items[\s\S]*?for update/i,
+  'Daily template edits lock the owner-scoped template, current entry, and entry children',
+);
+requireDefinitionPattern(
+  updateDailyTemplateBundle,
+  /full join supplied on supplied\.id = existing\.id[\s\S]*?missing_from_payload/i,
+  'Daily template edits merge server children that are missing from a stale payload',
+);
+requireDefinitionPattern(
+  updateDailyTemplateBundle,
+  /else existing\.completed end as completed[\s\S]*?else existing\.actual_duration_minutes end as actual/i,
+  'Daily template edits preserve locked completed and actual runtime fields',
+);
+requireDefinitionPattern(
+  updateDailyTemplateBundle,
+  /insert into public\.daily_entry_items\([\s\S]*?on conflict \(id\) do update\s+set template_item_id = excluded\.template_item_id,\s+title_snapshot = excluded\.title_snapshot,\s+position = excluded\.position;[\s\S]*?return saved/i,
+  'Daily template entry upsert changes structure without overwriting completed or actual runtime',
+);
+if (/perform public\.save_daily_entry_bundle\(/i.test(updateDailyTemplateBundle))
+  throw new Error(
+    'Supabase contract violation: template structure edits must not replay stale entry runtime through the full replacement RPC',
+  );
+requirePattern(
+  /revoke all(?: privileges)? on function public\.update_daily_template_bundle\(uuid, uuid, uuid, text, jsonb, jsonb\) from public, anon, authenticated/i,
+  'six-argument Daily template bundle is revoked before its authenticated grant',
+);
+requirePattern(
+  /grant execute on function public\.update_daily_template_bundle\(uuid, uuid, uuid, text, jsonb, jsonb\) to authenticated/i,
+  'authenticated can execute the atomic six-argument Daily template bundle',
+);
+requirePattern(
+  /revoke all(?: privileges)? on function public\.daily_entry_total_actual\(uuid\) from public, anon, authenticated/i,
+  'Daily total helper is removed from anonymous and default PUBLIC execution',
+);
+requirePattern(
+  /grant execute on function public\.daily_entry_total_actual\(uuid\) to authenticated/i,
+  'authenticated can execute the owner-scoped Daily total helper',
+);
+const captureDailyCloseProjectMinutes = readFunctionDefinition(
+  'capture_daily_close_project_minutes',
+);
+requireDefinitionPattern(
+  captureDailyCloseProjectMinutes,
+  /security invoker\s+set search_path = pg_catalog, public[\s\S]*?select[\s\S]*?into new\.project_minutes[\s\S]*?task_time_entries[\s\S]*?entry_date\s*=\s*new\.close_date[\s\S]*?daily_entry_total_actual\(entries\.id\)/is,
+  'close records recompute project totals from dated task and Daily sources',
+);
+requirePattern(
+  /create trigger daily_close_capture_project_minutes\s+before insert or update on public\.daily_close_records[\s\S]*?execute function public\.capture_daily_close_project_minutes\(\)/i,
+  'close record writes always execute the server-side project total capture',
+);
+requirePattern(
+  /revoke all(?: privileges)? on function public\.capture_daily_close_project_minutes\(\) from public, anon, authenticated/i,
+  'close total trigger function is not a Data API RPC',
 );
 requirePattern(/deferrable initially immediate/i, 'deferrable workstation positions');
 requirePattern(

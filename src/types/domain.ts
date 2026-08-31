@@ -39,10 +39,10 @@ export type Task = {
   createdAt: string;
   updatedAt: string;
 };
-/** 不随任务移期漂移的、按业务日固定的实际投入记录。 */
+/** 不随任务移期漂移的按日实际投入；task 清理后保留记录并移除 taskId。 */
 export type TaskTimeEntry = {
   id: Id;
-  taskId: Id;
+  taskId?: Id;
   projectId: Id;
   date: string;
   minutes: number;

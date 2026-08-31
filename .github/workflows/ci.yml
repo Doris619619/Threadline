@@ -19,6 +19,7 @@ jobs:
           node-version: 22.13.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm test:sql:static
       - run: pnpm supabase:start
       - run: pnpm supabase:lint
       - run: pnpm test:db

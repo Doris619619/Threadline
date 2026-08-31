@@ -83,6 +83,46 @@ describe('analytics adapter', () => {
     ]);
   });
 
+  it('keeps an undated legacy actual visible as incomplete beside ledger-backed tasks', () => {
+    const result = createAnalyticsResult({
+      tasks: [
+        task({ id: 'dated-task', actualDurationMinutes: 40 }),
+        task({ id: 'legacy-task', date: undefined, actualDurationMinutes: 30 }),
+      ],
+      taskTimeEntries: [
+        {
+          id: 'time-1',
+          taskId: 'dated-task',
+          projectId: 'research',
+          date: '2026-08-20',
+          minutes: 40,
+        },
+      ],
+      projects,
+      dailyByDate: {},
+      dailyHistory: [],
+      closeRecords: [],
+      range: { start: '2026-08-20', end: '2026-08-20' },
+    });
+    expect(result.totalActualMinutes).toBe(40);
+    expect(result.days[0]?.taskActualMinutes).toBe(40);
+    expect(result.incompleteCount).toBe(1);
+  });
+
+  it('treats an explicitly empty ledger as authoritative instead of guessing a task date', () => {
+    const result = createAnalyticsResult({
+      tasks: [task({ actualDurationMinutes: 30 })],
+      taskTimeEntries: [],
+      projects,
+      dailyByDate: {},
+      dailyHistory: [],
+      closeRecords: [],
+      range: { start: '2026-08-20', end: '2026-08-20' },
+    });
+    expect(result.totalActualMinutes).toBe(0);
+    expect(result.incompleteCount).toBe(1);
+  });
+
   it('keeps an unambiguous close record as a legacy aggregate without task inference', () => {
     const result = createAnalyticsResult({
       tasks: [],

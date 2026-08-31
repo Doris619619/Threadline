@@ -2,7 +2,7 @@
 
 import type { Daily } from '@/features/daily/types';
 import { getDailyActualMinutes } from '@/features/daily/daily-rules';
-import type { Project, Task } from '@/types/domain';
+import type { Project, Task, TaskTimeEntry } from '@/types/domain';
 
 type CloseAction = {
   taskId: string;
@@ -10,13 +10,15 @@ type CloseAction = {
   targetDate?: string;
 };
 
-/** 保持既有 FormData 和项目工时口径，并把全部副作用交给数据库事务。 */
+/** 将收尾表单交给原子命令，并按显式能力选择 ledger 真源或测试 aggregate fallback。 */
 export function useCloseDay({
   closeDay,
   daily,
   projects,
   selectedDate,
   shown,
+  taskTimeEntries,
+  taskTimeEntriesAuthoritative,
   tomorrow,
 }: {
   closeDay: (
@@ -28,6 +30,8 @@ export function useCloseDay({
   projects: Project[];
   selectedDate: string;
   shown: Task[];
+  taskTimeEntries: TaskTimeEntry[];
+  taskTimeEntriesAuthoritative: boolean;
   tomorrow: string;
 }) {
   return async (form: FormData) => {
@@ -39,12 +43,28 @@ export function useCloseDay({
       const targetDate = action === 'tomorrow' ? tomorrow : selectedTarget || undefined;
       return [{ taskId: task.id, action, targetDate }];
     });
+    const taskMinutesByProject = new Map<string, number>();
+    if (taskTimeEntriesAuthoritative) {
+      for (const entry of taskTimeEntries) {
+        if (entry.date !== selectedDate) continue;
+        taskMinutesByProject.set(
+          entry.projectId,
+          (taskMinutesByProject.get(entry.projectId) ?? 0) + entry.minutes,
+        );
+      }
+    } else {
+      for (const task of shown) {
+        taskMinutesByProject.set(
+          task.projectId,
+          (taskMinutesByProject.get(task.projectId) ?? 0) +
+            (task.actualDurationMinutes ?? 0),
+        );
+      }
+    }
     const projectMinutes = Object.fromEntries(
       projects.map((project) => [
         project.id,
-        shown
-          .filter((task) => task.projectId === project.id)
-          .reduce((total, task) => total + (task.actualDurationMinutes ?? 0), 0) +
+        (taskMinutesByProject.get(project.id) ?? 0) +
           daily
             .filter((item) => item.projectId === project.id)
             .reduce((total, item) => total + getDailyActualMinutes(item), 0),

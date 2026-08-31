@@ -27,7 +27,13 @@ import { LocalWorkspaceTestAdapter } from '@/features/workspace/workspace-test-a
 import { useAnnotationStrokes } from '@/hooks/use-annotation-strokes';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import { reconcileTaskAnnotations } from '@/lib/annotation-reconciliation';
-import type { CloseRecord, HistoryEvent, Project, Task } from '@/types/domain';
+import type {
+  CloseRecord,
+  HistoryEvent,
+  Project,
+  Task,
+  TaskTimeEntry,
+} from '@/types/domain';
 
 /** 解析 React setter，并保证异步写入读取 Query cache 中的最新集合。 */
 function resolveState<T>(current: T, action: SetStateAction<T>): T {
@@ -39,6 +45,26 @@ function resolveState<T>(current: T, action: SetStateAction<T>): T {
 /** 用稳定 JSON 比较领域 snapshot；server-returned row 最终替换 Query cache。 */
 function changed(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) !== JSON.stringify(right);
+}
+
+/** 吸收已提交写入后的 bundle 刷新失败，只暴露需重新加载的同步提示。 */
+export async function settleDailyTemplatePostCommitRefresh(
+  refresh: () => Promise<void>,
+  invalidate: () => Promise<unknown>,
+  onWarning: (message: string) => void,
+): Promise<void> {
+  try {
+    await refresh();
+  } catch (error) {
+    onWarning(
+      `Daily 模板已保存，但最新内容刷新失败：${
+        error instanceof Error ? error.message : '请稍后重新加载'
+      }`,
+    );
+    void Promise.resolve()
+      .then(invalidate)
+      .catch(() => undefined);
+  }
 }
 
 /** 云端 Workspace Provider；普通字段细粒度写，复合业务交给显式原子命令。 */
@@ -214,6 +240,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     };
   }, [client, invalidateWorkspace, ownerKey]);
 
+  /** 保存任务后同步读取触发器生成的耗时账本，让两个 Query cache 只暴露同一提交后的状态。 */
   const updateTasks: Dispatch<SetStateAction<Task[]>> = useCallback(
     (action) => {
       void runMutation(async () => {
@@ -227,10 +254,18 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
         const saved = await Promise.all(
           changedTasks.map((task) => repository.saveTask(task)),
         );
+        const refreshedTaskTimeEntries =
+          changedTasks.length > 0 ? await repository.listTaskTimeEntries() : undefined;
         queryClient.setQueryData<Task[]>(
           ['workspace', ownerKey, 'tasks'],
           next.map((task) => saved.find((row) => row.id === task.id) ?? task),
         );
+        if (refreshedTaskTimeEntries) {
+          queryClient.setQueryData<TaskTimeEntry[]>(
+            ['workspace', ownerKey, 'task-time-entries'],
+            refreshedTaskTimeEntries,
+          );
+        }
       });
     },
     [ownerKey, queryClient, repository, runMutation, tasks],
@@ -507,7 +542,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
   ].find(Boolean);
 
   const taskState = useMemo(
-    () => ({ tasks, taskTimeEntries }),
+    () => ({ tasks, taskTimeEntries, taskTimeEntriesAuthoritative: true }),
     [tasks, taskTimeEntries],
   );
 
@@ -531,21 +566,31 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     [ownerKey, queryClient, repository],
   );
 
-  /** 保存长期 Daily template 后刷新 bundle；失败时调用方保留编辑态并可直接重试。 */
+  /** 区分 RPC 写入失败与提交后刷新失败，避免诱导用户重复写入已保存的模板。 */
   const saveDailyTemplate = useCallback(
     async (daily: Daily) => {
       try {
         if (!navigator.onLine) throw new Error('当前离线，无法保存 Daily 模板。');
         setMutationError(undefined);
         await repository.updateDailyTemplate(daily);
-        queryClient.setQueryData(
-          ['workspace', ownerKey, 'daily'],
-          await repository.listDailyBundle(),
-        );
       } catch (error) {
         setMutationError(error instanceof Error ? error.message : 'Daily 模板保存失败');
         throw error;
       }
+
+      await settleDailyTemplatePostCommitRefresh(
+        async () => {
+          queryClient.setQueryData(
+            ['workspace', ownerKey, 'daily'],
+            await repository.listDailyBundle(),
+          );
+        },
+        () =>
+          queryClient.invalidateQueries({
+            queryKey: ['workspace', ownerKey, 'daily'],
+          }),
+        setMutationError,
+      );
     },
     [ownerKey, queryClient, repository],
   );
@@ -585,7 +630,14 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       recordDaily,
       closeDay,
     }),
-    [closeDay, createProject, createTask, recordDaily, saveDailyTemplate, transitionTask],
+    [
+      closeDay,
+      createProject,
+      createTask,
+      recordDaily,
+      saveDailyTemplate,
+      transitionTask,
+    ],
   );
 
   return (

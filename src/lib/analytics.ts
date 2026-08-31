@@ -159,10 +159,26 @@ export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
   );
 
   const timeEntries = input.taskTimeEntries;
+  const authoritativeTaskTime = timeEntries !== undefined;
+  const exactMinutesByTask = new Map<string, number>();
+  for (const entry of timeEntries ?? []) {
+    if (!entry.taskId) continue;
+    exactMinutesByTask.set(
+      entry.taskId,
+      (exactMinutesByTask.get(entry.taskId) ?? 0) + safeMinutes(entry.minutes),
+    );
+  }
   for (const task of input.tasks) {
-    const actualMinutes = timeEntries ? 0 : safeMinutes(task.actualDurationMinutes);
+    const aggregateMinutes = safeMinutes(task.actualDurationMinutes);
+    const exactMinutes = exactMinutesByTask.get(task.id) ?? 0;
+    // 云端 ledger 即使为空也具有权威性；未归因 aggregate 只报告 incomplete，不再猜到当前日期。
+    const actualMinutes = authoritativeTaskTime ? 0 : aggregateMinutes;
     const plannedMinutes = safeMinutes(task.plannedDurationMinutes);
-    if (actualMinutes > 0 && !task.date) incompleteCount += 1;
+    if (
+      (authoritativeTaskTime && aggregateMinutes !== exactMinutes) ||
+      (!authoritativeTaskTime && actualMinutes > 0 && !task.date)
+    )
+      incompleteCount += 1;
     if (!task.date || task.status === 'trashed' || !isInRange(task.date, input.range))
       continue;
     if (actualMinutes > 0 || plannedMinutes > 0) {
@@ -216,7 +232,8 @@ export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
     if (!isInRange(date, input.range)) continue;
     for (const item of items) {
       if (recordedDaily.has(`${item.id}:${date}`)) continue;
-      const actualMinutes = safeMinutes(item.actual) +
+      const actualMinutes =
+        safeMinutes(item.actual) +
         (item.children ?? []).reduce(
           (total, child) => total + safeMinutes(child.actual),
           0,

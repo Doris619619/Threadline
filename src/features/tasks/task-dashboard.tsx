@@ -48,6 +48,7 @@ export function TaskDashboard() {
   const {
     tasks,
     taskTimeEntries,
+    taskTimeEntriesAuthoritative,
     updateTasks,
     projects: workspaceProjects,
     updateProjects,
@@ -143,6 +144,7 @@ export function TaskDashboard() {
     selectedDate,
     tasks,
     taskTimeEntries,
+    taskTimeEntriesAuthoritative,
     updateAnnotationStrokes,
     updateTasks,
     updateWorkstationTaskIds,
@@ -171,6 +173,8 @@ export function TaskDashboard() {
     projects: workspaceProjects,
     selectedDate,
     shown,
+    taskTimeEntries,
+    taskTimeEntriesAuthoritative,
     tomorrow,
   });
   if (!hydrated)
@@ -237,6 +241,8 @@ export function TaskDashboard() {
       <ProjectPanel
         items={workspaceProjects}
         tasks={tasks}
+        taskTimeEntries={taskTimeEntries}
+        taskTimeEntriesAuthoritative={taskTimeEntriesAuthoritative}
         daily={daily}
         dailyHistory={dailyHistory}
         onChange={updateProjects}

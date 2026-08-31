@@ -95,7 +95,7 @@ pnpm test:db
 pnpm test:supabase:integration
 ```
 
-迁移包含 UUID、same-owner FK、RLS、Daily 幂等实例化、正式 Daily History、原子任务流转/收尾/工作站排序、按日固定的 task actual entries、Realtime publication，以及受保护的 30 天物理 purge。客户端只使用 Email/password 与 publishable key；Main/Preload 不持有 Supabase secret。`test:supabase:integration` 会在本地创建并清理两个临时账号，真实验证 publishable-key Auth、REST/RLS、owner-filter Realtime、Rhythm 和 Daily 并发幂等。Docker 不可用时可先执行 `pnpm test:sql:static`，但不能把本地 SQL/pgTAP 标记为通过。持久化、Daily template 与实际耗时的行为边界见 [数据完整性规则](docs/data-integrity.md)。
+迁移包含 UUID、same-owner FK、RLS、Daily 幂等实例化、正式 Daily History、原子任务流转/收尾/工作站排序、客户端只读且按日固定的 task actual entries、数据库重算的关账项目汇总、Realtime publication，以及保留耗时历史的 30 天 task 物理 purge。客户端只使用 Email/password 与 publishable key；Main/Preload 不持有 Supabase secret。`test:supabase:integration` 会在本地创建并清理两个临时账号，真实验证 publishable-key Auth、REST/RLS、owner-filter Realtime、Rhythm 和 Daily 并发幂等。Docker 不可用时可先执行 `pnpm test:sql:static`，但不能把本地 SQL/pgTAP 标记为通过。持久化、Daily template 与实际耗时的行为边界见 [数据完整性规则](docs/data-integrity.md)。
 
 远端 Supabase、Cron、Vercel Production/Preview 和真实手机验收步骤见 [Supabase、Vercel 与跨端验收](docs/supabase-deployment.md)。Supabase 后端配置完成不等于已有公网 HTTPS PWA URL；没有部署 URL 时，PC + 手机 hosted acceptance 必须保持 pending。
 
@@ -127,7 +127,7 @@ docs/                    PRD、目标、工程协作规范、桌面交互与 PR 
 
 - 普通任务只有“重要 / 不重要”两档待安排优先级。
 - 删除进入回收站，恢复后回到当天；放弃、待安排、移期保留为可复盘历史。
-- Daily 日期实例独立保存 title/project/children/completed/actual/result snapshot，不污染未来模板；Records 只使用正式 `daily_history_entries`，而 Calendar/Insights/PDF 会把正式记录与尚未记录的日期实例按模板和日期去重合并。
+- Daily 日期实例独立保存 title/project/children/completed/actual/result snapshot；“编辑 Daily”在一个事务内同步长期模板与当前实例，复用稳定子项 identity，并保留并发更新的实例运行态，其他已生成日期不变。Records 只使用正式 `daily_history_entries`，而 Calendar/Insights/PDF 会把正式记录与尚未记录的日期实例按模板和日期去重合并。
 - 日历、洞察与 PDF 共用纯函数 analytics 口径；旧收尾数据只能作为项目级 aggregate，绝不反推任务级历史。详细规则见 [工作台信息架构与分析口径](docs/workspace-information-architecture.md)。
 - 开始与结束时间支持 `1420` / `14:20` 输入；同日填写会自动计算预计分钟，不支持跨午夜。
 - **今日日程 ↔ 无时间待办**支持拖拽移动任务（不复制）：按住每条任务右侧的六点拖拽柄并拖到另一面板；拖入日程后会作为持久化的待填时间任务置顶并自动聚焦时间输入，拖出会清除待填状态与全部排程时间。

@@ -8,11 +8,12 @@ import { addLocalDateDays } from '@/lib/local-date';
 import type { CloseRecord, Project, Task, TaskTimeEntry } from '@/types/domain';
 
 /**
- * 从当前工作日期和持久化领域数据派生首页、紧凑窗口与分析页所需的稳定视图模型。
+ * 从当前工作日期和持久化领域数据派生稳定视图；显式能力决定实际耗时真源或测试 fallback。
  */
 export function useTaskDashboardData({
   tasks,
   taskTimeEntries,
+  taskTimeEntriesAuthoritative,
   projects,
   dailyByDate,
   dailyHistory,
@@ -21,6 +22,7 @@ export function useTaskDashboardData({
 }: {
   tasks: Task[];
   taskTimeEntries: TaskTimeEntry[];
+  taskTimeEntriesAuthoritative: boolean;
   projects: Project[];
   dailyByDate: Record<string, Daily[]>;
   dailyHistory: DailyHistoryEntry[];
@@ -53,8 +55,7 @@ export function useTaskDashboardData({
   );
   const backlog = tasks.filter((task) => task.status === 'backlog');
   const done = shown.filter((task) => task.completed).length;
-  const hasTimeEntries = taskTimeEntries.length > 0;
-  const actual = hasTimeEntries
+  const actual = taskTimeEntriesAuthoritative
     ? taskTimeEntries
         .filter((entry) => entry.date === selectedDate)
         .reduce((sum, entry) => sum + entry.minutes, 0)
@@ -66,7 +67,7 @@ export function useTaskDashboardData({
     actual,
     analyticsInput: {
       tasks,
-      taskTimeEntries: hasTimeEntries ? taskTimeEntries : undefined,
+      taskTimeEntries: taskTimeEntriesAuthoritative ? taskTimeEntries : undefined,
       projects,
       dailyByDate,
       dailyHistory,

@@ -24,6 +24,63 @@ import { usePersistentState } from '@/hooks/use-persistent-state';
 import { getLocalDateKey } from '@/lib/local-date';
 import type { CloseRecord, HistoryEvent, Project, Task } from '@/types/domain';
 
+/** 在测试适配器中模拟服务端 merge：结构同步到模板，当前 entry 保留运行态和并发子项。 */
+export function mergeLocalDailyTemplate(current: Daily, next: Daily) {
+  const usedCurrentIndexes = new Set<number>();
+  const mergedChildren = next.children.map((child, index) => {
+    const currentIndex = current.children.findIndex((candidate, candidateIndex) => {
+      if (usedCurrentIndexes.has(candidateIndex)) return false;
+      if (child.id && candidate.id) return child.id === candidate.id;
+      if (child.templateItemId && candidate.templateItemId)
+        return child.templateItemId === candidate.templateItemId;
+      return candidateIndex === index;
+    });
+    const currentChild = currentIndex >= 0 ? current.children[currentIndex] : undefined;
+    if (currentIndex >= 0) usedCurrentIndexes.add(currentIndex);
+    const entryItemId = currentChild?.id ?? child.id ?? crypto.randomUUID();
+    const templateItemId =
+      currentChild?.templateItemId ?? child.templateItemId ?? entryItemId;
+    return {
+      ...child,
+      id: entryItemId,
+      templateItemId,
+      completed: currentChild?.completed ?? child.completed,
+      actual: currentChild?.actual ?? child.actual,
+    };
+  });
+  for (const [index, child] of current.children.entries()) {
+    if (usedCurrentIndexes.has(index)) continue;
+    const entryItemId = child.id ?? crypto.randomUUID();
+    mergedChildren.push({
+      ...child,
+      id: entryItemId,
+      templateItemId: child.templateItemId ?? entryItemId,
+    });
+  }
+  const entry: Daily = {
+    ...current,
+    projectId: next.projectId,
+    project: next.project,
+    color: next.color,
+    title: next.title,
+    children: mergedChildren,
+  };
+  const template: Daily = {
+    ...entry,
+    entryId: undefined,
+    actual: 0,
+    result: '',
+    completed: false,
+    children: mergedChildren.map((child) => ({
+      ...child,
+      id: child.templateItemId,
+      completed: false,
+      actual: 0,
+    })),
+  };
+  return { entry, template };
+}
+
 /**
  * 仅供 Playwright/Electron 显式测试构建使用的本地适配器；生产构建不会挂载。
  */
@@ -268,7 +325,14 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
     workstationHydrated &&
     annotationHydrated &&
     highlightHydrated;
-  const taskState = useMemo(() => ({ tasks, taskTimeEntries: [] }), [tasks]);
+  const taskState = useMemo(
+    () => ({
+      tasks,
+      taskTimeEntries: [],
+      taskTimeEntriesAuthoritative: false,
+    }),
+    [tasks],
+  );
   const taskActions = useMemo(() => ({ updateTasks }), [updateTasks]);
   const projectState = useMemo(() => ({ projects }), [projects]);
   const projectActions = useMemo(() => ({ updateProjects }), [updateProjects]);
@@ -296,14 +360,30 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
     () => ({ updateAnnotationStrokes, updateWorkstationTaskIds, updateHighlightColor }),
     [updateAnnotationStrokes, updateHighlightColor, updateWorkstationTaskIds],
   );
-  /** 在显式测试适配器中模拟模板 RPC 的成功回写，保证本地与云端编辑语义一致。 */
+  /** 在测试适配器中同步模板与当前 snapshot，并模拟服务端 runtime merge。 */
   const saveDailyTemplate = useCallback(
     async (next: Daily) => {
+      const currentEntry =
+        materializedDailyByDate[selectedDate]?.find((item) => item.id === next.id) ??
+        next;
+      const merged = mergeLocalDailyTemplate(currentEntry, next);
       updateDailyTemplates((current) =>
-        current.map((item) => (item.id === next.id ? next : item)),
+        current.map((item) => (item.id === next.id ? merged.template : item)),
       );
+      updateDailyByDate((current) => ({
+        ...current,
+        [selectedDate]: (
+          current[selectedDate] ?? createDailyInstance(selectedDate, dailyTemplates)
+        ).map((item) => (item.id === next.id ? merged.entry : item)),
+      }));
     },
-    [updateDailyTemplates],
+    [
+      dailyTemplates,
+      materializedDailyByDate,
+      selectedDate,
+      updateDailyByDate,
+      updateDailyTemplates,
+    ],
   );
   const commands = useMemo(
     () => ({
@@ -314,7 +394,14 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
       recordDaily,
       closeDay,
     }),
-    [closeDay, createProject, createTask, recordDaily, saveDailyTemplate, transitionTask],
+    [
+      closeDay,
+      createProject,
+      createTask,
+      recordDaily,
+      saveDailyTemplate,
+      transitionTask,
+    ],
   );
 
   return (

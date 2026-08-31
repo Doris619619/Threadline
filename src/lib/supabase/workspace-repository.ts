@@ -12,7 +12,13 @@ import {
   toDatabaseLocalDateTime,
   toDatabaseWallTime,
 } from '@/lib/supabase/time-mapper';
-import type { CloseRecord, HistoryEvent, Project, Task, TaskTimeEntry } from '@/types/domain';
+import type {
+  CloseRecord,
+  HistoryEvent,
+  Project,
+  Task,
+  TaskTimeEntry,
+} from '@/types/domain';
 
 export type DailyBundle = {
   dailyByDate: Record<string, Daily[]>;
@@ -79,15 +85,26 @@ function mapTask(row: JsonRecord): Task {
   };
 }
 
-/** 将 immutable task time entry 映射为分析可直接消费的按日记录。 */
+/** 将按日 task time entry 映射到领域层；受信清理后允许 taskId 为空。 */
 function mapTaskTimeEntry(row: JsonRecord): TaskTimeEntry {
   return {
     id: String(row.id),
-    taskId: String(row.task_id),
+    taskId: row.task_id === null ? undefined : String(row.task_id),
     projectId: String(row.project_id),
     date: String(row.entry_date),
     minutes: Number(row.minutes),
   };
+}
+
+/** 复用服务端 entry item UUID 建立稳定模板映射；缺少 entry identity 时拒绝写入。 */
+function prepareDailyTemplateChildren(daily: Daily) {
+  return daily.children.map((item) => {
+    if (!item.id) throw new Error('update Daily template: child missing entry item id');
+    return {
+      ...item,
+      templateItemId: item.templateItemId ?? item.id,
+    };
+  });
 }
 
 /** 将 UI task 映射成数据库 row；本地墙钟字段绝不经过 Date。 */
@@ -311,18 +328,29 @@ export class SupabaseWorkspaceRepository {
     );
   }
 
-  /** 原子修改长期 Daily template；当前与历史 entry 均保留各自 snapshot。 */
+  /** 同一 RPC 保存模板结构并 merge 当前 snapshot，保留服务端子项运行态。 */
   async updateDailyTemplate(daily: Daily): Promise<void> {
+    if (!daily.entryId) throw new Error('update Daily template: missing entryId');
+    const children = prepareDailyTemplateChildren(daily);
     assertResponse(
       'update Daily template',
       await this.client.rpc('update_daily_template_bundle', {
         p_template_id: daily.id,
+        p_entry_id: daily.entryId,
         p_project_id: daily.projectId,
         p_title: daily.title,
-        p_items: daily.children.map((item, position) => ({
+        p_template_items: children.map((item, position) => ({
           id: item.templateItemId,
           title: item.title,
           position,
+        })),
+        p_entry_items: children.map((item, position) => ({
+          id: item.id,
+          template_item_id: item.templateItemId,
+          title: item.title,
+          position,
+          completed: item.completed,
+          actual: item.actual,
         })),
       }),
     );

@@ -16,7 +16,7 @@ import type { Project } from '@/types/domain';
 
 export type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 /**
- * Daily 任务面板主体组件。
+ * Daily 任务面板主体组件；模板编辑由单个命令同步长期模板与当前日期实例。
  */
 export function DailyPanel({
   items,
@@ -122,18 +122,19 @@ export function DailyPanel({
                       setSavingTemplateId(daily.id);
                       try {
                         await onUpdateTemplate(next);
-                        update(daily.id, () => next);
                         setEditingId(undefined);
                       } catch (error) {
                         setSaveError(
-                          error instanceof Error ? error.message : 'Daily 模板保存失败，请重试。',
+                          error instanceof Error
+                            ? error.message
+                            : 'Daily 模板保存失败，请重试。',
                         );
                       } finally {
                         setSavingTemplateId(undefined);
                       }
                     }}
                   >
-                  {savingTemplateId === daily.id ? '保存中…' : '保存'}
+                    {savingTemplateId === daily.id ? '保存中…' : '保存'}
                   </button>
                   <button
                     className="daily-cancel-btn"
@@ -196,7 +197,9 @@ export function DailyPanel({
                           update(daily.id, (item) => ({
                             ...item,
                             children: item.children.map((value, i) =>
-                              i === index ? { ...value, title: event.target.value } : value,
+                              i === index
+                                ? { ...value, title: event.target.value }
+                                : value,
                             ),
                           }))
                         }
@@ -253,7 +256,12 @@ export function DailyPanel({
                         ...item,
                         children: [
                           ...item.children,
-                          { id: crypto.randomUUID(), title, completed: false, actual: 0 },
+                          {
+                            id: crypto.randomUUID(),
+                            title,
+                            completed: false,
+                            actual: 0,
+                          },
                         ],
                       }));
                       setChildTitles((current) => ({ ...current, [daily.id]: '' }));
@@ -380,7 +388,11 @@ export function DailyPanel({
           </tbody>
         </table>
       )}
-      {saveError && <p className="workspace-sync-error" role="alert">{saveError}</p>}
+      {saveError && (
+        <p className="workspace-sync-error" role="alert">
+          {saveError}
+        </p>
+      )}
     </Surface>
   );
 }
