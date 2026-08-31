@@ -266,16 +266,7 @@ begin
       or coalesce(i.position, -1) < 0
       or coalesce(i.actual, 0) < 0
   ) then raise exception 'INVALID_DAILY_ITEM' using errcode = '22023'; end if;
-  if exists (
-    select 1
-    from jsonb_to_recordset(coalesce(p_entry_items, '[]'::jsonb))
-      as entry_item(id uuid, template_item_id uuid)
-    full join jsonb_to_recordset(coalesce(p_template_items, '[]'::jsonb))
-      as template_item(id uuid)
-      on template_item.id = entry_item.template_item_id
-    where entry_item.template_item_id is null or template_item.id is null
-  ) then raise exception 'DAILY_ITEM_MAPPING_MISMATCH' using errcode = '22023'; end if;
-
+  -- 先拒绝越过当前 bundle 边界的既有 ID，再校验 bundle 内部映射，保持错误契约明确。
   if exists (
     select 1
     from jsonb_to_recordset(coalesce(p_template_items, '[]'::jsonb)) as supplied(id uuid)
@@ -294,6 +285,15 @@ begin
   ) then
     raise exception 'DAILY_ENTRY_ITEM_SCOPE_MISMATCH' using errcode = '22023';
   end if;
+  if exists (
+    select 1
+    from jsonb_to_recordset(coalesce(p_entry_items, '[]'::jsonb))
+      as entry_item(id uuid, template_item_id uuid)
+    full join jsonb_to_recordset(coalesce(p_template_items, '[]'::jsonb))
+      as template_item(id uuid)
+      on template_item.id = entry_item.template_item_id
+    where entry_item.template_item_id is null or template_item.id is null
+  ) then raise exception 'DAILY_ITEM_MAPPING_MISMATCH' using errcode = '22023'; end if;
 
   -- payload 内的结构字段可更新；已存在 child 的 completed/actual 始终以锁定后的服务端值为准。
   -- payload 缺失的并发 child 追加到结构末尾，不得解释为删除。

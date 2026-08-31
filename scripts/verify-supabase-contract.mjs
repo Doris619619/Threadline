@@ -155,6 +155,11 @@ requireDefinitionPattern(
 );
 requireDefinitionPattern(
   updateDailyTemplateBundle,
+  /DAILY_TEMPLATE_ITEM_SCOPE_MISMATCH[\s\S]*?DAILY_ENTRY_ITEM_SCOPE_MISMATCH[\s\S]*?DAILY_ITEM_MAPPING_MISMATCH/i,
+  'Daily template edits reject out-of-scope IDs before validating bundle mappings',
+);
+requireDefinitionPattern(
+  updateDailyTemplateBundle,
   /from public\.daily_templates[\s\S]*?for update[\s\S]*?from public\.daily_entries[\s\S]*?entries\.id\s*=\s*p_entry_id[\s\S]*?entries\.template_id\s*=\s*p_template_id[\s\S]*?for update[\s\S]*?from public\.daily_entry_items[\s\S]*?for update/i,
   'Daily template edits lock the owner-scoped template, current entry, and entry children',
 );
