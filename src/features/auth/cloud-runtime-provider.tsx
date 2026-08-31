@@ -18,6 +18,10 @@ import type { Session, SupabaseClient, User } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { readSupabasePublicConfig } from '@/lib/supabase/config';
 import { SupabaseWorkspaceRepository } from '@/lib/supabase/workspace-repository';
+import {
+  StartupProgressProvider,
+  type StartupOperation,
+} from '@/features/startup/startup-progress-context';
 
 type CloudRuntime = {
   client: SupabaseClient;
@@ -124,6 +128,8 @@ function AuthenticatedRuntime({
   children: ReactNode;
 }) {
   const [session, setSession] = useState<Session | null>();
+  const [sessionRecoveryDone, setSessionRecoveryDone] = useState(false);
+  const [sessionRecoveryError, setSessionRecoveryError] = useState<string>();
   const [initializationError, setInitializationError] = useState<string>();
   const [initializedOwner, setInitializedOwner] = useState<string>();
 
@@ -131,10 +137,12 @@ function AuthenticatedRuntime({
     let mounted = true;
     void client.auth.getSession().then(({ data, error }) => {
       if (!mounted) return;
-      setInitializationError(error?.message);
+      setSessionRecoveryError(error?.message);
       setSession(data.session);
+      setSessionRecoveryDone(true);
     });
     const { data } = client.auth.onAuthStateChange((_event, nextSession) => {
+      setSessionRecoveryError(undefined);
       setInitializationError(undefined);
       setSession(nextSession);
       if (!nextSession) queryClient.clear();
@@ -146,7 +154,7 @@ function AuthenticatedRuntime({
   }, [client, queryClient]);
 
   useEffect(() => {
-    if (!session) return;
+    if (!session || initializedOwner === session.user.id) return;
     let cancelled = false;
     for (const key of [
       'threadline.tasks.v1',
@@ -175,45 +183,50 @@ function AuthenticatedRuntime({
     return () => {
       cancelled = true;
     };
-  }, [repository, session]);
+  }, [initializedOwner, repository, session]);
 
-  if (session === undefined)
-    return (
-      <main className="auth-gate">
-        <section className="auth-card">正在恢复登录状态…</section>
-      </main>
-    );
-  if (!session) return <LoginGate client={client} />;
-  if (initializationError)
-    return (
-      <main className="auth-gate">
-        <section className="auth-card" role="alert">
-          <h1>云工作区初始化失败</h1>
-          <p>{initializationError}</p>
-        </section>
-      </main>
-    );
-  if (initializedOwner !== session.user.id)
-    return (
-      <main className="auth-gate">
-        <section className="auth-card">正在初始化云工作区…</section>
-      </main>
-    );
+  const authentication: StartupOperation = sessionRecoveryError
+    ? { status: 'failed', message: sessionRecoveryError }
+    : sessionRecoveryDone
+      ? { status: 'completed' }
+      : { status: 'active' };
+  const workspaceInitialization: StartupOperation = initializationError
+    ? { status: 'failed', message: initializationError }
+    : session && initializedOwner === session.user.id
+      ? { status: 'completed' }
+      : session
+        ? { status: 'active' }
+        : { status: 'pending' };
+  const initializedSession =
+    session && initializedOwner === session.user.id ? session : undefined;
+  const runtime: CloudRuntime | undefined = initializedSession
+    ? {
+        client,
+        repository,
+        session: initializedSession,
+        user: initializedSession.user,
+        signOut: async () => {
+          const response = await client.auth.signOut();
+          if (response.error) throw response.error;
+        },
+      }
+    : undefined;
 
-  const runtime: CloudRuntime = {
-    client,
-    repository,
-    session,
-    user: session.user,
-    signOut: async () => {
-      const response = await client.auth.signOut();
-      if (response.error) throw response.error;
-    },
-  };
   return (
-    <CloudRuntimeContext.Provider value={runtime}>
-      {children}
-    </CloudRuntimeContext.Provider>
+    <StartupProgressProvider
+      key={session?.user.id ?? 'anonymous'}
+      active={session !== null}
+      authentication={authentication}
+      workspaceInitialization={workspaceInitialization}
+    >
+      {runtime ? (
+        <CloudRuntimeContext.Provider value={runtime}>
+          {children}
+        </CloudRuntimeContext.Provider>
+      ) : session === null && sessionRecoveryDone ? (
+        <LoginGate client={client} />
+      ) : null}
+    </StartupProgressProvider>
   );
 }
 

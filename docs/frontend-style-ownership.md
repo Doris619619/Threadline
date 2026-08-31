@@ -6,7 +6,7 @@
 
 `src/app/globals.css` 是唯一的全局样式入口。它只负责 Tailwind 与有序 `@import`，不得新增业务 selector。
 
-当前拆分严格保持旧 `globals.css` 的区块顺序：token、基础规则、UI primitive、Electron 窗口、紧凑任务、应用壳、任务、Daily、项目、复盘、统计/设置、历史、前置兼容响应式、跨功能页面规则、后置兼容响应式、Insights 打印。`insights-print.css` 必须始终最后加载。
+当前拆分严格保持旧 `globals.css` 的区块顺序：token、基础规则、UI primitive、Electron 窗口、紧凑任务、应用壳、任务、Daily、项目、复盘、统计/设置、历史、前置兼容响应式、跨功能页面规则、后置兼容响应式、Insights 打印、认证与启动。
 
 ## Owner 规则
 
@@ -16,6 +16,7 @@
 - `src/components/app-shell.css`：Web/PWA 导航、主内容区、日期栏、账户 disclosure 与 **760px 底栏导航**；disclosure 使用普通 button/popover 语义，不添加 `role="menu"`。
 - `src/styles/desktop-window.css`：Electron Full、Compact、Edge 与 `-webkit-app-region`；Full 使用纵向 flex，避免 Web 无标题栏时预留空行。窄屏将 `.tl-window-body` 改为单列，让固定底栏不占用侧栏网格。
 - `src/features/tasks/task-dashboard.css`：首页仪表盘、今日日程七列网格、手机纵向任务行（同一 DOM，760px 切换 `grid-template-areas`）、无时间待办与首页胶囊统计。
+- `src/features/startup/threadline-startup.css`：认证完成前与工作区 hydration 期间的全屏启动页；只服务四个真实启动阶段，不承载认证、query 或 Realtime 业务逻辑。
 - `src/features/feature-pages.css`：Calendar、Insights、Rhythm 共用的页面信息架构 selector；只有 selector 本身跨多个 feature 时才允许放入这里。
 - `src/features/<feature>/`：该 feature 自己渲染的业务 selector 和已审计的响应式规则。
 

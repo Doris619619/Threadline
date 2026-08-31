@@ -9,6 +9,7 @@
 - **Web / PWA**：Next.js App Router 应用，成功在线打开后预缓存应用壳与当前 Next 静态资源，支持断网重开。
 - **Windows 桌面版**：Electron 打包同一套前端；不维护第二套 UI 或业务逻辑。
 - **数据层**：Supabase 是任务、项目、Daily、历史、工作站与 Rhythm 的唯一业务真源；未配置时显示明确门禁，不回退本地业务数据。Annotation 笔迹、高亮颜色和窗口 UI 状态仍仅保存在设备上。
+- **启动状态**：登录恢复、`initialize_workspace`、工作区 queries/本机 hydration 与 Supabase Realtime 分别映射为四个真实阶段；数据完成后工作台可用，Realtime 连接失败只给出非阻塞提示，不伪造订阅成功。
 
 核心流程包括任务规划与执行、Daily 父子任务联动、待安排和移期、回收站恢复、每日收尾、项目投入日历，以及跨范围洞察与报告导出。
 

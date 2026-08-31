@@ -15,6 +15,7 @@ import { ProjectPanel } from '@/features/projects/project-panel';
 import { RhythmPanel } from '@/features/rhythm/rhythm-panel';
 import { SettingsPanel } from '@/features/settings/settings-panel';
 import { useWorkspaceData } from '@/features/workspace/workspace-data-provider';
+import { useOptionalStartupProgress } from '@/features/startup/startup-progress-context';
 import { CompactWindowHeader, useWorkspaceView } from '@/components/app-shell';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import { resolveActiveProject } from '@/lib/project-rules';
@@ -45,6 +46,7 @@ import type { Task } from '@/types/domain';
 export function TaskDashboard() {
   const { active, selectedDate, setSelectedDate } = useWorkspaceView();
   const { isMiniToday, isWorkstation } = useDesktopWindow();
+  const startupProgress = useOptionalStartupProgress();
   const {
     tasks,
     taskTimeEntries,
@@ -177,6 +179,7 @@ export function TaskDashboard() {
     taskTimeEntriesAuthoritative,
     tomorrow,
   });
+  if (!hydrated && startupProgress) return null;
   if (!hydrated)
     return (
       <Surface className="workspace-loading">

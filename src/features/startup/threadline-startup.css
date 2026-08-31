@@ -1,0 +1,333 @@
+/** 文件用途：定义 Threadline 统一启动页的移动端优先布局、真实阶段状态与克制的品牌装饰。 */
+
+.threadline-startup {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  grid-template-rows: minmax(230px, 0.8fr) auto minmax(72px, 0.28fr);
+  align-items: center;
+  justify-items: center;
+  min-height: 100svh;
+  overflow: auto;
+  padding: max(38px, env(safe-area-inset-top)) 20px
+    max(28px, env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 50% 23%, rgb(0 122 255 / 13%), transparent 25%),
+    linear-gradient(135deg, #fbfcff 0%, #f5f7fb 53%, #fff 100%);
+  color: var(--text-primary);
+}
+
+.threadline-startup-visual {
+  position: relative;
+  display: grid;
+  width: min(100%, 390px);
+  min-height: 220px;
+  place-items: center;
+}
+
+.threadline-startup-orbit {
+  position: absolute;
+  width: 82%;
+  height: 42%;
+  border: 1px solid rgb(0 122 255 / 19%);
+  border-radius: 50%;
+  transform: rotate(-15deg);
+}
+
+.threadline-startup-orbit-secondary {
+  width: 63%;
+  height: 67%;
+  border-color: rgb(0 122 255 / 11%);
+  transform: rotate(28deg);
+}
+
+.threadline-startup-orb {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #8fc6ff, var(--accent));
+  box-shadow: 0 4px 12px rgb(0 101 214 / 26%);
+}
+
+.threadline-startup-orb-one {
+  top: 20%;
+  right: 17%;
+}
+
+.threadline-startup-orb-two {
+  bottom: 18%;
+  left: 17%;
+  width: 14px;
+  height: 14px;
+}
+
+.threadline-startup-layer {
+  position: absolute;
+  width: 145px;
+  height: 82px;
+  border: 1px solid rgb(0 122 255 / 21%);
+  border-radius: 19px;
+  background: linear-gradient(135deg, rgb(255 255 255 / 66%), rgb(213 232 255 / 60%));
+  box-shadow: 0 14px 26px rgb(0 84 181 / 8%);
+  transform: rotate(10deg) skewX(-12deg);
+}
+
+.threadline-startup-layer-back {
+  margin-top: 61px;
+  margin-left: 10px;
+  opacity: 0.52;
+}
+
+.threadline-startup-layer-front {
+  margin-top: 31px;
+  margin-right: 13px;
+  opacity: 0.86;
+}
+
+.threadline-startup-icon-wrap {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 104px;
+  height: 104px;
+  place-items: center;
+  border-radius: 29px;
+  background: linear-gradient(145deg, #62adff, var(--accent));
+  box-shadow:
+    0 16px 30px rgb(0 104 220 / 25%),
+    inset 0 1px 1px rgb(255 255 255 / 42%);
+}
+
+.threadline-startup-icon-wrap img {
+  width: 72px;
+  height: 72px;
+  border-radius: 19px;
+}
+
+.threadline-startup-card {
+  width: min(100%, 545px);
+  padding: 29px 25px 25px;
+  border: 1px solid rgb(255 255 255 / 78%);
+  border-radius: 28px;
+  background: rgb(255 255 255 / 86%);
+  box-shadow:
+    0 16px 40px rgb(30 62 111 / 9%),
+    0 2px 8px rgb(30 62 111 / 5%);
+  backdrop-filter: blur(18px);
+}
+
+.threadline-startup-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-size: 1.125rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.threadline-startup-brand img {
+  border-radius: 8px;
+}
+
+.threadline-startup-heading {
+  margin: 24px 0 20px;
+  text-align: center;
+}
+
+.threadline-startup-heading h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 7vw, 2.5rem);
+  letter-spacing: -0.055em;
+  line-height: 1.18;
+}
+
+.threadline-startup-heading p {
+  margin: 10px 0 0;
+  color: var(--text-secondary);
+  font-size: var(--text-body-size);
+}
+
+.threadline-startup-steps {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.threadline-startup-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 67px;
+  padding: 12px 0;
+}
+
+.threadline-startup-step + .threadline-startup-step {
+  border-top: 1px solid rgb(29 29 31 / 7%);
+}
+
+.threadline-startup-step-icon {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  place-items: center;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 50%;
+  color: var(--text-tertiary);
+}
+
+.threadline-startup-step-copy {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.threadline-startup-step-copy strong {
+  font-size: 0.98rem;
+  font-weight: 650;
+}
+
+.threadline-startup-step-copy small {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.threadline-startup-step.is-completed .threadline-startup-step-icon {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.threadline-startup-step.is-active .threadline-startup-step-icon {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.threadline-startup-step.is-active .threadline-startup-step-icon svg {
+  animation: threadline-startup-spin 0.9s linear infinite;
+}
+
+.threadline-startup-step.is-active .threadline-startup-step-copy strong,
+.threadline-startup-step.is-active .threadline-startup-step-copy small {
+  color: var(--accent-text);
+}
+
+.threadline-startup-step.is-failed .threadline-startup-step-icon {
+  border-color: color-mix(in srgb, var(--danger) 60%, white);
+  background: color-mix(in srgb, var(--danger) 9%, white);
+  color: var(--danger);
+}
+
+.threadline-startup-step.is-failed .threadline-startup-step-copy small {
+  color: var(--danger);
+}
+
+.threadline-startup-progress {
+  height: 6px;
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf0f5;
+}
+
+.threadline-startup-progress span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), #54a8ff);
+  transform-origin: left center;
+  transition: transform 220ms ease;
+}
+
+.threadline-startup-error {
+  margin: 15px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--danger) 8%, white);
+  color: var(--danger);
+  font-size: var(--text-secondary-size);
+  line-height: 1.45;
+}
+
+.threadline-startup-security {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 0;
+  color: var(--text-tertiary);
+  font-size: var(--text-caption-size);
+}
+
+.threadline-startup-security svg {
+  color: var(--accent);
+}
+
+@keyframes threadline-startup-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (min-width: 761px) {
+  .threadline-startup {
+    grid-template-columns: minmax(260px, 0.8fr) minmax(440px, 545px);
+    grid-template-rows: minmax(0, 1fr) auto;
+    column-gap: clamp(44px, 8vw, 130px);
+    align-content: center;
+    padding: 48px;
+  }
+
+  .threadline-startup-visual {
+    grid-column: 1;
+    grid-row: 1;
+    width: min(40vw, 470px);
+    min-height: 330px;
+  }
+
+  .threadline-startup-card {
+    grid-column: 2;
+    grid-row: 1;
+    padding: 34px 36px 30px;
+  }
+
+  .threadline-startup-security {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-top: 22px;
+  }
+}
+
+@media (max-height: 700px) and (max-width: 760px) {
+  .threadline-startup {
+    grid-template-rows: 170px auto 48px;
+    padding-top: max(20px, env(safe-area-inset-top));
+  }
+
+  .threadline-startup-visual {
+    min-height: 160px;
+    transform: scale(0.78);
+  }
+
+  .threadline-startup-card {
+    padding-top: 20px;
+    padding-bottom: 18px;
+  }
+
+  .threadline-startup-heading {
+    margin: 15px 0 10px;
+  }
+
+  .threadline-startup-step {
+    min-height: 54px;
+    padding: 7px 0;
+  }
+}

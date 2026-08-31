@@ -31,6 +31,8 @@ History / Records 的正式 Daily 历史只来自 `daily_history_entries`。Cale
 
 `WorkspaceDataProvider` 通过细粒度 Supabase Repository 与 React Query 协调任务、项目、Daily、历史和工作站。普通单表字段直接 CRUD；task transition + history、close_day、Daily template + 当前 entry、完整 workstation reorder 使用小型事务 RPC。节律由独立 `RhythmStateProvider` 订阅 Supabase，但仍不进入 analytics。
 
+启动时，`StartupProgressProvider` 只聚合状态：认证运行时的 `getSession()` 与 `initializeWorkspace()` 分别驱动前两阶段；`WorkspaceDataProvider` 的八组 query 加 Annotation/高亮本机 hydration 驱动“加载工作区数据”；同一 Provider 的 `workspace:${ownerId}` channel 仅在 Supabase 报告 `SUBSCRIBED` 后完成“开启实时同步”。数据 hydration 成功即允许工作台使用；Realtime 的 `CHANNEL_ERROR`、`TIMED_OUT` 或非清理中的 `CLOSED` 会保留失败状态并显示非阻塞提示，绝不被映射为已订阅。
+
 Task 的 `abandoned` 是永久保留的业务历史状态；`purged` 不是 TaskStatus。只有 `trashed + deleted_at 超过 30 天` 才由受保护的数据库函数物理删除。History FK 不级联删除 task history，并保存标题/项目/日期 snapshot。旧业务 localStorage key 在云账号初始化后清理，不迁移旧数据。
 
 ## 报告导出

@@ -17,6 +17,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWorkspaceView } from '@/components/app-shell';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 import { useCloudRuntime } from '@/features/auth/cloud-runtime-provider';
+import { useOptionalStartupProgress } from '@/features/startup/startup-progress-context';
 import {
   WorkspaceContextProviders,
   type CloseAction,
@@ -71,6 +72,9 @@ export async function settleDailyTemplatePostCommitRefresh(
 function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
   const { selectedDate } = useWorkspaceView();
   const { client, repository, user } = useCloudRuntime();
+  const startupProgress = useOptionalStartupProgress();
+  const setRealtimeStatus = startupProgress?.setRealtimeStatus;
+  const setWorkspaceDataStatus = startupProgress?.setWorkspaceDataStatus;
   const queryClient = useQueryClient();
   const ownerKey = user.id;
   const [mutationError, setMutationError] = useState<string>();
@@ -203,6 +207,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       'history_events',
       'daily_close_records',
     ];
+    let active = true;
     let channel = client.channel(`workspace:${ownerKey}`);
     for (const table of tables) {
       channel = channel
@@ -232,13 +237,25 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
           invalidate,
         );
     }
+    setRealtimeStatus?.({ status: 'active' });
     channel.subscribe((status) => {
-      if (status === 'SUBSCRIBED') invalidateWorkspace();
+      if (!active) return;
+      if (status === 'SUBSCRIBED') {
+        setRealtimeStatus?.({ status: 'completed' });
+        invalidateWorkspace();
+      }
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        setRealtimeStatus?.({
+          status: 'failed',
+          message: '实时同步连接暂不可用，工作台仍可正常使用。',
+        });
+      }
     });
     return () => {
+      active = false;
       void client.removeChannel(channel);
     };
-  }, [client, invalidateWorkspace, ownerKey]);
+  }, [client, invalidateWorkspace, ownerKey, setRealtimeStatus]);
 
   /** 保存任务后同步读取触发器生成的耗时账本，让两个 Query cache 只暴露同一提交后的状态。 */
   const updateTasks: Dispatch<SetStateAction<Task[]>> = useCallback(
@@ -541,6 +558,19 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     workstationQuery.error,
   ].find(Boolean);
 
+  useEffect(() => {
+    if (!setWorkspaceDataStatus) return;
+    if (queryError) {
+      setWorkspaceDataStatus({
+        status: 'failed',
+        message:
+          queryError instanceof Error ? queryError.message : '云工作区数据载入失败',
+      });
+      return;
+    }
+    setWorkspaceDataStatus({ status: hydrated ? 'completed' : 'active' });
+  }, [hydrated, queryError, setWorkspaceDataStatus]);
+
   const taskState = useMemo(
     () => ({ tasks, taskTimeEntries, taskTimeEntriesAuthoritative: true }),
     [tasks, taskTimeEntries],
@@ -657,10 +687,14 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
         commands,
       }}
       notice={
-        (mutationError || queryError) && (
+        (mutationError ||
+          queryError ||
+          startupProgress?.realtime.status === 'failed') && (
           <p className="workspace-sync-error" role="alert">
             {mutationError ??
-              (queryError instanceof Error ? queryError.message : '云工作区载入失败')}
+              (queryError instanceof Error ? queryError.message : undefined) ??
+              startupProgress?.realtime.message ??
+              '云工作区载入失败'}
           </p>
         )
       }
