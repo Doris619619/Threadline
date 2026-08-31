@@ -97,14 +97,14 @@ pnpm desktop:build:dir
 pnpm test:electron:packaged
 ```
 
-第一项复用开发壳窗口行为测试；第二项生成 `release/win-unpacked/Threadline.exe`；第三项默认以这个 EXE 运行同一组窗口断言。也可以显式指定另一个 unpacked 产物：
+第一项通过 Playwright Electron API 覆盖开发壳的 Main/Renderer 原生窗口行为；第二项生成 `release/win-unpacked/Threadline.exe`；第三项默认以这个 EXE 运行 packaged 专属的 Renderer/CDP 合同。也可以显式指定另一个 unpacked 产物：
 
 ```powershell
 $env:THREADLINE_PACKAGED_EXECUTABLE = (Resolve-Path 'release/preview/win-unpacked/Threadline.exe').Path
 pnpm test:electron:packaged
 ```
 
-packaged runner 不启动 Next server，并主动清除继承的 `THREADLINE_ELECTRON_RENDERER_URL`。它要求 `app.isPackaged === true`、`threadline://app/...`、无 `http(s):` 或 `file:` Renderer、CSP 正常、窗口能创建并退出；测试或清理超时后只结束自己创建的 Electron/Node 进程树。NSIS 安装/卸载仍是 release-tier 人工验收，未被加入普通 PR gate。
+packaged runner 不启动 Next server，并主动清除继承的 `THREADLINE_ELECTRON_RENDERER_URL`。正式 fuse 会关闭 Node CLI inspect，Playwright `_electron.launch()` 无法在不削弱安全设置的前提下连接 packaged Main；因此 runner 只开启 loopback Chromium CDP，要求 `threadline://app/...`、无 `http(s):` 或 `file:` Renderer、CSP 正常，并通过受限 Preload 完成 Full→Mini→Workstation→Full、单实例与退出。Main menu、原生 bounds 和 Edge 内部状态继续由第一项开发壳 smoke 覆盖。测试或清理超时后只结束自己创建的精确 Electron 进程树。NSIS 安装/卸载仍是 release-tier 人工验收，未被加入普通 PR gate。
 
 ## `PACKAGING_STALL` 与 Windows Defender
 

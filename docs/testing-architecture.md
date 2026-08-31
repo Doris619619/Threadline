@@ -15,7 +15,7 @@ Threadline 的测试目标是阻止功能、云端边界、桌面壳和明显布
 | UI invariants          | `pnpm test:e2e:ui`            | 全局横向溢出、重复主结构、关键控件、Dialog/Popover 边界和 viewport matrix。        |
 | Local Supabase browser | `pnpm test:supabase:browser`  | Browser → Auth → CloudRuntimeProvider → RLS database → workspace → UI 的真实链路。 |
 | Electron behavior      | `pnpm test:electron`          | 开发壳的窗口切换、单实例和确定退出。                                               |
-| Packaged Electron      | `pnpm test:electron:packaged` | `win-unpacked` EXE 的 packaged protocol、CSP、窗口创建和退出。                     |
+| Packaged Electron      | `pnpm test:electron:packaged` | 通过 Renderer CDP 验证 `win-unpacked` EXE 的 protocol、CSP、Preload 行为与退出。   |
 | Desktop parity         | `pnpm desktop:verify:parity`  | Preview 与 canonical package-dir 的静态 runtime 合同。                             |
 
 `test:e2e` 只让既有功能用例运行一次 desktop 和一次 mobile；布局矩阵的 7 个 viewport 只收集 `ui-layout-matrix.spec.ts`。因此不会把整套业务流乘以所有尺寸。

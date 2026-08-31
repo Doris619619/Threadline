@@ -373,20 +373,25 @@ export function hasPackagingStalled({ now, lastProgressAt, stallMs }) {
 export async function terminateOwnedProcess(child) {
   if (!child || child.exitCode !== null || child.signalCode !== null) return;
   const exited = new Promise((resolveExit) => child.once('exit', resolveExit));
-  child.kill();
+  // 调用方可能已经通过应用协议请求正常退出；先留出极短 grace period。
   await Promise.race([
     exited,
-    // 打包 stall 的失败路径必须迅速释放 CI；长时间 grace period 会掩盖 hang。
     new Promise((resolveDelay) => setTimeout(resolveDelay, 250)),
   ]);
   if (child.exitCode !== null || child.signalCode !== null) return;
   if (process.platform === 'win32' && child.pid) {
+    // Windows 的 child.kill() 只结束根进程，可能留下 Electron/Next 后代；必须按已知 PID 回收整棵树。
     spawnSync('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], {
       stdio: 'ignore',
       windowsHide: true,
     });
   } else {
-    child.kill('SIGKILL');
+    child.kill('SIGTERM');
+    await Promise.race([
+      exited,
+      new Promise((resolveDelay) => setTimeout(resolveDelay, 750)),
+    ]);
+    if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
   }
   await Promise.race([
     exited,

@@ -14,7 +14,6 @@ import { terminateOwnedProcess } from './desktop-build-runtime.mjs';
 const rendererPort = process.env.THREADLINE_ELECTRON_E2E_PORT ?? '3123';
 const rendererUrl = `http://127.0.0.1:${rendererPort}`;
 const userDataDirectory = await mkdtemp(join(tmpdir(), 'threadline-electron-e2e-'));
-const packagedExecutable = process.env.THREADLINE_PACKAGED_EXECUTABLE;
 
 /** 返回所有原生窗口的可见性、逻辑 bounds 与加载 URL，供壳层不变量断言。 */
 async function inspectWindows(app) {
@@ -62,29 +61,21 @@ function waitForProcessExit(child, timeoutMs = 8_000) {
   });
 }
 
-/** 启动第二实例；unpacked 包必须复用最终 executable，而开发 smoke 继续走 Electron CLI。 */
+/** 启动开发壳第二实例，验证单实例与紧凑窗口恢复行为。 */
 function startSecondInstance() {
-  return packagedExecutable
-    ? spawn(
-        packagedExecutable,
-        [`--user-data-dir=${userDataDirectory}`, '--no-sandbox'],
-        {
-          stdio: 'ignore',
-        },
-      )
-    : spawn(
-        process.execPath,
-        [
-          'node_modules/electron/cli.js',
-          '.',
-          `--user-data-dir=${userDataDirectory}`,
-          '--no-sandbox',
-        ],
-        {
-          env: { ...process.env, THREADLINE_ELECTRON_RENDERER_URL: rendererUrl },
-          stdio: 'ignore',
-        },
-      );
+  return spawn(
+    process.execPath,
+    [
+      'node_modules/electron/cli.js',
+      '.',
+      `--user-data-dir=${userDataDirectory}`,
+      '--no-sandbox',
+    ],
+    {
+      env: { ...process.env, THREADLINE_ELECTRON_RENDERER_URL: rendererUrl },
+      stdio: 'ignore',
+    },
+  );
 }
 
 /** 启动官方 Next production server，确保 Web Proxy 与 nonce CSP 真实执行。 */
@@ -109,15 +100,12 @@ let server;
 let desktopProcess;
 let exitCode = 0;
 try {
-  if (!packagedExecutable) server = await startRendererServer();
+  server = await startRendererServer();
   application = await electron.launch({
-    ...(packagedExecutable ? { executablePath: packagedExecutable } : { args: ['.'] }),
-    args: packagedExecutable
-      ? [`--user-data-dir=${userDataDirectory}`, '--no-sandbox']
-      : ['.', `--user-data-dir=${userDataDirectory}`, '--no-sandbox'],
+    args: ['.', `--user-data-dir=${userDataDirectory}`, '--no-sandbox'],
     env: {
       ...process.env,
-      ...(packagedExecutable ? {} : { THREADLINE_ELECTRON_RENDERER_URL: rendererUrl }),
+      THREADLINE_ELECTRON_RENDERER_URL: rendererUrl,
     },
   });
   desktopProcess = application.process();
@@ -128,30 +116,6 @@ try {
     null,
     'Windows menu bar must be disabled before any compact surface is shown',
   );
-  if (packagedExecutable) {
-    assert.equal(
-      await application.evaluate(({ app }) => app.isPackaged),
-      true,
-      'packaged smoke must run with app.isPackaged enabled',
-    );
-    assert.match(
-      page.url(),
-      /^threadline:\/\/app\//,
-      'packaged Main must load through the production threadline protocol',
-    );
-    assert.equal(
-      (await inspectWindows(application)).some((window) =>
-        /^(https?:|file:)/.test(window.url),
-      ),
-      false,
-      'packaged windows must not load a dev server or file URL',
-    );
-    const csp = await application.evaluate(async ({ net }) => {
-      const response = await net.fetch('threadline://app/');
-      return response.headers.get('content-security-policy');
-    });
-    assert.match(csp ?? '', /default-src 'self'; script-src 'self'/);
-  }
   const secondInstance = startSecondInstance();
   assert.equal(await waitForProcessExit(secondInstance), 0);
   assert.equal(
