@@ -28,6 +28,8 @@ create policy "users read their task time entries" on public.task_time_entries
   for select using (owner_id = auth.uid());
 
 -- migration 事务内阻止 tasks 并发写穿过“回填到安装 trigger”窗口，提交后立即恢复普通写入。
+begin;
+
 lock table public.tasks in share row exclusive mode;
 
 -- 旧 aggregate 只在可确定的原计划日期回填；没有日期的记录保留为不可精确归因。
@@ -86,6 +88,8 @@ drop trigger if exists tasks_capture_actual_time on public.tasks;
 create trigger tasks_capture_actual_time
 after insert or update of actual_duration_minutes on public.tasks
 for each row execute function public.capture_task_actual_time();
+
+commit;
 
 -- 完成状态是正式业务事件；由触发器与任务更新同一事务提交，禁止客户端双写。
 create or replace function public.append_task_completion_history()

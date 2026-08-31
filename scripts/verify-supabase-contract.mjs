@@ -123,8 +123,8 @@ if (/next_minutes\s*-\s*fixed_minutes/i.test(captureTaskActualTime))
     'Supabase contract violation: legacy unattributed actual must not be materialized by a negative correction',
   );
 requirePattern(
-  /lock table public\.tasks in share row exclusive mode/i,
-  'task writes are locked across ledger backfill and trigger installation',
+  /begin;\s*lock table public\.tasks in share row exclusive mode;[\s\S]*?create trigger tasks_capture_actual_time[\s\S]*?execute function public\.capture_task_actual_time\(\);\s*commit;/i,
+  'task writes are transactionally locked across ledger backfill and trigger installation',
 );
 requirePattern(
   /revoke all(?: privileges)? on function (?:public|private)\.capture_task_actual_time\(\) from public, anon, authenticated/i,
