@@ -29,6 +29,26 @@ async function dragTaskWithMouse(page: Page, source: Locator, target: Locator) {
   await page.mouse.up();
 }
 
+/**
+ * 在日程正文拖出一条荧光笔笔迹；避开高于画布的工具栏，并在导航后重新读取真实布局。
+ */
+async function drawHighlighterStrokeInScheduleBody(page: Page) {
+  const drawingArea = await page.locator('.timeline-scroll').boundingBox();
+  if (!drawingArea) throw new Error('日程正文绘制区域不可见。');
+
+  await page.mouse.move(
+    drawingArea.x + drawingArea.width * 0.2,
+    drawingArea.y + drawingArea.height * 0.25,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    drawingArea.x + drawingArea.width * 0.45,
+    drawingArea.y + drawingArea.height * 0.45,
+    { steps: 4 },
+  );
+  await page.mouse.up();
+}
+
 test.beforeEach(async ({ page }) => {
   const seedKey = `threadline.e2e.seeded.${test.info().testId}`;
   await page.clock.install({ time: new Date(frozenLocalNow) });
@@ -395,29 +415,18 @@ test('uses the selected highlighter color for cursor, saved strokes, and reload 
   await page.getByRole('radio', { name: '蓝色' }).click();
   const canvas = page.locator('.tl-annotation-layer');
   await expect(canvas).toHaveCSS('cursor', /highlighter\.svg/);
-  const box = await canvas.boundingBox();
-  if (!box) throw new Error('批注画布不可见。');
-  await page.mouse.move(box.x + 50, box.y + 50);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 130, box.y + 80, { steps: 4 });
-  await page.mouse.up();
-  const stroke = page
-    .locator('.tl-annotation-layer path[data-annotation-date]')
-    .first();
-  await expect(stroke).toHaveAttribute('stroke', 'rgba(82, 170, 255, 0.38)');
+  await drawHighlighterStrokeInScheduleBody(page);
+  const strokes = page.locator('.tl-annotation-layer path[data-annotation-date]');
+  await expect(strokes.first()).toHaveAttribute('stroke', 'rgba(82, 170, 255, 0.38)');
   await page.reload();
   await expect(page.getByRole('button', { name: '选择颜色，当前蓝色' })).toBeVisible();
 
   await page.getByRole('button', { name: '选择颜色，当前蓝色' }).click();
   await page.getByRole('radio', { name: '黄色' }).click();
   await expect(page.getByRole('button', { name: '荧光笔' })).toHaveClass(/is-active/);
-  await page.mouse.move(box.x + 55, box.y + 120);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 150, box.y + 145, { steps: 4 });
-  await page.mouse.up();
-  await expect(
-    page.locator('.tl-annotation-layer path[data-annotation-date]').last(),
-  ).toHaveAttribute('stroke', 'rgba(255, 225, 53, 0.42)');
+  await drawHighlighterStrokeInScheduleBody(page);
+  await expect(strokes).toHaveCount(2);
+  await expect(strokes.last()).toHaveAttribute('stroke', 'rgba(255, 225, 53, 0.42)');
   await page.reload();
   await expect(page.getByRole('button', { name: '选择颜色，当前黄色' })).toBeVisible();
 });
