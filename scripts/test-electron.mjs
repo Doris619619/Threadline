@@ -9,6 +9,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { _electron as electron } from 'playwright';
 
+import { terminateOwnedProcess } from './desktop-build-runtime.mjs';
+
 const rendererPort = process.env.THREADLINE_ELECTRON_E2E_PORT ?? '3123';
 const rendererUrl = `http://127.0.0.1:${rendererPort}`;
 const userDataDirectory = await mkdtemp(join(tmpdir(), 'threadline-electron-e2e-'));
@@ -35,18 +37,25 @@ async function waitFor(predicate, description, timeoutMs = 8_000) {
   throw new Error(`Timed out: ${description}`);
 }
 
-/** 断言第二实例在单实例锁拒绝后自行退出，而不启动第二个 BrowserWindow。 */
-function waitForProcessExit(process, timeoutMs = 8_000) {
+/**
+ * 等待单实例探针自行退出；超时后仅结束该探针拥有的进程树，并保留测试失败。
+ */
+function waitForProcessExit(child, timeoutMs = 8_000) {
   return new Promise((resolve, reject) => {
+    let timedOut = false;
     const timeout = setTimeout(() => {
-      process.kill();
-      reject(new Error('Timed out: second Electron instance must exit'));
+      timedOut = true;
+      void terminateOwnedProcess(child).finally(() =>
+        reject(new Error('Timed out: second Electron instance must exit')),
+      );
     }, timeoutMs);
-    process.once('error', (error) => {
+    child.once('error', (error) => {
+      if (timedOut) return;
       clearTimeout(timeout);
       reject(error);
     });
-    process.once('exit', (code) => {
+    child.once('exit', (code) => {
+      if (timedOut) return;
       clearTimeout(timeout);
       resolve(code);
     });
@@ -97,6 +106,7 @@ async function startRendererServer() {
 
 let application;
 let server;
+let desktopProcess;
 let exitCode = 0;
 try {
   if (!packagedExecutable) server = await startRendererServer();
@@ -110,6 +120,7 @@ try {
       ...(packagedExecutable ? {} : { THREADLINE_ELECTRON_RENDERER_URL: rendererUrl }),
     },
   });
+  desktopProcess = application.process();
   const page = await application.firstWindow();
   await page.waitForFunction(() => window.threadlineDesktop?.role === 'main');
   assert.equal(
@@ -272,7 +283,6 @@ try {
   );
   await page.getByRole('button', { name: '打开完整工作台' }).click();
   await page.locator('.full-window-chrome').waitFor();
-  const desktopProcess = application.process();
   await page.getByRole('button', { name: '关闭窗口' }).click();
   await waitFor(
     async () => desktopProcess.exitCode !== null,
@@ -288,7 +298,8 @@ try {
     application?.close().catch(() => undefined),
     new Promise((resolve) => setTimeout(resolve, 3_000)),
   ]);
-  server?.kill();
+  await terminateOwnedProcess(desktopProcess).catch(() => undefined);
+  await terminateOwnedProcess(server).catch(() => undefined);
   await rm(userDataDirectory, { force: true, recursive: true }).catch(() => undefined);
 }
 

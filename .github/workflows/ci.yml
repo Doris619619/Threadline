@@ -24,6 +24,8 @@ jobs:
       - run: pnpm supabase:lint
       - run: pnpm test:db
       - run: pnpm test:supabase:integration
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:supabase:browser
       - if: always()
         run: pnpm exec supabase stop
 
@@ -41,13 +43,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test
+      - run: pnpm test:coverage
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm test:e2e
 
   windows-electron:
     runs-on: windows-latest
+    timeout-minutes: 35
     env:
       NEXT_PUBLIC_THREADLINE_TEST_ADAPTER: 'true'
     steps:
@@ -60,10 +63,6 @@ jobs:
           node-version: 22.13.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm desktop:compile
-      - run: pnpm desktop:renderer
+      - run: pnpm test:electron
       - run: pnpm desktop:build:dir
-      - run: Test-Path release/win-unpacked/resources/app.asar
-        shell: pwsh
-      - run: node scripts/verify-electron-fuses.mjs release/win-unpacked/Threadline.exe
-      - run: pnpm desktop:build
+      - run: pnpm test:electron:packaged

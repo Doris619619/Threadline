@@ -85,6 +85,27 @@ pnpm desktop:verify:parity
 
 PE 本体不要求逐字节相同，因为 ASAR integrity resource、fuse 写入和签名 metadata 位于 EXE 内；这些区域通过 ASAR 内容比较、fuse wire 与 packaged runtime tree 分别验证。任何运行相关文件或安全策略差异都会返回 `DESKTOP_BUILD_PARITY_FAILED`，不会生成通过报告。Preview 的正常启动与窗口交互由构建后的本机验收确认，不作为静态 parity 命令的重型自动化门禁。
 
+GitHub Release workflow 把这项比较放在发布前的 Windows release tier：它使用显式 local test adapter，仅比较 Preview 与 canonical package-dir 的静态 runtime 合同，不连接 Production Supabase，也不代替 Production cloud acceptance。由于该命令会生成两个 unpacked package，不放入每个 PR 的 Windows job。
+
+## Electron CI smoke
+
+普通 Windows PR job 依次执行：
+
+```powershell
+pnpm test:electron
+pnpm desktop:build:dir
+pnpm test:electron:packaged
+```
+
+第一项复用开发壳窗口行为测试；第二项生成 `release/win-unpacked/Threadline.exe`；第三项默认以这个 EXE 运行同一组窗口断言。也可以显式指定另一个 unpacked 产物：
+
+```powershell
+$env:THREADLINE_PACKAGED_EXECUTABLE = (Resolve-Path 'release/preview/win-unpacked/Threadline.exe').Path
+pnpm test:electron:packaged
+```
+
+packaged runner 不启动 Next server，并主动清除继承的 `THREADLINE_ELECTRON_RENDERER_URL`。它要求 `app.isPackaged === true`、`threadline://app/...`、无 `http(s):` 或 `file:` Renderer、CSP 正常、窗口能创建并退出；测试或清理超时后只结束自己创建的 Electron/Node 进程树。NSIS 安装/卸载仍是 release-tier 人工验收，未被加入普通 PR gate。
+
 ## `PACKAGING_STALL` 与 Windows Defender
 
 已确认的典型指纹：Renderer、CSP、precache、Main/Preload 均完成，electron-builder 已输出 `packaging`，随后日志和目标目录长时间都不再变化。此时不应重新调查 React、CSS 或 Next Renderer。
@@ -136,6 +157,7 @@ pnpm desktop:renderer
 pnpm test:electron
 pnpm desktop:preview
 pnpm desktop:build:dir
+pnpm test:electron:packaged
 pnpm desktop:verify:parity
 pnpm desktop:build
 ```

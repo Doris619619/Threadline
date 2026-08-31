@@ -1,4 +1,4 @@
-# 文件用途：仅在版本 tag 或手动触发时构建并发布 Windows NSIS 安装器，避免 main CI 承担 GitHub 发布职责。
+# 文件用途：在版本 tag 或手动发布前验证桌面产物 parity，再构建并发布 Windows NSIS 安装器。
 name: Release desktop
 
 on:
@@ -10,8 +10,28 @@ permissions:
   contents: write
 
 jobs:
-  windows-release:
+  windows-release-parity:
     runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      # parity 只比较同一份静态输入的 Preview/package-dir，使用隔离 adapter，绝不连接生产数据。
+      NEXT_PUBLIC_THREADLINE_TEST_ADAPTER: 'true'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm desktop:verify:parity
+
+  windows-release:
+    needs: windows-release-parity
+    runs-on: windows-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4

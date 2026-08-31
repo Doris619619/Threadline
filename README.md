@@ -17,7 +17,7 @@
 - Next.js App Router、React 19、TypeScript（严格模式）
 - Tailwind/PostCSS 基础设施与项目级 CSS design tokens
 - Zod 输入验证、date-fns、TanStack Query、Supabase JS
-- Vitest + Testing Library、Playwright（桌面 Chrome 与 iPhone 13）
+- Vitest + Testing Library、Playwright + axe（桌面 Chrome 与 iPhone 13）
 - Web Manifest 与 Service Worker 离线应用壳缓存
 
 ## 本地启动
@@ -39,9 +39,12 @@ pnpm dev
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm test:coverage
 pnpm test:sql:static
+pnpm test:css-tokens
 pnpm build
 pnpm test:e2e
+pnpm test:e2e:ui
 ```
 
 ## Windows 桌面版
@@ -52,17 +55,19 @@ pnpm test:e2e
 pnpm desktop:dev
 pnpm desktop:compile
 pnpm desktop:renderer
+pnpm test:electron
 pnpm desktop:preview
 pnpm desktop:preview:open
 pnpm desktop:verify:parity
 pnpm desktop:build:dir
+pnpm test:electron:packaged
 pnpm desktop:build
 pnpm desktop:release
 ```
 
 `desktop:compile` 会先检查 Electron 类型，再以 `esbuild` 将 Main 与 Preload 输出为 `dist-electron/*.cjs`；两者保持 CommonJS。洞察报告在 Web/PWA 走浏览器打印，在 Electron 通过受限 Main bridge 保存为 PDF。`desktop:dev` 会启动隔离的 Next.js 开发服务器并打开 Electron 窗口。`desktop:renderer` 只生成 `.next-electron` 静态前端；正式 Preview/package/release 会在构建期强制校验 Production Supabase 的 HTTPS URL、`sb_publishable_` key 与环境标记。
 
-日常需要“最新 EXE”时使用 `desktop:preview`：它生成 `release/preview/win-unpacked/Threadline.exe`，仍走正式 Renderer、Main/Preload、electron-builder、ASAR、afterPack 与 fuses，只省略 NSIS。`desktop:preview:open` 会在成功后显式启动；`desktop:verify:parity` 会与 canonical package-dir 比较 ASAR、运行文件树、fuse wire 与 manifest 等静态合同，不为自动化测试改动正式 runtime。`desktop:build:dir` 保留为 CI/兼容目录包入口；`desktop:build` 生成仅供验证、明确不发布的 NSIS 安装包；仅版本 tag 或手动触发的 GitHub Release workflow 使用 `desktop:release` 发布。原有的 `pnpm build` 与 `pnpm start` 仍保持 Next.js Web/PWA 生产模式。
+日常需要“最新 EXE”时使用 `desktop:preview`：它生成 `release/preview/win-unpacked/Threadline.exe`，仍走正式 Renderer、Main/Preload、electron-builder、ASAR、afterPack 与 fuses，只省略 NSIS。`desktop:preview:open` 会在成功后显式启动；`desktop:verify:parity` 会与 canonical package-dir 比较 ASAR、运行文件树、fuse wire 与 manifest 等静态合同，不为自动化测试改动正式 runtime。`desktop:build:dir` 保留为 CI/兼容目录包入口，随后可执行 `test:electron:packaged`：它默认启动 `release/win-unpacked/Threadline.exe`，复用窗口行为断言，并验证 `app.isPackaged`、`threadline://app`、CSP 与非 dev-server 加载。`desktop:build` 生成仅供验证、明确不发布的 NSIS 安装包；仅版本 tag 或手动触发的 GitHub Release workflow 会先运行静态 parity，再使用 `desktop:release` 发布。原有的 `pnpm build` 与 `pnpm start` 仍保持 Next.js Web/PWA 生产模式。
 
 Web/PWA 使用请求期 nonce CSP，Electron 静态导出继续从实际 HTML 生成精确 script hash；两条构建链使用独立路由入口与输出目录。Windows 包在 `afterPack` 写入并复核 Electron fuses、ASAR integrity 与 `OnlyLoadAppFromAsar`。完整命令、manifest、并发保护、production parity 与 Defender `PACKAGING_STALL` 诊断见 [Windows 本地构建](docs/WINDOWS_BUILD.md)；安全边界见 [CSP 与打包硬化](docs/electron-hardening.md)。
 
@@ -93,15 +98,17 @@ pnpm supabase:start
 pnpm supabase:lint
 pnpm test:db
 pnpm test:supabase:integration
+pnpm exec playwright install chromium
+pnpm test:supabase:browser
 ```
 
-迁移包含 UUID、same-owner FK、RLS、Daily 幂等实例化、正式 Daily History、原子任务流转/收尾/工作站排序、客户端只读且按日固定的 task actual entries、数据库重算的关账项目汇总、Realtime publication，以及保留耗时历史的 30 天 task 物理 purge。客户端只使用 Email/password 与 publishable key；Main/Preload 不持有 Supabase secret。`test:supabase:integration` 会在本地创建并清理两个临时账号，真实验证 publishable-key Auth、REST/RLS、owner-filter Realtime、Rhythm 和 Daily 并发幂等。Docker 不可用时可先执行 `pnpm test:sql:static`，但不能把本地 SQL/pgTAP 标记为通过。持久化、Daily template 与实际耗时的行为边界见 [数据完整性规则](docs/data-integrity.md)。
+迁移包含 UUID、same-owner FK、RLS、Daily 幂等实例化、正式 Daily History、原子任务流转/收尾/工作站排序、客户端只读且按日固定的 task actual entries、数据库重算的关账项目汇总、Realtime publication，以及保留耗时历史的 30 天 task 物理 purge。客户端只使用 Email/password 与 publishable key；Main/Preload 不持有 Supabase secret。`test:supabase:integration` 会在本地创建并清理两个临时账号，真实验证 publishable-key Auth、REST/RLS、owner-filter Realtime、Rhythm 和 Daily 并发幂等。`test:supabase:browser` 只接受 local Supabase loopback URL，以 CLI 本地 `SECRET_KEY` 创建并在 finally 删除一次性已确认账户；浏览器本身只使用公开 key 和临时 Email/password，完整走登录、工作区初始化、创建任务、刷新持久化与登出。Docker 不可用时可先执行 `pnpm test:sql:static`，但不能把本地 SQL/pgTAP 标记为通过。持久化、Daily template 与实际耗时的行为边界见 [数据完整性规则](docs/data-integrity.md)。
 
 远端 Supabase、Cron、Vercel Production/Preview 和真实手机验收步骤见 [Supabase、Vercel 与跨端验收](docs/supabase-deployment.md)。Supabase 后端配置完成不等于已有公网 HTTPS PWA URL；没有部署 URL 时，PC + 手机 hosted acceptance 必须保持 pending。
 
 ## 自动化验证范围
 
-`pnpm test:e2e` 会以显式 local test adapter 生产构建启动本地服务，并覆盖桌面与手机关键流。该适配器只用于 UI/Electron 自动化，不代表 Supabase 集成通过；真实云端由 pgTAP/RLS、local Supabase integration、cross-account 与 Realtime 测试独立覆盖。
+`pnpm test:e2e` 会以显式 local test adapter 生产构建启动本地服务，并覆盖既有桌面与手机关键流，以及结构、布局和无障碍 smoke。`pnpm test:e2e:ui` 只运行不依赖 screenshot baseline 的 UI 门禁：主要工作区的标题、导航、主面板与关键控件结构合同；颜色 popover 和任务编辑 Dialog 的 viewport 边界；四种桌面与三种移动 viewport 的横向溢出、关键元素可达性和移动端控件隐藏；以及关键页面和编辑 Dialog 的 axe critical/serious 回归。当前产品已有的 axe 债务会以每个页面的 rule/node 数量显式记录；新增 rule、节点数量增长或产品修复后没有下调 baseline 都会失败，避免通过关闭 rule 掩盖问题。`pnpm test:coverage` 对显式高风险业务模块执行 V8 coverage gate；`pnpm test:css-tokens` 用 PostCSS 静态校验 `src/` 下所有 CSS custom property 引用必须有定义、fallback 或已记录的运行时来源（当前仅 React inline style 注入的 `--annotation-color`）。Windows PR CI 还会先运行 `pnpm test:electron` 的开发壳行为流，再以同一隔离 adapter 打包 canonical EXE 并运行 `pnpm test:electron:packaged`；packaged runner 不启动 Next server，且会清理本轮拥有的 Electron/Node 子进程。该适配器只用于 UI/Electron 自动化，不代表 Supabase 集成通过；真实云端由 pgTAP/RLS、local Supabase integration、cross-account 与 Realtime 测试独立覆盖。分层、门槛与 release-tier 边界见 [测试架构](docs/testing-architecture.md)。
 
 ## 项目结构
 
