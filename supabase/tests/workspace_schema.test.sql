@@ -139,7 +139,7 @@ select function_privs_are(
   'authenticated', array['EXECUTE'], 'Authenticated can record Daily history'
 );
 select function_privs_are(
-  'public', 'create_daily_template_with_entry', array['uuid', 'uuid', 'text', 'date'],
+  'public', 'create_daily_template_with_entry', array['uuid', 'text', 'jsonb', 'date'],
   'authenticated', array['EXECUTE'], 'Authenticated can create Daily atomically'
 );
 select function_privs_are(
@@ -159,11 +159,11 @@ select function_privs_are(
   'authenticated', array['EXECUTE'], 'Authenticated can close day'
 );
 select function_privs_are(
-  'public', 'save_daily_entry_bundle', array['uuid', 'uuid', 'text', 'boolean', 'integer', 'text', 'jsonb'],
+  'public', 'save_daily_entry_bundle', array['uuid', 'text', 'boolean', 'integer', 'text', 'jsonb'],
   'authenticated', array['EXECUTE'], 'Authenticated can atomically save a Daily entry bundle'
 );
 select function_privs_are(
-  'public', 'update_daily_template_bundle', array['uuid', 'uuid', 'uuid', 'text', 'jsonb', 'jsonb'],
+  'public', 'update_daily_template_bundle', array['uuid', 'text', 'jsonb'],
   'authenticated', array['EXECUTE'], 'Authenticated can atomically update a Daily template and current entry'
 );
 select function_privs_are(
@@ -188,7 +188,7 @@ select function_privs_are(
   'anon', array[]::text[], 'Anonymous clients cannot record Daily history'
 );
 select function_privs_are(
-  'public', 'create_daily_template_with_entry', array['uuid', 'uuid', 'text', 'date'],
+  'public', 'create_daily_template_with_entry', array['uuid', 'text', 'jsonb', 'date'],
   'anon', array[]::text[], 'Anonymous clients cannot create Daily'
 );
 select function_privs_are(
@@ -208,11 +208,11 @@ select function_privs_are(
   'anon', array[]::text[], 'Anonymous clients cannot close day'
 );
 select function_privs_are(
-  'public', 'save_daily_entry_bundle', array['uuid', 'uuid', 'text', 'boolean', 'integer', 'text', 'jsonb'],
+  'public', 'save_daily_entry_bundle', array['uuid', 'text', 'boolean', 'integer', 'text', 'jsonb'],
   'anon', array[]::text[], 'Anonymous clients cannot save a Daily entry bundle'
 );
 select function_privs_are(
-  'public', 'update_daily_template_bundle', array['uuid', 'uuid', 'uuid', 'text', 'jsonb', 'jsonb'],
+  'public', 'update_daily_template_bundle', array['uuid', 'text', 'jsonb'],
   'anon', array[]::text[], 'Anonymous clients cannot update a Daily template and current entry'
 );
 select function_privs_are(
@@ -675,10 +675,6 @@ select is(
         select project_id, minutes::bigint as minutes
         from public.task_time_entries
         where owner_id = auth.uid() and entry_date = '2026-08-30'
-        union all
-        select entries.project_id, public.daily_entry_total_actual(entries.id)::bigint
-        from public.daily_entries as entries
-        where entries.owner_id = auth.uid() and entries.entry_date = '2026-08-30'
       ) as sources
       group by sources.project_id
     ) as totals

@@ -1,7 +1,5 @@
 /** @fileoverview 把每日收尾表单转换成单次原子 close_day 命令，不拆分写入业务表。 */
 
-import type { Daily } from '@/features/daily/types';
-import { getDailyActualMinutes } from '@/features/daily/daily-rules';
 import type { Project, Task, TaskTimeEntry } from '@/types/domain';
 
 type CloseAction = {
@@ -13,7 +11,6 @@ type CloseAction = {
 /** 将收尾表单交给原子命令，并按显式能力选择 ledger 真源或测试 aggregate fallback。 */
 export function useCloseDay({
   closeDay,
-  daily,
   projects,
   selectedDate,
   shown,
@@ -26,7 +23,6 @@ export function useCloseDay({
     actions: CloseAction[],
     projectMinutes: Record<string, number>,
   ) => Promise<void>;
-  daily: Daily[];
   projects: Project[];
   selectedDate: string;
   shown: Task[];
@@ -64,10 +60,7 @@ export function useCloseDay({
     const projectMinutes = Object.fromEntries(
       projects.map((project) => [
         project.id,
-        (taskMinutesByProject.get(project.id) ?? 0) +
-          daily
-            .filter((item) => item.projectId === project.id)
-            .reduce((total, item) => total + getDailyActualMinutes(item), 0),
+        taskMinutesByProject.get(project.id) ?? 0,
       ]),
     );
     await closeDay(selectedDate, actions, projectMinutes);

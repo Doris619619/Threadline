@@ -1,242 +1,408 @@
-/** @fileoverview 管理 UUID 项目列表、fallback 保护、归档恢复与项目详情入口。 */
+/** @fileoverview 将项目与完全脱离项目的 Daily 模板置于同一轻量管理界面。 */
 
 'use client';
-import { ArchiveRestore, Pencil, Plus } from 'lucide-react';
+
+import { ChevronDown, MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ProjectTag } from '@/components/ui/project-tag';
-import { Surface } from '@/components/ui/surface';
+import type { Daily } from '@/features/daily/types';
 import { getLocalDateKey } from '@/lib/local-date';
-import type { Project, Task, TaskTimeEntry } from '@/types/domain';
-import type { Daily, DailyHistoryEntry } from '@/features/daily/daily-panel';
+import type { Project } from '@/types/domain';
 
-/**
- * 渲染项目列表、创建入口与选中项目详情；ledger 模式按历史项目归属汇总实际投入。
- */
+type Status = 'archive' | 'restore' | 'delete';
+
+/** 将预计分钟转换为管理列表中的紧凑文案。 */
+function planned(minutes: number) {
+  return `${minutes} 分钟`;
+}
+
+/** 渲染项目和 Daily 模板管理页；全部写操作由父级传入的云端命令执行。 */
 export function ProjectPanel({
   items,
-  tasks,
-  taskTimeEntries,
-  taskTimeEntriesAuthoritative,
-  daily,
-  dailyHistory,
-  onChange,
+  dailyTemplates,
+  onCreateProject,
+  onUpdateProject,
+  onSetProjectArchived,
+  onDeleteProject,
+  onCreateDaily,
+  onSaveDaily,
+  onSetDailyStatus,
+  onSetDailyItemStatus,
 }: {
   items: Project[];
-  tasks: Task[];
-  taskTimeEntries: TaskTimeEntry[];
-  taskTimeEntriesAuthoritative: boolean;
-  daily: Daily[];
-  dailyHistory: DailyHistoryEntry[];
-  onChange: (items: Project[]) => void;
+  dailyTemplates: Daily[];
+  onCreateProject: (project: Project) => Promise<unknown>;
+  onUpdateProject: (id: string, name: string, color: string) => Promise<void>;
+  onSetProjectArchived: (id: string, archived: boolean) => Promise<void>;
+  onDeleteProject: (id: string) => Promise<void>;
+  onCreateDaily: (daily: Daily) => Promise<void>;
+  onSaveDaily: (daily: Daily) => Promise<void>;
+  onSetDailyStatus: (id: string, status: Status) => Promise<void>;
+  onSetDailyItemStatus: (id: string, status: Status) => Promise<void>;
 }) {
   const [name, setName] = useState('');
-  const [color, setColor] = useState('#4f8cff');
-  const [selectedId, setSelectedId] = useState<string>();
-  const [editingId, setEditingId] = useState<string>();
-  const [editingName, setEditingName] = useState('');
-  const [editingColor, setEditingColor] = useState('#4f8cff');
-  const add = () => {
-    if (!name.trim()) return;
-    onChange([
-      ...items,
-      {
+  const [color, setColor] = useState('#3979e8');
+  const [dailyOpen, setDailyOpen] = useState(false);
+  const [dailyName, setDailyName] = useState('');
+  const [itemName, setItemName] = useState('');
+  const [minutes, setMinutes] = useState(0);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [error, setError] = useState<string>();
+  /** 执行管理命令，并在当前页面保留失败原因。 */
+  const run = async (action: () => Promise<void>) => {
+    try {
+      setError(undefined);
+      await action();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : '保存失败，请重试。');
+    }
+  };
+  /** 创建项目只写名称与识别色。 */
+  const createProject = () =>
+    void run(async () => {
+      if (!name.trim()) throw new Error('请输入项目名称。');
+      await onCreateProject({
         id: crypto.randomUUID(),
         name: name.trim(),
         color,
         status: 'active',
         position: Math.max(-1, ...items.map((item) => item.position ?? -1)) + 1,
-        isFallback: false,
         createdAt: getLocalDateKey(),
-      },
-    ]);
-    setName('');
-  };
-  const selected = items.find((project) => project.id === selectedId);
-  const selectedTasks = tasks.filter((task) => task.projectId === selectedId);
-  const selectedDaily = daily.filter((item) => item.projectId === selectedId);
-  const selectedDailyHistory = dailyHistory.filter(
-    (item) => item.projectId === selectedId,
-  );
-  const taskActualByProject = new Map<string, number>();
-  if (taskTimeEntriesAuthoritative) {
-    for (const entry of taskTimeEntries) {
-      taskActualByProject.set(
-        entry.projectId,
-        (taskActualByProject.get(entry.projectId) ?? 0) + entry.minutes,
-      );
-    }
-  } else {
-    for (const task of tasks) {
-      taskActualByProject.set(
-        task.projectId,
-        (taskActualByProject.get(task.projectId) ?? 0) +
-          (task.actualDurationMinutes ?? 0),
-      );
-    }
-  }
-  const saveEdit = () => {
-    if (!editingId || !editingName.trim()) return;
-    onChange(
-      items.map((item) =>
-        item.id === editingId
-          ? { ...item, name: editingName.trim(), color: editingColor }
-          : item,
-      ),
-    );
-    setEditingId(undefined);
-  };
+      });
+      setName('');
+    });
+  /** 原子创建 Daily 父模板和可选首个计划清单项。 */
+  const createDaily = () =>
+    void run(async () => {
+      if (!dailyName.trim()) throw new Error('请输入 Daily 名称。');
+      await onCreateDaily({
+        id: crypto.randomUUID(),
+        title: dailyName.trim(),
+        actual: 0,
+        result: '',
+        completed: false,
+        active: true,
+        children: itemName.trim()
+          ? [
+              {
+                id: crypto.randomUUID(),
+                title: itemName.trim(),
+                plannedDurationMinutes: minutes,
+                completed: false,
+                actual: 0,
+              },
+            ]
+          : [],
+      });
+      setDailyName('');
+      setItemName('');
+      setMinutes(0);
+      setDailyOpen(false);
+    });
   return (
-    <Surface className="project-panel" data-testid="project-panel">
-      <header className="project-toolbar">
-        <div className="project-create">
-          <Input
-            aria-label="新项目名称"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="新项目名称"
-          />
-          <input
-            aria-label="项目颜色"
-            type="color"
-            value={color}
-            onChange={(event) => setColor(event.target.value)}
-          />
-          <Button size="compact" onClick={add}>
-            <Plus size={15} /> 添加
+    <section className="project-panel" data-testid="project-panel">
+      <header className="manager-heading">
+        <h1>项目</h1>
+        <p>管理项目与 Daily 模板。</p>
+      </header>
+      <section className="manager-section">
+        <div className="manager-section-heading">
+          <h2>项目</h2>
+          <div className="manager-create">
+            <Input
+              aria-label="新项目名称"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="项目名称"
+            />
+            <input
+              aria-label="项目颜色"
+              type="color"
+              value={color}
+              onChange={(event) => setColor(event.target.value)}
+            />
+            <Button size="compact" onClick={createProject}>
+              <Plus size={15} /> 新建项目
+            </Button>
+          </div>
+        </div>
+        <div className="manager-list">
+          {items.map((project) => (
+            <div className="manager-row" key={project.id}>
+              <span
+                className="project-dot"
+                style={{ backgroundColor: project.color }}
+              />
+              <span className="manager-primary">{project.name}</span>
+              <span className="manager-status">
+                {project.isFallback
+                  ? '默认项目'
+                  : project.status === 'archived'
+                    ? '已归档'
+                    : '活跃'}
+              </span>
+              {!project.isFallback && (
+                <Menu
+                  label={`${project.name}操作`}
+                  actions={[
+                    [
+                      '修改',
+                      () => {
+                        const next = window.prompt('项目名称', project.name);
+                        if (next?.trim())
+                          void run(() =>
+                            onUpdateProject(project.id, next.trim(), project.color),
+                          );
+                      },
+                    ],
+                    [
+                      project.status === 'active' ? '归档' : '恢复',
+                      () =>
+                        void run(() =>
+                          onSetProjectArchived(project.id, project.status === 'active'),
+                        ),
+                    ],
+                    [
+                      '删除',
+                      () => {
+                        if (
+                          window.confirm(
+                            `删除“${project.name}”会迁移当前有效任务到默认项目，历史账本不变。`,
+                          )
+                        )
+                          void run(() => onDeleteProject(project.id));
+                      },
+                      'danger',
+                    ],
+                  ]}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="manager-section">
+        <div className="manager-section-heading">
+          <h2>Daily</h2>
+          <Button size="compact" onClick={() => setDailyOpen(true)}>
+            <Plus size={15} /> 新建 Daily
           </Button>
         </div>
-      </header>
-      <div className="project-list">
-        {items.map((project) => {
-          const projectTasks = tasks.filter((task) => task.projectId === project.id);
-          const completed = projectTasks.filter((task) => task.completed).length;
-          const actual = taskActualByProject.get(project.id) ?? 0;
-          const projectDaily = daily.filter((item) => item.projectId === project.id);
-          const projectDailyMinutes = dailyHistory
-            .filter((item) => item.projectId === project.id)
-            .reduce((total, item) => total + item.actual, 0);
-          return (
-            <div className="project-row" key={project.id}>
-              {editingId === project.id ? (
-                <>
-                  <Input
-                    aria-label={`${project.name}项目名称`}
-                    value={editingName}
-                    onChange={(event) => setEditingName(event.target.value)}
-                  />
-                  <input
-                    aria-label={`${project.name}项目颜色`}
-                    type="color"
-                    value={editingColor}
-                    onChange={(event) => setEditingColor(event.target.value)}
-                  />
-                  <Button size="compact" onClick={saveEdit}>
-                    保存
-                  </Button>
-                </>
-              ) : (
-                <button
-                  className="project-select"
-                  onClick={() => setSelectedId(project.id)}
-                >
-                  <ProjectTag name={project.name} color={project.color} />
-                </button>
-              )}
-              <b>{project.status === 'archived' ? '已归档' : '活跃'}</b>
-              <span>
-                累计 {actual + projectDailyMinutes}min · 普通任务 {completed}/
-                {projectTasks.length} · Daily {projectDaily.length}
-              </span>
-              {project.isFallback ? (
-                <small>默认承接项目</small>
-              ) : (
-                <Button
-                  size="compact"
-                  variant="quiet"
-                  onClick={() => {
-                    setEditingId(project.id);
-                    setEditingName(project.name);
-                    setEditingColor(project.color);
-                  }}
-                >
-                  <Pencil size={15} /> 编辑
-                </Button>
-              )}
-              {!project.isFallback && (
-                <Button
-                  size="compact"
-                  variant="quiet"
-                  onClick={() =>
-                    onChange(
-                      items.map((item) =>
-                        item.id === project.id
-                          ? {
-                              ...item,
-                              status: item.status === 'active' ? 'archived' : 'active',
-                              archivedAt:
-                                item.status === 'active'
-                                  ? new Date().toISOString()
-                                  : undefined,
-                            }
-                          : item,
-                      ),
-                    )
-                  }
-                >
-                  <ArchiveRestore size={15} />
-                  {project.status === 'active' ? '归档' : '恢复'}
-                </Button>
-              )}
+        <div className="manager-list">
+          {dailyTemplates
+            .filter((daily) => !daily.deletedAt)
+            .map((daily) => (
+              <DailyTemplateRow
+                key={daily.id}
+                daily={daily}
+                expanded={Boolean(expanded[daily.id])}
+                onToggle={() =>
+                  setExpanded({ ...expanded, [daily.id]: !expanded[daily.id] })
+                }
+                onSave={(next) => void run(() => onSaveDaily(next))}
+                onStatus={(status) =>
+                  void run(() => onSetDailyStatus(daily.id, status))
+                }
+                onItemStatus={(id, status) =>
+                  void run(() => onSetDailyItemStatus(id, status))
+                }
+              />
+            ))}
+        </div>
+      </section>
+      {dailyOpen && (
+        <div className="manager-dialog-backdrop">
+          <section className="manager-dialog" role="dialog" aria-modal="true">
+            <header>
+              <h2>新建 Daily</h2>
+              <button aria-label="关闭" onClick={() => setDailyOpen(false)}>
+                ×
+              </button>
+            </header>
+            <Input
+              aria-label="Daily 名称"
+              value={dailyName}
+              onChange={(event) => setDailyName(event.target.value)}
+              placeholder="Daily 名称"
+            />
+            <div className="daily-draft-row">
+              <Input
+                aria-label="清单项名称"
+                value={itemName}
+                onChange={(event) => setItemName(event.target.value)}
+                placeholder="清单项名称（可选）"
+              />
+              <Input
+                aria-label="预计时间"
+                type="number"
+                min="0"
+                value={minutes || ''}
+                onChange={(event) => setMinutes(Number(event.target.value))}
+                placeholder="预计分钟"
+              />
             </div>
-          );
-        })}
-      </div>
-      {selected && (
-        <Surface className="project-detail">
-          <header>
-            <div>
-              <h2>{selected.name}</h2>
-              <p>
-                {selected.status === 'active' ? '活跃项目' : '已归档项目'} ·
-                累计实际投入
-              </p>
-            </div>
-            <strong>
-              {(taskActualByProject.get(selected.id) ?? 0) +
-                selectedDailyHistory.reduce((total, entry) => total + entry.actual, 0)}
-              min
-            </strong>
-          </header>
-          <p>
-            普通任务 {selectedTasks.filter((task) => task.completed).length}/
-            {selectedTasks.length}
-            {' · '}Daily {selectedDaily.length} 个定义 / {selectedDailyHistory.length}{' '}
-            条历史
-          </p>
-          <h3>最近任务</h3>
-          {selectedTasks.length ? (
-            selectedTasks
-              .slice(-5)
-              .reverse()
-              .map((task) => <p key={task.id}>{task.title}</p>)
-          ) : (
-            <p className="empty-copy">该项目还没有任务。</p>
-          )}
-          <h3>Daily 历史</h3>
-          {selectedDailyHistory.length ? (
-            selectedDailyHistory.slice(0, 5).map((entry) => (
-              <p key={`${entry.dailyId}-${entry.date}`}>
-                {entry.date} · {entry.completed ? '完成' : '未完成'} · {entry.actual}min
-                {entry.result ? ` · ${entry.result}` : ''}
-              </p>
-            ))
-          ) : (
-            <p className="empty-copy">该项目还没有 Daily 历史。</p>
-          )}
-        </Surface>
+            <footer>
+              <Button variant="quiet" onClick={() => setDailyOpen(false)}>
+                取消
+              </Button>
+              <Button onClick={createDaily}>创建</Button>
+            </footer>
+          </section>
+        </div>
       )}
-    </Surface>
+      {error && (
+        <p className="workspace-sync-error" role="alert">
+          {error}
+        </p>
+      )}
+    </section>
+  );
+}
+
+/** 渲染低频操作菜单，删除仅在显式展开菜单后出现。 */
+function Menu({
+  label,
+  actions,
+}: {
+  label: string;
+  actions: [string, () => void, 'danger'?][];
+}) {
+  return (
+    <details className="manager-menu">
+      <summary aria-label={label}>
+        <MoreHorizontal size={18} />
+      </summary>
+      <div>
+        {actions.map(([text, action, tone]) => (
+          <button
+            key={text}
+            className={tone === 'danger' ? 'is-danger' : undefined}
+            onClick={action}
+          >
+            {text}
+          </button>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+/** 渲染可展开的 Daily 模板；本页绝不展示实际、结果或完成 checkbox。 */
+function DailyTemplateRow({
+  daily,
+  expanded,
+  onToggle,
+  onSave,
+  onStatus,
+  onItemStatus,
+}: {
+  daily: Daily;
+  expanded: boolean;
+  onToggle: () => void;
+  onSave: (daily: Daily) => void;
+  onStatus: (status: Status) => void;
+  onItemStatus: (id: string, status: Status) => void;
+}) {
+  const items = daily.children.filter(
+    (item) => !item.deletedAt && item.active !== false,
+  );
+  const total = items.reduce(
+    (sum, item) => sum + (item.plannedDurationMinutes ?? 0),
+    0,
+  );
+  return (
+    <div className="daily-manager-row">
+      <div className="daily-manager-head">
+        <button
+          className="daily-disclosure"
+          aria-expanded={expanded}
+          onClick={onToggle}
+        >
+          <ChevronDown size={16} />
+          <span>{daily.title}</span>
+        </button>
+        <span className="manager-status">
+          {daily.active === false ? '已归档' : `${items.length} 项 · ${planned(total)}`}
+        </span>
+        <Menu
+          label={`${daily.title}操作`}
+          actions={[
+            [
+              '修改',
+              () => {
+                const title = window.prompt('Daily 名称', daily.title);
+                if (title?.trim()) onSave({ ...daily, title: title.trim() });
+              },
+            ],
+            [
+              daily.active === false ? '恢复' : '归档',
+              () => onStatus(daily.active === false ? 'restore' : 'archive'),
+            ],
+            ['删除', () => onStatus('delete'), 'danger'],
+          ]}
+        />
+      </div>
+      {expanded && (
+        <div className="daily-manager-items">
+          {items.map((item) => (
+            <div className="daily-manager-item" key={item.templateItemId ?? item.id}>
+              <span>{item.title}</span>
+              <span>{planned(item.plannedDurationMinutes ?? 0)}</span>
+              {item.templateItemId && (
+                <Menu
+                  label={`${item.title}操作`}
+                  actions={[
+                    [
+                      '修改',
+                      () => {
+                        const title = window.prompt('清单项名称', item.title);
+                        if (title?.trim())
+                          onSave({
+                            ...daily,
+                            children: daily.children.map((value) =>
+                              value.templateItemId === item.templateItemId
+                                ? { ...value, title: title.trim() }
+                                : value,
+                            ),
+                          });
+                      },
+                    ],
+                    ['归档', () => onItemStatus(item.templateItemId!, 'archive')],
+                    [
+                      '删除',
+                      () => onItemStatus(item.templateItemId!, 'delete'),
+                      'danger',
+                    ],
+                  ]}
+                />
+              )}
+            </div>
+          ))}
+          <button
+            className="manager-inline-action"
+            onClick={() => {
+              const title = window.prompt('清单项名称');
+              if (title?.trim())
+                onSave({
+                  ...daily,
+                  children: [
+                    ...daily.children,
+                    {
+                      id: crypto.randomUUID(),
+                      title: title.trim(),
+                      plannedDurationMinutes: 0,
+                      completed: false,
+                      actual: 0,
+                    },
+                  ],
+                });
+            }}
+          >
+            + 添加清单项
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

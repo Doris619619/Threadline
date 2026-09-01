@@ -7,12 +7,9 @@
 import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { ProjectTag } from '@/components/ui/project-tag';
 import { Surface } from '@/components/ui/surface';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 import { getDailyActualMinutes, isDailyCompleted } from '@/features/daily/daily-rules';
-import { resolveActiveProject } from '@/lib/project-rules';
-import type { Project } from '@/types/domain';
 
 export type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 /**
@@ -22,7 +19,6 @@ export function DailyPanel({
   items,
   history,
   date,
-  projects,
   onChange,
   onAdd,
   onUpdateTemplate,
@@ -31,28 +27,23 @@ export function DailyPanel({
   items: Daily[];
   history: DailyHistoryEntry[];
   date: string;
-  projects: Project[];
   onChange: (items: Daily[]) => void;
   onAdd: (item: Daily) => void;
   onUpdateTemplate: (item: Daily) => Promise<void>;
   onRecord: (entry: DailyHistoryEntry) => void;
 }) {
   const [newTitle, setNewTitle] = useState('');
-  const [projectId, setProjectId] = useState('');
   const [childTitles, setChildTitles] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string>();
   const [editingTitle, setEditingTitle] = useState('');
-  const [editingProjectId, setEditingProjectId] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [saveError, setSaveError] = useState<string>();
   const [savingTemplateId, setSavingTemplateId] = useState<string>();
-  const selectedProjectId = resolveActiveProject(projects, projectId)?.id ?? '';
   const update = (id: string, fn: (daily: Daily) => Daily) =>
     onChange(items.map((item) => (item.id === id ? fn(item) : item)));
   const record = (daily: Daily) =>
     onRecord({
       dailyId: daily.id,
-      projectId: daily.projectId,
       date,
       completed: isDailyCompleted(daily),
       actual: getDailyActualMinutes(daily),
@@ -85,19 +76,6 @@ export function DailyPanel({
               </div>
               {editingId === daily.id ? (
                 <div className="daily-edit-inline">
-                  <select
-                    aria-label={`${daily.title}所属项目`}
-                    value={editingProjectId}
-                    onChange={(event) => setEditingProjectId(event.target.value)}
-                  >
-                    {projects
-                      .filter((project) => project.status === 'active')
-                      .map((project) => (
-                        <option key={project.id} value={project.id}>
-                          {project.name}
-                        </option>
-                      ))}
-                  </select>
                   <Input
                     aria-label={`${daily.title}名称`}
                     value={editingTitle}
@@ -107,16 +85,10 @@ export function DailyPanel({
                     className="daily-save-btn"
                     disabled={savingTemplateId === daily.id}
                     onClick={async () => {
-                      const project = projects.find(
-                        (item) => item.id === editingProjectId,
-                      );
-                      if (!editingTitle.trim() || !project) return;
+                      if (!editingTitle.trim()) return;
                       const next: Daily = {
                         ...daily,
                         title: editingTitle.trim(),
-                        projectId: project.id,
-                        project: project.name,
-                        color: project.color,
                       };
                       setSaveError(undefined);
                       setSavingTemplateId(daily.id);
@@ -146,7 +118,6 @@ export function DailyPanel({
               ) : (
                 <>
                   <div className="daily-parent-title-group">
-                    <ProjectTag name={daily.project} color={daily.color} />
                     <span className="daily-parent-title">{daily.title}</span>
                   </div>
                   <div className="daily-parent-meta">
@@ -157,7 +128,6 @@ export function DailyPanel({
                       onClick={() => {
                         setEditingId(daily.id);
                         setEditingTitle(daily.title);
-                        setEditingProjectId(daily.projectId);
                       }}
                     >
                       编辑
@@ -316,31 +286,13 @@ export function DailyPanel({
             placeholder="Daily 任务名称"
             autoFocus
           />
-          <select
-            aria-label="新 Daily 所属项目"
-            value={selectedProjectId}
-            onChange={(event) => setProjectId(event.target.value)}
-          >
-            {projects
-              .filter((project) => project.status === 'active')
-              .map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-          </select>
           <div className="daily-add-actions">
             <button
               className="daily-add-confirm"
               onClick={() => {
                 if (!newTitle.trim()) return;
-                const project = resolveActiveProject(projects, selectedProjectId);
-                if (!project) return;
                 onAdd({
                   id: crypto.randomUUID(),
-                  projectId: project.id,
-                  project: project.name,
-                  color: project.color,
                   title: newTitle.trim(),
                   actual: 0,
                   result: '',

@@ -385,11 +385,66 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
       updateDailyTemplates,
     ],
   );
+  /** 测试适配器在 localStorage 中模拟项目轻量属性更新。 */
+  const updateProject = useCallback(
+    async (projectId: string, name: string, color: string) => {
+      updateProjects((current) =>
+        current.map((project) =>
+          project.id === projectId ? { ...project, name, color } : project,
+        ),
+      );
+    },
+    [updateProjects],
+  );
+  /** 测试适配器模拟非 fallback 项目的归档切换。 */
+  const setProjectArchived = useCallback(
+    async (projectId: string, archived: boolean) => {
+      updateProjects((current) =>
+        current.map((project) =>
+          project.id === projectId && !project.isFallback
+            ? { ...project, status: archived ? 'archived' : 'active' }
+            : project,
+        ),
+      );
+    },
+    [updateProjects],
+  );
+  /** 测试适配器以不可见标记模拟项目软删除，并迁移有效 task。 */
+  const deleteProject = useCallback(
+    async (projectId: string) => {
+      const fallback = projects.find((project) => project.isFallback)?.id;
+      if (!fallback) throw new Error('TEST_FALLBACK_PROJECT_NOT_FOUND');
+      updateTasks((current) =>
+        current.map((task) =>
+          task.projectId === projectId && task.status === 'active'
+            ? { ...task, projectId: fallback }
+            : task,
+        ),
+      );
+      updateProjects((current) =>
+        current.map((project) =>
+          project.id === projectId
+            ? { ...project, deletedAt: new Date().toISOString(), status: 'archived' }
+            : project,
+        ),
+      );
+    },
+    [projects, updateProjects, updateTasks],
+  );
+  /** 测试适配器模拟 Daily 模板的未来实例生命周期。 */
+  const setDailyTemplateStatus = useCallback(async () => undefined, []);
+  /** 测试适配器模拟 Daily item 的未来实例生命周期。 */
+  const setDailyTemplateItemStatus = useCallback(async () => undefined, []);
   const commands = useMemo(
     () => ({
       createTask,
       createProject,
+      updateProject,
+      setProjectArchived,
+      deleteProject,
       saveDailyTemplate,
+      setDailyTemplateStatus,
+      setDailyTemplateItemStatus,
       transitionTask,
       recordDaily,
       closeDay,
@@ -398,9 +453,14 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
       closeDay,
       createProject,
       createTask,
+      deleteProject,
       recordDaily,
       saveDailyTemplate,
+      setDailyTemplateItemStatus,
+      setDailyTemplateStatus,
+      setProjectArchived,
       transitionTask,
+      updateProject,
     ],
   );
 

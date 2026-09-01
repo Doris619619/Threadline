@@ -53,8 +53,8 @@ export function TaskDashboard() {
     taskTimeEntriesAuthoritative,
     updateTasks,
     projects: workspaceProjects,
-    updateProjects,
     dailyByDate,
+    dailyTemplates,
     updateDailyByDate,
     updateDailyTemplates,
     dailyHistory,
@@ -67,6 +67,11 @@ export function TaskDashboard() {
     updateHighlightColor,
     createTask,
     createProject,
+    updateProject,
+    setProjectArchived,
+    deleteProject,
+    setDailyTemplateStatus,
+    setDailyTemplateItemStatus,
     saveDailyTemplate,
     transitionTask,
     recordDaily,
@@ -171,7 +176,6 @@ export function TaskDashboard() {
 
   const closeDay = useCloseDay({
     closeDay: commitCloseDay,
-    daily,
     projects: workspaceProjects,
     selectedDate,
     shown,
@@ -243,12 +247,17 @@ export function TaskDashboard() {
     return (
       <ProjectPanel
         items={workspaceProjects}
-        tasks={tasks}
-        taskTimeEntries={taskTimeEntries}
-        taskTimeEntriesAuthoritative={taskTimeEntriesAuthoritative}
-        daily={daily}
-        dailyHistory={dailyHistory}
-        onChange={updateProjects}
+        dailyTemplates={dailyTemplates}
+        onCreateProject={createProject}
+        onUpdateProject={updateProject}
+        onSetProjectArchived={setProjectArchived}
+        onDeleteProject={deleteProject}
+        onCreateDaily={async (item) => {
+          updateDailyTemplates((current) => [...current, item]);
+        }}
+        onSaveDaily={saveDailyTemplate}
+        onSetDailyStatus={setDailyTemplateStatus}
+        onSetDailyItemStatus={setDailyTemplateItemStatus}
       />
     );
   if (active === 'calendar')
@@ -444,7 +453,6 @@ export function TaskDashboard() {
               items={daily}
               history={dailyHistory}
               date={selectedDate}
-              projects={workspaceProjects}
               onChange={(items) =>
                 updateDailyByDate((current) => ({ ...current, [selectedDate]: items }))
               }

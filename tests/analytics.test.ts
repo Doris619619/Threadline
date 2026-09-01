@@ -194,7 +194,6 @@ describe('analytics adapter', () => {
         '2026-08-20': [
           {
             id: 'template-1',
-            projectId: 'research',
             title: '阅读论文',
             actual: 45,
             completed: false,
@@ -216,7 +215,6 @@ describe('analytics adapter', () => {
         '2026-08-20': [
           {
             id: 'template-children',
-            projectId: 'research',
             title: '阅读论文',
             actual: 20,
             completed: false,
@@ -228,6 +226,8 @@ describe('analytics adapter', () => {
       closeRecords: [],
     });
     expect(result.totalActualMinutes).toBe(90);
+    expect(result.projects).toEqual([]);
+    expect(result.days[0]?.heatProjectCount).toBe(0);
   });
 
   it('deduplicates a formal Daily record and its same template/date entry', () => {
@@ -238,7 +238,6 @@ describe('analytics adapter', () => {
         '2026-08-20': [
           {
             id: 'template-1',
-            projectId: 'research',
             title: '阅读论文',
             actual: 99,
             completed: true,
@@ -248,7 +247,6 @@ describe('analytics adapter', () => {
       dailyHistory: [
         {
           dailyId: 'template-1',
-          projectId: 'research',
           date: '2026-08-20',
           completed: true,
           actual: 45,

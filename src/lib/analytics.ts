@@ -10,7 +10,6 @@ export type AnalyticsSource = 'task' | 'daily' | 'legacy-aggregate';
 
 export type AnalyticsDailyItem = {
   id: string;
-  projectId: string;
   title: string;
   actual: number;
   completed: boolean;
@@ -19,7 +18,6 @@ export type AnalyticsDailyItem = {
 
 export type AnalyticsDailyHistoryEntry = {
   dailyId: string;
-  projectId: string;
   date: string;
   completed: boolean;
   actual: number;
@@ -120,6 +118,7 @@ function buildDays(
       dailyActualMinutes: relevant
         .filter((entry) => entry.source === 'daily')
         .reduce((total, entry) => total + entry.actualMinutes, 0),
+      // Daily 不属于项目；项目热力只统计普通任务与 legacy 项目汇总。
       projectIds,
       heatProjectCount: projectIds.length,
       quality: exact ? 'exact' : legacy ? 'legacy-aggregate' : 'incomplete',
@@ -219,13 +218,12 @@ export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
     entries.push({
       id: `daily-history:${entry.dailyId}:${entry.date}`,
       date: entry.date,
-      projectId: entry.projectId,
+      projectId: '__daily__',
       actualMinutes,
       plannedMinutes: 0,
       source: 'daily',
       quality: 'exact',
     });
-    exactDateProject.add(`${entry.date}:${entry.projectId}`);
   }
 
   for (const [date, items] of Object.entries(input.dailyByDate)) {
@@ -242,14 +240,13 @@ export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
       entries.push({
         id: `daily-current:${item.id}:${date}`,
         date,
-        projectId: item.projectId,
+        projectId: '__daily__',
         actualMinutes,
         plannedMinutes: 0,
         source: 'daily',
         quality: 'exact',
         title: item.title,
       });
-      exactDateProject.add(`${date}:${item.projectId}`);
     }
   }
 
@@ -271,11 +268,16 @@ export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
     }
   }
 
-  const days = buildDays(entries, input.range);
+  const days = buildDays(entries, input.range).map((day) => ({
+    ...day,
+    projectIds: day.projectIds.filter((projectId) => projectId !== '__daily__'),
+    heatProjectCount: day.projectIds.filter((projectId) => projectId !== '__daily__')
+      .length,
+  }));
   // 保留已删除项目的历史汇总；展示层再以“已删除项目”降级命名，不能静默丢失历史投入。
-  const projects = buildProjects(entries).sort(
-    (left, right) => right.actualMinutes - left.actualMinutes,
-  );
+  const projects = buildProjects(
+    entries.filter((entry) => entry.source !== 'daily'),
+  ).sort((left, right) => right.actualMinutes - left.actualMinutes);
   return {
     range: input.range,
     entries,
