@@ -3,8 +3,10 @@
  */
 
 import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
-
-const frozenLocalNow = '2026-08-23T12:00:00+08:00';
+import {
+  bootstrapLocalAdapterWorkspace,
+  openWorkspaceSection,
+} from './support/workspace';
 
 /**
  * 用真实鼠标指针拖动明确的任务拖拽柄，覆盖桌面 WebView2 使用的 Pointer Events 路径。
@@ -49,41 +51,11 @@ async function drawHighlighterStrokeInScheduleBody(page: Page) {
   await page.mouse.up();
 }
 
-test.beforeEach(async ({ page }) => {
-  const seedKey = `threadline.e2e.seeded.${test.info().testId}`;
-  await page.clock.install({ time: new Date(frozenLocalNow) });
-  await page.addInitScript((key) => {
-    // addInitScript 会在 reload 时再次运行；用 sessionStorage 确保只清理本用例首次导航。
-    if (window.sessionStorage.getItem(key)) return;
-    window.sessionStorage.setItem(key, 'true');
-    // 每个 browser context 以固定 seed 开始，避免前一用例污染任务、Daily 和日期断言。
-    for (const key of [
-      'threadline.tasks.v1',
-      'threadline.projects.v1',
-      'threadline.daily-by-date.v1',
-      'threadline.daily-templates.v1',
-      'threadline.daily-history.v1',
-      'threadline.history.v1',
-      'threadline.close-records.v1',
-      'threadline.annotations.v1',
-      'threadline.annotations.v2',
-      'threadline.annotation-highlight-color.v1',
-      'threadline.workstation.v1',
-      'threadline.workspace.v1',
-      'threadline.rhythm.v1',
-    ])
-      window.localStorage.removeItem(key);
-    window.localStorage.removeItem('threadline.desktop-mode.v2');
-    window.localStorage.removeItem('threadline.desktop-mode-before-floating.v2');
-    window.localStorage.removeItem('threadline.desktop-mode.v3');
-    window.localStorage.removeItem('threadline.desktop-window-states.v3');
-    window.localStorage.removeItem('threadline.desktop-last-compact-mode.v3');
-    window.localStorage.removeItem('threadline.desktop-compact-presentation.v3');
-  }, seedKey);
-  await page.goto('/');
-  await page.getByRole('heading', { name: '我的工作台' }).waitFor();
-  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 10_000 });
-  await page.waitForTimeout(100);
+test.beforeEach(async ({ page }, testInfo) => {
+  await bootstrapLocalAdapterWorkspace(
+    page,
+    `threadline.e2e.seeded.${testInfo.testId}`,
+  );
 });
 
 /** 进入设置概览中的真实回收站入口，供恢复与保留期流程复用。 */
@@ -93,24 +65,6 @@ async function openSettingsData(page: Page) {
     .getByTestId('settings-panel')
     .getByRole('button', { name: /^回收站/ })
     .click();
-}
-
-/** 根据当前断点选择可见的桌面侧栏或移动底栏，不依赖重复导航 DOM 的角色查询顺序。 */
-async function openWorkspaceSection(page: Page, label: string) {
-  const desktopTarget = page
-    .getByLabel('主导航', { exact: true })
-    .getByRole('button', { name: label, exact: true });
-  if (await desktopTarget.isVisible()) {
-    await desktopTarget.click();
-    return;
-  }
-  const mobileNavigation = page.getByLabel('移动端主导航', { exact: true });
-  if (['首页', '日历', '项目', '洞察'].includes(label)) {
-    await mobileNavigation.getByRole('button', { name: label, exact: true }).click();
-    return;
-  }
-  await mobileNavigation.getByRole('button', { name: '更多', exact: true }).click();
-  await mobileNavigation.getByRole('button', { name: label, exact: true }).click();
 }
 
 test('gives every workspace destination a distinct working page', async ({ page }) => {

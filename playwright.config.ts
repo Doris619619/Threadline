@@ -11,6 +11,31 @@ const e2ePort = process.env.THREADLINE_E2E_PORT ?? '3100';
 const e2eBaseUrl = `http://127.0.0.1:${e2ePort}`;
 const usesExternalTestServer = process.env.THREADLINE_EXTERNAL_TEST_SERVER === 'true';
 
+/** 默认 local adapter 项目跳过由专用配置负责的 UI 与真实 Supabase 测试。 */
+const defaultWebTestIgnore = ['**/ui-*.spec.ts', '**/supabase-cloud.spec.ts'];
+
+/** 创建只收集紧凑布局矩阵文件的桌面项目，避免业务 E2E 被每个 viewport 重复执行。 */
+function desktopLayoutProject(name: string, width: number, height: number) {
+  return {
+    name,
+    testMatch: '**/ui-layout-matrix.spec.ts',
+    use: { ...devices['Desktop Chrome'], viewport: { width, height } },
+  };
+}
+
+/** 创建保留 iPhone 触控语义、但使用指定 viewport 与 screen 尺寸的移动布局项目。 */
+function mobileLayoutProject(name: string, width: number, height: number) {
+  return {
+    name,
+    testMatch: '**/ui-layout-matrix.spec.ts',
+    use: {
+      ...devices['iPhone 13'],
+      viewport: { width, height },
+      screen: { width, height },
+    },
+  };
+}
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
@@ -25,8 +50,33 @@ export default defineConfig({
     serviceWorkers: 'block',
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', use: { ...devices['iPhone 13'] } },
+    {
+      name: 'desktop',
+      testIgnore: defaultWebTestIgnore,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'mobile',
+      testIgnore: defaultWebTestIgnore,
+      use: { ...devices['iPhone 13'] },
+    },
+    {
+      name: 'ui-structural',
+      testMatch: '**/ui-structural.spec.ts',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
+    },
+    {
+      name: 'ui-accessibility',
+      testMatch: '**/ui-accessibility.spec.ts',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
+    },
+    desktopLayoutProject('ui-layout-desktop-1440', 1440, 900),
+    desktopLayoutProject('ui-layout-desktop-1366', 1366, 768),
+    desktopLayoutProject('ui-layout-desktop-1280', 1280, 720),
+    desktopLayoutProject('ui-layout-desktop-1024', 1024, 768),
+    mobileLayoutProject('ui-layout-mobile-430', 430, 932),
+    mobileLayoutProject('ui-layout-mobile-390', 390, 844),
+    mobileLayoutProject('ui-layout-mobile-375', 375, 667),
   ],
   ...(usesExternalTestServer
     ? {}

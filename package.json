@@ -29,14 +29,19 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "playwright": "playwright",
     "test:e2e": "node scripts/test-web.mjs",
+    "test:e2e:ui": "node scripts/test-web.mjs --project=ui-structural --project=ui-accessibility --project=ui-layout-desktop-1440 --project=ui-layout-desktop-1366 --project=ui-layout-desktop-1280 --project=ui-layout-desktop-1024 --project=ui-layout-mobile-430 --project=ui-layout-mobile-390 --project=ui-layout-mobile-375",
+    "test:css-tokens": "vitest run tests/css-token-contract.test.ts --maxWorkers=1",
     "test:electron": "node scripts/test-electron-suite.mjs",
+    "test:electron:packaged": "node scripts/test-packaged-electron.mjs",
     "supabase:start": "supabase start",
     "supabase:lint": "supabase db lint --local",
     "test:db": "supabase test db",
     "test:supabase:integration": "node scripts/test-supabase-integration.mjs",
+    "test:supabase:browser": "node scripts/test-supabase-browser.mjs",
     "test:sql:static": "node scripts/verify-supabase-contract.mjs"
   },
   "dependencies": {
@@ -51,6 +56,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@electron/asar": "3.4.1",
     "@electron/fuses": "1.8.0",
     "@playwright/test": "^1.62.1",
@@ -67,6 +73,7 @@
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.3.2",
     "jsdom": "^30.0.1",
+    "postcss": "^8.5.26",
     "prettier": "^3.9.6",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "supabase": "^2.116.0",

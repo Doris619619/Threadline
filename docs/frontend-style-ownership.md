@@ -30,6 +30,18 @@ Insights 使用 `insights.css`（主页面）、`insights-report.css`（必须�
 
 禁止把新的 feature 响应式规则直接加进 overrides。将规则归位前仍须确认 selector 与后续 owner 不竞争同一属性。
 
+## CSS custom property 合同
+
+`pnpm test:css-tokens` 使用 PostCSS 解析 `src/` 下的全部 CSS declaration，而不是用全文件正则；每个无 fallback 的 `var(--token)` 都必须能在任意已加载的 CSS declaration 中找到定义。带 fallback 的引用允许在某个主题或组件未定义 token 时降级。
+
+仅由 React inline style 在运行时注入、因而不会出现在 CSS declaration 中的 property 可以写入 `tests/css-token-contract.test.ts` 的 `runtimeCustomProperties`。新增白名单时必须在该集合的 JSDoc 中说明注入位置和原因，不能为了绕过遗漏的 token 定义而加入白名单。
+
+## 无障碍 smoke baseline
+
+`e2e/ui-accessibility.spec.ts` 在 local test adapter 中扫描 Workspace、Calendar、Projects、Settings 与任务编辑 Dialog 的 axe critical/serious 结果。现有产品债务按 surface、rule id 和节点数写入 `knownBlockingAxeBaseline`：新增 rule、节点数增加、或修复后未同步下调 baseline 都会失败。不得通过 `disableRules` 关闭这些规则；修复产品样式或 Calendar ARIA 结构时，应先让测试展示实际结果，再下调相应 baseline。
+
+当前基线来自本次 local adapter 审计：Workspace 为 `color-contrast: 2`；Calendar 为 `aria-required-children: 1`、`aria-required-parent: 42`、`color-contrast: 15`；Projects 为 `color-contrast: 16`；Settings 为 `color-contrast: 2`；任务编辑 Dialog 为 `color-contrast: 3`。这些是现有产品样式和 Calendar ARIA 结构债务；本次“测试覆盖加固”明确不改产品 UI/语义，因此只把它们转换成可见、可收紧的回归合同。
+
 ## 当前独立维护项
 
 - History、Review、Stats 的代码和样式只维持可构建性，不删除、不重新接入。
