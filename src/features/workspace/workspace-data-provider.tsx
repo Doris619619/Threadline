@@ -655,6 +655,33 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     },
     [ownerKey, queryClient, repository],
   );
+  /** 原子创建模板和当前日期 entry，成功后刷新完整 Daily bundle。 */
+  const createDailyTemplate = useCallback(
+    async (daily: Daily) => {
+      try {
+        if (!navigator.onLine) throw new Error('当前离线，无法创建 Daily 模板。');
+        setMutationError(undefined);
+        await repository.createDailyTemplate(daily, selectedDate);
+      } catch (error) {
+        setMutationError(error instanceof Error ? error.message : 'Daily 模板创建失败');
+        throw error;
+      }
+      await settleDailyTemplatePostCommitRefresh(
+        async () => {
+          queryClient.setQueryData(
+            ['workspace', ownerKey, 'daily'],
+            await repository.listDailyBundle(),
+          );
+        },
+        () =>
+          queryClient.invalidateQueries({
+            queryKey: ['workspace', ownerKey, 'daily'],
+          }),
+        setMutationError,
+      );
+    },
+    [ownerKey, queryClient, repository, selectedDate],
+  );
   /** 修改 Daily 生命周期只影响未来实例；刷新 bundle 以反映 archive/delete。 */
   const setDailyTemplateStatus = useCallback(
     async (templateId: string, status: 'archive' | 'restore' | 'delete') => {
@@ -705,6 +732,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       setProjectArchived,
       deleteProject,
       createTask,
+      createDailyTemplate,
       saveDailyTemplate,
       setDailyTemplateStatus,
       setDailyTemplateItemStatus,
@@ -717,6 +745,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       createProject,
       deleteProject,
       createTask,
+      createDailyTemplate,
       recordDaily,
       saveDailyTemplate,
       setDailyTemplateItemStatus,

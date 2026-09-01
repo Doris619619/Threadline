@@ -27,7 +27,8 @@ export type AnalyticsDailyHistoryEntry = {
 export type AnalyticsEntry = {
   id: string;
   date: string;
-  projectId: string;
+  /** Daily 是全局记录，因此不应伪造项目 identity。 */
+  projectId?: string;
   actualMinutes: number;
   plannedMinutes: number;
   source: AnalyticsSource;
@@ -102,7 +103,7 @@ function buildDays(
       ...new Set(
         relevant
           .filter((entry) => entry.actualMinutes > 0)
-          .map((entry) => entry.projectId),
+          .flatMap((entry) => (entry.projectId ? [entry.projectId] : [])),
       ),
     ];
     return {
@@ -128,7 +129,9 @@ function buildDays(
 
 /** 按项目汇总，并把 legacy aggregate 明确保留在数据质量中。 */
 function buildProjects(entries: readonly AnalyticsEntry[]): AnalyticsProject[] {
-  const ids = [...new Set(entries.map((entry) => entry.projectId))];
+  const ids = [
+    ...new Set(entries.flatMap((entry) => (entry.projectId ? [entry.projectId] : []))),
+  ];
   return ids.map((projectId) => {
     const relevant = entries.filter((entry) => entry.projectId === projectId);
     const exact = relevant.some((entry) => entry.quality === 'exact');
@@ -218,7 +221,6 @@ export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
     entries.push({
       id: `daily-history:${entry.dailyId}:${entry.date}`,
       date: entry.date,
-      projectId: '__daily__',
       actualMinutes,
       plannedMinutes: 0,
       source: 'daily',
@@ -240,7 +242,6 @@ export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
       entries.push({
         id: `daily-current:${item.id}:${date}`,
         date,
-        projectId: '__daily__',
         actualMinutes,
         plannedMinutes: 0,
         source: 'daily',
@@ -268,12 +269,7 @@ export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
     }
   }
 
-  const days = buildDays(entries, input.range).map((day) => ({
-    ...day,
-    projectIds: day.projectIds.filter((projectId) => projectId !== '__daily__'),
-    heatProjectCount: day.projectIds.filter((projectId) => projectId !== '__daily__')
-      .length,
-  }));
+  const days = buildDays(entries, input.range);
   // 保留已删除项目的历史汇总；展示层再以“已删除项目”降级命名，不能静默丢失历史投入。
   const projects = buildProjects(
     entries.filter((entry) => entry.source !== 'daily'),

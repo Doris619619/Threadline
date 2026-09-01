@@ -1,10 +1,7 @@
-/**
- * @fileoverview Daily 任务面板组件，提供习惯性每日任务及子项打卡、耗时记录与管理功能。
- */
+/** @fileoverview 渲染首页的 Daily 执行区；模板管理入口只存在于项目管理页。 */
 
 'use client';
 
-import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Surface } from '@/components/ui/surface';
@@ -12,35 +9,25 @@ import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 import { getDailyActualMinutes, isDailyCompleted } from '@/features/daily/daily-rules';
 
 export type { Daily, DailyHistoryEntry } from '@/features/daily/types';
-/**
- * Daily 任务面板主体组件；模板编辑由单个命令同步长期模板与当前日期实例。
- */
+
+/** 渲染当天 Daily 的完成、实际投入、结果和记录动作，不暴露模板结构编辑。 */
 export function DailyPanel({
   items,
   history,
   date,
   onChange,
-  onAdd,
-  onUpdateTemplate,
   onRecord,
 }: {
   items: Daily[];
   history: DailyHistoryEntry[];
   date: string;
   onChange: (items: Daily[]) => void;
-  onAdd: (item: Daily) => void;
-  onUpdateTemplate: (item: Daily) => Promise<void>;
   onRecord: (entry: DailyHistoryEntry) => void;
 }) {
-  const [newTitle, setNewTitle] = useState('');
-  const [childTitles, setChildTitles] = useState<Record<string, string>>({});
-  const [editingId, setEditingId] = useState<string>();
-  const [editingTitle, setEditingTitle] = useState('');
-  const [isAdding, setIsAdding] = useState(false);
-  const [saveError, setSaveError] = useState<string>();
-  const [savingTemplateId, setSavingTemplateId] = useState<string>();
-  const update = (id: string, fn: (daily: Daily) => Daily) =>
-    onChange(items.map((item) => (item.id === id ? fn(item) : item)));
+  /** 仅修改当前日期实例，长期模板不会因执行态变化而变化。 */
+  const update = (id: string, change: (daily: Daily) => Daily) =>
+    onChange(items.map((item) => (item.id === id ? change(item) : item)));
+  /** 为当天实例生成正式历史记录所需的执行快照。 */
   const record = (daily: Daily) =>
     onRecord({
       dailyId: daily.id,
@@ -74,67 +61,12 @@ export function DailyPanel({
                   }
                 />
               </div>
-              {editingId === daily.id ? (
-                <div className="daily-edit-inline">
-                  <Input
-                    aria-label={`${daily.title}名称`}
-                    value={editingTitle}
-                    onChange={(event) => setEditingTitle(event.target.value)}
-                  />
-                  <button
-                    className="daily-save-btn"
-                    disabled={savingTemplateId === daily.id}
-                    onClick={async () => {
-                      if (!editingTitle.trim()) return;
-                      const next: Daily = {
-                        ...daily,
-                        title: editingTitle.trim(),
-                      };
-                      setSaveError(undefined);
-                      setSavingTemplateId(daily.id);
-                      try {
-                        await onUpdateTemplate(next);
-                        setEditingId(undefined);
-                      } catch (error) {
-                        setSaveError(
-                          error instanceof Error
-                            ? error.message
-                            : 'Daily 模板保存失败，请重试。',
-                        );
-                      } finally {
-                        setSavingTemplateId(undefined);
-                      }
-                    }}
-                  >
-                    {savingTemplateId === daily.id ? '保存中…' : '保存'}
-                  </button>
-                  <button
-                    className="daily-cancel-btn"
-                    onClick={() => setEditingId(undefined)}
-                  >
-                    取消
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="daily-parent-title-group">
-                    <span className="daily-parent-title">{daily.title}</span>
-                  </div>
-                  <div className="daily-parent-meta">
-                    <span className="daily-tag-badge">Daily</span>
-                    <button
-                      className="daily-edit-link"
-                      aria-label={`编辑 Daily ${daily.title}`}
-                      onClick={() => {
-                        setEditingId(daily.id);
-                        setEditingTitle(daily.title);
-                      }}
-                    >
-                      编辑
-                    </button>
-                  </div>
-                </>
-              )}
+              <div className="daily-parent-title-group">
+                <span className="daily-parent-title">{daily.title}</span>
+              </div>
+              <div className="daily-parent-meta">
+                <span className="daily-tag-badge">Daily</span>
+              </div>
             </div>
             {daily.children.length > 0 && (
               <div className="daily-children">
@@ -150,8 +82,8 @@ export function DailyPanel({
                         onChange={(event) =>
                           update(daily.id, (item) => ({
                             ...item,
-                            children: item.children.map((value, i) =>
-                              i === index
+                            children: item.children.map((value, childIndex) =>
+                              childIndex === index
                                 ? { ...value, completed: event.target.checked }
                                 : value,
                             ),
@@ -159,192 +91,60 @@ export function DailyPanel({
                         }
                       />
                     </div>
-                    {editingId === daily.id ? (
-                      <Input
-                        aria-label={`${daily.title}子任务名称${index + 1}`}
-                        value={child.title}
-                        onChange={(event) =>
-                          update(daily.id, (item) => ({
-                            ...item,
-                            children: item.children.map((value, i) =>
-                              i === index
-                                ? { ...value, title: event.target.value }
-                                : value,
-                            ),
-                          }))
-                        }
-                      />
-                    ) : (
-                      <span className="daily-child-name">{child.title}</span>
-                    )}
-                    {editingId === daily.id ? (
-                      <Input
-                        aria-label={`${daily.title} ${child.title}实际耗时`}
-                        type="number"
-                        min="0"
-                        value={child.actual || ''}
-                        placeholder="实际分钟"
-                        onChange={(event) =>
-                          update(daily.id, (item) => ({
-                            ...item,
-                            children: item.children.map((value, i) =>
-                              i === index
-                                ? { ...value, actual: Number(event.target.value) }
-                                : value,
-                            ),
-                          }))
-                        }
-                      />
-                    ) : (
-                      <span className="daily-child-duration">
-                        实际 {child.actual}min
-                      </span>
-                    )}
+                    <span className="daily-child-name">{child.title}</span>
+                    <Input
+                      aria-label={`${daily.title} ${child.title}实际耗时`}
+                      type="number"
+                      min="0"
+                      value={child.actual || ''}
+                      placeholder="实际分钟"
+                      onChange={(event) =>
+                        update(daily.id, (item) => ({
+                          ...item,
+                          children: item.children.map((value, childIndex) =>
+                            childIndex === index
+                              ? { ...value, actual: Number(event.target.value) }
+                              : value,
+                          ),
+                        }))
+                      }
+                    />
                   </div>
                 ))}
               </div>
             )}
-            {editingId === daily.id && (
-              <>
-                <div className="daily-child-add">
-                  <Input
-                    aria-label={`${daily.title}新子任务`}
-                    value={childTitles[daily.id] ?? ''}
-                    placeholder="添加子任务"
-                    onChange={(event) =>
-                      setChildTitles((current) => ({
-                        ...current,
-                        [daily.id]: event.target.value,
-                      }))
-                    }
-                  />
-                  <button
-                    onClick={() => {
-                      const title = childTitles[daily.id]?.trim();
-                      if (!title) return;
-                      update(daily.id, (item) => ({
-                        ...item,
-                        children: [
-                          ...item.children,
-                          {
-                            id: crypto.randomUUID(),
-                            title,
-                            completed: false,
-                            actual: 0,
-                          },
-                        ],
-                      }));
-                      setChildTitles((current) => ({ ...current, [daily.id]: '' }));
-                    }}
-                  >
-                    + 子任务
-                  </button>
-                </div>
-                <div className="daily-entry">
-                  <Input
-                    aria-label={`${daily.title}实际耗时`}
-                    type="number"
-                    min="0"
-                    value={daily.actual || ''}
-                    onChange={(event) =>
-                      update(daily.id, (item) => ({
-                        ...item,
-                        actual: Number(event.target.value),
-                      }))
-                    }
-                    placeholder="实际分钟"
-                  />
-                  <Input
-                    aria-label={`${daily.title}今日结果`}
-                    value={daily.result}
-                    onChange={(event) =>
-                      update(daily.id, (item) => ({
-                        ...item,
-                        result: event.target.value,
-                      }))
-                    }
-                    placeholder="今日结果"
-                  />
-                  <button
-                    disabled={recordedToday}
-                    onClick={() => record({ ...daily, completed: complete })}
-                  >
-                    {recordedToday ? '已记录' : '记录'}
-                  </button>
-                </div>
-              </>
-            )}
+            <div className="daily-entry">
+              <Input
+                aria-label={`${daily.title}实际耗时`}
+                type="number"
+                min="0"
+                value={daily.actual || ''}
+                onChange={(event) =>
+                  update(daily.id, (item) => ({
+                    ...item,
+                    actual: Number(event.target.value),
+                  }))
+                }
+                placeholder="实际分钟"
+              />
+              <Input
+                aria-label={`${daily.title}今日结果`}
+                value={daily.result}
+                onChange={(event) =>
+                  update(daily.id, (item) => ({
+                    ...item,
+                    result: event.target.value,
+                  }))
+                }
+                placeholder="今日结果"
+              />
+              <button disabled={recordedToday} onClick={() => record(daily)}>
+                {recordedToday ? '已记录' : '记录'}
+              </button>
+            </div>
           </section>
         );
       })}
-      {isAdding ? (
-        <div className="daily-add-form">
-          <Input
-            aria-label="新 Daily 名称"
-            value={newTitle}
-            onChange={(event) => setNewTitle(event.target.value)}
-            placeholder="Daily 任务名称"
-            autoFocus
-          />
-          <div className="daily-add-actions">
-            <button
-              className="daily-add-confirm"
-              onClick={() => {
-                if (!newTitle.trim()) return;
-                onAdd({
-                  id: crypto.randomUUID(),
-                  title: newTitle.trim(),
-                  actual: 0,
-                  result: '',
-                  completed: false,
-                  children: [],
-                });
-                setNewTitle('');
-                setIsAdding(false);
-              }}
-            >
-              添加
-            </button>
-            <button className="daily-add-cancel" onClick={() => setIsAdding(false)}>
-              取消
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="daily-add-footer">
-          <button className="daily-add-btn" onClick={() => setIsAdding(true)}>
-            + 添加 Daily
-          </button>
-        </div>
-      )}
-      {history.length > 0 && (
-        <table className="daily-history">
-          <caption>Daily 历史</caption>
-          <thead>
-            <tr>
-              <th>日期</th>
-              <th>完成</th>
-              <th>实际</th>
-              <th>今日结果</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.map((item, index) => (
-              <tr key={`${item.date}-${index}`}>
-                <td>{item.date}</td>
-                <td>{item.completed ? '✓' : '×'}</td>
-                <td>{item.actual ? `${item.actual}min` : '—'}</td>
-                <td>{item.result || '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      {saveError && (
-        <p className="workspace-sync-error" role="alert">
-          {saveError}
-        </p>
-      )}
     </Surface>
   );
 }

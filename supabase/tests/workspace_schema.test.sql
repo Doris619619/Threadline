@@ -2,7 +2,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(105);
+select plan(111);
 
 select has_table('public', 'daily_history_entries', 'Daily history has an explicit table');
 select has_table('public', 'task_time_entries', 'Task actual time has an immutable date-bound table');
@@ -20,6 +20,31 @@ select has_function(
   'purge_expired_tasks',
   array[]::text[],
   'Protected purge function exists'
+);
+select has_function(
+  'public', 'soft_delete_project', array['uuid'],
+  'Project soft delete RPC exists'
+);
+select has_function(
+  'public', 'set_daily_template_status', array['uuid', 'text'],
+  'Daily template lifecycle RPC exists'
+);
+select has_function(
+  'public', 'set_daily_template_item_status', array['uuid', 'text'],
+  'Daily item lifecycle RPC exists'
+);
+select hasnt_function(
+  'public', 'update_daily_template_bundle',
+  array['uuid', 'uuid', 'uuid', 'text', 'jsonb', 'jsonb'],
+  'Legacy project-bound Daily update RPC is removed'
+);
+select has_column(
+  'public', 'daily_template_items', 'planned_duration_minutes',
+  'Daily template items persist planned minutes'
+);
+select has_column(
+  'public', 'daily_entry_items', 'planned_duration_minutes_snapshot',
+  'Daily entry items freeze planned minute snapshots'
 );
 select function_privs_are(
   'private',

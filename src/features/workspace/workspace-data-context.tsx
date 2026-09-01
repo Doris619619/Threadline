@@ -32,6 +32,7 @@ export type WorkspaceCommands = {
   setProjectArchived: (projectId: string, archived: boolean) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
   createTask: (task: Task) => Promise<Task>;
+  createDailyTemplate: (daily: Daily) => Promise<void>;
   saveDailyTemplate: (daily: Daily) => Promise<void>;
   setDailyTemplateStatus: (
     templateId: string,

@@ -11,7 +11,7 @@
 - **数据层**：Supabase 是任务、项目、Daily、历史、工作站与 Rhythm 的唯一业务真源；未配置时显示明确门禁，不回退本地业务数据。Annotation 笔迹、高亮颜色和窗口 UI 状态仍仅保存在设备上。
 - **启动状态**：登录恢复、`initialize_workspace`、工作区 queries/本机 hydration 与 Supabase Realtime 分别映射为四个真实阶段；数据完成后工作台可用，Realtime 连接失败只给出非阻塞提示，不伪造订阅成功。
 
-核心流程包括任务规划与执行、Daily 父子任务联动、待安排和移期、回收站恢复、每日收尾、项目投入日历，以及跨范围洞察与报告导出。
+核心流程包括任务规划与执行、Daily 当日打卡、待安排和移期、回收站恢复、每日收尾、项目投入日历，以及跨范围洞察与报告导出。侧栏“项目”是单一管理页：项目只管理名称、颜色和生命周期；Daily 模板完全独立，支持 0～N 项计划清单与“添加到已有 Daily”，而首页只保留当天执行。
 
 ## 技术栈
 
@@ -128,7 +128,7 @@ docs/                    PRD、目标、工程协作规范、桌面交互与 PR 
 
 - 普通任务只有“重要 / 不重要”两档待安排优先级。
 - 删除进入回收站，恢复后回到当天；放弃、待安排、移期保留为可复盘历史。
-- Daily 日期实例独立保存 title/project/children/completed/actual/result snapshot；“编辑 Daily”在一个事务内同步长期模板与当前实例，复用稳定子项 identity，并保留并发更新的实例运行态，其他已生成日期不变。Records 只使用正式 `daily_history_entries`，而 Calendar/Insights/PDF 会把正式记录与尚未记录的日期实例按模板和日期去重合并。
+- Daily 完全不绑定 Project。日期实例独立保存 title/children/completed/actual/result snapshot；模板名称、0～N 个清单项和每项计划分钟以单个 RPC 原子保存，只影响未来实例，既有 entry/history 保持冻结快照。首页只记录当天实际与结果；Records 只使用正式 `daily_history_entries`，而 Calendar/Insights/PDF 会把正式记录与尚未记录的日期实例按模板和日期去重合并。Daily 实际进入全局总量，不进入项目占比或热力。
 - 日历、洞察与 PDF 共用纯函数 analytics 口径；旧收尾数据只能作为项目级 aggregate，绝不反推任务级历史。详细规则见 [工作台信息架构与分析口径](docs/workspace-information-architecture.md)。
 - 开始与结束时间支持 `1420` / `14:20` 输入；同日填写会自动计算预计分钟，不支持跨午夜。
 - **今日日程 ↔ 无时间待办**支持拖拽移动任务（不复制）：按住每条任务右侧的六点拖拽柄并拖到另一面板；拖入日程后会作为持久化的待填时间任务置顶并自动聚焦时间输入，拖出会清除待填状态与全部排程时间。

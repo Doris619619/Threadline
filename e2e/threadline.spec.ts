@@ -573,7 +573,9 @@ test('reopens the cached PWA offline without returning HTML for a Next script', 
   }
 });
 
-test('creates a fresh Daily instance for another date without inheriting child completion', async ({ page }) => {
+test('creates a fresh Daily instance for another date without inheriting child completion', async ({
+  page,
+}) => {
   await expect(
     page.getByRole('checkbox', { name: '完成 Daily 听力训练' }),
   ).toBeChecked();
@@ -587,7 +589,9 @@ test('creates a fresh Daily instance for another date without inheriting child c
     page.getByRole('checkbox', { name: '完成 Daily 背单词' }),
   ).not.toBeChecked();
   await page.getByRole('button', { name: '后一天' }).click();
-  await expect(page.getByRole('checkbox', { name: '完成 Daily 背单词' })).not.toBeChecked();
+  await expect(
+    page.getByRole('checkbox', { name: '完成 Daily 背单词' }),
+  ).not.toBeChecked();
 });
 
 test('creates a task on the selected future date', async ({ page }) => {
@@ -602,9 +606,11 @@ test('creates a task on the selected future date', async ({ page }) => {
 });
 
 test('creates a Daily definition that appears on following dates', async ({ page }) => {
-  await page.locator('.daily-add-btn').click();
-  await page.getByLabel('新 Daily 名称').fill('晚间复盘');
-  await page.locator('.daily-add-confirm').click();
+  await openWorkspaceSection(page, '项目');
+  await page.getByRole('button', { name: /新建 Daily/ }).click();
+  await page.getByLabel('Daily 名称').fill('晚间复盘');
+  await page.getByRole('button', { name: '创建', exact: true }).click();
+  await openWorkspaceSection(page, '首页');
   await expect(page.getByText('晚间复盘', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '后一天' }).click();
   await expect(page.getByText('晚间复盘', { exact: true })).toBeVisible();
@@ -622,22 +628,28 @@ test('moves an item through planning and returns it to today', async ({ page }) 
 test('daily subtask completion does not complete its parent', async ({ page }) => {
   const child = page.getByRole('checkbox', { name: '完成 新词' });
   await child.check();
-  await expect(page.getByRole('checkbox', { name: '完成 Daily 背单词' })).not.toBeChecked();
+  await expect(
+    page.getByRole('checkbox', { name: '完成 Daily 背单词' }),
+  ).not.toBeChecked();
 });
 
-test('creates Daily under a selected project with a subtask', async ({ page }) => {
-  await page.locator('.daily-add-btn').click();
-  await page.getByLabel('新 Daily 名称').fill('阅读训练');
-  await page.getByLabel('新 Daily 所属项目').selectOption('work');
-  await page.locator('.daily-add-confirm').click();
+test('manages Daily independently with planned checklist items', async ({ page }) => {
+  await openWorkspaceSection(page, '项目');
+  await page.getByRole('button', { name: /新建 Daily/ }).click();
+  await page.getByLabel('Daily 名称').fill('阅读训练');
+  await page.getByRole('button', { name: '+ 添加清单项' }).click();
+  await page.getByLabel('清单项名称 1').fill('整理笔记');
+  await page.getByLabel('预计时间 1').fill('20');
+  await page.getByRole('button', { name: '创建', exact: true }).click();
   await expect(page.getByText('阅读训练', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '编辑 Daily 阅读训练' }).click();
-  await page.getByLabel('阅读训练新子任务').fill('整理笔记');
-  await page.getByRole('button', { name: '+ 子任务' }).last().click();
-  await expect(page.getByRole('checkbox', { name: '完成 整理笔记' })).toBeVisible();
-  await page.getByLabel('阅读训练名称').fill('晨间阅读');
+  await expect(page.getByText('1 项 · 20 分钟')).toBeVisible();
+  await expect(page.getByLabel('新 Daily 所属项目')).toHaveCount(0);
+  await page.getByRole('button', { name: /阅读训练/ }).click();
+  await page.getByRole('button', { name: '+ 添加清单项' }).last().click();
+  await page.getByLabel('清单项名称').fill('阅读记录');
+  await page.getByLabel('预计时间').fill('10');
   await page.getByRole('button', { name: '保存', exact: true }).click();
-  await expect(page.getByText('晨间阅读', { exact: true })).toBeVisible();
+  await expect(page.getByText('阅读记录', { exact: true })).toBeVisible();
 });
 
 test('records rescheduling and abandonment in history', async ({ page }) => {
@@ -735,15 +747,11 @@ test('shows task and daily data in unified insight periods', async ({ page }) =>
   await expect(page.getByText('实际投入', { exact: true }).first()).toBeVisible();
 });
 
-test('edits a project and opens its compact project detail', async ({ page }) => {
+test('edits a project from its management menu', async ({ page }) => {
   await openWorkspaceSection(page, '项目');
-  await page.getByRole('button', { name: '【AI研究】' }).click();
-  await expect(
-    page.getByRole('heading', { name: 'AI研究', exact: true }),
-  ).toBeVisible();
-  const researchRow = page.locator('.project-row').filter({ hasText: 'AI研究' });
-  await researchRow.getByRole('button', { name: '编辑', exact: true }).click();
-  await page.getByLabel('AI研究项目名称').fill('AI 实验室');
+  await page.getByLabel('AI研究操作').click();
+  await page.getByRole('button', { name: '修改', exact: true }).click();
+  await page.getByLabel('项目名称', { exact: true }).fill('AI 实验室');
   await page.getByRole('button', { name: '保存', exact: true }).click();
-  await expect(page.getByText('【AI 实验室】')).toBeVisible();
+  await expect(page.getByText('AI 实验室', { exact: true })).toBeVisible();
 });

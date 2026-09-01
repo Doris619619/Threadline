@@ -176,6 +176,7 @@ begin
 end; $$;
 
 -- 模板编辑只影响将来日期；已生成 entry/history 是不可变快照。
+drop function if exists public.update_daily_template_bundle(uuid, uuid, uuid, text, jsonb, jsonb);
 create or replace function public.update_daily_template_bundle(
   p_template_id uuid, p_title text, p_items jsonb
 ) returns public.daily_templates language plpgsql security invoker
