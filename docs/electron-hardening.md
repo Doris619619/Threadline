@@ -14,6 +14,6 @@
 
 electron-builder 继续输出 `app.asar`，并在 `afterPack` 后只对最终 Windows executable 设置和读取验证 fuses：关闭 RunAsNode、NODE_OPTIONS、CLI inspect 及 file protocol 额外特权；开启 cookie encryption、ASAR integrity、OnlyLoadAppFromAsar 与 browser-process V8 snapshot。开发模式不执行该 hook。
 
-`scripts/test-electron.mjs` 覆盖开发壳的完整 Full→Mini→Workstation→Edge→Main、Edge 状态第二实例与确定退出。Windows CI 对 win-unpacked 读取 `app.asar`、最终 fuse wire 并完成 NSIS 构建；打包版的 protocol、视觉与 DPI/双屏交互仍由下方人工验收执行。
+`scripts/test-electron.mjs` 覆盖完整 Full→Mini→Workstation→Edge→Main、Edge 状态第二实例与确定退出。Windows PR CI 先通过 `pnpm test:electron` 验证开发壳的 Main/Renderer 行为，再构建 canonical `win-unpacked`。正式 fuses 会关闭 Node CLI inspect，所以 `pnpm test:electron:packaged` 不使用要求 Main inspector 的 Playwright Electron launcher，而通过 loopback Chromium CDP 验证最终 EXE 的 `threadline://app`、无 HTTP/file Renderer、CSP、受限 Preload 窗口切换、单实例与退出；runner 不启动 Next server，且在失败或超时后只结束本轮拥有的精确 Electron 进程树。
 
-GitHub Actions 的 Windows job 会生成 win-unpacked、验证 `app.asar` 与最终 fuse wire，并构建 NSIS。打包版窗口交互由本机验收覆盖，不为自动化兼容而放宽正式 fuses。仓库管理员仍需在 GitHub branch protection 中把这些检查设为 required；工作流文件本身不能替代该设置。
+`desktop:verify:parity` 会产生两份 unpacked package，因此仅在 GitHub Release workflow 的发布前 release tier 运行；它使用隔离 test adapter 比较静态 runtime 合同，不访问 Production Supabase。NSIS 安装/卸载与 DPI/双屏交互仍保留为 release-tier 人工验收，不为自动化兼容而放宽正式 fuses。仓库管理员仍需在 GitHub branch protection 中把这些检查设为 required；工作流文件本身不能替代该设置。

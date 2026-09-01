@@ -365,24 +365,38 @@ export function hasPackagingStalled({ now, lastProgressAt, stallMs }) {
   return now - lastProgressAt >= stallMs;
 }
 
-/** 将本轮拥有的子进程先正常终止，超时后仅结束其精确 Windows 进程树。 */
-async function terminateOwnedProcess(child) {
-  if (child.exitCode !== null) return;
+/**
+ * 终止本轮拥有的子进程：给正常退出一个短暂机会，再精确结束其 Windows 进程树。
+ *
+ * 该函数只接受调用方刚创建的 ChildProcess，绝不按进程名清理，以免误伤开发机或并发 CI。
+ */
+export async function terminateOwnedProcess(child) {
+  if (!child || child.exitCode !== null || child.signalCode !== null) return;
   const exited = new Promise((resolveExit) => child.once('exit', resolveExit));
-  child.kill();
+  // 调用方可能已经通过应用协议请求正常退出；先留出极短 grace period。
   await Promise.race([
     exited,
-    new Promise((resolveDelay) => setTimeout(resolveDelay, 5_000)),
+    new Promise((resolveDelay) => setTimeout(resolveDelay, 250)),
   ]);
-  if (child.exitCode !== null) return;
-  if (process.platform === 'win32') {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  if (process.platform === 'win32' && child.pid) {
+    // Windows 的 child.kill() 只结束根进程，可能留下 Electron/Next 后代；必须按已知 PID 回收整棵树。
     spawnSync('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], {
       stdio: 'ignore',
       windowsHide: true,
     });
   } else {
-    child.kill('SIGKILL');
+    child.kill('SIGTERM');
+    await Promise.race([
+      exited,
+      new Promise((resolveDelay) => setTimeout(resolveDelay, 750)),
+    ]);
+    if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
   }
+  await Promise.race([
+    exited,
+    new Promise((resolveDelay) => setTimeout(resolveDelay, 1_000)),
+  ]);
 }
 
 /**
