@@ -2,7 +2,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(146);
+select plan(149);
 
 select has_table('public', 'daily_history_entries', 'Daily history has an explicit table');
 select has_table(
@@ -108,20 +108,20 @@ select function_privs_are(
   'anon', array[]::text[], 'Anonymous clients cannot execute the task-time trigger function'
 );
 select table_privs_are(
-  'public', 'daily_templates', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
-  'Authenticated Daily commands can read, create, and update templates'
+  'public', 'daily_templates', 'authenticated', array['SELECT'],
+  'Authenticated clients can only read Daily templates directly'
 );
 select table_privs_are(
-  'public', 'daily_template_items', 'authenticated', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'],
-  'Authenticated Daily flow can atomically replace template items'
+  'public', 'daily_template_items', 'authenticated', array['SELECT'],
+  'Authenticated clients can only read Daily template items directly'
 );
 select table_privs_are(
-  'public', 'daily_entries', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
-  'Authenticated Daily flow can materialize and edit date entries'
+  'public', 'daily_entries', 'authenticated', array['SELECT'],
+  'Authenticated clients can only read Daily entries directly'
 );
 select table_privs_are(
-  'public', 'daily_entry_items', 'authenticated', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'],
-  'Authenticated Daily flow can atomically replace date items'
+  'public', 'daily_entry_items', 'authenticated', array['SELECT'],
+  'Authenticated clients can only read Daily entry items directly'
 );
 select table_privs_are(
   'public', 'daily_history_entries', 'authenticated', array['SELECT', 'INSERT'],
@@ -160,6 +160,10 @@ select is(
   0::bigint,
   'Anonymous clients have no business-table privileges'
 );
+
+-- 后续 fixture 需要直接构造历史数据；事务结束会回滚临时 grant，真实 schema 仍保持上述只读边界。
+grant insert, update, delete on table public.daily_templates, public.daily_template_items,
+  public.daily_entries, public.daily_entry_items to authenticated;
 
 select function_privs_are(
   'public', 'initialize_workspace', array[]::text[],
@@ -360,6 +364,24 @@ select is(
   1::bigint,
   'Daily template item is copied exactly once'
 );
+insert into public.daily_template_items(id, template_id, title, position)
+values (
+  '31000000-0000-0000-0000-000000000004',
+  '30000000-0000-0000-0000-000000000003',
+  'Later template child',
+  1
+);
+select lives_ok(
+  $$select public.ensure_daily_entries_for_date('2026-08-30')$$,
+  'Repeated materialization after a template append succeeds without revising the existing entry'
+);
+select is(
+  (select count(*) from public.daily_entry_items where entry_id = (
+    select id from public.daily_entries where entry_date = '2026-08-30'
+  )),
+  1::bigint,
+  'Template append does not backfill a previously materialized date entry'
+);
 
 insert into public.daily_templates(id, project_id, title, is_active, position)
 select
@@ -413,8 +435,18 @@ select is(
     join public.daily_entries as entries on entries.id = items.entry_id
     where entries.entry_date = '2026-08-31'
   ),
+  2::bigint,
+  'Future entry receives the two current template items but not the date-only child'
+);
+select is(
+  (
+    select count(*)
+    from public.daily_entry_items as items
+    join public.daily_entries as entries on entries.id = items.entry_id
+    where entries.entry_date = '2026-08-31' and items.title_snapshot = 'Later template child'
+  ),
   1::bigint,
-  'Date-only child does not pollute future instances'
+  'Template child appended after date A materializes only for the future date'
 );
 
 select lives_ok(
@@ -875,7 +907,8 @@ update public.daily_entry_items as items
 set actual_duration_minutes = 40
 from public.daily_entries as entries
 where entries.owner_id = auth.uid() and entries.entry_date = '2026-08-25'
-  and items.owner_id = entries.owner_id and items.entry_id = entries.id;
+  and items.owner_id = entries.owner_id and items.entry_id = entries.id
+  and items.template_item_id = '31000000-0000-0000-0000-000000000003';
 select lives_ok(
   $$select public.record_daily_history(
     (select template_id from public.daily_entries
@@ -1074,7 +1107,8 @@ update public.daily_entry_items as items
 set actual_duration_minutes = 40
 from public.daily_entries as entries
 where entries.owner_id = auth.uid() and entries.entry_date = '2026-08-24'
-  and items.owner_id = entries.owner_id and items.entry_id = entries.id;
+  and items.owner_id = entries.owner_id and items.entry_id = entries.id
+  and items.template_item_id = '31000000-0000-0000-0000-000000000003';
 select lives_ok(
   $$select public.record_daily_history(
     (select template_id from public.daily_entries

@@ -221,6 +221,85 @@ describe('ProjectManagementPage', () => {
     );
   });
 
+  it('keeps archived children but excludes deleted children from every template-management save payload', async () => {
+    const deletedChild = {
+      templateItemId: 'item-deleted',
+      title: '已删除清单',
+      plannedDurationMinutes: 10,
+      deletedAt: '2026-09-02T00:00:00.000Z',
+      completed: false,
+      actual: 0,
+    };
+    const archivedChild = {
+      templateItemId: 'item-archived',
+      title: '已归档清单',
+      plannedDurationMinutes: 20,
+      active: false,
+      completed: false,
+      actual: 0,
+    };
+    const props = renderPanel({
+      dailyTemplates: [
+        { ...daily[0], children: [daily[0].children[0], archivedChild, deletedChild] },
+      ],
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /新建 Daily/ }));
+    fireEvent.click(screen.getByRole('tab', { name: '添加到已有 Daily' }));
+    fireEvent.change(screen.getByLabelText('清单项名称'), {
+      target: { value: '追加清单' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '保存' }));
+    await waitFor(() => expect(props.onSaveDaily).toHaveBeenCalledTimes(1));
+    expect(props.onSaveDaily.mock.calls[0]?.[0].children).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ templateItemId: 'item-1' }),
+        expect.objectContaining({ templateItemId: 'item-archived' }),
+        expect.objectContaining({ title: '追加清单' }),
+      ]),
+    );
+    expect(props.onSaveDaily.mock.calls[0]?.[0].children).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ templateItemId: 'item-deleted' })]),
+    );
+
+    fireEvent.click(screen.getByLabelText('英语学习操作'));
+    fireEvent.click(
+      within(
+        screen.getByLabelText('英语学习操作').closest('details') as HTMLElement,
+      ).getByRole('button', { name: '修改' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: '保存' }));
+    await waitFor(() => expect(props.onSaveDaily).toHaveBeenCalledTimes(2));
+    expect(props.onSaveDaily.mock.calls[1]?.[0].children).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ templateItemId: 'item-1' }),
+        expect.objectContaining({ templateItemId: 'item-archived' }),
+      ]),
+    );
+    expect(props.onSaveDaily.mock.calls[1]?.[0].children).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ templateItemId: 'item-deleted' })]),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /英语学习/ }));
+    fireEvent.click(screen.getByLabelText('词汇背诵操作'));
+    fireEvent.click(
+      within(
+        screen.getByLabelText('词汇背诵操作').closest('details') as HTMLElement,
+      ).getByRole('button', { name: '修改' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: '保存' }));
+    await waitFor(() => expect(props.onSaveDaily).toHaveBeenCalledTimes(3));
+    expect(props.onSaveDaily.mock.calls[2]?.[0].children).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ templateItemId: 'item-1' }),
+        expect.objectContaining({ templateItemId: 'item-archived' }),
+      ]),
+    );
+    expect(props.onSaveDaily.mock.calls[2]?.[0].children).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ templateItemId: 'item-deleted' })]),
+    );
+  });
+
   it('defaults append mode to an active Daily instead of an archived visible template', () => {
     renderPanel({
       dailyTemplates: [

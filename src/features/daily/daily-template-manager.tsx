@@ -29,6 +29,11 @@ function toDraftItems(items: Daily['children']): DraftItem[] {
     }));
 }
 
+/** 排除终态 child；归档 child 仍必须随模板管理 payload 保留，避免被误删。 */
+function retainedChildren(daily: Daily): Daily['children'] {
+  return daily.children.filter((item) => !item.deletedAt);
+}
+
 /** 关闭原生 details 菜单后执行动作，避免 Dialog 打开时保留孤立的菜单浮层。 */
 function closeMenuAndRun(event: MouseEvent<HTMLButtonElement>, action: () => void) {
   event.currentTarget.closest('details')?.removeAttribute('open');
@@ -245,7 +250,7 @@ export function DailyTemplateManager({
         const [newItem] = normalizeDraftItems();
         await onSave({
           ...appendTarget,
-          children: [...appendTarget.children, newItem],
+          children: [...retainedChildren(appendTarget), newItem],
         });
       } else if (mode === 'edit-template') {
         if (!editableTarget || !title.trim()) throw new Error('请输入 Daily 名称。');
@@ -259,7 +264,7 @@ export function DailyTemplateManager({
         const [nextItem] = normalizeDraftItems();
         await onSave({
           ...editableTarget,
-          children: editableTarget.children.map((item) =>
+          children: retainedChildren(editableTarget).map((item) =>
             (item.templateItemId ?? item.id) === nextItem.templateItemId
               ? { ...item, ...nextItem }
               : item,

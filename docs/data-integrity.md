@@ -10,9 +10,9 @@
 
 Daily 完全不属于 Project。旧记录可保留 `legacy_project_id` snapshot 兼容历史，但新模板、新实例不写 `project_id`，也绝不会投递至 fallback 项目。
 
-创建模板与 0～N 个清单项经 `create_daily_template_with_entry` 单个 RPC 原子提交；名称、计划清单结构与 `planned_duration_minutes` 经 `update_daily_template_bundle` 保存。计划分钟只属于模板/entry snapshot，实际分钟只属于每日执行 entry，二者不能复用。模板编辑只影响未来实例，已生成 entry/history 永远保留原 snapshot。
+创建模板与 0～N 个清单项经 `create_daily_template_with_entry` 单个 RPC 原子提交；名称、计划清单结构与 `planned_duration_minutes` 经 `update_daily_template_bundle` 保存。计划分钟只属于模板/entry snapshot，实际分钟只属于每日执行 entry，二者不能复用。`ensure_daily_entries_for_date` 只从该次 `INSERT ... RETURNING` 的新 entry 复制模板项：重复 materialize 同一天不会回填后来新增的模板项，未来首次 materialize 才采用最新模板结构。模板编辑只影响未来实例，已生成 entry/history 永远保留原 snapshot。
 
-模板及清单项的归档、恢复、软删除使用 owner-scoped RPC。归档 Daily 仍可改名和修改既有清单项，但不能追加新清单项；删除是终态，任何过期客户端的恢复、归档或保存请求都不能令模板或清单项复活。归档或删除后未来实例化会跳过对应记录；过去 entry/history 不修改。Daily 实际继续进入全局 Daily/总实际，但不再计入项目统计、占比或热力。
+模板及清单项的归档、恢复、软删除使用 owner-scoped RPC。归档 Daily 仍可改名和修改既有清单项，但不能追加新清单项；删除是终态，任何过期客户端的恢复、归档或保存请求都不能令模板或清单项复活。Repository 可以保留 deleted child 以维持历史 identity，但模板管理 payload 必须排除 `deletedAt`，同时保留 archived child。`daily_templates`、`daily_template_items`、`daily_entries` 与 `daily_entry_items` 对 authenticated 仅授予 `SELECT`；其写入仅通过固定 `search_path`、检查 `auth.uid()` 且逐行 owner scope 的 SECURITY DEFINER RPC 完成。归档或删除后未来实例化会跳过对应记录；过去 entry/history 不修改。Daily 实际继续进入全局 Daily/总实际，但不再计入项目统计、占比或热力。
 
 ## 实际耗时与历史
 

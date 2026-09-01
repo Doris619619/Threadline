@@ -102,34 +102,35 @@ begin
   return target;
 end; $$;
 
--- 未来 Daily entry 仅从 active 且未删除的模板/清单项实例化；历史 entry 永不改写。
+-- 未来 Daily entry 仅从 active 且未删除的模板/清单项实例化；以固定路径的 owner-scoped definer 写入，历史 entry 永不改写。
 create or replace function public.ensure_daily_entries_for_date(p_entry_date date)
-returns jsonb language plpgsql security invoker set search_path = pg_catalog, public as $$
+returns jsonb language plpgsql security definer set search_path = pg_catalog, public as $$
 declare current_owner uuid := auth.uid(); result jsonb;
 begin
   if current_owner is null then raise exception 'AUTH_REQUIRED' using errcode = '28000'; end if;
-  insert into public.daily_entries(
+  with inserted_entries as (
+    insert into public.daily_entries(
     id, owner_id, template_id, entry_date, project_id, title_snapshot,
     project_name_snapshot, color_snapshot, completed, actual_duration_minutes, result
+    )
+    select gen_random_uuid(), templates.owner_id, templates.id, p_entry_date, null,
+      templates.title, 'Daily', '#8A8A8A', false, 0, ''
+    from public.daily_templates templates
+    where templates.owner_id = current_owner and templates.is_active
+      and templates.deleted_at is null
+    on conflict (owner_id, template_id, entry_date) do nothing
+    returning id, owner_id, template_id
   )
-  select gen_random_uuid(), templates.owner_id, templates.id, p_entry_date, null,
-    templates.title, 'Daily', '#8A8A8A', false, 0, ''
-  from public.daily_templates templates
-  where templates.owner_id = current_owner and templates.is_active
-    and templates.deleted_at is null
-  on conflict (owner_id, template_id, entry_date) do nothing;
   insert into public.daily_entry_items(
-    id, owner_id, entry_id, template_item_id, title_snapshot, position,
-    completed, actual_duration_minutes, planned_duration_minutes_snapshot
-  )
+      id, owner_id, entry_id, template_item_id, title_snapshot, position,
+      completed, actual_duration_minutes, planned_duration_minutes_snapshot
+    )
   select gen_random_uuid(), entries.owner_id, entries.id, items.id, items.title,
     items.position, false, 0, items.planned_duration_minutes
-  from public.daily_entries entries
+  from inserted_entries entries
   join public.daily_template_items items
     on items.owner_id = entries.owner_id and items.template_id = entries.template_id
-  where entries.owner_id = current_owner and entries.entry_date = p_entry_date
-    and items.is_active and items.deleted_at is null
-  on conflict (owner_id, entry_id, template_item_id) where template_item_id is not null do nothing;
+  where items.is_active and items.deleted_at is null;
   select jsonb_build_object(
     'entries', coalesce(jsonb_agg(to_jsonb(entries) order by templates.position), '[]'::jsonb),
     'items', coalesce((select jsonb_agg(to_jsonb(items) order by items.entry_id, items.position)
@@ -143,11 +144,11 @@ begin
   return coalesce(result, jsonb_build_object('entries', '[]'::jsonb, 'items', '[]'::jsonb));
 end; $$;
 
--- 创建 Daily 与所有清单项在同一事务完成，避免父模板成功但子项只写入一半。
+-- 创建 Daily 与所有清单项在同一事务完成，固定路径的 owner-scoped definer 避免客户端直接表写绕过生命周期。
 drop function if exists public.create_daily_template_with_entry(uuid, uuid, text, date);
 create function public.create_daily_template_with_entry(
   p_template_id uuid, p_title text, p_items jsonb, p_entry_date date
-) returns public.daily_templates language plpgsql security invoker
+) returns public.daily_templates language plpgsql security definer
 set search_path = pg_catalog, public as $$
 declare current_owner uuid := auth.uid(); saved public.daily_templates; next_position integer;
 begin
@@ -174,11 +175,11 @@ begin
   return saved;
 end; $$;
 
--- 模板编辑只影响将来日期；已生成 entry/history 是不可变快照。
+-- 模板编辑只影响将来日期；固定路径的 owner-scoped definer 仅允许 RPC 改写模板，不改写既有 entry/history snapshot。
 drop function if exists public.update_daily_template_bundle(uuid, uuid, uuid, text, jsonb, jsonb);
 create or replace function public.update_daily_template_bundle(
   p_template_id uuid, p_title text, p_items jsonb
-) returns public.daily_templates language plpgsql security invoker
+) returns public.daily_templates language plpgsql security definer
 set search_path = pg_catalog, public as $$
 declare current_owner uuid := auth.uid(); saved public.daily_templates;
 begin
@@ -226,12 +227,12 @@ begin
   return saved;
 end; $$;
 
--- 首页 Daily 执行仍可原子保存父级实际/结果与子项实际，但不能再写入项目字段。
+-- 首页 Daily 执行仍可经固定路径的 owner-scoped definer 原子保存父级实际/结果与子项实际，但不能再写入项目字段。
 drop function if exists public.save_daily_entry_bundle(uuid, uuid, text, boolean, integer, text, jsonb);
 create function public.save_daily_entry_bundle(
   p_entry_id uuid, p_title text, p_completed boolean, p_actual_duration_minutes integer,
   p_result text, p_items jsonb
-) returns public.daily_entries language plpgsql security invoker
+) returns public.daily_entries language plpgsql security definer
 set search_path = pg_catalog, public as $$
 declare current_owner uuid := auth.uid(); saved public.daily_entries;
 begin
@@ -260,9 +261,10 @@ begin
   return saved;
 end; $$;
 
+-- 以固定路径的 owner-scoped definer 执行模板生命周期；已删除行永远不可被 restore 或 archive。
 create or replace function public.set_daily_template_status(
   p_template_id uuid, p_status text
-) returns public.daily_templates language plpgsql security invoker
+) returns public.daily_templates language plpgsql security definer
 set search_path = pg_catalog, public as $$
 declare current_owner uuid := auth.uid(); saved public.daily_templates;
 begin
@@ -277,9 +279,10 @@ begin
   return saved;
 end; $$;
 
+-- 以固定路径的 owner-scoped definer 执行清单项生命周期；已删除项永远不可被 restore 或 update。
 create or replace function public.set_daily_template_item_status(
   p_template_item_id uuid, p_status text
-) returns public.daily_template_items language plpgsql security invoker
+) returns public.daily_template_items language plpgsql security definer
 set search_path = pg_catalog, public as $$
 declare current_owner uuid := auth.uid(); saved public.daily_template_items;
 begin
@@ -316,3 +319,9 @@ grant execute on function public.update_project_details(uuid, text, text), publi
   public.soft_delete_project(uuid), public.create_daily_template_with_entry(uuid, text, jsonb, date),
   public.update_daily_template_bundle(uuid, text, jsonb), public.set_daily_template_status(uuid, text),
   public.set_daily_template_item_status(uuid, text), public.save_daily_entry_bundle(uuid, text, boolean, integer, text, jsonb) to authenticated;
+
+-- Daily 的模板、实例及清单项只能经上述 owner-scoped RPC 写入；登录客户端保留只读查询能力。
+revoke all privileges on table public.daily_templates, public.daily_template_items,
+  public.daily_entries, public.daily_entry_items from public, anon, authenticated;
+grant select on table public.daily_templates, public.daily_template_items,
+  public.daily_entries, public.daily_entry_items to authenticated;

@@ -66,4 +66,41 @@ describe('SupabaseWorkspaceRepository Daily template command', () => {
       }),
     );
   });
+
+  it('excludes deleted children but retains archived children in the template RPC payload', async () => {
+    const fixture = client();
+    const repository = new SupabaseWorkspaceRepository(fixture.client);
+    await repository.updateDailyTemplate({
+      ...daily,
+      children: [
+        daily.children[0],
+        {
+          templateItemId: '40000000-0000-4000-8000-000000000002',
+          title: '已归档但仍保留',
+          plannedDurationMinutes: 20,
+          active: false,
+          completed: false,
+          actual: 0,
+        },
+        {
+          templateItemId: '40000000-0000-4000-8000-000000000003',
+          title: '已删除且不得回写',
+          plannedDurationMinutes: 15,
+          deletedAt: '2026-09-02T00:00:00.000Z',
+          completed: false,
+          actual: 0,
+        },
+      ],
+    });
+    expect(fixture.rpc).toHaveBeenCalledWith('update_daily_template_bundle', {
+      p_template_id: daily.id,
+      p_title: daily.title,
+      p_items: [
+        expect.objectContaining({ id: daily.children[0].templateItemId }),
+        expect.objectContaining({
+          id: '40000000-0000-4000-8000-000000000002',
+        }),
+      ],
+    });
+  });
 });

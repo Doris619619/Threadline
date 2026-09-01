@@ -264,6 +264,28 @@ try {
     p_entry_date: '2026-09-01',
   });
   if (foreignTemplate.error) throw foreignTemplate.error;
+  const foreignTemplateDirectWrite = await ownerB.client
+    .from('daily_templates')
+    .update({ title: 'Cross-owner direct template mutation' })
+    .eq('id', templateId)
+    .select('id');
+  checkDatabaseError(
+    foreignTemplateDirectWrite,
+    '42501',
+    'permission denied',
+    'Authenticated client directly mutated another owner Daily template',
+  );
+  const foreignItemDirectWrite = await ownerB.client
+    .from('daily_template_items')
+    .update({ title: 'Cross-owner direct item mutation' })
+    .eq('id', templateItemId)
+    .select('id');
+  checkDatabaseError(
+    foreignItemDirectWrite,
+    '42501',
+    'permission denied',
+    'Authenticated client directly mutated another owner Daily item',
+  );
   const scopeMismatch = await ownerA.client.rpc('update_daily_template_bundle', {
     p_template_id: templateId,
     p_title: 'Should roll back',
@@ -319,6 +341,7 @@ try {
     JSON.stringify(dailyOnlyClose.data.project_minutes) === '{}',
     'Daily actual leaked into the project-scoped close-day aggregate.',
   );
+  const futureTemplateItemId = crypto.randomUUID();
   const updatedTemplate = await ownerA.client.rpc('update_daily_template_bundle', {
     p_template_id: templateId,
     p_title: '更新后的 Daily',
@@ -328,6 +351,12 @@ try {
         title: '更新后的计划清单',
         position: 0,
         planned_duration_minutes: 50,
+      },
+      {
+        id: futureTemplateItemId,
+        title: '未来日期新增清单',
+        position: 1,
+        planned_duration_minutes: 15,
       },
     ],
   });
@@ -355,6 +384,22 @@ try {
       frozenItem.data.actual_duration_minutes === 23,
     'Template edit rewrote an existing Daily entry snapshot.',
   );
+  const repeatedCurrentDate = await ownerA.client.rpc('ensure_daily_entries_for_date', {
+    p_entry_date: '2026-09-01',
+  });
+  if (repeatedCurrentDate.error) throw repeatedCurrentDate.error;
+  const currentDateItemsAfterTemplateAppend = await ownerA.client
+    .from('daily_entry_items')
+    .select('template_item_id, title_snapshot, planned_duration_minutes_snapshot')
+    .eq('entry_id', createdEntry.data.id);
+  if (currentDateItemsAfterTemplateAppend.error)
+    throw currentDateItemsAfterTemplateAppend.error;
+  check(
+    currentDateItemsAfterTemplateAppend.data.length === 1 &&
+      currentDateItemsAfterTemplateAppend.data[0].template_item_id === templateItemId &&
+      currentDateItemsAfterTemplateAppend.data[0].planned_duration_minutes_snapshot === 35,
+    'Repeated materialization appended a new template item to an existing Daily entry snapshot.',
+  );
   const materializedFuture = await ownerA.client.rpc('ensure_daily_entries_for_date', {
     p_entry_date: '2026-09-02',
   });
@@ -366,18 +411,23 @@ try {
     .eq('entry_date', '2026-09-02')
     .single();
   if (futureEntry.error) throw futureEntry.error;
-  const futureItem = await ownerA.client
+  const futureItems = await ownerA.client
     .from('daily_entry_items')
-    .select('title_snapshot, planned_duration_minutes_snapshot')
+    .select('template_item_id, title_snapshot, planned_duration_minutes_snapshot')
     .eq('entry_id', futureEntry.data.id)
-    .single();
-  if (futureItem.error) throw futureItem.error;
+    .order('position');
+  if (futureItems.error) throw futureItems.error;
   check(
     futureEntry.data.title_snapshot === '更新后的 Daily' &&
       futureEntry.data.project_id === null &&
-      futureItem.data.title_snapshot === '更新后的计划清单' &&
-      futureItem.data.planned_duration_minutes_snapshot === 50,
-    'Future Daily materialization did not use the independently updated template.',
+      futureItems.data.length === 2 &&
+      futureItems.data[0].template_item_id === templateItemId &&
+      futureItems.data[0].title_snapshot === '更新后的计划清单' &&
+      futureItems.data[0].planned_duration_minutes_snapshot === 50 &&
+      futureItems.data[1].template_item_id === futureTemplateItemId &&
+      futureItems.data[1].title_snapshot === '未来日期新增清单' &&
+      futureItems.data[1].planned_duration_minutes_snapshot === 15,
+    'Future Daily materialization did not use the independently updated template structure.',
   );
   const concurrentMaterialization = await Promise.all([
     ownerA.client.rpc('ensure_daily_entries_for_date', { p_entry_date: '2026-09-05' }),
@@ -400,6 +450,22 @@ try {
     p_status: 'archive',
   });
   if (archived.error) throw archived.error;
+  const archivedDirectAppend = await ownerA.client
+    .from('daily_template_items')
+    .insert({
+      id: crypto.randomUUID(),
+      template_id: templateId,
+      title: 'Direct archived append must fail',
+      position: 2,
+      planned_duration_minutes: 10,
+    })
+    .select('id');
+  checkDatabaseError(
+    archivedDirectAppend,
+    '42501',
+    'permission denied',
+    'Archived Daily accepted a direct table checklist append',
+  );
   const archivedTemplateEdit = await ownerA.client.rpc('update_daily_template_bundle', {
     p_template_id: templateId,
     p_title: '归档后仍可修改的 Daily',
@@ -516,6 +582,17 @@ try {
     'DAILY_TEMPLATE_ITEM_NOT_FOUND',
     'Deleted Daily item could be restored by a stale client request',
   );
+  const directDeletedItemRestore = await ownerA.client
+    .from('daily_template_items')
+    .update({ deleted_at: null, is_active: true })
+    .eq('id', templateItemId)
+    .select('id');
+  checkDatabaseError(
+    directDeletedItemRestore,
+    '42501',
+    'permission denied',
+    'Deleted Daily item could be restored through a direct table update',
+  );
   const staleDeletedItemSave = await ownerA.client.rpc('update_daily_template_bundle', {
     p_template_id: templateId,
     p_title: 'Deleted item must stay deleted',
@@ -548,6 +625,17 @@ try {
     'P0002',
     'DAILY_TEMPLATE_NOT_FOUND',
     'Deleted Daily template could be restored by a stale client request',
+  );
+  const directDeletedTemplateRestore = await ownerA.client
+    .from('daily_templates')
+    .update({ deleted_at: null, is_active: true })
+    .eq('id', templateId)
+    .select('id');
+  checkDatabaseError(
+    directDeletedTemplateRestore,
+    '42501',
+    'permission denied',
+    'Deleted Daily template could be restored through a direct table update',
   );
   const staleTemplateSave = await ownerA.client.rpc('update_daily_template_bundle', {
     p_template_id: templateId,

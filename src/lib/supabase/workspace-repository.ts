@@ -299,14 +299,14 @@ export class SupabaseWorkspaceRepository {
     return this.listDailyBundle();
   }
 
-  /** 原子创建长期模板及当前业务日期 entry，避免跨设备看到半完成 Daily。 */
+  /** 原子创建长期模板及当前业务日期 entry；终态 child 不得进入模板管理写入。 */
   async createDailyTemplate(daily: Daily, date: string): Promise<void> {
     assertResponse(
       'create Daily template',
       await this.client.rpc('create_daily_template_with_entry', {
         p_template_id: daily.id,
         p_title: daily.title,
-        p_items: daily.children.map((item, position) => ({
+        p_items: daily.children.filter((item) => !item.deletedAt).map((item, position) => ({
           id: item.templateItemId ?? item.id ?? crypto.randomUUID(),
           title: item.title,
           position,
@@ -356,14 +356,14 @@ export class SupabaseWorkspaceRepository {
     );
   }
 
-  /** 原子保存模板名称和清单结构；历史 entry 保持既有 snapshot。 */
+  /** 原子保存模板名称和非删除清单结构；历史 entry 保持既有 snapshot，归档 child 仍保留。 */
   async updateDailyTemplate(daily: Daily): Promise<void> {
     assertResponse(
       'update Daily template',
       await this.client.rpc('update_daily_template_bundle', {
         p_template_id: daily.id,
         p_title: daily.title,
-        p_items: daily.children.map((item, position) => ({
+        p_items: daily.children.filter((item) => !item.deletedAt).map((item, position) => ({
           id: item.templateItemId ?? item.id,
           title: item.title,
           position,
