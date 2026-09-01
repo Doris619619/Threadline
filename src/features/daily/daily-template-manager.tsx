@@ -6,6 +6,7 @@ import { ChevronDown, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ManagementDialog } from '@/components/ui/management-dialog';
 import type { Daily } from '@/features/daily/types';
 
 type Status = 'archive' | 'restore' | 'delete';
@@ -364,22 +365,18 @@ export function DailyTemplateManager({
         })}
       </div>
       {mode && (
-        <div className="manager-dialog-backdrop">
-          <section className="manager-dialog" role="dialog" aria-modal="true">
-            <header>
-              <h2>
-                {mode === 'create'
-                  ? '新建 Daily'
-                  : mode === 'append'
-                    ? '添加到已有 Daily'
-                    : mode === 'edit-template'
-                      ? '修改 Daily'
-                      : '修改清单项'}
-              </h2>
-              <button aria-label="关闭" onClick={close}>
-                ×
-              </button>
-            </header>
+        <ManagementDialog
+          onClose={close}
+          title={
+            mode === 'create'
+              ? '新建 Daily'
+              : mode === 'append'
+                ? '添加到已有 Daily'
+                : mode === 'edit-template'
+                  ? '修改 Daily'
+                  : '修改清单项'
+          }
+        >
             {(mode === 'create' || mode === 'append') && (
               <div
                 className="daily-mode-switch"
@@ -466,8 +463,7 @@ export function DailyTemplateManager({
               </Button>
               <Button onClick={submit}>{mode === 'create' ? '创建' : '保存'}</Button>
             </footer>
-          </section>
-        </div>
+        </ManagementDialog>
       )}
       {error && (
         <p className="workspace-sync-error" role="alert">

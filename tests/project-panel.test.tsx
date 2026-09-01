@@ -69,10 +69,11 @@ function renderPanel() {
 }
 
 describe('ProjectManagementPage', () => {
-  it('keeps fallback project protected and Daily free of project or execution state', () => {
+  it('keeps fallback project protected without a noisy status label and Daily free of project state', () => {
     renderPanel();
     expect(screen.getByText('科研')).toBeVisible();
-    expect(screen.getByText('默认项目')).toBeVisible();
+    expect(screen.queryByText('默认项目')).not.toBeInTheDocument();
+    expect(screen.queryByText('活跃')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('其他操作')).not.toBeInTheDocument();
     expect(screen.getByText('2 项 · 90 分钟')).toBeVisible();
     expect(screen.queryByText(/Daily 历史/)).not.toBeInTheDocument();
@@ -80,6 +81,17 @@ describe('ProjectManagementPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /英语学习/ }));
     expect(screen.getByText('词汇背诵')).toBeVisible();
     expect(screen.getByText('30 分钟')).toBeVisible();
+  });
+
+  it('opens project creation in the shared named Dialog instead of a persistent form', () => {
+    renderPanel();
+    expect(screen.queryByLabelText('新项目名称')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '新建项目' }));
+    expect(screen.getByRole('dialog', { name: '新建项目' })).toBeVisible();
+    expect(screen.getByLabelText('项目名称')).toBeVisible();
+    expect(screen.getByLabelText('项目颜色')).toBeVisible();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: '新建项目' })).not.toBeInTheDocument();
   });
 
   it('creates a Daily atomically with zero to many planned checklist items', async () => {

@@ -259,4 +259,39 @@ describe('analytics adapter', () => {
     expect(result.entries.filter((entry) => entry.source === 'daily')).toHaveLength(1);
     expect(result.entries[0]?.id).toBe('daily-history:template-1:2026-08-20');
   });
+
+  it('keeps a migrated legacy close task-only when its Daily exact history is added', () => {
+    const result = createAnalyticsResult({
+      tasks: [],
+      projects,
+      dailyByDate: {},
+      dailyHistory: [
+        {
+          dailyId: 'legacy-daily',
+          date: '2026-08-20',
+          completed: true,
+          actual: 60,
+          result: '历史 Daily',
+        },
+      ],
+      // 迁移前是 task 40 + Daily 60；migration 已把 close record 回填为 task-only 40。
+      closeRecords: [
+        {
+          id: 'legacy-close-after-repair',
+          date: '2026-08-20',
+          closedAt: '2026-08-20T20:00:00',
+          projectMinutes: { research: 40 },
+        },
+      ],
+    });
+    expect(result.totalActualMinutes).toBe(100);
+    expect(result.days[0]).toMatchObject({
+      dailyActualMinutes: 60,
+      taskActualMinutes: 0,
+      heatProjectCount: 1,
+    });
+    expect(result.projects).toEqual([
+      expect.objectContaining({ projectId: 'research', actualMinutes: 40 }),
+    ]);
+  });
 });

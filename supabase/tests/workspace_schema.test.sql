@@ -2,9 +2,13 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(111);
+select plan(118);
 
 select has_table('public', 'daily_history_entries', 'Daily history has an explicit table');
+select has_table(
+  'public', 'daily_close_record_daily_exclusions',
+  'Legacy Daily close exclusions have an audit table'
+);
 select has_table('public', 'task_time_entries', 'Task actual time has an immutable date-bound table');
 select has_table('public', 'rhythm_marks', 'Rhythm is cloud-backed');
 select hasnt_table('public', 'annotation_strokes', 'Annotations stay local-only');
@@ -20,6 +24,12 @@ select has_function(
   'purge_expired_tasks',
   array[]::text[],
   'Protected purge function exists'
+);
+select has_function(
+  'private',
+  'exclude_legacy_daily_close_minutes',
+  array[]::text[],
+  'Legacy Daily close repair helper exists'
 );
 select has_function(
   'public', 'soft_delete_project', array['uuid'],
@@ -661,6 +671,73 @@ select is(
   ),
   1::bigint,
   'Physical task deletion retains dated actual time while clearing task_id'
+);
+
+-- 模拟 20260901 前已落库的 close：raw 项目分钟 = task 40 + Daily exact 60。
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000001',
+  true
+);
+select lives_ok(
+  $$select public.ensure_daily_entries_for_date('2026-08-29')$$,
+  'Legacy migration fixture materializes the historical Daily entry'
+);
+update public.daily_entries
+set actual_duration_minutes = 60,
+    legacy_project_id = (
+      select id from public.projects where owner_id = auth.uid() and position = 0
+    )
+where owner_id = auth.uid() and entry_date = '2026-08-29';
+insert into public.tasks(
+  id, project_id, title, scheduled_date, actual_duration_minutes, completed, status
+)
+select
+  '43000000-0000-0000-0000-000000000004', id,
+  'Legacy close task residual', '2026-08-29', 40, false, 'active'
+from public.projects
+where owner_id = auth.uid() and position = 0;
+
+reset role;
+alter table public.daily_close_records disable trigger daily_close_capture_project_minutes;
+insert into public.daily_close_records(id, owner_id, close_date, project_minutes)
+select
+  '44000000-0000-0000-0000-000000000004',
+  '10000000-0000-0000-0000-000000000001',
+  '2026-08-29',
+  jsonb_build_object(id::text, 100)
+from public.projects
+where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0;
+alter table public.daily_close_records enable trigger daily_close_capture_project_minutes;
+select is(
+  private.exclude_legacy_daily_close_minutes(),
+  1,
+  'Legacy close repair removes exactly one independently recorded Daily allocation'
+);
+select is(
+  (
+    select (records.project_minutes ->> projects.id::text)::integer
+    from public.daily_close_records as records
+    join public.projects on projects.owner_id = records.owner_id and projects.position = 0
+    where records.id = '44000000-0000-0000-0000-000000000004'
+  ),
+  40,
+  'Legacy close keeps the task residual and does not reassign Daily to project analytics'
+);
+select is(
+  (
+    select daily_minutes
+    from public.daily_close_record_daily_exclusions
+    where close_record_id = '44000000-0000-0000-0000-000000000004'
+  ),
+  60,
+  'Legacy close audit preserves the exact excluded Daily minutes'
+);
+select is(
+  private.exclude_legacy_daily_close_minutes(),
+  0,
+  'Legacy close repair is idempotent after its audit row is recorded'
 );
 
 set local role authenticated;

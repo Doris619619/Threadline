@@ -11,7 +11,7 @@
 - **数据层**：Supabase 是任务、项目、Daily、历史、工作站与 Rhythm 的唯一业务真源；未配置时显示明确门禁，不回退本地业务数据。Annotation 笔迹、高亮颜色和窗口 UI 状态仍仅保存在设备上。
 - **启动状态**：登录恢复、`initialize_workspace`、工作区 queries/本机 hydration 与 Supabase Realtime 分别映射为四个真实阶段；数据完成后工作台可用，Realtime 连接失败只给出非阻塞提示，不伪造订阅成功。
 
-核心流程包括任务规划与执行、Daily 当日打卡、待安排和移期、回收站恢复、每日收尾、项目投入日历，以及跨范围洞察与报告导出。侧栏“项目”是单一管理页：项目只管理名称、颜色和生命周期；Daily 模板完全独立，支持 0～N 项计划清单与“添加到已有 Daily”，而首页只保留当天执行。
+核心流程包括任务规划与执行、Daily 当日打卡、待安排和移期、回收站恢复、每日收尾、项目投入日历，以及跨范围洞察与报告导出。侧栏“项目”是单一管理页：项目以 `+ 新建项目` 打开短表单 Dialog，正常项目不显示多余状态标签；Daily 模板完全独立，支持 0～N 项计划清单与“添加到已有 Daily”，而首页只保留当天执行。所有项目/Daily 管理 Dialog 都支持初始焦点、Tab 限制、Escape 关闭和触发控件焦点恢复。
 
 ## 技术栈
 
@@ -109,7 +109,7 @@ pnpm test:supabase:browser
 
 ## 自动化验证范围
 
-`pnpm test:e2e` 会以显式 local test adapter 生产构建启动本地服务，并覆盖既有桌面与手机关键流，以及结构、布局和无障碍 smoke。`pnpm test:e2e:ui` 只运行不依赖 screenshot baseline 的 UI 门禁：主要工作区的标题、导航、主面板与关键控件结构合同；颜色 popover 和任务编辑 Dialog 的 viewport 边界；四种桌面与三种移动 viewport 的横向溢出、关键元素可达性和移动端控件隐藏；以及关键页面和编辑 Dialog 的 axe critical/serious 回归。当前产品已有的 axe 债务会以每个页面的 rule/node 数量显式记录；新增 rule、节点数量增长或产品修复后没有下调 baseline 都会失败，避免通过关闭 rule 掩盖问题。`pnpm test:coverage` 对显式高风险业务模块执行 V8 coverage gate；`pnpm test:css-tokens` 用 PostCSS 静态校验 `src/` 下所有 CSS custom property 引用必须有定义、fallback 或已记录的运行时来源（当前仅 React inline style 注入的 `--annotation-color`）。Windows PR CI 还会先运行 `pnpm test:electron` 的开发壳行为流，再以同一隔离 adapter 打包 canonical EXE 并运行 `pnpm test:electron:packaged`；packaged runner 不启动 Next server，只通过 Renderer CDP 验证不依赖 Node inspector 的生产合同，并清理本轮拥有的 Electron 进程树。该适配器只用于 UI/Electron 自动化，不代表 Supabase 集成通过；真实云端由 pgTAP/RLS、local Supabase integration、cross-account 与 Realtime 测试独立覆盖。分层、门槛与 release-tier 边界见 [测试架构](docs/testing-architecture.md)。
+`pnpm test:e2e` 会以显式 local test adapter 生产构建启动本地服务，并覆盖既有桌面与手机关键流，以及结构、布局和无障碍 smoke。`pnpm test:e2e:ui` 只运行不依赖 screenshot baseline 的 UI 门禁：主要工作区的标题、导航、主面板与关键控件结构合同；颜色 popover、任务编辑和管理 Dialog 的 viewport/focus 边界；四种桌面与 320/375/390/430px 四种移动 viewport 的横向溢出、关键元素可达性和移动端控件隐藏；以及关键页面和编辑 Dialog 的 axe critical/serious 回归。当前产品已有的 axe 债务会以每个页面的 rule/node 数量显式记录；新增 rule、节点数量增长或产品修复后没有下调 baseline 都会失败，避免通过关闭 rule 掩盖问题。`pnpm test:coverage` 对显式高风险业务模块执行 V8 coverage gate；`pnpm test:css-tokens` 用 PostCSS 静态校验 `src/` 下所有 CSS custom property 引用必须有定义、fallback 或已记录的运行时来源（当前仅 React inline style 注入的 `--annotation-color`）。Windows PR CI 还会先运行 `pnpm test:electron` 的开发壳行为流，再以同一隔离 adapter 打包 canonical EXE 并运行 `pnpm test:electron:packaged`；packaged runner 不启动 Next server，只通过 Renderer CDP 验证不依赖 Node inspector 的生产合同，并清理本轮拥有的 Electron 进程树。该适配器只用于 UI/Electron 自动化，不代表 Supabase 集成通过；真实云端由 pgTAP/RLS、local Supabase integration、cross-account 与 Realtime 测试独立覆盖。分层、门槛与 release-tier 边界见 [测试架构](docs/testing-architecture.md)。
 
 ## 项目结构
 

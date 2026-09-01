@@ -18,11 +18,11 @@ Threadline 的测试目标是阻止功能、云端边界、桌面壳和明显布
 | Packaged Electron      | `pnpm test:electron:packaged` | 通过 Renderer CDP 验证 `win-unpacked` EXE 的 protocol、CSP、Preload 行为与退出。   |
 | Desktop parity         | `pnpm desktop:verify:parity`  | Preview 与 canonical package-dir 的静态 runtime 合同。                             |
 
-`test:e2e` 只让既有功能用例运行一次 desktop 和一次 mobile；布局矩阵的 7 个 viewport 只收集 `ui-layout-matrix.spec.ts`。因此不会把整套业务流乘以所有尺寸。
+`test:e2e` 只让既有功能用例运行一次 desktop 和一次 mobile；布局矩阵的 8 个 viewport（含 320/375/390/430px 手机宽度）只收集 `ui-layout-matrix.spec.ts`。因此不会把整套业务流乘以所有尺寸。
 
 ## UI 与无障碍边界
 
-UI structural tests 只断言可观察的结构契约，例如主要面板唯一、当前导航唯一、关键控件可见、root 无横向溢出、稳定区域不相互覆盖、Dialog/Popover 未离开 viewport。它们不锁字体、颜色、像素间距、圆角、阴影或 screenshot。
+UI structural tests 只断言可观察的结构契约，例如主要面板唯一、当前导航唯一、关键控件可见、root 无横向溢出、稳定区域不相互覆盖、Dialog/Popover 未离开 viewport。管理 Dialog 额外验证焦点进入、Tab 留在 Dialog、Escape 关闭并把焦点还给触发按钮。它们不锁字体、颜色、像素间距、圆角、阴影或 screenshot。
 
 Accessibility smoke 使用 axe 扫描 Workspace、Calendar、Projects、Settings 和任务编辑 Dialog，仅审计 `critical` 与 `serious`。当前已知债务以 rule/node 数量写入 `knownBlockingAxeBaseline`，扫描不会关闭任何 axe rule；新增 rule、节点数增加或产品修复后未收紧 baseline 都会失败。详细当前数量和收紧规则见 [前端样式归属](frontend-style-ownership.md)。
 

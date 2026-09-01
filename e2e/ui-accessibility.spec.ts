@@ -27,7 +27,7 @@ const knownBlockingAxeBaseline: Readonly<Record<string, AxeViolationBaseline>> =
     'aria-required-parent': 42,
     'color-contrast': 15,
   },
-  Projects: { 'color-contrast': 16 },
+  Projects: { 'color-contrast': 5 },
   Settings: { 'color-contrast': 2 },
   '编辑任务 Dialog': { 'color-contrast': 3 },
 };
@@ -162,5 +162,32 @@ test.describe('accessibility smoke', () => {
     await expectFocusInsideDialog(dialog);
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
+  });
+
+  test('traps focus and restores the trigger for Project and Daily management dialogs', async ({
+    page,
+  }) => {
+    await openWorkspaceSection(page, '项目');
+    const projectTrigger = page.getByRole('button', { name: '新建项目', exact: true });
+    await projectTrigger.focus();
+    await projectTrigger.press('Enter');
+    const projectDialog = page.getByRole('dialog', { name: '新建项目' });
+    await expect(projectDialog).toBeVisible();
+    await expectFocusInsideDialog(projectDialog);
+    await page.keyboard.press('Tab');
+    await expectFocusInsideDialog(projectDialog);
+    await page.keyboard.press('Escape');
+    await expect(projectDialog).toBeHidden();
+    await expect(projectTrigger).toBeFocused();
+
+    const dailyTrigger = page.getByRole('button', { name: '新建 Daily', exact: true });
+    await dailyTrigger.focus();
+    await dailyTrigger.press('Enter');
+    const dailyDialog = page.getByRole('dialog', { name: '新建 Daily' });
+    await expect(dailyDialog).toBeVisible();
+    await expectFocusInsideDialog(dailyDialog);
+    await page.keyboard.press('Escape');
+    await expect(dailyDialog).toBeHidden();
+    await expect(dailyTrigger).toBeFocused();
   });
 });

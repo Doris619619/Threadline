@@ -280,6 +280,7 @@
   place-items: center;
   padding: 20px;
   background: rgb(20 24 32 / 28%);
+  touch-action: none;
 }
 .manager-dialog {
   width: min(100%, 480px);
@@ -328,10 +329,6 @@
     max-width: 100px;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-  .daily-draft-row {
-    align-items: stretch;
-    flex-direction: column;
   }
 }
 
@@ -439,6 +436,30 @@
 }
 @media (max-width: 760px) {
   .daily-draft-row {
-    grid-template-columns: minmax(0, 1fr) 92px 30px;
+    grid-template-columns: minmax(0, 1fr) 92px 34px;
+  }
+}
+
+/* 小屏把名称与预计分钟拆为两行，保留足够的输入宽度与触控删除目标。 */
+@media (max-width: 480px) {
+  .daily-draft-row {
+    grid-template-columns: minmax(0, 1fr) 34px;
+    grid-template-rows: auto auto;
+  }
+  .daily-draft-row .tl-input:first-child {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  .daily-draft-row .tl-input:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+  }
+  .daily-draft-remove {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: stretch;
+    width: 34px;
+    min-height: 44px;
   }
 }
