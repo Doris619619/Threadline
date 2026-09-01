@@ -5,16 +5,16 @@
   z-index: 1000;
   inset: 0;
   display: grid;
-  grid-template-rows: minmax(230px, 0.8fr) auto minmax(72px, 0.28fr);
+  grid-template-rows: minmax(210px, 0.75fr) auto minmax(60px, 0.25fr);
   align-items: center;
   justify-items: center;
   min-height: 100svh;
   overflow: auto;
-  padding: max(38px, env(safe-area-inset-top)) 20px
-    max(28px, env(safe-area-inset-bottom));
+  padding: max(28px, env(safe-area-inset-top)) 20px
+    max(24px, env(safe-area-inset-bottom));
   background:
-    radial-gradient(circle at 50% 23%, rgb(0 122 255 / 13%), transparent 25%),
-    linear-gradient(135deg, #fbfcff 0%, #f5f7fb 53%, #fff 100%);
+    radial-gradient(circle at 50% 20%, rgb(0 122 255 / 10%), transparent 35%),
+    linear-gradient(180deg, #f8faff 0%, #f4f6fb 50%, #f9faff 100%);
   color: var(--text-primary);
 }
 
@@ -26,132 +26,192 @@
   place-items: center;
 }
 
+/* 轨道微光线 */
 .threadline-startup-orbit {
   position: absolute;
-  width: 82%;
-  height: 42%;
-  border: 1px solid rgb(0 122 255 / 19%);
+  width: 290px;
+  height: 140px;
+  border: 1px solid rgb(0 122 255 / 16%);
   border-radius: 50%;
-  transform: rotate(-15deg);
+  transform: rotate(-12deg);
+  pointer-events: none;
 }
 
-.threadline-startup-orbit-secondary {
-  width: 63%;
-  height: 67%;
-  border-color: rgb(0 122 255 / 11%);
-  transform: rotate(28deg);
-}
-
-.threadline-startup-orb {
+/* 背景装饰小星星 */
+.threadline-startup-star {
   position: absolute;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #8fc6ff, var(--accent));
-  box-shadow: 0 4px 12px rgb(0 101 214 / 26%);
-}
-
-.threadline-startup-orb-one {
-  top: 20%;
-  right: 17%;
-}
-
-.threadline-startup-orb-two {
-  bottom: 18%;
-  left: 17%;
   width: 14px;
   height: 14px;
+  background: radial-gradient(circle, #6ea9ff 20%, rgb(110 169 255 / 0%) 70%);
+  clip-path: polygon(
+    50% 0%,
+    62% 38%,
+    100% 50%,
+    62% 62%,
+    50% 100%,
+    38% 62%,
+    0% 50%,
+    38% 38%
+  );
 }
 
+.threadline-startup-star-left {
+  top: 18%;
+  left: 28%;
+  width: 12px;
+  height: 12px;
+  opacity: 0.85;
+}
+
+.threadline-startup-star-right {
+  top: 22%;
+  right: 25%;
+  width: 10px;
+  height: 10px;
+  opacity: 0.6;
+}
+
+/* 浮动蓝色微珠 */
+.threadline-startup-orb {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #92c9ff 0%, #2b7fff 100%);
+  box-shadow: 0 4px 10px rgb(0 101 214 / 22%);
+}
+
+.threadline-startup-orb-top {
+  top: 24%;
+  right: 22%;
+  width: 9px;
+  height: 9px;
+}
+
+.threadline-startup-orb-mid {
+  top: 42%;
+  right: 18%;
+  width: 7px;
+  height: 7px;
+}
+
+.threadline-startup-orb-left {
+  top: 39%;
+  left: 20%;
+  width: 6px;
+  height: 6px;
+  background: #d8e6f7;
+}
+
+.threadline-startup-orb-bottom {
+  bottom: 22%;
+  left: 23%;
+  width: 12px;
+  height: 12px;
+}
+
+/* 3D 悬浮半透明玻璃台面 */
 .threadline-startup-layer {
   position: absolute;
-  width: 145px;
-  height: 82px;
-  border: 1px solid rgb(0 122 255 / 21%);
-  border-radius: 19px;
-  background: linear-gradient(135deg, rgb(255 255 255 / 66%), rgb(213 232 255 / 60%));
-  box-shadow: 0 14px 26px rgb(0 84 181 / 8%);
-  transform: rotate(10deg) skewX(-12deg);
+  width: 168px;
+  height: 90px;
+  border: 1px solid rgb(255 255 255 / 80%);
+  border-radius: 24px;
+  background: linear-gradient(
+    135deg,
+    rgb(255 255 255 / 75%) 0%,
+    rgb(215 235 255 / 55%) 100%
+  );
+  box-shadow:
+    0 16px 32px rgb(0 90 200 / 9%),
+    inset 0 1px 2px rgb(255 255 255 / 90%);
+  backdrop-filter: blur(8px);
+  transform: perspective(600px) rotateX(48deg) rotateZ(-24deg);
 }
 
 .threadline-startup-layer-back {
-  margin-top: 61px;
-  margin-left: 10px;
-  opacity: 0.52;
+  margin-top: 54px;
+  transform: perspective(600px) rotateX(48deg) rotateZ(-24deg) translateY(18px)
+    scale(0.92);
+  opacity: 0.75;
 }
 
 .threadline-startup-layer-front {
-  margin-top: 31px;
-  margin-right: 13px;
-  opacity: 0.86;
+  margin-top: 38px;
+  transform: perspective(600px) rotateX(48deg) rotateZ(-24deg);
+  opacity: 0.95;
 }
 
+/* 中心 App Icon 容器：图三图标纯净展现，无突兀背景与毛边 */
 .threadline-startup-icon-wrap {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: grid;
-  width: 104px;
-  height: 104px;
+  width: 82px;
+  height: 82px;
   place-items: center;
-  border-radius: 29px;
-  background: linear-gradient(145deg, #62adff, var(--accent));
-  box-shadow:
-    0 16px 30px rgb(0 104 220 / 25%),
-    inset 0 1px 1px rgb(255 255 255 / 42%);
+  filter: drop-shadow(0 12px 24px rgb(0 90 200 / 18%));
 }
 
 .threadline-startup-icon-wrap img {
-  width: 72px;
-  height: 72px;
-  border-radius: 19px;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
+/* 启动卡片 */
 .threadline-startup-card {
-  width: min(100%, 545px);
-  padding: 29px 25px 25px;
-  border: 1px solid rgb(255 255 255 / 78%);
+  width: min(100%, 460px);
+  padding: 30px 28px 24px;
+  border: 1px solid rgb(255 255 255 / 85%);
   border-radius: 28px;
-  background: rgb(255 255 255 / 86%);
+  background: rgb(255 255 255 / 92%);
   box-shadow:
-    0 16px 40px rgb(30 62 111 / 9%),
-    0 2px 8px rgb(30 62 111 / 5%);
-  backdrop-filter: blur(18px);
+    0 20px 48px rgb(30 62 111 / 7%),
+    0 4px 12px rgb(30 62 111 / 3%);
+  backdrop-filter: blur(20px);
 }
 
 .threadline-startup-brand {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  font-size: 1.125rem;
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #1a1c20;
 }
 
 .threadline-startup-brand img {
-  border-radius: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
 }
 
 .threadline-startup-heading {
-  margin: 24px 0 20px;
+  margin: 18px 0 20px;
   text-align: center;
 }
 
 .threadline-startup-heading h1 {
   margin: 0;
-  font-size: clamp(1.75rem, 7vw, 2.5rem);
-  letter-spacing: -0.055em;
-  line-height: 1.18;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  color: #11141a;
 }
 
 .threadline-startup-heading p {
-  margin: 10px 0 0;
-  color: var(--text-secondary);
-  font-size: var(--text-body-size);
+  margin: 8px 0 0;
+  color: #7b8292;
+  font-size: 0.86rem;
 }
 
+/* 步骤时间线列表 */
 .threadline-startup-steps {
-  display: grid;
+  position: relative;
+  display: flex;
+  flex-direction: column;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -160,79 +220,137 @@
 .threadline-startup-step {
   position: relative;
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: 12px;
-  min-height: 67px;
-  padding: 12px 0;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 56px;
+  padding: 6px 0;
 }
 
-.threadline-startup-step + .threadline-startup-step {
-  border-top: 1px solid rgb(29 29 31 / 7%);
+/* 阶段连线 */
+.threadline-step-connector {
+  position: absolute;
+  top: 35px;
+  left: 11px;
+  bottom: -9px;
+  width: 2px;
+  background: #e5e8ef;
+  z-index: 1;
 }
 
+.threadline-step-connector.is-active {
+  background: #007aff;
+}
+
+/* 左侧指示器 */
 .threadline-startup-step-icon {
+  position: relative;
+  z-index: 2;
   display: grid;
-  width: 29px;
-  height: 29px;
+  width: 24px;
+  height: 24px;
   place-items: center;
-  border: 1.5px solid var(--border-strong);
-  border-radius: 50%;
-  color: var(--text-tertiary);
 }
 
-.threadline-startup-step-copy {
+.threadline-step-indicator {
   display: grid;
-  align-content: center;
-  gap: 3px;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.threadline-step-indicator.is-completed {
+  background: #007aff;
+  color: #fff;
+}
+
+.threadline-step-indicator.is-active {
+  border: 2px solid #007aff;
+  background: #fff;
+}
+
+.threadline-step-active-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #007aff;
+}
+
+.threadline-step-indicator.is-pending {
+  border: 1.5px solid #d2d6df;
+  background: #fff;
+}
+
+.threadline-step-indicator.is-failed {
+  background: #ff3b30;
+  color: #fff;
+}
+
+/* 步骤文案 */
+.threadline-startup-step-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
   min-width: 0;
 }
 
 .threadline-startup-step-copy strong {
-  font-size: 0.98rem;
-  font-weight: 650;
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: #1c1e22;
 }
 
 .threadline-startup-step-copy small {
   overflow: hidden;
-  color: var(--text-secondary);
-  font-size: var(--text-secondary-size);
+  color: #8b92a0;
+  font-size: 0.81rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.threadline-startup-step.is-completed .threadline-startup-step-icon {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--text-on-accent);
-}
-
-.threadline-startup-step.is-active .threadline-startup-step-icon {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.threadline-startup-step.is-active .threadline-startup-step-icon svg {
-  animation: threadline-startup-spin 0.9s linear infinite;
-}
-
-.threadline-startup-step.is-active .threadline-startup-step-copy strong,
 .threadline-startup-step.is-active .threadline-startup-step-copy small {
-  color: var(--accent-text);
+  color: #007aff;
 }
 
-.threadline-startup-step.is-failed .threadline-startup-step-icon {
-  border-color: color-mix(in srgb, var(--danger) 60%, white);
-  background: color-mix(in srgb, var(--danger) 9%, white);
-  color: var(--danger);
+/* 右侧完成 / 加载徽章 */
+.threadline-startup-step-trailing {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
 }
 
-.threadline-startup-step.is-failed .threadline-startup-step-copy small {
-  color: var(--danger);
+.threadline-step-badge {
+  display: grid;
+  place-items: center;
 }
 
+.threadline-step-badge.is-completed {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid #34c759;
+  color: #34c759;
+}
+
+.threadline-step-badge.is-active {
+  color: #007aff;
+}
+
+.threadline-step-badge.is-active svg {
+  animation: threadline-startup-spin 1s linear infinite;
+}
+
+.threadline-step-badge.is-failed {
+  color: #ff3b30;
+}
+
+/* 底部真实阶段进度条 */
 .threadline-startup-progress {
-  height: 6px;
-  margin-top: 14px;
+  height: 5px;
+  margin-top: 18px;
   overflow: hidden;
   border-radius: 999px;
   background: #edf0f5;
@@ -243,32 +361,32 @@
   width: 100%;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--accent), #54a8ff);
+  background: #007aff;
   transform-origin: left center;
-  transition: transform 220ms ease;
+  transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .threadline-startup-error {
   margin: 15px 0 0;
   padding: 10px 12px;
   border-radius: 12px;
-  background: color-mix(in srgb, var(--danger) 8%, white);
-  color: var(--danger);
-  font-size: var(--text-secondary-size);
+  background: rgb(255 59 48 / 8%);
+  color: #ff3b30;
+  font-size: 0.82rem;
   line-height: 1.45;
 }
 
 .threadline-startup-security {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin: 18px 0 0;
-  color: var(--text-tertiary);
-  font-size: var(--text-caption-size);
+  gap: 6px;
+  margin: 14px 0 0;
+  color: #8b92a0;
+  font-size: 0.78rem;
 }
 
 .threadline-startup-security svg {
-  color: var(--accent);
+  color: #007aff;
 }
 
 @keyframes threadline-startup-spin {
@@ -279,9 +397,9 @@
 
 @media (min-width: 761px) {
   .threadline-startup {
-    grid-template-columns: minmax(260px, 0.8fr) minmax(440px, 545px);
+    grid-template-columns: minmax(260px, 0.85fr) minmax(400px, 480px);
     grid-template-rows: minmax(0, 1fr) auto;
-    column-gap: clamp(44px, 8vw, 130px);
+    column-gap: clamp(40px, 6vw, 90px);
     align-content: center;
     padding: 48px;
   }
@@ -289,45 +407,45 @@
   .threadline-startup-visual {
     grid-column: 1;
     grid-row: 1;
-    width: min(40vw, 470px);
-    min-height: 330px;
+    width: min(38vw, 440px);
+    min-height: 320px;
   }
 
   .threadline-startup-card {
     grid-column: 2;
     grid-row: 1;
-    padding: 34px 36px 30px;
+    padding: 34px 34px 28px;
   }
 
   .threadline-startup-security {
     grid-column: 1 / -1;
     grid-row: 2;
-    margin-top: 22px;
+    margin-top: 18px;
   }
 }
 
 @media (max-height: 700px) and (max-width: 760px) {
   .threadline-startup {
-    grid-template-rows: 170px auto 48px;
-    padding-top: max(20px, env(safe-area-inset-top));
+    grid-template-rows: 160px auto 40px;
+    padding-top: max(16px, env(safe-area-inset-top));
   }
 
   .threadline-startup-visual {
-    min-height: 160px;
-    transform: scale(0.78);
+    min-height: 150px;
+    transform: scale(0.75);
   }
 
   .threadline-startup-card {
-    padding-top: 20px;
-    padding-bottom: 18px;
+    padding-top: 18px;
+    padding-bottom: 16px;
   }
 
   .threadline-startup-heading {
-    margin: 15px 0 10px;
+    margin: 12px 0 10px;
   }
 
   .threadline-startup-step {
-    min-height: 54px;
-    padding: 7px 0;
+    min-height: 48px;
+    padding: 4px 0;
   }
 }

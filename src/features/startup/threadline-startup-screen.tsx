@@ -4,7 +4,7 @@
 
 'use client';
 
-import { Check, Circle, LoaderCircle, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { Check, LoaderCircle, ShieldCheck, TriangleAlert } from 'lucide-react';
 import Image from 'next/image';
 import type {
   StartupOperation,
@@ -54,19 +54,60 @@ function getStatusCopy(key: StartupStepKey, operation: StartupOperation): string
   return '正在开启实时同步…';
 }
 
-/** 渲染单个阶段的语义状态图标，loading 动效只由当前真实状态决定。 */
-function StartupStepIcon({ status }: { status: StartupOperationStatus }) {
-  if (status === 'completed')
-    return <Check aria-hidden="true" size={15} strokeWidth={3} />;
-  if (status === 'active')
-    return <LoaderCircle aria-hidden="true" size={18} strokeWidth={2.4} />;
-  if (status === 'failed')
-    return <TriangleAlert aria-hidden="true" size={16} strokeWidth={2.5} />;
-  return <Circle aria-hidden="true" size={17} strokeWidth={2} />;
+/** 渲染单个阶段左侧的语义状态指示器。 */
+function StartupStepLeftIcon({ status }: { status: StartupOperationStatus }) {
+  if (status === 'completed') {
+    return (
+      <span className="threadline-step-indicator is-completed">
+        <Check aria-hidden="true" size={13} strokeWidth={3} />
+      </span>
+    );
+  }
+  if (status === 'active') {
+    return (
+      <span className="threadline-step-indicator is-active">
+        <span className="threadline-step-active-dot" />
+      </span>
+    );
+  }
+  if (status === 'failed') {
+    return (
+      <span className="threadline-step-indicator is-failed">
+        <TriangleAlert aria-hidden="true" size={13} strokeWidth={2.5} />
+      </span>
+    );
+  }
+  return <span className="threadline-step-indicator is-pending" />;
+}
+
+/** 渲染单个阶段右侧的状态微件或 loading 转圈。 */
+function StartupStepRightBadge({ status }: { status: StartupOperationStatus }) {
+  if (status === 'completed') {
+    return (
+      <span className="threadline-step-badge is-completed">
+        <Check aria-hidden="true" size={12} strokeWidth={2.5} />
+      </span>
+    );
+  }
+  if (status === 'active') {
+    return (
+      <span className="threadline-step-badge is-active">
+        <LoaderCircle aria-hidden="true" size={16} strokeWidth={2.2} />
+      </span>
+    );
+  }
+  if (status === 'failed') {
+    return (
+      <span className="threadline-step-badge is-failed">
+        <TriangleAlert aria-hidden="true" size={12} strokeWidth={2.2} />
+      </span>
+    );
+  }
+  return null;
 }
 
 /**
- * 呈现移动端优先、桌面自适应的启动页；进度条仅按真实已完成阶段计算，不展示虚构百分比。
+ * 呈现移动端优先、桌面自适应的启动页；进度条仅按真实已完成阶段计算。
  */
 export function ThreadlineStartupScreen({
   progress,
@@ -82,20 +123,23 @@ export function ThreadlineStartupScreen({
   return (
     <main className="threadline-startup" aria-busy={!failedStep}>
       <section className="threadline-startup-visual" aria-hidden="true">
+        <span className="threadline-startup-star threadline-startup-star-left" />
+        <span className="threadline-startup-star threadline-startup-star-right" />
         <span className="threadline-startup-orbit threadline-startup-orbit-primary" />
-        <span className="threadline-startup-orbit threadline-startup-orbit-secondary" />
-        <span className="threadline-startup-orb threadline-startup-orb-one" />
-        <span className="threadline-startup-orb threadline-startup-orb-two" />
+        <span className="threadline-startup-orb threadline-startup-orb-top" />
+        <span className="threadline-startup-orb threadline-startup-orb-mid" />
+        <span className="threadline-startup-orb threadline-startup-orb-left" />
+        <span className="threadline-startup-orb threadline-startup-orb-bottom" />
         <span className="threadline-startup-layer threadline-startup-layer-back" />
         <span className="threadline-startup-layer threadline-startup-layer-front" />
         <span className="threadline-startup-icon-wrap">
-          <Image src="/icon.svg" alt="" width={72} height={72} unoptimized />
+          <Image src="/icon.png" alt="" width={80} height={80} unoptimized />
         </span>
       </section>
 
       <section className="threadline-startup-card" aria-label="Threadline 启动进度">
         <div className="threadline-startup-brand">
-          <Image src="/icon.svg" alt="" width={28} height={28} unoptimized />
+          <Image src="/icon.png" alt="" width={24} height={24} unoptimized />
           <span>Threadline</span>
         </div>
         <div className="threadline-startup-heading">
@@ -104,24 +148,40 @@ export function ThreadlineStartupScreen({
         </div>
 
         <ol className="threadline-startup-steps">
-          {steps.map((step) => (
-            <li
-              className={`threadline-startup-step is-${step.operation.status}`}
-              data-step={step.key}
-              key={step.key}
-            >
-              <span
-                className="threadline-startup-step-icon"
-                aria-label={getStatusCopy(step.key, step.operation)}
+          {steps.map((step, index) => {
+            const isCompleted = step.operation.status === 'completed';
+            const nextStep = steps[index + 1];
+            const isLineActive =
+              isCompleted && nextStep && nextStep.operation.status !== 'pending';
+
+            return (
+              <li
+                className={`threadline-startup-step is-${step.operation.status}`}
+                data-step={step.key}
+                key={step.key}
               >
-                <StartupStepIcon status={step.operation.status} />
-              </span>
-              <span className="threadline-startup-step-copy">
-                <strong>{step.label}</strong>
-                <small>{getStatusCopy(step.key, step.operation)}</small>
-              </span>
-            </li>
-          ))}
+                {index < steps.length - 1 && (
+                  <span
+                    className={`threadline-step-connector ${isLineActive ? 'is-active' : ''}`}
+                    aria-hidden="true"
+                  />
+                )}
+                <span
+                  className="threadline-startup-step-icon"
+                  aria-label={getStatusCopy(step.key, step.operation)}
+                >
+                  <StartupStepLeftIcon status={step.operation.status} />
+                </span>
+                <span className="threadline-startup-step-copy">
+                  <strong>{step.label}</strong>
+                  <small>{getStatusCopy(step.key, step.operation)}</small>
+                </span>
+                <span className="threadline-startup-step-trailing" aria-hidden="true">
+                  <StartupStepRightBadge status={step.operation.status} />
+                </span>
+              </li>
+            );
+          })}
         </ol>
 
         <div
@@ -130,6 +190,7 @@ export function ThreadlineStartupScreen({
         >
           <span style={{ transform: `scaleX(${completedCount / steps.length})` }} />
         </div>
+
         {failedStep && (
           <p className="threadline-startup-error" role="alert">
             {failedStep.label}未完成：
@@ -139,7 +200,7 @@ export function ThreadlineStartupScreen({
       </section>
 
       <p className="threadline-startup-security">
-        <ShieldCheck aria-hidden="true" size={17} strokeWidth={2.2} />
+        <ShieldCheck aria-hidden="true" size={16} strokeWidth={2.2} />
         数据加密传输，安全守护你的信息
       </p>
     </main>
