@@ -22,10 +22,10 @@ Daily 完全不属于 Project。旧记录可保留 `legacy_project_id` snapshot 
 
 每日关账仍接收旧客户端的项目分钟参数以保持 RPC 签名兼容，但数据库在 `daily_close_records` 写入前会忽略该参数，并仅从关账日期的只读任务账本按项目聚合；Daily 实际不再参与项目汇总。
 
-历史上由旧 trigger 写入的 close record 可能已经把项目内 Daily 合计混入 `project_minutes`。迁移会用同日 `task_time_entries` 与保留的 `daily_entries.legacy_project_id`/父子实际双重核对后，仅扣除可验证的 Daily 分量，并在 `daily_close_record_daily_exclusions` 留下审计行；close record、任务残差和项目 identity 均保留。若原始分钟无法证明仍能保留 ledger 对应的任务残差，迁移会以 `LEGACY_CLOSE_RECORD_DAILY_TOTAL_MISMATCH` 停止，而不是静默丢失项目历史或让 Daily 再次进入项目统计。
+历史上由旧 trigger 写入的 close record 可能已经把项目内 Daily 合计混入 `project_minutes`。迁移会用同日 `task_time_entries` 与保留的 `daily_entries.legacy_project_id`/父子实际双重核对后，仅扣除可验证的 Daily 分量，并在 `daily_close_record_daily_exclusions` 留下审计行；repair 阶段会短暂关闭 close capture trigger 以保留经过核对的 task residual，结束后立即重新开启，所以新 close record 仍由 server-derived trigger 保护。close record、任务残差和项目 identity 均保留。若原始分钟无法证明仍能保留 ledger 对应的任务残差，迁移会以 `LEGACY_CLOSE_RECORD_DAILY_TOTAL_MISMATCH` 停止，而不是静默丢失项目历史或让 Daily 再次进入项目统计。
 
 ## 项目归档与删除
 
-项目归档只从 active 选择器中隐藏，任务与历史仍保留。删除使用 `soft_delete_project`：fallback 项目禁止归档/删除；被删除项目的有效 task 原子改派到 fallback 项目；`task_time_entries`、History snapshot 和旧 Daily snapshot 绝不重写，因此历史项目统计继续准确。云端项目读取自动排除 `deleted_at` 非空的行，刷新后不会重新出现。
+项目归档只从 active 选择器中隐藏，任务与历史仍保留。删除使用 `soft_delete_project`：fallback 项目禁止归档/删除但可修改名称和颜色；被删除项目的所有当前 task（包括回收站）原子改派到 fallback 项目，确保恢复后不会重新引用隐藏项目；`task_time_entries`、History snapshot 和旧 Daily snapshot 绝不重写，因此历史项目统计继续准确。云端项目读取自动排除 `deleted_at` 非空的行，刷新后不会重新出现。
 
 任务完成或重新打开由数据库触发器在同一事务附加正式 history event。

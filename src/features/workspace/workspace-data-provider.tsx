@@ -618,7 +618,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     [invalidateWorkspace, repository],
   );
 
-  /** 安全删除项目并让数据库迁移有效 task，历史账本不在客户端触碰。 */
+  /** 安全删除项目并让数据库迁移所有当前 task，历史账本不在客户端触碰。 */
   const deleteProject = useCallback(
     async (projectId: string) => {
       await repository.softDeleteProject(projectId);

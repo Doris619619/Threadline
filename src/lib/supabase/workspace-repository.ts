@@ -239,7 +239,7 @@ export class SupabaseWorkspaceRepository {
     return mapProject(assertResponse('set project archived', response) as JsonRecord);
   }
 
-  /** 软删除项目并由数据库把有效 task 转至 fallback，绝不改写历史账本。 */
+  /** 软删除项目并由数据库把所有当前 task 转至 fallback，绝不改写历史账本。 */
   async softDeleteProject(projectId: string): Promise<Project> {
     const response = await this.client.rpc('soft_delete_project', {
       p_project_id: projectId,

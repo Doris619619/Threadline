@@ -175,8 +175,9 @@
   font-size: 0.92rem;
 }
 .manager-status {
-  color: var(--text-tertiary);
-  font-size: var(--text-caption-size);
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+  font-weight: var(--text-secondary-weight);
   white-space: nowrap;
 }
 .manager-menu {
@@ -217,6 +218,7 @@
   border: 0;
   border-radius: 5px;
   background: transparent;
+  color: var(--text-primary);
   text-align: left;
   cursor: pointer;
 }
@@ -260,14 +262,14 @@
   align-items: center;
   min-height: 32px;
   gap: 8px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-size: var(--text-secondary-size);
 }
 .manager-inline-action {
   min-height: 28px;
   padding: 0;
   border: 0;
-  color: var(--accent);
+  color: var(--accent-text);
   background: transparent;
   cursor: pointer;
   font-size: var(--text-caption-size);
@@ -390,7 +392,7 @@
   padding: 0;
   border: 0;
   border-radius: 6px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   background: transparent;
   cursor: pointer;
 }

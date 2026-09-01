@@ -3,16 +3,23 @@
 'use client';
 
 import { MoreHorizontal, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ManagementDialog } from '@/components/ui/management-dialog';
 import { getLocalDateKey } from '@/lib/local-date';
 import type { Project } from '@/types/domain';
 
-type ProjectDialog = { mode: 'create' } | { mode: 'edit'; project: Project } | undefined;
+type ProjectDialog =
+  { mode: 'create' } | { mode: 'edit'; project: Project } | undefined;
 
-/** 渲染项目的低频操作菜单，默认项目没有入口。 */
+/** 关闭原生 details 菜单后执行动作，避免 Dialog 打开时遗留展开的浮层。 */
+function closeMenuAndRun(event: MouseEvent<HTMLButtonElement>, action: () => void) {
+  event.currentTarget.closest('details')?.removeAttribute('open');
+  action();
+}
+
+/** 渲染项目的低频操作菜单；fallback 只允许修改元数据。 */
 function ProjectMenu({
   project,
   onEdit,
@@ -30,13 +37,20 @@ function ProjectMenu({
         <MoreHorizontal size={18} />
       </summary>
       <div>
-        <button onClick={onEdit}>修改</button>
-        <button onClick={onArchive}>
-          {project.status === 'active' ? '归档' : '恢复'}
-        </button>
-        <button className="is-danger" onClick={onDelete}>
-          删除
-        </button>
+        <button onClick={(event) => closeMenuAndRun(event, onEdit)}>修改</button>
+        {!project.isFallback && (
+          <>
+            <button onClick={(event) => closeMenuAndRun(event, onArchive)}>
+              {project.status === 'active' ? '归档' : '恢复'}
+            </button>
+            <button
+              className="is-danger"
+              onClick={(event) => closeMenuAndRun(event, onDelete)}
+            >
+              删除
+            </button>
+          </>
+        )}
       </div>
     </details>
   );
@@ -125,18 +139,16 @@ export function ProjectPanel({
             {project.status === 'archived' && !project.isFallback && (
               <span className="manager-status">已归档</span>
             )}
-            {!project.isFallback && (
-              <ProjectMenu
-                project={project}
-                onEdit={() => openEdit(project)}
-                onArchive={() =>
-                  void run(() =>
-                    onSetProjectArchived(project.id, project.status === 'active'),
-                  )
-                }
-                onDelete={() => void run(() => onDeleteProject(project.id))}
-              />
-            )}
+            <ProjectMenu
+              project={project}
+              onEdit={() => openEdit(project)}
+              onArchive={() =>
+                void run(() =>
+                  onSetProjectArchived(project.id, project.status === 'active'),
+                )
+              }
+              onDelete={() => void run(() => onDeleteProject(project.id))}
+            />
           </div>
         ))}
       </div>
@@ -147,6 +159,7 @@ export function ProjectPanel({
         >
           <Input
             aria-label="项目名称"
+            data-management-initial-focus
             value={dialogName}
             onChange={(event) => setDialogName(event.target.value)}
             placeholder="项目名称"

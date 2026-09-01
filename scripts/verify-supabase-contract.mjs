@@ -214,6 +214,16 @@ requirePattern(
   /revoke all(?: privileges)? on function public\.capture_daily_close_project_minutes\(\) from public, anon, authenticated/i,
   'close total trigger function is not a Data API RPC',
 );
+requirePattern(
+  /alter table public\.daily_close_records\s+disable trigger daily_close_capture_project_minutes;\s*select private\.exclude_legacy_daily_close_minutes\(\);\s*alter table public\.daily_close_records\s+enable trigger daily_close_capture_project_minutes;/is,
+  'legacy close repair preserves verified residuals before re-enabling close trigger protection',
+);
+const softDeleteProject = readFunctionDefinition('soft_delete_project');
+requireDefinitionPattern(
+  softDeleteProject,
+  /update public\.tasks set project_id = fallback\.id\s+where owner_id = current_owner and project_id = target\.id;/i,
+  'project deletion moves every current task reference to fallback',
+);
 requirePattern(/deferrable initially immediate/i, 'deferrable workstation positions');
 requirePattern(
   /set constraints workstation_owner_position_key deferred/i,

@@ -440,17 +440,14 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
     },
     [updateProjects],
   );
-  /** 测试适配器以不可见标记模拟项目软删除，并迁移有效 task。 */
+  /** 测试适配器以不可见标记模拟项目软删除，并迁移所有当前 task 到 fallback。 */
   const deleteProject = useCallback(
     async (projectId: string) => {
       const fallback = projects.find((project) => project.isFallback)?.id;
       if (!fallback) throw new Error('TEST_FALLBACK_PROJECT_NOT_FOUND');
       updateTasks((current) =>
         current.map((task) =>
-          task.projectId === projectId &&
-          ['active', 'backlog', 'rescheduled'].includes(task.status)
-            ? { ...task, projectId: fallback }
-            : task,
+          task.projectId === projectId ? { ...task, projectId: fallback } : task,
         ),
       );
       updateProjects((current) =>

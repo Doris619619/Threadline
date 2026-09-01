@@ -2,7 +2,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(118);
+select plan(128);
 
 select has_table('public', 'daily_history_entries', 'Daily history has an explicit table');
 select has_table(
@@ -637,6 +637,92 @@ select is(
   null::integer,
   'Restore keeps the prior workstation membership removed'
 );
+
+insert into public.projects(id, owner_id, name, color, status, position, is_fallback)
+values (
+  '45000000-0000-0000-0000-000000000004',
+  '10000000-0000-0000-0000-000000000001',
+  'Deleted project task owner', '#3979e8', 'active', 20, false
+);
+insert into public.tasks(
+  id, project_id, title, scheduled_date, actual_duration_minutes, completed, status
+) values (
+  '46000000-0000-0000-0000-000000000004',
+  '45000000-0000-0000-0000-000000000004',
+  'Restore after project delete', '2026-08-27', 12, false, 'active'
+);
+select lives_ok(
+  $$select public.transition_task(
+    '46000000-0000-0000-0000-000000000004', 'trashed', null
+  )$$,
+  'Task with historical actual can enter trash before its project is deleted'
+);
+select lives_ok(
+  $$select public.soft_delete_project('45000000-0000-0000-0000-000000000004')$$,
+  'Soft deletion migrates every current task reference, including trash'
+);
+select is(
+  (
+    select tasks.project_id
+    from public.tasks
+    where tasks.id = '46000000-0000-0000-0000-000000000004'
+  ),
+  (
+    select projects.id
+    from public.projects
+    where projects.owner_id = auth.uid() and projects.is_fallback
+  ),
+  'Trashed task now points to fallback before it can be restored'
+);
+select is(
+  (
+    select entries.project_id
+    from public.task_time_entries as entries
+    where entries.task_id = '46000000-0000-0000-0000-000000000004'
+      and entries.entry_date = '2026-08-27'
+  ),
+  '45000000-0000-0000-0000-000000000004'::uuid,
+  'Existing task ledger keeps the deleted project identity'
+);
+select lives_ok(
+  $$update public.tasks
+    set status = 'active', scheduled_date = '2026-09-02', deleted_at = null
+    where id = '46000000-0000-0000-0000-000000000004'$$,
+  'Restoring the trashed task retains its fallback assignment'
+);
+select is(
+  (
+    select tasks.project_id
+    from public.tasks
+    where tasks.id = '46000000-0000-0000-0000-000000000004'
+  ),
+  (
+    select projects.id
+    from public.projects
+    where projects.owner_id = auth.uid() and projects.is_fallback
+  ),
+  'Restored task cannot silently return to the deleted project'
+);
+select lives_ok(
+  $$update public.tasks
+    set actual_duration_minutes = 20
+    where id = '46000000-0000-0000-0000-000000000004'$$,
+  'Restored task can record additional actual time'
+);
+select is(
+  (
+    select entries.project_id
+    from public.task_time_entries as entries
+    where entries.task_id = '46000000-0000-0000-0000-000000000004'
+      and entries.entry_date = '2026-09-02'
+  ),
+  (
+    select projects.id
+    from public.projects
+    where projects.owner_id = auth.uid() and projects.is_fallback
+  ),
+  'New task actual ledger uses fallback rather than the deleted project'
+);
 select lives_ok(
   $$select public.transition_task(
     '40000000-0000-0000-0000-000000000004', 'trashed', null
@@ -673,7 +759,7 @@ select is(
   'Physical task deletion retains dated actual time while clearing task_id'
 );
 
--- 模拟 20260901 前已落库的 close：raw 项目分钟 = task 40 + Daily exact 60。
+-- 模拟 20260901 前已落库的 close：raw 项目分钟 = task 40 + Daily exact 60 + 不可进一步归因的 residual 30。
 set local role authenticated;
 select set_config(
   'request.jwt.claim.sub',
@@ -706,15 +792,18 @@ select
   '44000000-0000-0000-0000-000000000004',
   '10000000-0000-0000-0000-000000000001',
   '2026-08-29',
-  jsonb_build_object(id::text, 100)
+  jsonb_build_object(id::text, 130)
 from public.projects
 where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0;
 alter table public.daily_close_records enable trigger daily_close_capture_project_minutes;
+-- 模拟 migration 的精确窗口：repair 可写经核对的 snapshot，完成后立刻恢复防伪 trigger。
+alter table public.daily_close_records disable trigger daily_close_capture_project_minutes;
 select is(
   private.exclude_legacy_daily_close_minutes(),
   1,
   'Legacy close repair removes exactly one independently recorded Daily allocation'
 );
+alter table public.daily_close_records enable trigger daily_close_capture_project_minutes;
 select is(
   (
     select (records.project_minutes ->> projects.id::text)::integer
@@ -722,8 +811,8 @@ select is(
     join public.projects on projects.owner_id = records.owner_id and projects.position = 0
     where records.id = '44000000-0000-0000-0000-000000000004'
   ),
-  40,
-  'Legacy close keeps the task residual and does not reassign Daily to project analytics'
+  70,
+  'Legacy close retains unclassified task residual while removing Daily from project analytics'
 );
 select is(
   (
@@ -738,6 +827,36 @@ select is(
   private.exclude_legacy_daily_close_minutes(),
   0,
   'Legacy close repair is idempotent after its audit row is recorded'
+);
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000001',
+  true
+);
+insert into public.tasks(
+  id, project_id, title, scheduled_date, actual_duration_minutes, completed, status
+)
+select
+  '43000000-0000-0000-0000-000000000005', id,
+  'Post repair close trigger task', '2026-08-28', 17, false, 'active'
+from public.projects
+where owner_id = auth.uid() and position = 0;
+select lives_ok(
+  $$insert into public.daily_close_records(owner_id, close_date, project_minutes)
+    values (auth.uid(), '2026-08-28', '{"forged-project":999999}'::jsonb)$$,
+  'New close records still invoke the server-derived trigger after legacy repair'
+);
+select is(
+  (
+    select (records.project_minutes ->> projects.id::text)::integer
+    from public.daily_close_records as records
+    join public.projects on projects.owner_id = records.owner_id and projects.position = 0
+    where records.owner_id = auth.uid() and records.close_date = '2026-08-28'
+  ),
+  17,
+  'Re-enabled close trigger derives new records from the task ledger'
 );
 
 set local role authenticated;

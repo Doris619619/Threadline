@@ -1,6 +1,13 @@
 /** @fileoverview 验证项目管理与独立 Daily 模板管理的关键交互和数据边界。 */
 
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Daily } from '@/features/daily/types';
 import { ProjectManagementPage } from '@/features/projects/project-management-page';
@@ -50,11 +57,17 @@ const daily: Daily[] = [
   },
 ];
 
-/** 渲染完整项目管理页并提供可断言的云端命令替身。 */
-function renderPanel() {
+/** 渲染完整项目管理页并提供可覆盖项目或 Daily fixture 的云端命令替身。 */
+function renderPanel({
+  projectItems = projects,
+  dailyTemplates = daily,
+}: {
+  projectItems?: Project[];
+  dailyTemplates?: Daily[];
+} = {}) {
   const props = {
-    projects,
-    dailyTemplates: daily,
+    projects: projectItems,
+    dailyTemplates,
     onCreateProject: vi.fn(async () => undefined),
     onUpdateProject: vi.fn(async () => undefined),
     onSetProjectArchived: vi.fn(async () => undefined),
@@ -69,12 +82,35 @@ function renderPanel() {
 }
 
 describe('ProjectManagementPage', () => {
-  it('keeps fallback project protected without a noisy status label and Daily free of project state', () => {
+  it('keeps fallback project editable but protected without a noisy status label and Daily free of project state', () => {
     renderPanel();
     expect(screen.getByText('科研')).toBeVisible();
     expect(screen.queryByText('默认项目')).not.toBeInTheDocument();
     expect(screen.queryByText('活跃')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('其他操作')).not.toBeInTheDocument();
+    const fallbackMenu = screen.getByLabelText('其他操作').closest('details');
+    const standardMenu = screen.getByLabelText('科研操作').closest('details');
+    expect(fallbackMenu).not.toBeNull();
+    expect(standardMenu).not.toBeNull();
+    fireEvent.click(screen.getByLabelText('其他操作'));
+    expect(
+      within(fallbackMenu as HTMLElement).getByRole('button', { name: '修改' }),
+    ).toBeVisible();
+    expect(
+      within(fallbackMenu as HTMLElement).queryByRole('button', { name: '归档' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(fallbackMenu as HTMLElement).queryByRole('button', { name: '删除' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('科研操作'));
+    expect(
+      within(standardMenu as HTMLElement).getByRole('button', { name: '修改' }),
+    ).toBeVisible();
+    expect(
+      within(standardMenu as HTMLElement).getByRole('button', { name: '归档' }),
+    ).toBeVisible();
+    expect(
+      within(standardMenu as HTMLElement).getByRole('button', { name: '删除' }),
+    ).toBeVisible();
     expect(screen.getByText('2 项 · 90 分钟')).toBeVisible();
     expect(screen.queryByText(/Daily 历史/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/所属项目/)).not.toBeInTheDocument();
@@ -90,8 +126,56 @@ describe('ProjectManagementPage', () => {
     expect(screen.getByRole('dialog', { name: '新建项目' })).toBeVisible();
     expect(screen.getByLabelText('项目名称')).toBeVisible();
     expect(screen.getByLabelText('项目颜色')).toBeVisible();
+    expect(document.activeElement).toBe(screen.getByLabelText('项目名称'));
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: '新建项目' })).not.toBeInTheDocument();
+  });
+
+  it('closes the project details menu before editing and restores focus to its trigger', () => {
+    renderPanel();
+    const menu = screen.getByLabelText('科研操作');
+    menu.focus();
+    fireEvent.click(menu);
+    const details = menu.closest('details');
+    expect(details).toHaveAttribute('open');
+    fireEvent.click(
+      within(details as HTMLElement).getByRole('button', { name: '修改' }),
+    );
+    expect(details).not.toHaveAttribute('open');
+    expect(screen.getByRole('dialog', { name: '修改项目' })).toBeVisible();
+    expect(document.activeElement).toBe(screen.getByLabelText('项目名称'));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(document.activeElement).toBe(menu);
+  });
+
+  it('focuses the requested Daily business field for append, template edit, and item edit dialogs', () => {
+    renderPanel();
+    const dailyMenu = screen.getByLabelText('英语学习操作');
+    fireEvent.click(dailyMenu);
+    fireEvent.click(
+      within(dailyMenu.closest('details') as HTMLElement).getByRole('button', {
+        name: '修改',
+      }),
+    );
+    expect(screen.getByRole('dialog', { name: '修改 Daily' })).toBeVisible();
+    expect(document.activeElement).toBe(screen.getByLabelText('Daily 名称'));
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    fireEvent.click(screen.getByRole('button', { name: /英语学习/ }));
+    fireEvent.click(screen.getByRole('button', { name: '+ 添加清单项' }));
+    expect(screen.getByRole('dialog', { name: '添加到已有 Daily' })).toBeVisible();
+    expect(document.activeElement).toBe(screen.getByLabelText('选择已有 Daily'));
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    const itemMenu = screen.getByLabelText('词汇背诵操作');
+    fireEvent.click(itemMenu);
+    fireEvent.click(
+      within(itemMenu.closest('details') as HTMLElement).getByRole('button', {
+        name: '修改',
+      }),
+    );
+    expect(screen.getByRole('dialog', { name: '修改清单项' })).toBeVisible();
+    expect(document.activeElement).toBe(screen.getByLabelText('清单项名称'));
   });
 
   it('creates a Daily atomically with zero to many planned checklist items', async () => {
@@ -135,6 +219,28 @@ describe('ProjectManagementPage', () => {
         ]),
       }),
     );
+  });
+
+  it('defaults append mode to an active Daily instead of an archived visible template', () => {
+    renderPanel({
+      dailyTemplates: [
+        { ...daily[0], id: 'archived-daily', title: '已归档 Daily', active: false },
+        { ...daily[0], id: 'active-daily', title: '可编辑 Daily' },
+      ],
+    });
+    fireEvent.click(screen.getByRole('button', { name: /新建 Daily/ }));
+    fireEvent.click(screen.getByRole('tab', { name: '添加到已有 Daily' }));
+    expect(screen.getByLabelText('选择已有 Daily')).toHaveValue('active-daily');
+    expect(
+      screen.queryByRole('option', { name: '已归档 Daily' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('disables append mode when every Daily is archived', () => {
+    renderPanel({ dailyTemplates: [{ ...daily[0], active: false }] });
+    fireEvent.click(screen.getByRole('button', { name: /新建 Daily/ }));
+    expect(screen.getByRole('tab', { name: '添加到已有 Daily' })).toBeDisabled();
+    expect(screen.queryByLabelText('选择已有 Daily')).not.toBeInTheDocument();
   });
 });
 

@@ -115,7 +115,14 @@ begin
 end;
 $$;
 
+-- repair 写入的是经过双重核对的历史 snapshot；在这一小段迁移窗口保留它，
+-- 随后立即恢复新 close record 的 server-derived 防伪 trigger。若 repair 抛错，
+-- Supabase migration 事务会一并回滚这两个 DDL，不会留下未受保护的表。
+alter table public.daily_close_records
+  disable trigger daily_close_capture_project_minutes;
 select private.exclude_legacy_daily_close_minutes();
+alter table public.daily_close_records
+  enable trigger daily_close_capture_project_minutes;
 
 revoke all on table public.daily_close_record_daily_exclusions from public, anon, authenticated;
 revoke all on function private.exclude_legacy_daily_close_minutes() from public, anon, authenticated;

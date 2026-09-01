@@ -21,15 +21,15 @@ type AxeViolationBaseline = Readonly<Record<string, number>>;
  * 这些数量不是规则禁用项：它们保留 axe 扫描结果，待产品样式与 Calendar ARIA 结构修复后应同步下调。
  */
 const knownBlockingAxeBaseline: Readonly<Record<string, AxeViolationBaseline>> = {
-  Workspace: { 'color-contrast': 2 },
+  Workspace: {},
   Calendar: {
     'aria-required-children': 1,
     'aria-required-parent': 42,
-    'color-contrast': 15,
+    'color-contrast': 13,
   },
-  Projects: { 'color-contrast': 5 },
-  Settings: { 'color-contrast': 2 },
-  '编辑任务 Dialog': { 'color-contrast': 3 },
+  Projects: {},
+  Settings: {},
+  '编辑任务 Dialog': { 'color-contrast': 1 },
 };
 
 /** 将 axe 结果压缩为 rule id 到受影响节点数的映射，供稳定的 baseline 回归比较使用。 */

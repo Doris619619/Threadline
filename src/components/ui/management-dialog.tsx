@@ -8,23 +8,27 @@ type ManagementDialogProps = {
   title: string;
   children: ReactNode;
   onClose: () => void;
+  initialFocusSelector?: string;
 };
 
 /** 返回 Dialog 内可通过键盘获得焦点的启用控件，供初始聚焦与 Tab 环绕共用。 */
 function getFocusableElements(container: HTMLElement): HTMLElement[] {
-  return [...container.querySelectorAll<HTMLElement>(
-    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-  )].filter((element) => !element.hasAttribute('aria-hidden'));
+  return [
+    ...container.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  ].filter((element) => !element.hasAttribute('aria-hidden'));
 }
 
 /**
  * 渲染短表单管理 Dialog。
- * 挂载时保存触发控件并把焦点移入首个字段；捕获 Escape 与 Tab，使底层页面既不可聚焦也不可误操作。
+ * 挂载时保存触发控件并把焦点移入 data-management-initial-focus 指定的业务字段；捕获 Escape 与 Tab，使底层页面既不可聚焦也不可误操作。
  */
 export function ManagementDialog({
   title,
   children,
   onClose,
+  initialFocusSelector = '[data-management-initial-focus]',
 }: ManagementDialogProps) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
@@ -42,8 +46,9 @@ export function ManagementDialog({
     returnFocusRef.current =
       activeElement instanceof HTMLElement ? activeElement : null;
     const focusInitialControl = () => {
+      const requested = dialog.querySelector<HTMLElement>(initialFocusSelector);
       const [first] = getFocusableElements(dialog);
-      (first ?? dialog).focus();
+      (requested ?? first ?? dialog).focus();
     };
     focusInitialControl();
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -75,7 +80,7 @@ export function ManagementDialog({
       document.removeEventListener('keydown', handleKeyDown);
       returnFocusRef.current?.focus();
     };
-  }, []);
+  }, [initialFocusSelector]);
 
   return (
     <div className="manager-dialog-backdrop">

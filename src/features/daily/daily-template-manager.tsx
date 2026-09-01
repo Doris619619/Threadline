@@ -3,7 +3,7 @@
 'use client';
 
 import { ChevronDown, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ManagementDialog } from '@/components/ui/management-dialog';
@@ -29,6 +29,12 @@ function toDraftItems(items: Daily['children']): DraftItem[] {
     }));
 }
 
+/** 关闭原生 details 菜单后执行动作，避免 Dialog 打开时保留孤立的菜单浮层。 */
+function closeMenuAndRun(event: MouseEvent<HTMLButtonElement>, action: () => void) {
+  event.currentTarget.closest('details')?.removeAttribute('open');
+  action();
+}
+
 /** 渲染模板或清单项的低频生命周期菜单。 */
 function DailyMenu({
   label,
@@ -47,7 +53,7 @@ function DailyMenu({
           <button
             className={danger ? 'is-danger' : undefined}
             key={text}
-            onClick={action}
+            onClick={(event) => closeMenuAndRun(event, action)}
           >
             {text}
           </button>
@@ -64,12 +70,14 @@ function DraftItems({
   onRemove,
   onAdd,
   single = false,
+  initialFocus = false,
 }: {
   items: DraftItem[];
   onUpdate: (id: string, change: Partial<DraftItem>) => void;
   onRemove: (id: string) => void;
   onAdd?: () => void;
   single?: boolean;
+  initialFocus?: boolean;
 }) {
   return (
     <div className="daily-draft-items">
@@ -77,6 +85,9 @@ function DraftItems({
         <div className="daily-draft-row" key={item.id}>
           <Input
             aria-label={single ? '清单项名称' : `清单项名称 ${index + 1}`}
+            data-management-initial-focus={
+              initialFocus && index === 0 ? true : undefined
+            }
             value={item.title}
             onChange={(event) => onUpdate(item.id, { title: event.target.value })}
             placeholder="清单项名称"
@@ -134,7 +145,8 @@ export function DailyTemplateManager({
   const [draftItems, setDraftItems] = useState<DraftItem[]>([]);
   const [error, setError] = useState<string>();
   const visible = items.filter((item) => !item.deletedAt);
-  const target = visible.find((item) => item.id === targetId);
+  const activeTemplates = visible.filter((item) => item.active !== false);
+  const target = activeTemplates.find((item) => item.id === targetId);
   /** 运行异步生命周期或保存命令并保留错误给用户。 */
   const run = async (action: () => Promise<void>) => {
     try {
@@ -158,7 +170,11 @@ export function DailyTemplateManager({
     setDraftItems([]);
   };
   /** 打开“添加到已有 Daily”模式并预选触发来源。 */
-  const openAppend = (dailyId = visible[0]?.id ?? '') => {
+  const openAppend = (dailyId = activeTemplates[0]?.id ?? '') => {
+    if (!dailyId) {
+      setError('没有可添加清单项的 Daily，请先新建或恢复一个 Daily。');
+      return;
+    }
     setMode('append');
     setTargetId(dailyId);
     setTitle('');
@@ -377,92 +393,88 @@ export function DailyTemplateManager({
                   : '修改清单项'
           }
         >
-            {(mode === 'create' || mode === 'append') && (
-              <div
-                className="daily-mode-switch"
-                role="tablist"
-                aria-label="Daily 创建方式"
+          {(mode === 'create' || mode === 'append') && (
+            <div
+              className="daily-mode-switch"
+              role="tablist"
+              aria-label="Daily 创建方式"
+            >
+              <button aria-selected={mode === 'create'} role="tab" onClick={openCreate}>
+                新建 Daily
+              </button>
+              <button
+                disabled={activeTemplates.length === 0}
+                aria-selected={mode === 'append'}
+                role="tab"
+                onClick={() => openAppend()}
               >
-                <button
-                  aria-selected={mode === 'create'}
-                  role="tab"
-                  onClick={openCreate}
+                添加到已有 Daily
+              </button>
+            </div>
+          )}
+          {mode === 'append' ? (
+            <>
+              <label>
+                选择 Daily
+                <select
+                  aria-label="选择已有 Daily"
+                  data-management-initial-focus
+                  value={targetId}
+                  onChange={(event) => setTargetId(event.target.value)}
                 >
-                  新建 Daily
-                </button>
-                <button
-                  aria-selected={mode === 'append'}
-                  role="tab"
-                  onClick={() => openAppend()}
-                >
-                  添加到已有 Daily
-                </button>
-              </div>
-            )}
-            {mode === 'append' ? (
-              <>
-                <label>
-                  选择 Daily
-                  <select
-                    aria-label="选择已有 Daily"
-                    value={targetId}
-                    onChange={(event) => setTargetId(event.target.value)}
-                  >
-                    <option value="">请选择</option>
-                    {visible
-                      .filter((daily) => daily.active !== false)
-                      .map((daily) => (
-                        <option key={daily.id} value={daily.id}>
-                          {daily.title}
-                        </option>
-                      ))}
-                  </select>
-                </label>
+                  <option value="">请选择</option>
+                  {activeTemplates.map((daily) => (
+                    <option key={daily.id} value={daily.id}>
+                      {daily.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <DraftItems
+                items={draftItems}
+                onUpdate={updateDraftItem}
+                onRemove={() => undefined}
+                single
+              />
+            </>
+          ) : (
+            <>
+              {mode !== 'edit-item' && (
+                <Input
+                  aria-label="Daily 名称"
+                  data-management-initial-focus
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  placeholder="Daily 名称"
+                />
+              )}
+              {(mode === 'create' || mode === 'edit-template') && (
+                <DraftItems
+                  items={draftItems}
+                  onUpdate={updateDraftItem}
+                  onRemove={(id) =>
+                    setDraftItems((current) => current.filter((item) => item.id !== id))
+                  }
+                  onAdd={addDraftItem}
+                />
+              )}
+              {mode === 'edit-item' && (
                 <DraftItems
                   items={draftItems}
                   onUpdate={updateDraftItem}
                   onRemove={() => undefined}
                   single
+                  initialFocus
                 />
-              </>
-            ) : (
-              <>
-                {mode !== 'edit-item' && (
-                  <Input
-                    aria-label="Daily 名称"
-                    value={title}
-                    onChange={(event) => setTitle(event.target.value)}
-                    placeholder="Daily 名称"
-                  />
-                )}
-                {(mode === 'create' || mode === 'edit-template') && (
-                  <DraftItems
-                    items={draftItems}
-                    onUpdate={updateDraftItem}
-                    onRemove={(id) =>
-                      setDraftItems((current) =>
-                        current.filter((item) => item.id !== id),
-                      )
-                    }
-                    onAdd={addDraftItem}
-                  />
-                )}
-                {mode === 'edit-item' && (
-                  <DraftItems
-                    items={draftItems}
-                    onUpdate={updateDraftItem}
-                    onRemove={() => undefined}
-                    single
-                  />
-                )}
-              </>
-            )}
-            <footer>
-              <Button variant="quiet" onClick={close}>
-                取消
-              </Button>
-              <Button onClick={submit}>{mode === 'create' ? '创建' : '保存'}</Button>
-            </footer>
+              )}
+            </>
+          )}
+          <footer>
+            <Button variant="quiet" onClick={close}>
+              取消
+            </Button>
+            <Button onClick={submit}>{mode === 'create' ? '创建' : '保存'}</Button>
+          </footer>
         </ManagementDialog>
       )}
       {error && (

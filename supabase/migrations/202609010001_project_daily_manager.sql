@@ -1,6 +1,6 @@
 -- 文件用途：将项目安全删除与 Daily 模板管理迁移为独立、可审计的 Supabase 业务命令。
 
--- 项目删除保留历史 project identity；只有尚有效的 task 会被转移到 fallback。
+-- 项目删除保留历史 project identity；所有当前 task（包括回收站）都会改派到 fallback。
 alter table public.projects add column if not exists deleted_at timestamptz;
 create index if not exists projects_owner_visible_idx
   on public.projects(owner_id, position) where deleted_at is null;
@@ -95,8 +95,7 @@ begin
   for update;
   if fallback.id is null then raise exception 'FALLBACK_PROJECT_NOT_FOUND' using errcode = 'P0002'; end if;
   update public.tasks set project_id = fallback.id
-  where owner_id = current_owner and project_id = target.id
-    and status in ('active', 'backlog', 'rescheduled') and deleted_at is null;
+  where owner_id = current_owner and project_id = target.id;
   update public.projects set deleted_at = now(), status = 'archived', archived_at = now()
   where id = target.id and owner_id = current_owner
   returning * into target;

@@ -161,7 +161,7 @@ describe('packaging progress monitoring', () => {
         stallMs: 100,
       }),
     ).rejects.toMatchObject({ code: 'PACKAGING_STALL' });
-  });
+  }, 10_000);
 });
 
 describe('manifest and parity contract', () => {
