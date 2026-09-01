@@ -2,7 +2,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(138);
+select plan(146);
 
 select has_table('public', 'daily_history_entries', 'Daily history has an explicit table');
 select has_table(
@@ -859,6 +859,51 @@ select set_config(
 update public.daily_entries
 set actual_duration_minutes = 30
 where owner_id = auth.uid() and entry_date = '2026-08-26';
+
+-- 20260830 的 history 只保存父项 20；旧 close 则已经保存父项 20 + child 40。
+select lives_ok(
+  $$select public.ensure_daily_entries_for_date('2026-08-25')$$,
+  'Parent-only history fixture materializes the pre-20260831 Daily entry'
+);
+update public.daily_entries
+set actual_duration_minutes = 20,
+    legacy_project_id = (
+      select id from public.projects where owner_id = auth.uid() and position = 0
+    )
+where owner_id = auth.uid() and entry_date = '2026-08-25';
+update public.daily_entry_items as items
+set actual_duration_minutes = 40
+from public.daily_entries as entries
+where entries.owner_id = auth.uid() and entries.entry_date = '2026-08-25'
+  and items.owner_id = entries.owner_id and items.entry_id = entries.id;
+select lives_ok(
+  $$select public.record_daily_history(
+    (select template_id from public.daily_entries
+      where owner_id = auth.uid() and entry_date = '2026-08-25'),
+    '2026-08-25', 'manual'
+  )$$,
+  'Current history trigger first records the parent-and-child total for the compatibility fixture'
+);
+reset role;
+update public.daily_history_entries
+set actual_duration_minutes = 20,
+    legacy_project_id = (
+      select id from public.projects
+      where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0
+    )
+where owner_id = '10000000-0000-0000-0000-000000000001'
+  and entry_date = '2026-08-25';
+select is(
+  (select actual_duration_minutes from public.daily_history_entries where entry_date = '2026-08-25'),
+  20,
+  'Compatibility fixture precisely represents the historical parent-only 20-minute history'
+);
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000001',
+  true
+);
 insert into public.tasks(
   id, project_id, title, scheduled_date, actual_duration_minutes, completed, status
 )
@@ -910,13 +955,21 @@ select
   jsonb_build_object(id::text, 130)
 from public.projects
 where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0;
+insert into public.daily_close_records(id, owner_id, close_date, project_minutes)
+select
+  '44000000-0000-0000-0000-000000000007',
+  '10000000-0000-0000-0000-000000000001',
+  '2026-08-25',
+  jsonb_build_object(id::text, 60)
+from public.projects
+where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0;
 alter table public.daily_close_records enable trigger daily_close_capture_project_minutes;
 -- 模拟 migration 的精确窗口：repair 可写经核对的 snapshot，完成后立刻恢复防伪 trigger。
 alter table public.daily_close_records disable trigger daily_close_capture_project_minutes;
 select is(
   private.exclude_legacy_daily_close_minutes(),
-  3,
-  'Legacy close repair handles entry fallback and two history-priority Daily allocations'
+  4,
+  'Legacy close repair handles entry fallback, total history, and a parent-only history allocation'
 );
 alter table public.daily_close_records enable trigger daily_close_capture_project_minutes;
 select is(
@@ -977,10 +1030,99 @@ select is(
   'History-priority residual audit never uses the later 30-minute current entry'
 );
 select is(
+  (
+    select (records.project_minutes ->> projects.id::text)::integer
+    from public.daily_close_records as records
+    join public.projects on projects.owner_id = records.owner_id and projects.position = 0
+    where records.id = '44000000-0000-0000-0000-000000000007'
+  ),
+  0,
+  'Parent-only 20 plus child 40 is fully removed from the old 60-minute project close'
+);
+select is(
+  (
+    select daily_minutes
+    from public.daily_close_record_daily_exclusions
+    where close_record_id = '44000000-0000-0000-0000-000000000007'
+  ),
+  60,
+  'Parent-only history audit records the reconstructed 20-plus-40 Daily total'
+);
+select is(
   private.exclude_legacy_daily_close_minutes(),
   0,
   'Legacy close repair is idempotent after its audit row is recorded'
 );
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000001',
+  true
+);
+select lives_ok(
+  $$select public.ensure_daily_entries_for_date('2026-08-24')$$,
+  'Ambiguous parent-only history fixture materializes a Daily entry'
+);
+update public.daily_entries
+set actual_duration_minutes = 20,
+    legacy_project_id = (
+      select id from public.projects where owner_id = auth.uid() and position = 0
+    )
+where owner_id = auth.uid() and entry_date = '2026-08-24';
+update public.daily_entry_items as items
+set actual_duration_minutes = 40
+from public.daily_entries as entries
+where entries.owner_id = auth.uid() and entries.entry_date = '2026-08-24'
+  and items.owner_id = entries.owner_id and items.entry_id = entries.id;
+select lives_ok(
+  $$select public.record_daily_history(
+    (select template_id from public.daily_entries
+      where owner_id = auth.uid() and entry_date = '2026-08-24'),
+    '2026-08-24', 'manual'
+  )$$,
+  'Ambiguous fixture records its initial parent-and-child total'
+);
+reset role;
+update public.daily_history_entries
+set actual_duration_minutes = 20,
+    legacy_project_id = (
+      select id from public.projects
+      where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0
+    )
+where owner_id = '10000000-0000-0000-0000-000000000001'
+  and entry_date = '2026-08-24';
+reset role;
+alter table public.daily_entry_items disable trigger daily_entry_items_touch_updated_at;
+update public.daily_entry_items as items
+set actual_duration_minutes = 50,
+    updated_at = (
+      select history.recorded_at + interval '1 second'
+      from public.daily_history_entries as history
+      where history.owner_id = '10000000-0000-0000-0000-000000000001'
+        and history.entry_date = '2026-08-24'
+    )
+from public.daily_entries as entries
+where entries.owner_id = '10000000-0000-0000-0000-000000000001'
+  and entries.entry_date = '2026-08-24'
+  and items.owner_id = entries.owner_id and items.entry_id = entries.id;
+alter table public.daily_entry_items enable trigger daily_entry_items_touch_updated_at;
+alter table public.daily_close_records disable trigger daily_close_capture_project_minutes;
+insert into public.daily_close_records(id, owner_id, close_date, project_minutes)
+select
+  '44000000-0000-0000-0000-000000000008',
+  '10000000-0000-0000-0000-000000000001',
+  '2026-08-24',
+  jsonb_build_object(id::text, 60)
+from public.projects
+where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0;
+select throws_ok(
+  $$select private.exclude_legacy_daily_close_minutes()$$,
+  '22023',
+  'LEGACY_DAILY_HISTORY_AMBIGUOUS',
+  'A changed child after parent-only history fails safe instead of guessing a project residual'
+);
+alter table public.daily_close_records enable trigger daily_close_capture_project_minutes;
 
 set local role authenticated;
 select set_config(

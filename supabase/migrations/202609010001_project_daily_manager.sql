@@ -198,6 +198,20 @@ begin
     join public.daily_template_items existing on existing.id = i.id
     where existing.owner_id <> current_owner or existing.template_id <> p_template_id)
   then raise exception 'DAILY_TEMPLATE_ITEM_SCOPE_MISMATCH' using errcode = '22023'; end if;
+  if exists (select 1 from jsonb_to_recordset(coalesce(p_items, '[]'::jsonb)) as i(id uuid)
+    join public.daily_template_items existing on existing.id = i.id
+    where existing.owner_id = current_owner and existing.template_id = p_template_id
+      and existing.deleted_at is not null)
+  then raise exception 'DELETED_DAILY_TEMPLATE_ITEM_UPDATE_FORBIDDEN' using errcode = '22023'; end if;
+  if not saved.is_active and exists (
+    select 1
+    from jsonb_to_recordset(coalesce(p_items, '[]'::jsonb)) as i(id uuid)
+    left join public.daily_template_items existing
+      on existing.id = i.id and existing.owner_id = current_owner
+        and existing.template_id = p_template_id
+    where existing.id is null
+  )
+  then raise exception 'ARCHIVED_DAILY_ITEM_APPEND_FORBIDDEN' using errcode = '22023'; end if;
   update public.daily_template_items set deleted_at = now(), is_active = false
   where owner_id = current_owner and template_id = p_template_id and deleted_at is null
     and id not in (select id from jsonb_to_recordset(coalesce(p_items, '[]'::jsonb)) as i(id uuid));
@@ -255,9 +269,9 @@ begin
   if current_owner is null or p_status not in ('archive', 'restore', 'delete')
   then raise exception 'INVALID_DAILY_TEMPLATE_STATUS' using errcode = '22023'; end if;
   update public.daily_templates set
-    is_active = p_status = 'restore',
-    deleted_at = case when p_status = 'delete' then now() when p_status = 'restore' then null else deleted_at end
-  where id = p_template_id and owner_id = current_owner
+    is_active = case when p_status = 'restore' then true else false end,
+    deleted_at = case when p_status = 'delete' then now() else deleted_at end
+  where id = p_template_id and owner_id = current_owner and deleted_at is null
   returning * into saved;
   if saved.id is null then raise exception 'DAILY_TEMPLATE_NOT_FOUND' using errcode = 'P0002'; end if;
   return saved;
@@ -272,9 +286,10 @@ begin
   if current_owner is null or p_status not in ('archive', 'restore', 'delete')
   then raise exception 'INVALID_DAILY_ITEM_STATUS' using errcode = '22023'; end if;
   update public.daily_template_items set
-    is_active = p_status = 'restore', archived_at = case when p_status = 'archive' then now() when p_status = 'restore' then null else archived_at end,
-    deleted_at = case when p_status = 'delete' then now() when p_status = 'restore' then null else deleted_at end
-  where id = p_template_item_id and owner_id = current_owner
+    is_active = case when p_status = 'restore' then true else false end,
+    archived_at = case when p_status = 'archive' then now() when p_status = 'restore' then null else archived_at end,
+    deleted_at = case when p_status = 'delete' then now() else deleted_at end
+  where id = p_template_item_id and owner_id = current_owner and deleted_at is null
   returning * into saved;
   if saved.id is null then raise exception 'DAILY_TEMPLATE_ITEM_NOT_FOUND' using errcode = 'P0002'; end if;
   return saved;

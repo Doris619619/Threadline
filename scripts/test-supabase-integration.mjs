@@ -417,6 +417,40 @@ try {
     archivedTemplateEdit.data.title === '归档后仍可修改的 Daily',
     'Archived Daily template could not save an allowed edit.',
   );
+  const archivedAppend = await ownerA.client.rpc('update_daily_template_bundle', {
+    p_template_id: templateId,
+    p_title: '归档后不能追加清单',
+    p_items: [
+      {
+        id: templateItemId,
+        title: '归档后仍可修改的清单',
+        position: 0,
+        planned_duration_minutes: 50,
+      },
+      {
+        id: crypto.randomUUID(),
+        title: '不应追加的清单',
+        position: 1,
+        planned_duration_minutes: 10,
+      },
+    ],
+  });
+  checkDatabaseError(
+    archivedAppend,
+    '22023',
+    'ARCHIVED_DAILY_ITEM_APPEND_FORBIDDEN',
+    'Archived Daily template accepted a newly appended checklist item',
+  );
+  const afterArchivedAppend = await ownerA.client
+    .from('daily_templates')
+    .select('title')
+    .eq('id', templateId)
+    .single();
+  if (afterArchivedAppend.error) throw afterArchivedAppend.error;
+  check(
+    afterArchivedAppend.data.title === '归档后仍可修改的 Daily',
+    'Rejected archived Daily append partially committed a template title change.',
+  );
   const afterArchive = await ownerA.client.rpc('ensure_daily_entries_for_date', {
     p_entry_date: '2026-09-03',
   });
@@ -461,6 +495,70 @@ try {
   check(
     missingFutureItem.count === 0,
     'Archived Daily item still materialized into a future entry.',
+  );
+  const restoredItem = await ownerA.client.rpc('set_daily_template_item_status', {
+    p_template_item_id: templateItemId,
+    p_status: 'restore',
+  });
+  if (restoredItem.error) throw restoredItem.error;
+  const deletedItem = await ownerA.client.rpc('set_daily_template_item_status', {
+    p_template_item_id: templateItemId,
+    p_status: 'delete',
+  });
+  if (deletedItem.error) throw deletedItem.error;
+  const staleItemRestore = await ownerA.client.rpc('set_daily_template_item_status', {
+    p_template_item_id: templateItemId,
+    p_status: 'restore',
+  });
+  checkDatabaseError(
+    staleItemRestore,
+    'P0002',
+    'DAILY_TEMPLATE_ITEM_NOT_FOUND',
+    'Deleted Daily item could be restored by a stale client request',
+  );
+  const staleDeletedItemSave = await ownerA.client.rpc('update_daily_template_bundle', {
+    p_template_id: templateId,
+    p_title: 'Deleted item must stay deleted',
+    p_items: [
+      {
+        id: templateItemId,
+        title: 'Stale item edit',
+        position: 0,
+        planned_duration_minutes: 50,
+      },
+    ],
+  });
+  checkDatabaseError(
+    staleDeletedItemSave,
+    '22023',
+    'DELETED_DAILY_TEMPLATE_ITEM_UPDATE_FORBIDDEN',
+    'Deleted Daily item accepted a stale template update',
+  );
+  const deletedTemplate = await ownerA.client.rpc('set_daily_template_status', {
+    p_template_id: templateId,
+    p_status: 'delete',
+  });
+  if (deletedTemplate.error) throw deletedTemplate.error;
+  const staleTemplateRestore = await ownerA.client.rpc('set_daily_template_status', {
+    p_template_id: templateId,
+    p_status: 'restore',
+  });
+  checkDatabaseError(
+    staleTemplateRestore,
+    'P0002',
+    'DAILY_TEMPLATE_NOT_FOUND',
+    'Deleted Daily template could be restored by a stale client request',
+  );
+  const staleTemplateSave = await ownerA.client.rpc('update_daily_template_bundle', {
+    p_template_id: templateId,
+    p_title: 'Deleted Daily must stay deleted',
+    p_items: [],
+  });
+  checkDatabaseError(
+    staleTemplateSave,
+    'P0002',
+    'DAILY_TEMPLATE_NOT_FOUND',
+    'Deleted Daily template accepted a stale update',
   );
 
   const ledgerTask = await ownerA.client

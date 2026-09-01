@@ -122,7 +122,7 @@ function buildDays(
       // Daily 不属于项目；项目热力只统计普通任务与 legacy 项目汇总。
       projectIds,
       heatProjectCount: projectIds.length,
-      quality: exact ? 'exact' : legacy ? 'legacy-aggregate' : 'incomplete',
+      quality: legacy ? 'legacy-aggregate' : exact ? 'exact' : 'incomplete',
     };
   });
 }
@@ -135,6 +135,7 @@ function buildProjects(entries: readonly AnalyticsEntry[]): AnalyticsProject[] {
   return ids.map((projectId) => {
     const relevant = entries.filter((entry) => entry.projectId === projectId);
     const exact = relevant.some((entry) => entry.quality === 'exact');
+    const legacy = relevant.some((entry) => entry.quality === 'legacy-aggregate');
     return {
       projectId,
       actualMinutes: relevant.reduce((total, entry) => total + entry.actualMinutes, 0),
@@ -142,7 +143,7 @@ function buildProjects(entries: readonly AnalyticsEntry[]): AnalyticsProject[] {
         (total, entry) => total + entry.plannedMinutes,
         0,
       ),
-      quality: exact ? 'exact' : 'legacy-aggregate',
+      quality: legacy ? 'legacy-aggregate' : exact ? 'exact' : 'incomplete',
     };
   });
 }

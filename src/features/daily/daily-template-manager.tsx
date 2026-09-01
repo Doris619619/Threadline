@@ -460,7 +460,11 @@ export function DailyTemplateManager({
                   onRemove={(id) =>
                     setDraftItems((current) => current.filter((item) => item.id !== id))
                   }
-                  onAdd={addDraftItem}
+                  onAdd={
+                    mode === 'create' || editableTarget?.active !== false
+                      ? addDraftItem
+                      : undefined
+                  }
                 />
               )}
               {mode === 'edit-item' && (

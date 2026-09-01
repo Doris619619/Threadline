@@ -253,6 +253,9 @@ describe('ProjectManagementPage', () => {
         screen.getByLabelText('英语学习操作').closest('details') as HTMLElement,
       ).getByRole('button', { name: '修改' }),
     );
+    expect(
+      screen.queryByRole('button', { name: '+ 添加清单项' }),
+    ).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Daily 名称'), {
       target: { value: '归档后仍可改名' },
     });

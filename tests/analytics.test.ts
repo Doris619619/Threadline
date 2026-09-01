@@ -388,4 +388,37 @@ describe('analytics adapter', () => {
       expect.objectContaining({ projectId: 'research', actualMinutes: 40 }),
     ]);
   });
+
+  it('downgrades a mixed exact-plus-legacy day and project instead of labeling it exact', () => {
+    const result = createAnalyticsResult({
+      tasks: [task({ actualDurationMinutes: 40 })],
+      taskTimeEntries: [
+        {
+          id: 'time-exact',
+          taskId: 'task-1',
+          projectId: 'research',
+          date: '2026-08-20',
+          minutes: 40,
+        },
+      ],
+      projects,
+      dailyByDate: {},
+      dailyHistory: [],
+      closeRecords: [
+        {
+          id: 'close-mixed-quality',
+          date: '2026-08-20',
+          closedAt: '2026-08-20T20:00:00',
+          projectMinutes: { research: 100 },
+        },
+      ],
+      range: { start: '2026-08-20', end: '2026-08-20' },
+    });
+    expect(result.days[0]?.quality).toBe('legacy-aggregate');
+    expect(result.projects[0]).toMatchObject({
+      projectId: 'research',
+      actualMinutes: 100,
+      quality: 'legacy-aggregate',
+    });
+  });
 });

@@ -12,7 +12,7 @@ Daily 完全不属于 Project。旧记录可保留 `legacy_project_id` snapshot 
 
 创建模板与 0～N 个清单项经 `create_daily_template_with_entry` 单个 RPC 原子提交；名称、计划清单结构与 `planned_duration_minutes` 经 `update_daily_template_bundle` 保存。计划分钟只属于模板/entry snapshot，实际分钟只属于每日执行 entry，二者不能复用。模板编辑只影响未来实例，已生成 entry/history 永远保留原 snapshot。
 
-模板及清单项的归档、恢复、软删除使用 owner-scoped RPC。归档或删除后未来实例化会跳过对应记录；过去 entry/history 不修改。Daily 实际继续进入全局 Daily/总实际，但不再计入项目统计、占比或热力。
+模板及清单项的归档、恢复、软删除使用 owner-scoped RPC。归档 Daily 仍可改名和修改既有清单项，但不能追加新清单项；删除是终态，任何过期客户端的恢复、归档或保存请求都不能令模板或清单项复活。归档或删除后未来实例化会跳过对应记录；过去 entry/history 不修改。Daily 实际继续进入全局 Daily/总实际，但不再计入项目统计、占比或热力。
 
 ## 实际耗时与历史
 
@@ -22,7 +22,7 @@ Daily 完全不属于 Project。旧记录可保留 `legacy_project_id` snapshot 
 
 每日关账仍接收旧客户端的项目分钟参数以保持 RPC 签名兼容，但数据库在 `daily_close_records` 写入前会忽略该参数，并仅从关账日期的只读任务账本按项目聚合；Daily 实际不再参与项目汇总。
 
-历史上由旧 trigger 写入的 close record 可能已经把项目内 Daily 合计混入 `project_minutes`。迁移会先以同模板/日期的不可变 `daily_history_entries` 为正式历史 source；仅在没有 formal history 的旧工作区，才回退到 `daily_entries.legacy_project_id` 与父子实际。它再与同日 `task_time_entries` 双重核对，仅扣除可验证的 Daily 分量，并在 `daily_close_record_daily_exclusions` 留下审计行；因此后续修改 current Daily entry 不能覆盖关账历史。repair 阶段会短暂关闭 close capture trigger 以保留经过核对的 task residual，结束后立即重新开启，所以新 close record 仍由 server-derived trigger 保护。close record、任务残差和项目 identity 均保留。若原始分钟无法证明仍能保留 ledger 对应的任务残差，迁移会以 `LEGACY_CLOSE_RECORD_DAILY_TOTAL_MISMATCH` 停止，而不是静默丢失项目历史或让 Daily 再次进入项目统计。
+历史上由旧 trigger 写入的 close record 可能已经把项目内 Daily 合计混入 `project_minutes`。`20260830` 至 `20260831` 的短暂版本中，`daily_history_entries` 只保存 Daily 父项，而 close trigger 已聚合父项加子项；因此迁移先检查这类 history：仅当父项仍与 history 一致，且所有子项自记录后均未更新时，才用父子总和补齐旧 close 的 Daily 分量。正式 total history 仍优先于随后被修改的 current entry；没有 history 的旧工作区才回退到 `daily_entries.legacy_project_id` 与父子实际。无法证明 parent-only child snapshot 的行会以 `LEGACY_DAILY_HISTORY_AMBIGUOUS` 使迁移整体回滚，等待人工核对，而不是静默猜测或让 Daily 残留在项目统计。其余可验证行与同日 `task_time_entries` 双重核对，仅扣除 Daily 分量，并在 `daily_close_record_daily_exclusions` 留下审计行；repair 阶段会短暂关闭 close capture trigger 以保留经过核对的 task residual，结束后立即重新开启，所以新 close record 仍由 server-derived trigger 保护。close record、任务残差和项目 identity 均保留。若原始分钟无法证明仍能保留 ledger 对应的任务残差，迁移会以 `LEGACY_CLOSE_RECORD_DAILY_TOTAL_MISMATCH` 停止，而不是静默丢失项目历史或让 Daily 再次进入项目统计。
 
 ## 项目归档与删除
 
