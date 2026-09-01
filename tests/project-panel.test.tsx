@@ -242,6 +242,50 @@ describe('ProjectManagementPage', () => {
     expect(screen.getByRole('tab', { name: '添加到已有 Daily' })).toBeDisabled();
     expect(screen.queryByLabelText('选择已有 Daily')).not.toBeInTheDocument();
   });
+
+  it('allows archived Daily and its existing item to save edits while keeping append unavailable', async () => {
+    const archivedDaily = { ...daily[0], active: false };
+    const props = renderPanel({ dailyTemplates: [archivedDaily] });
+
+    fireEvent.click(screen.getByLabelText('英语学习操作'));
+    fireEvent.click(
+      within(
+        screen.getByLabelText('英语学习操作').closest('details') as HTMLElement,
+      ).getByRole('button', { name: '修改' }),
+    );
+    fireEvent.change(screen.getByLabelText('Daily 名称'), {
+      target: { value: '归档后仍可改名' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '保存' }));
+    await waitFor(() => expect(props.onSaveDaily).toHaveBeenCalledTimes(1));
+    expect(props.onSaveDaily).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: 'daily-1', title: '归档后仍可改名' }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /英语学习/ }));
+    fireEvent.click(screen.getByLabelText('词汇背诵操作'));
+    fireEvent.click(
+      within(
+        screen.getByLabelText('词汇背诵操作').closest('details') as HTMLElement,
+      ).getByRole('button', { name: '修改' }),
+    );
+    fireEvent.change(screen.getByLabelText('清单项名称'), {
+      target: { value: '归档后仍可改清单' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '保存' }));
+    await waitFor(() => expect(props.onSaveDaily).toHaveBeenCalledTimes(2));
+    expect(props.onSaveDaily).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        id: 'daily-1',
+        children: expect.arrayContaining([
+          expect.objectContaining({ title: '归档后仍可改清单' }),
+        ]),
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /新建 Daily/ }));
+    expect(screen.getByRole('tab', { name: '添加到已有 Daily' })).toBeDisabled();
+  });
 });
 
 afterEach(cleanup);

@@ -2,7 +2,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(128);
+select plan(138);
 
 select has_table('public', 'daily_history_entries', 'Daily history has an explicit table');
 select has_table(
@@ -776,12 +776,111 @@ set actual_duration_minutes = 60,
       select id from public.projects where owner_id = auth.uid() and position = 0
     )
 where owner_id = auth.uid() and entry_date = '2026-08-29';
+
+-- Case 1/2：formal history 必须胜过随后被编辑过的 current Daily entry。
+select lives_ok(
+  $$select public.ensure_daily_entries_for_date('2026-08-27')$$,
+  'History-priority fixture materializes the first historical Daily entry'
+);
+update public.daily_entries
+set actual_duration_minutes = 60,
+    legacy_project_id = (
+      select id from public.projects where owner_id = auth.uid() and position = 0
+    )
+where owner_id = auth.uid() and entry_date = '2026-08-27';
+select lives_ok(
+  $$select public.record_daily_history(
+    (select template_id from public.daily_entries
+      where owner_id = auth.uid() and entry_date = '2026-08-27'),
+    '2026-08-27', 'manual'
+  )$$,
+  'Formal Daily history captures the close-time actual before a later entry edit'
+);
+reset role;
+update public.daily_history_entries
+set legacy_project_id = (
+  select id from public.projects
+  where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0
+)
+where owner_id = '10000000-0000-0000-0000-000000000001'
+  and entry_date = '2026-08-27';
+select is(
+  (select actual_duration_minutes from public.daily_history_entries where entry_date = '2026-08-27'),
+  60,
+  'Formal Daily history preserves the original 60-minute actual'
+);
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000001',
+  true
+);
+update public.daily_entries
+set actual_duration_minutes = 30
+where owner_id = auth.uid() and entry_date = '2026-08-27';
+select is(
+  (select actual_duration_minutes from public.daily_entries where entry_date = '2026-08-27'),
+  30,
+  'Current Daily entry can diverge after history is recorded'
+);
+
+select lives_ok(
+  $$select public.ensure_daily_entries_for_date('2026-08-26')$$,
+  'History-priority fixture materializes the residual Daily entry'
+);
+update public.daily_entries
+set actual_duration_minutes = 60,
+    legacy_project_id = (
+      select id from public.projects where owner_id = auth.uid() and position = 0
+    )
+where owner_id = auth.uid() and entry_date = '2026-08-26';
+select lives_ok(
+  $$select public.record_daily_history(
+    (select template_id from public.daily_entries
+      where owner_id = auth.uid() and entry_date = '2026-08-26'),
+    '2026-08-26', 'manual'
+  )$$,
+  'Formal Daily history is available for the residual close fixture'
+);
+reset role;
+update public.daily_history_entries
+set legacy_project_id = (
+  select id from public.projects
+  where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0
+)
+where owner_id = '10000000-0000-0000-0000-000000000001'
+  and entry_date = '2026-08-26';
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000001',
+  true
+);
+update public.daily_entries
+set actual_duration_minutes = 30
+where owner_id = auth.uid() and entry_date = '2026-08-26';
 insert into public.tasks(
   id, project_id, title, scheduled_date, actual_duration_minutes, completed, status
 )
 select
   '43000000-0000-0000-0000-000000000004', id,
   'Legacy close task residual', '2026-08-29', 40, false, 'active'
+from public.projects
+where owner_id = auth.uid() and position = 0;
+insert into public.tasks(
+  id, project_id, title, scheduled_date, actual_duration_minutes, completed, status
+)
+select
+  '43000000-0000-0000-0000-000000000006', id,
+  'History-priority exact close task', '2026-08-27', 40, false, 'active'
+from public.projects
+where owner_id = auth.uid() and position = 0;
+insert into public.tasks(
+  id, project_id, title, scheduled_date, actual_duration_minutes, completed, status
+)
+select
+  '43000000-0000-0000-0000-000000000007', id,
+  'History-priority residual close task', '2026-08-26', 40, false, 'active'
 from public.projects
 where owner_id = auth.uid() and position = 0;
 
@@ -795,13 +894,29 @@ select
   jsonb_build_object(id::text, 130)
 from public.projects
 where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0;
+insert into public.daily_close_records(id, owner_id, close_date, project_minutes)
+select
+  '44000000-0000-0000-0000-000000000005',
+  '10000000-0000-0000-0000-000000000001',
+  '2026-08-27',
+  jsonb_build_object(id::text, 100)
+from public.projects
+where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0;
+insert into public.daily_close_records(id, owner_id, close_date, project_minutes)
+select
+  '44000000-0000-0000-0000-000000000006',
+  '10000000-0000-0000-0000-000000000001',
+  '2026-08-26',
+  jsonb_build_object(id::text, 130)
+from public.projects
+where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0;
 alter table public.daily_close_records enable trigger daily_close_capture_project_minutes;
 -- 模拟 migration 的精确窗口：repair 可写经核对的 snapshot，完成后立刻恢复防伪 trigger。
 alter table public.daily_close_records disable trigger daily_close_capture_project_minutes;
 select is(
   private.exclude_legacy_daily_close_minutes(),
-  1,
-  'Legacy close repair removes exactly one independently recorded Daily allocation'
+  3,
+  'Legacy close repair handles entry fallback and two history-priority Daily allocations'
 );
 alter table public.daily_close_records enable trigger daily_close_capture_project_minutes;
 select is(
@@ -822,6 +937,44 @@ select is(
   ),
   60,
   'Legacy close audit preserves the exact excluded Daily minutes'
+);
+select is(
+  (
+    select (records.project_minutes ->> projects.id::text)::integer
+    from public.daily_close_records as records
+    join public.projects on projects.owner_id = records.owner_id and projects.position = 0
+    where records.id = '44000000-0000-0000-0000-000000000005'
+  ),
+  40,
+  'History-priority repair uses formal 60 instead of mutable 30 for a fully covered close'
+);
+select is(
+  (
+    select daily_minutes
+    from public.daily_close_record_daily_exclusions
+    where close_record_id = '44000000-0000-0000-0000-000000000005'
+  ),
+  60,
+  'History-priority audit records the immutable 60-minute Daily exclusion'
+);
+select is(
+  (
+    select (records.project_minutes ->> projects.id::text)::integer
+    from public.daily_close_records as records
+    join public.projects on projects.owner_id = records.owner_id and projects.position = 0
+    where records.id = '44000000-0000-0000-0000-000000000006'
+  ),
+  70,
+  'History-priority repair retains the 30-minute task residual after excluding formal Daily 60'
+);
+select is(
+  (
+    select daily_minutes
+    from public.daily_close_record_daily_exclusions
+    where close_record_id = '44000000-0000-0000-0000-000000000006'
+  ),
+  60,
+  'History-priority residual audit never uses the later 30-minute current entry'
 );
 select is(
   private.exclude_legacy_daily_close_minutes(),

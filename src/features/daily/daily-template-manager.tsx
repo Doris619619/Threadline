@@ -146,7 +146,9 @@ export function DailyTemplateManager({
   const [error, setError] = useState<string>();
   const visible = items.filter((item) => !item.deletedAt);
   const activeTemplates = visible.filter((item) => item.active !== false);
-  const target = activeTemplates.find((item) => item.id === targetId);
+  // 编辑既有模板/清单项只要求未删除；追加新清单项必须限制在 active 模板。
+  const editableTarget = visible.find((item) => item.id === targetId);
+  const appendTarget = activeTemplates.find((item) => item.id === targetId);
   /** 运行异步生命周期或保存命令并保留错误给用户。 */
   const run = async (action: () => Promise<void>) => {
     try {
@@ -239,22 +241,25 @@ export function DailyTemplateManager({
           children: normalizeDraftItems(),
         });
       } else if (mode === 'append') {
-        if (!target) throw new Error('请选择要添加的 Daily。');
+        if (!appendTarget) throw new Error('请选择要添加的 Daily。');
         const [newItem] = normalizeDraftItems();
-        await onSave({ ...target, children: [...target.children, newItem] });
-      } else if (mode === 'edit-template') {
-        if (!target || !title.trim()) throw new Error('请输入 Daily 名称。');
         await onSave({
-          ...target,
+          ...appendTarget,
+          children: [...appendTarget.children, newItem],
+        });
+      } else if (mode === 'edit-template') {
+        if (!editableTarget || !title.trim()) throw new Error('请输入 Daily 名称。');
+        await onSave({
+          ...editableTarget,
           title: title.trim(),
           children: normalizeDraftItems(),
         });
       } else if (mode === 'edit-item') {
-        if (!target) throw new Error('未找到要修改的清单项。');
+        if (!editableTarget) throw new Error('未找到要修改的清单项。');
         const [nextItem] = normalizeDraftItems();
         await onSave({
-          ...target,
-          children: target.children.map((item) =>
+          ...editableTarget,
+          children: editableTarget.children.map((item) =>
             (item.templateItemId ?? item.id) === nextItem.templateItemId
               ? { ...item, ...nextItem }
               : item,

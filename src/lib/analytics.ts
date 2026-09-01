@@ -149,13 +149,13 @@ function buildProjects(entries: readonly AnalyticsEntry[]): AnalyticsProject[] {
 
 /**
  * 建立统一分析结果。
- * 仅接纳来源自身明确给出日期与分钟的 task / Daily 记录；CloseRecord 只能作为项目级 legacy aggregate，
- * 并且同日同项目已有精确记录时完全跳过，绝不通过差额反推任务归属。
+ * 仅接纳来源自身明确给出日期与分钟的 task / Daily 记录；CloseRecord 只能作为项目级 legacy aggregate。
+ * 同日同项目存在精确 task ledger 时，close 只补足未被 ledger 覆盖的非负 residual，绝不反推任务归属。
  */
 export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
   const entries: AnalyticsEntry[] = [];
   let incompleteCount = 0;
-  const exactDateProject = new Set<string>();
+  const exactMinutesByDateProject = new Map<string, number>();
   const recordedDaily = new Set(
     input.dailyHistory.map((entry) => `${entry.dailyId}:${entry.date}`),
   );
@@ -194,7 +194,13 @@ export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
         quality: 'exact',
         title: task.title,
       });
-      if (actualMinutes > 0) exactDateProject.add(`${task.date}:${task.projectId}`);
+      if (actualMinutes > 0) {
+        const key = `${task.date}:${task.projectId}`;
+        exactMinutesByDateProject.set(
+          key,
+          (exactMinutesByDateProject.get(key) ?? 0) + actualMinutes,
+        );
+      }
     }
   }
 
@@ -212,7 +218,11 @@ export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
       quality: 'exact',
       title: task?.title,
     });
-    exactDateProject.add(`${entry.date}:${entry.projectId}`);
+    const key = `${entry.date}:${entry.projectId}`;
+    exactMinutesByDateProject.set(
+      key,
+      (exactMinutesByDateProject.get(key) ?? 0) + actualMinutes,
+    );
   }
 
   for (const entry of input.dailyHistory) {
@@ -254,9 +264,16 @@ export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
   for (const record of input.closeRecords) {
     if (!isInRange(record.date, input.range)) continue;
     for (const [projectId, rawMinutes] of Object.entries(record.projectMinutes)) {
-      const actualMinutes = safeMinutes(rawMinutes);
-      if (actualMinutes === 0 || exactDateProject.has(`${record.date}:${projectId}`))
+      const closeMinutes = safeMinutes(rawMinutes);
+      const exactMinutes =
+        exactMinutesByDateProject.get(`${record.date}:${projectId}`) ?? 0;
+      const actualMinutes = closeMinutes - exactMinutes;
+      // close 小于已有 ledger 时不构造负分钟或篡改精确账本；该 aggregate 不可安全使用。
+      if (actualMinutes < 0) {
+        incompleteCount += 1;
         continue;
+      }
+      if (actualMinutes === 0) continue;
       entries.push({
         id: `legacy-close:${record.id}:${projectId}`,
         date: record.date,

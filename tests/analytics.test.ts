@@ -147,23 +147,117 @@ describe('analytics adapter', () => {
     ]);
   });
 
-  it('does not subtract or merge a close aggregate when exact same-project data exists', () => {
+  it('adds only the repaired close residual beside exact task and formal Daily history', () => {
     const result = createAnalyticsResult({
-      tasks: [task({ actualDurationMinutes: 100 })],
+      tasks: [task({ actualDurationMinutes: 40 })],
+      taskTimeEntries: [
+        {
+          id: 'time-1',
+          taskId: 'task-1',
+          projectId: 'research',
+          date: '2026-08-20',
+          minutes: 40,
+        },
+      ],
       projects,
       dailyByDate: {},
-      dailyHistory: [],
+      dailyHistory: [
+        {
+          dailyId: 'legacy-daily',
+          date: '2026-08-20',
+          completed: true,
+          actual: 60,
+          result: '历史 Daily',
+        },
+      ],
       closeRecords: [
         {
           id: 'close-1',
           date: '2026-08-20',
           closedAt: '2026-08-20T20:00:00',
-          projectMinutes: { research: 180 },
+          // 迁移后保留 task 40 + 无法进一步归因的项目 residual 30。
+          projectMinutes: { research: 70 },
         },
       ],
     });
-    expect(result.totalActualMinutes).toBe(100);
+    expect(result.totalActualMinutes).toBe(130);
+    expect(result.days[0]).toMatchObject({
+      taskActualMinutes: 40,
+      dailyActualMinutes: 60,
+      actualMinutes: 130,
+    });
+    expect(result.projects).toEqual([
+      expect.objectContaining({ projectId: 'research', actualMinutes: 70 }),
+    ]);
+    expect(result.entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: 'task', actualMinutes: 40 }),
+        expect.objectContaining({ source: 'daily', actualMinutes: 60 }),
+        expect.objectContaining({
+          source: 'legacy-aggregate',
+          actualMinutes: 30,
+        }),
+      ]),
+    );
+  });
+
+  it('does not duplicate a repaired close that is fully covered by exact task ledger', () => {
+    const result = createAnalyticsResult({
+      tasks: [task({ actualDurationMinutes: 40 })],
+      taskTimeEntries: [
+        {
+          id: 'time-1',
+          taskId: 'task-1',
+          projectId: 'research',
+          date: '2026-08-20',
+          minutes: 40,
+        },
+      ],
+      projects,
+      dailyByDate: {},
+      dailyHistory: [],
+      closeRecords: [
+        {
+          id: 'close-fully-covered',
+          date: '2026-08-20',
+          closedAt: '2026-08-20T20:00:00',
+          projectMinutes: { research: 40 },
+        },
+      ],
+    });
+    expect(result.totalActualMinutes).toBe(40);
     expect(result.entries).toHaveLength(1);
+  });
+
+  it('keeps exact task ledger and marks an undersized close aggregate incomplete', () => {
+    const result = createAnalyticsResult({
+      tasks: [task({ actualDurationMinutes: 40 })],
+      taskTimeEntries: [
+        {
+          id: 'time-1',
+          taskId: 'task-1',
+          projectId: 'research',
+          date: '2026-08-20',
+          minutes: 40,
+        },
+      ],
+      projects,
+      dailyByDate: {},
+      dailyHistory: [],
+      closeRecords: [
+        {
+          id: 'close-smaller-than-ledger',
+          date: '2026-08-20',
+          closedAt: '2026-08-20T20:00:00',
+          projectMinutes: { research: 30 },
+        },
+      ],
+    });
+    expect(result.totalActualMinutes).toBe(40);
+    expect(result.incompleteCount).toBe(1);
+    expect(result.entries.some((entry) => entry.source === 'legacy-aggregate')).toBe(
+      false,
+    );
   });
 
   it('keeps reliable history when its project has since been deleted', () => {

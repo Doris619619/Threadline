@@ -400,6 +400,23 @@ try {
     p_status: 'archive',
   });
   if (archived.error) throw archived.error;
+  const archivedTemplateEdit = await ownerA.client.rpc('update_daily_template_bundle', {
+    p_template_id: templateId,
+    p_title: '归档后仍可修改的 Daily',
+    p_items: [
+      {
+        id: templateItemId,
+        title: '归档后仍可修改的清单',
+        position: 0,
+        planned_duration_minutes: 50,
+      },
+    ],
+  });
+  if (archivedTemplateEdit.error) throw archivedTemplateEdit.error;
+  check(
+    archivedTemplateEdit.data.title === '归档后仍可修改的 Daily',
+    'Archived Daily template could not save an allowed edit.',
+  );
   const afterArchive = await ownerA.client.rpc('ensure_daily_entries_for_date', {
     p_entry_date: '2026-09-03',
   });
