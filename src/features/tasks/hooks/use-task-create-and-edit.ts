@@ -60,7 +60,7 @@ export function useTaskCreateAndEdit({
       return { error: '结束时间需晚于有效的开始时间' };
     }
     const duration =
-      start && end && end >= start ? calculateDuration(start, end) : undefined;
+      start && end && end > start ? calculateDuration(start, end) : undefined;
     const task: Task = {
       id: crypto.randomUUID(),
       projectId,
@@ -157,7 +157,9 @@ export function useTaskCreateAndEdit({
     if (startRaw && !start) return '开始时间格式应为 1420 或 14:20';
     if (endRaw && !end) return '结束时间格式应为 1530 或 15:30';
     if (end && !start) return '填写结束时间前，请先填写开始时间';
-    if (end && start && end < start) return '暂不支持跨午夜任务，请选择同一天内的时间';
+    if (end && start && end < start)
+      return '暂不支持跨午夜任务，请选择同一天内的时间';
+    if (end && start && end === start) return '结束时间需晚于开始时间';
     const planned =
       calculateDuration(start, end) ?? numberOrUndefined(form.get('planned'));
     const base =

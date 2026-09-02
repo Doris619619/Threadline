@@ -11,6 +11,7 @@ import {
   net,
   protocol,
   screen,
+  shell,
   type IpcMainInvokeEvent,
 } from 'electron';
 import { existsSync, readFileSync } from 'node:fs';
@@ -176,6 +177,19 @@ function isTrustedRendererUrl(url: string): boolean {
     return actual.protocol === expected.protocol && actual.host === expected.host;
   } catch {
     return false;
+  }
+}
+
+/** 只接受无 host 且带收件人的 mailto URL，拒绝 Renderer 借 IPC 打开任意外部地址。 */
+function parseAllowedMailtoUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'mailto:' && !parsed.host && parsed.pathname
+      ? parsed.toString()
+      : undefined;
+  } catch {
+    return undefined;
   }
 }
 
@@ -712,6 +726,14 @@ function registerDesktopIpc(): void {
       undefined,
       'edge-restore',
     );
+  });
+  /** 仅让受信任 Main Renderer 通过系统邮件客户端打开经过协议校验的 mailto 链接。 */
+  ipcMain.handle('desktop:open-mailto', async (event, value: unknown) => {
+    if (!isTrustedSender(event, 'main'))
+      throw new Error('Rejected desktop mailto sender');
+    const url = parseAllowedMailtoUrl(value);
+    if (!url) throw new Error('Rejected desktop mailto URL');
+    await shell.openExternal(url);
   });
   /** 仅允许受信任 Main Renderer 请求关闭自身，复用现有 close 生命周期。 */
   ipcMain.handle('desktop:close-main', async (event) => {

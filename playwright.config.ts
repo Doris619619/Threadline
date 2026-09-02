@@ -19,20 +19,21 @@ function desktopLayoutProject(name: string, width: number, height: number) {
   return {
     name,
     testMatch: '**/ui-layout-matrix.spec.ts',
-    use: { ...devices['Desktop Chrome'], viewport: { width, height } },
+    use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: { width, height } },
   };
 }
 
-/** 创建保留触控语义、但使用指定 viewport 与 screen 尺寸的移动布局项目。使用 Desktop Chrome 配合指定 viewport/touch 模拟。 */
+/** 创建使用真实移动设备语义、但保留指定 viewport 与 screen 尺寸的 Chrome 移动布局项目。 */
 function mobileLayoutProject(name: string, width: number, height: number) {
   return {
     name,
     testMatch: '**/ui-layout-matrix.spec.ts',
     use: {
-      ...devices['Desktop Chrome'],
+      ...devices['iPhone 13'],
+      browserName: 'chromium',
+      channel: 'chrome',
       viewport: { width, height },
-      hasTouch: true,
-      isMobile: true,
+      screen: { width, height },
     },
   };
 }
@@ -45,7 +46,6 @@ export default defineConfig({
   workers: 1,
   use: {
     baseURL: e2eBaseUrl,
-    channel: 'chrome',
     timezoneId: 'Asia/Shanghai',
     trace: 'retain-on-failure',
     // 生产构建后 service worker 可能缓存已替换的 chunk；E2E 应只验证当前构建产物。
@@ -55,22 +55,22 @@ export default defineConfig({
     {
       name: 'desktop',
       testIgnore: defaultWebTestIgnore,
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
     },
     {
       name: 'mobile',
       testIgnore: defaultWebTestIgnore,
-      use: { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true },
+      use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true },
     },
     {
       name: 'ui-structural',
       testMatch: '**/ui-structural.spec.ts',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
+      use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: { width: 1440, height: 900 } },
     },
     {
       name: 'ui-accessibility',
       testMatch: '**/ui-accessibility.spec.ts',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
+      use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: { width: 1440, height: 900 } },
     },
     desktopLayoutProject('ui-layout-desktop-1440', 1440, 900),
     desktopLayoutProject('ui-layout-desktop-1366', 1366, 768),
@@ -80,6 +80,11 @@ export default defineConfig({
     mobileLayoutProject('ui-layout-mobile-390', 390, 844),
     mobileLayoutProject('ui-layout-mobile-375', 375, 667),
     mobileLayoutProject('ui-layout-mobile-320', 320, 568),
+    {
+      name: 'ui-layout-iphone-webkit',
+      testMatch: '**/ui-layout-matrix.spec.ts',
+      use: { ...devices['iPhone 13'], browserName: 'webkit' },
+    },
   ],
   ...(usesExternalTestServer
     ? {}

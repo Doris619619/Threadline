@@ -75,6 +75,17 @@ describe('useTaskCreateAndEdit', () => {
         completed: false,
       }),
     ).resolves.toEqual({ error: '结束时间需晚于有效的开始时间' });
+    await expect(
+      result.current.createTimedTask({
+        title: '零时长',
+        projectId: activeProject.id,
+        startTime: '1000',
+        endTime: '1000',
+        planned: '',
+        actual: '',
+        completed: false,
+      }),
+    ).resolves.toEqual({ error: '结束时间需晚于有效的开始时间' });
 
     await act(async () => {
       await result.current.createTimedTask({

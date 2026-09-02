@@ -18,7 +18,10 @@ import {
 
 /** 根据专用 Playwright project 名称识别触控 viewport，而不依赖当前 CSS breakpoint 的实现细节。 */
 function isMobileLayoutProject(projectName: string) {
-  return projectName.startsWith('ui-layout-mobile-');
+  return (
+    projectName.startsWith('ui-layout-mobile-') ||
+    projectName === 'ui-layout-iphone-webkit'
+  );
 }
 
 /**
@@ -150,12 +153,13 @@ test.describe('compact viewport layout matrix', () => {
     await expectElementsNotToOverlap(startTimeInput, plannedDisplay, '开始时间与预计时长');
     await expectElementsNotToOverlap(plannedDisplay, confirmBtn, '预计时长与保存按钮');
 
-    // 验证触控尺寸满足 iOS 规范 (>= 40px, 目标 42~44px)
+    // 断言真实可点击元素满足 iOS 44×44pt 触控目标，而不是只检查内部视觉按钮。
     const cancelBox = (await cancelBtn.boundingBox())!;
     const confirmBox = (await confirmBtn.boundingBox())!;
-    expect(cancelBox.height).toBeGreaterThanOrEqual(40);
-    expect(confirmBox.height).toBeGreaterThanOrEqual(40);
-    expect(confirmBox.width).toBeGreaterThanOrEqual(60);
+    expect(cancelBox.height).toBeGreaterThanOrEqual(44);
+    expect(cancelBox.width).toBeGreaterThanOrEqual(44);
+    expect(confirmBox.height).toBeGreaterThanOrEqual(44);
+    expect(confirmBox.width).toBeGreaterThanOrEqual(44);
 
     // 验证预计时长自动计算
     await startTimeInput.fill('08:30');
@@ -183,8 +187,10 @@ test.describe('compact viewport layout matrix', () => {
 
     const quickConfirmBox = (await quickConfirm.boundingBox())!;
     const quickCancelBox = (await quickCancel.boundingBox())!;
-    expect(quickConfirmBox.height).toBeGreaterThanOrEqual(36);
-    expect(quickCancelBox.height).toBeGreaterThanOrEqual(36);
+    expect(quickConfirmBox.height).toBeGreaterThanOrEqual(44);
+    expect(quickConfirmBox.width).toBeGreaterThanOrEqual(44);
+    expect(quickCancelBox.height).toBeGreaterThanOrEqual(44);
+    expect(quickCancelBox.width).toBeGreaterThanOrEqual(44);
 
     await expectNoUnexpectedHorizontalOverflow(page);
   });

@@ -77,7 +77,7 @@ export function TimedTaskCreateRow({
   const normStart = normalizeTime(draft.startTime);
   const normEnd = normalizeTime(draft.endTime);
   const autoDurationMinutes =
-    normStart && normEnd && normEnd >= normStart
+    normStart && normEnd && normEnd > normStart
       ? calculateDuration(normStart, normEnd)
       : undefined;
 

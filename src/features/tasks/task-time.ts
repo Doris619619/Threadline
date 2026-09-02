@@ -58,7 +58,7 @@ export function parseTimeInput(value: string): {
   if (parts.length >= 2) {
     const start = normalizeTime(parts[0]);
     const end = normalizeTime(parts[1]);
-    if (start && end && end >= start) {
+    if (start && end && end > start) {
       return { start, end, duration: calculateDuration(start, end) };
     }
     return { start, end };

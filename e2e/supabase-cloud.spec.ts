@@ -28,7 +28,7 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
   await page.getByRole('button', { name: '使用指定账号继续' }).click();
   await expect(page.getByRole('heading', { name: '登录我的工作台' })).toBeVisible();
   await page.getByLabel('邮箱').fill(email);
-  await page.getByLabel('密码').fill(password);
+  await page.locator('input#auth-password').fill(password);
   await page.getByRole('button', { name: '登录', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();

@@ -112,6 +112,16 @@ try {
   const page = await application.firstWindow();
   await page.waitForFunction(() => window.threadlineDesktop?.role === 'main');
   assert.equal(
+    await page.evaluate(() => typeof window.threadlineDesktop?.openMailto),
+    'function',
+    'Main Renderer must only receive the narrow mailto bridge capability',
+  );
+  await assert.rejects(
+    page.evaluate(() => window.threadlineDesktop?.openMailto('https://example.com')),
+    /Rejected desktop mailto URL/,
+    'Main must reject non-mailto URLs instead of relaxing renderer navigation',
+  );
+  assert.equal(
     await application.evaluate(({ Menu }) => Menu.getApplicationMenu()),
     null,
     'Windows menu bar must be disabled before any compact surface is shown',

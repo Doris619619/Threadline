@@ -44,6 +44,7 @@ const bridge =
         getMainWindowMaximized: () => ipcRenderer.invoke('desktop:get-maximized'),
         toggleMainWindowMaximized: () => ipcRenderer.invoke('desktop:toggle-maximized'),
         exportReportPdf: () => ipcRenderer.invoke('desktop:export-report-pdf'),
+        openMailto: (url: string) => ipcRenderer.invoke('desktop:open-mailto', url),
         acknowledgeNativeState: (stateRevision: number) =>
           ipcRenderer.invoke('desktop:state-applied', stateRevision),
         onNativeStateChanged: (listener: (payload: unknown) => void) =>

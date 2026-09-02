@@ -82,6 +82,7 @@ export type ThreadlineDesktopBridge =
       getMainWindowMaximized: () => Promise<boolean>;
       toggleMainWindowMaximized: () => Promise<boolean>;
       exportReportPdf: () => Promise<ReportPdfExportResult>;
+      openMailto: (url: string) => Promise<void>;
       acknowledgeNativeState: (stateRevision: number) => Promise<void>;
       onNativeStateChanged: (
         listener: (event: NativeDesktopStateChanged) => void,

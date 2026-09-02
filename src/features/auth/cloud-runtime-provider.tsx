@@ -11,6 +11,7 @@ import {
   useMemo,
   useState,
   type FormEvent,
+  type MouseEvent,
   type ReactNode,
 } from 'react';
 import Image from 'next/image';
@@ -24,6 +25,7 @@ import {
   StartupProgressProvider,
   type StartupOperation,
 } from '@/features/startup/startup-progress-context';
+import { getMainDesktopBridge } from '@/lib/desktop-bridge';
 
 type CloudRuntime = {
   client: SupabaseClient;
@@ -34,6 +36,14 @@ type CloudRuntime = {
 };
 
 const CloudRuntimeContext = createContext<CloudRuntime | null>(null);
+
+/** 在 Electron 主窗口把 mailto 交给受限 bridge；Web/PWA 保留浏览器原生链接行为。 */
+function openDesktopMailto(event: MouseEvent<HTMLAnchorElement>): void {
+  const bridge = getMainDesktopBridge();
+  if (!bridge) return;
+  event.preventDefault();
+  void bridge.openMailto(event.currentTarget.href).catch(() => undefined);
+}
 
 /** 读取已经通过登录门禁的云运行时。 */
 export function useCloudRuntime(): CloudRuntime {
@@ -133,6 +143,7 @@ function LoginGate({ client }: { client: SupabaseClient }) {
               <a
                 href="mailto:124090348@link.cuhk.edu.cn"
                 className="auth-footer-link"
+                onClick={openDesktopMailto}
               >
                 124090348@link.cuhk.edu.cn
               </a>
@@ -235,6 +246,7 @@ function LoginGate({ client }: { client: SupabaseClient }) {
                 <a
                   href="mailto:124090348@link.cuhk.edu.cn?subject=%E5%BF%98%E8%AE%B0%E5%AF%86%E7%A0%81%E7%94%B3%E8%AF%B7"
                   className="auth-auxiliary-link"
+                  onClick={openDesktopMailto}
                 >
                   忘记密码？
                 </a>
@@ -265,6 +277,7 @@ function LoginGate({ client }: { client: SupabaseClient }) {
               <a
                 href="mailto:124090348@link.cuhk.edu.cn"
                 className="auth-footer-link"
+                onClick={openDesktopMailto}
               >
                 124090348@link.cuhk.edu.cn
               </a>

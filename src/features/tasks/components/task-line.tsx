@@ -125,7 +125,7 @@ export function TaskLine({
       setTimeError('请输入有效时间，如 08:30 或 08:30-10:00');
       return;
     }
-    if (start && end && end < start) {
+    if (start && end && end <= start) {
       setTimeError('结束时间需晚于开始时间');
       return;
     }

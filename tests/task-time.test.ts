@@ -43,5 +43,9 @@ describe('task time compatibility', () => {
       start: '23:30',
       end: '00:30',
     });
+    expect(parseTimeInput('08:30-08:30')).toEqual({
+      start: '08:30',
+      end: '08:30',
+    });
   });
 });

@@ -75,3 +75,30 @@ it('retains a timed draft and exposes a retryable error when persistence rejects
     '不能丢失的任务',
   );
 });
+
+it('does not preview a zero-minute duration that the save layer rejects', () => {
+  render(
+    <TimedTaskCreateRow
+      open
+      draft={{
+        title: '零时长任务',
+        projectId: 'work',
+        projectName: '',
+        startTime: '08:30',
+        endTime: '08:30',
+        planned: '',
+        actual: '',
+        completed: false,
+        isAddingProject: false,
+      }}
+      projects={projects}
+      onCreate={async () => ({ task: {} })}
+      onCreateProject={async () => projects[0]}
+      onChange={() => undefined}
+      onReset={() => undefined}
+      onClose={() => undefined}
+    />,
+  );
+
+  expect(screen.getAllByLabelText('预计时长').at(-1)).toHaveTextContent('自动计算');
+});

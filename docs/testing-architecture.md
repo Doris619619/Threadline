@@ -12,13 +12,13 @@ Threadline 的测试目标是阻止功能、云端边界、桌面壳和明显布
 | Coverage gate          | `pnpm test:coverage`          | 显式高风险业务模块的新代码没有进入单测覆盖。                                       |
 | CSS token contract     | `pnpm test:css-tokens`        | 无 fallback 的 CSS custom property 引用缺失定义。                                  |
 | Web adapter E2E        | `pnpm test:e2e`               | 确定性的任务、Daily、PWA 与 Web 行为。                                             |
-| UI invariants          | `pnpm test:e2e:ui`            | 全局横向溢出、重复主结构、关键控件、Dialog/Popover 边界和 viewport matrix。        |
+| UI invariants          | `pnpm test:e2e:ui`            | 全局横向溢出、重复主结构、关键控件、Dialog/Popover 边界、Chrome viewport matrix 与 iPhone WebKit 回归。 |
 | Local Supabase browser | `pnpm test:supabase:browser`  | Browser → Auth → CloudRuntimeProvider → RLS database → workspace → UI 的真实链路。 |
 | Electron behavior      | `pnpm test:electron`          | 开发壳的窗口切换、单实例和确定退出。                                               |
-| Packaged Electron      | `pnpm test:electron:packaged` | 通过 Renderer CDP 验证 `win-unpacked` EXE 的 protocol、CSP、Preload 行为与退出。   |
+| Packaged Electron      | `pnpm test:electron:packaged` | 通过 Renderer CDP 验证 `win-unpacked` EXE 的 protocol、CSP、Preload、实际 Windows 图标与退出。 |
 | Desktop parity         | `pnpm desktop:verify:parity`  | Preview 与 canonical package-dir 的静态 runtime 合同。                             |
 
-`test:e2e` 只让既有功能用例运行一次 desktop 和一次 mobile；布局矩阵的 8 个 viewport（含 320/375/390/430px 手机宽度）只收集 `ui-layout-matrix.spec.ts`。因此不会把整套业务流乘以所有尺寸。
+`test:e2e` 只让既有功能用例运行一次 desktop 和一次 mobile；布局矩阵的 8 个 Chrome viewport（含 320/375/390/430px 手机宽度）与一条 `iPhone 13` device preset/WebKit 回归只收集 `ui-layout-matrix.spec.ts`。因此不会把整套业务流乘以所有尺寸。
 
 ## UI 与无障碍边界
 

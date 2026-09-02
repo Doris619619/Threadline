@@ -12,6 +12,7 @@ import { join, resolve } from 'node:path';
 import { chromium } from 'playwright';
 
 import { terminateOwnedProcess } from './desktop-build-runtime.mjs';
+import { verifyWindowsExecutableIcon } from './verify-windows-icon.mjs';
 
 const repositoryRoot = resolve(import.meta.dirname, '..');
 const defaultExecutable = join(
@@ -216,6 +217,12 @@ async function runPackagedSmoke(executablePath) {
 
 try {
   const executablePath = await resolvePackagedExecutable();
+  console.log(
+    verifyWindowsExecutableIcon(
+      executablePath,
+      join(repositoryRoot, 'electron', 'assets', 'icon.ico'),
+    ),
+  );
   await runPackagedSmoke(executablePath);
   console.log(`Packaged Electron smoke passed: ${executablePath}`);
 } catch (error) {
