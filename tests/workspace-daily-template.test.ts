@@ -10,9 +10,6 @@ import { mergeLocalDailyTemplate } from '@/features/workspace/workspace-test-ada
 const currentDaily: Daily = {
   entryId: '10000000-0000-4000-8000-000000000001',
   id: '20000000-0000-4000-8000-000000000001',
-  projectId: '30000000-0000-4000-8000-000000000001',
-  project: '原项目',
-  color: '#2f80ed',
   title: '原模板',
   actual: 40,
   result: '当天结果',
@@ -65,9 +62,6 @@ describe('LocalWorkspaceTestAdapter Daily template merge', () => {
   it('preserves server runtime and payload-missing concurrent children', () => {
     const merged = mergeLocalDailyTemplate(currentDaily, {
       ...currentDaily,
-      projectId: '30000000-0000-4000-8000-000000000002',
-      project: '新项目',
-      color: '#27ae60',
       title: '新模板标题',
       children: [
         {
@@ -80,7 +74,6 @@ describe('LocalWorkspaceTestAdapter Daily template merge', () => {
     });
 
     expect(merged.entry).toMatchObject({
-      projectId: '30000000-0000-4000-8000-000000000002',
       title: '新模板标题',
       actual: 40,
       result: '当天结果',

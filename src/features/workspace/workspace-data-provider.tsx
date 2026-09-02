@@ -596,6 +596,37 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     [ownerKey, queryClient, repository],
   );
 
+  /** 更新项目轻量属性，并用 RPC 返回的 row 替换本地缓存。 */
+  const updateProject = useCallback(
+    async (projectId: string, name: string, color: string) => {
+      const saved = await repository.updateProjectDetails(projectId, name, color);
+      queryClient.setQueryData<Project[]>(
+        ['workspace', ownerKey, 'projects'],
+        (current = []) =>
+          current.map((project) => (project.id === saved.id ? saved : project)),
+      );
+    },
+    [ownerKey, queryClient, repository],
+  );
+
+  /** 归档状态交由数据库校验 fallback 约束，提交后刷新关联工作区缓存。 */
+  const setProjectArchived = useCallback(
+    async (projectId: string, archived: boolean) => {
+      await repository.setProjectArchived(projectId, archived);
+      await invalidateWorkspace();
+    },
+    [invalidateWorkspace, repository],
+  );
+
+  /** 安全删除项目并让数据库迁移所有当前 task，历史账本不在客户端触碰。 */
+  const deleteProject = useCallback(
+    async (projectId: string) => {
+      await repository.softDeleteProject(projectId);
+      await invalidateWorkspace();
+    },
+    [invalidateWorkspace, repository],
+  );
+
   /** 区分 RPC 写入失败与提交后刷新失败，避免诱导用户重复写入已保存的模板。 */
   const saveDailyTemplate = useCallback(
     async (daily: Daily) => {
@@ -623,6 +654,49 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       );
     },
     [ownerKey, queryClient, repository],
+  );
+  /** 原子创建模板和当前日期 entry，成功后刷新完整 Daily bundle。 */
+  const createDailyTemplate = useCallback(
+    async (daily: Daily) => {
+      try {
+        if (!navigator.onLine) throw new Error('当前离线，无法创建 Daily 模板。');
+        setMutationError(undefined);
+        await repository.createDailyTemplate(daily, selectedDate);
+      } catch (error) {
+        setMutationError(error instanceof Error ? error.message : 'Daily 模板创建失败');
+        throw error;
+      }
+      await settleDailyTemplatePostCommitRefresh(
+        async () => {
+          queryClient.setQueryData(
+            ['workspace', ownerKey, 'daily'],
+            await repository.listDailyBundle(),
+          );
+        },
+        () =>
+          queryClient.invalidateQueries({
+            queryKey: ['workspace', ownerKey, 'daily'],
+          }),
+        setMutationError,
+      );
+    },
+    [ownerKey, queryClient, repository, selectedDate],
+  );
+  /** 修改 Daily 生命周期只影响未来实例；刷新 bundle 以反映 archive/delete。 */
+  const setDailyTemplateStatus = useCallback(
+    async (templateId: string, status: 'archive' | 'restore' | 'delete') => {
+      await repository.setDailyTemplateStatus(templateId, status);
+      await invalidateWorkspace();
+    },
+    [invalidateWorkspace, repository],
+  );
+  /** 修改清单项生命周期只影响未来实例；已生成 entry 的 snapshot 保持原样。 */
+  const setDailyTemplateItemStatus = useCallback(
+    async (itemId: string, status: 'archive' | 'restore' | 'delete') => {
+      await repository.setDailyTemplateItemStatus(itemId, status);
+      await invalidateWorkspace();
+    },
+    [invalidateWorkspace, repository],
   );
   const taskActions = useMemo(() => ({ updateTasks }), [updateTasks]);
   const projectState = useMemo(() => ({ projects }), [projects]);
@@ -654,8 +728,14 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
   const commands = useMemo(
     () => ({
       createProject,
+      updateProject,
+      setProjectArchived,
+      deleteProject,
       createTask,
+      createDailyTemplate,
       saveDailyTemplate,
+      setDailyTemplateStatus,
+      setDailyTemplateItemStatus,
       transitionTask,
       recordDaily,
       closeDay,
@@ -663,10 +743,16 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     [
       closeDay,
       createProject,
+      deleteProject,
       createTask,
+      createDailyTemplate,
       recordDaily,
       saveDailyTemplate,
+      setDailyTemplateItemStatus,
+      setDailyTemplateStatus,
+      setProjectArchived,
       transitionTask,
+      updateProject,
     ],
   );
 

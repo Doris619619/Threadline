@@ -13,6 +13,10 @@ const migration = (
     migrationFiles.map((name) => readFile(join(migrationsDirectory, name), 'utf8')),
   )
 ).join('\n');
+const dailyManagerMigration = await readFile(
+  join(migrationsDirectory, '202609010001_project_daily_manager.sql'),
+  'utf8',
+);
 
 /** 要求迁移包含关键片段，错误信息直接指出缺失的审核约束。 */
 function requirePattern(pattern, description) {
@@ -214,6 +218,16 @@ requirePattern(
   /revoke all(?: privileges)? on function public\.capture_daily_close_project_minutes\(\) from public, anon, authenticated/i,
   'close total trigger function is not a Data API RPC',
 );
+requirePattern(
+  /alter table public\.daily_close_records\s+disable trigger daily_close_capture_project_minutes;\s*select private\.exclude_legacy_daily_close_minutes\(\);\s*alter table public\.daily_close_records\s+enable trigger daily_close_capture_project_minutes;/is,
+  'legacy close repair preserves verified residuals before re-enabling close trigger protection',
+);
+const softDeleteProject = readFunctionDefinition('soft_delete_project');
+requireDefinitionPattern(
+  softDeleteProject,
+  /update public\.tasks set project_id = fallback\.id\s+where owner_id = current_owner and project_id = target\.id;/i,
+  'project deletion moves every current task reference to fallback',
+);
 requirePattern(/deferrable initially immediate/i, 'deferrable workstation positions');
 requirePattern(
   /set constraints workstation_owner_position_key deferred/i,
@@ -281,6 +295,39 @@ for (const rpc of [
 }
 for (const projectName of ['工作', '课程', 'AI研究', '生活', '其他'])
   requirePattern(new RegExp(`'${projectName}'`), `default project ${projectName}`);
+requireDefinitionPattern(
+  dailyManagerMigration,
+  /ensure_daily_entries_for_date\(p_entry_date date\)[\s\S]*?security definer\s+set search_path = pg_catalog, public[\s\S]*?with inserted_entries as \([\s\S]*?on conflict \(owner_id, template_id, entry_date\) do nothing\s+returning id, owner_id, template_id[\s\S]*?from inserted_entries entries/i,
+  'Daily materialization writes child snapshots only for newly inserted entries',
+);
+for (const rpc of [
+  'create_daily_template_with_entry',
+  'update_daily_template_bundle',
+  'save_daily_entry_bundle',
+  'set_daily_template_status',
+  'set_daily_template_item_status',
+])
+  requireDefinitionPattern(
+    dailyManagerMigration,
+    new RegExp(
+      `(?:create|create or replace) function public\\.${rpc}\\([\\s\\S]*?security definer\\s+set search_path = pg_catalog, public[\\s\\S]*?current_owner uuid := auth\\.uid\\(\\)`,
+      'i',
+    ),
+    `${rpc} is an owner-scoped fixed-path security definer`,
+  );
+requireDefinitionPattern(
+  dailyManagerMigration,
+  /revoke all privileges on table public\.daily_templates, public\.daily_template_items,\s*public\.daily_entries, public\.daily_entry_items from public, anon, authenticated;\s*grant select on table public\.daily_templates, public\.daily_template_items,\s*public\.daily_entries, public\.daily_entry_items to authenticated;/i,
+  'Daily template and entry tables are read-only for authenticated clients',
+);
+if (
+  /grant\s+[^;]*\b(?:insert|update|delete)\b[^;]*\s+on table public\.daily_(?:templates|template_items|entries|entry_items)\s+to authenticated/i.test(
+    dailyManagerMigration,
+  )
+)
+  throw new Error(
+    'Supabase contract violation: final Daily manager migration grants direct authenticated writes.',
+  );
 rejectPattern(/annotation_strokes/i, 'Annotation must remain local-only');
 rejectPattern(/status\s*=\s*'purged'|\b'purged'\b/i, 'purged is not a TaskStatus');
 rejectPattern(

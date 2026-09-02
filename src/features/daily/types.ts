@@ -7,18 +7,28 @@ export type Daily = {
   /** 数据库日期实例 UUID；UI 的 id 继续表示长期 template identity。 */
   entryId?: string;
   id: string;
-  projectId: string;
-  project: string;
-  color: string;
+  /** 仅兼容已生成的旧 entry snapshot；新模板与管理 UI 不得依赖。 */
+  projectId?: string;
+  /** 仅兼容旧 Daily entry 展示快照。 */
+  project?: string;
+  /** 仅兼容旧 Daily entry 展示快照。 */
+  color?: string;
   title: string;
   actual: number;
   result: string;
   completed: boolean;
+  /** 模板生命周期；每日 entry 始终按当天 snapshot 展示。 */
+  active?: boolean;
+  deletedAt?: string;
   children: {
     /** 当天 entry item UUID；新增子项在客户端先生成稳定 ID，历史 seed 可暂缺。 */
     id?: string;
     templateItemId?: string;
     title: string;
+    /** 模板清单项的预计分钟；实例 actual 是独立的实际投入。 */
+    plannedDurationMinutes?: number;
+    active?: boolean;
+    deletedAt?: string;
     completed: boolean;
     actual: number;
   }[];
@@ -28,7 +38,8 @@ export type Daily = {
 export type DailyHistoryEntry = {
   id?: string;
   dailyId: string;
-  projectId: string;
+  /** 仅兼容旧 history 项目快照；analytics 不再使用。 */
+  projectId?: string;
   date: string;
   completed: boolean;
   actual: number;

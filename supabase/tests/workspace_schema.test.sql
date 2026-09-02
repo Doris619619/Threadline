@@ -2,9 +2,13 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(105);
+select plan(149);
 
 select has_table('public', 'daily_history_entries', 'Daily history has an explicit table');
+select has_table(
+  'public', 'daily_close_record_daily_exclusions',
+  'Legacy Daily close exclusions have an audit table'
+);
 select has_table('public', 'task_time_entries', 'Task actual time has an immutable date-bound table');
 select has_table('public', 'rhythm_marks', 'Rhythm is cloud-backed');
 select hasnt_table('public', 'annotation_strokes', 'Annotations stay local-only');
@@ -20,6 +24,37 @@ select has_function(
   'purge_expired_tasks',
   array[]::text[],
   'Protected purge function exists'
+);
+select has_function(
+  'private',
+  'exclude_legacy_daily_close_minutes',
+  array[]::text[],
+  'Legacy Daily close repair helper exists'
+);
+select has_function(
+  'public', 'soft_delete_project', array['uuid'],
+  'Project soft delete RPC exists'
+);
+select has_function(
+  'public', 'set_daily_template_status', array['uuid', 'text'],
+  'Daily template lifecycle RPC exists'
+);
+select has_function(
+  'public', 'set_daily_template_item_status', array['uuid', 'text'],
+  'Daily item lifecycle RPC exists'
+);
+select hasnt_function(
+  'public', 'update_daily_template_bundle',
+  array['uuid', 'uuid', 'uuid', 'text', 'jsonb', 'jsonb'],
+  'Legacy project-bound Daily update RPC is removed'
+);
+select has_column(
+  'public', 'daily_template_items', 'planned_duration_minutes',
+  'Daily template items persist planned minutes'
+);
+select has_column(
+  'public', 'daily_entry_items', 'planned_duration_minutes_snapshot',
+  'Daily entry items freeze planned minute snapshots'
 );
 select function_privs_are(
   'private',
@@ -73,20 +108,20 @@ select function_privs_are(
   'anon', array[]::text[], 'Anonymous clients cannot execute the task-time trigger function'
 );
 select table_privs_are(
-  'public', 'daily_templates', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
-  'Authenticated Daily commands can read, create, and update templates'
+  'public', 'daily_templates', 'authenticated', array['SELECT'],
+  'Authenticated clients can only read Daily templates directly'
 );
 select table_privs_are(
-  'public', 'daily_template_items', 'authenticated', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'],
-  'Authenticated Daily flow can atomically replace template items'
+  'public', 'daily_template_items', 'authenticated', array['SELECT'],
+  'Authenticated clients can only read Daily template items directly'
 );
 select table_privs_are(
-  'public', 'daily_entries', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],
-  'Authenticated Daily flow can materialize and edit date entries'
+  'public', 'daily_entries', 'authenticated', array['SELECT'],
+  'Authenticated clients can only read Daily entries directly'
 );
 select table_privs_are(
-  'public', 'daily_entry_items', 'authenticated', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'],
-  'Authenticated Daily flow can atomically replace date items'
+  'public', 'daily_entry_items', 'authenticated', array['SELECT'],
+  'Authenticated clients can only read Daily entry items directly'
 );
 select table_privs_are(
   'public', 'daily_history_entries', 'authenticated', array['SELECT', 'INSERT'],
@@ -126,6 +161,10 @@ select is(
   'Anonymous clients have no business-table privileges'
 );
 
+-- 后续 fixture 需要直接构造历史数据；事务结束会回滚临时 grant，真实 schema 仍保持上述只读边界。
+grant insert, update, delete on table public.daily_templates, public.daily_template_items,
+  public.daily_entries, public.daily_entry_items to authenticated;
+
 select function_privs_are(
   'public', 'initialize_workspace', array[]::text[],
   'authenticated', array['EXECUTE'], 'Authenticated can initialize workspace'
@@ -139,7 +178,7 @@ select function_privs_are(
   'authenticated', array['EXECUTE'], 'Authenticated can record Daily history'
 );
 select function_privs_are(
-  'public', 'create_daily_template_with_entry', array['uuid', 'uuid', 'text', 'date'],
+  'public', 'create_daily_template_with_entry', array['uuid', 'text', 'jsonb', 'date'],
   'authenticated', array['EXECUTE'], 'Authenticated can create Daily atomically'
 );
 select function_privs_are(
@@ -159,11 +198,11 @@ select function_privs_are(
   'authenticated', array['EXECUTE'], 'Authenticated can close day'
 );
 select function_privs_are(
-  'public', 'save_daily_entry_bundle', array['uuid', 'uuid', 'text', 'boolean', 'integer', 'text', 'jsonb'],
+  'public', 'save_daily_entry_bundle', array['uuid', 'text', 'boolean', 'integer', 'text', 'jsonb'],
   'authenticated', array['EXECUTE'], 'Authenticated can atomically save a Daily entry bundle'
 );
 select function_privs_are(
-  'public', 'update_daily_template_bundle', array['uuid', 'uuid', 'uuid', 'text', 'jsonb', 'jsonb'],
+  'public', 'update_daily_template_bundle', array['uuid', 'text', 'jsonb'],
   'authenticated', array['EXECUTE'], 'Authenticated can atomically update a Daily template and current entry'
 );
 select function_privs_are(
@@ -188,7 +227,7 @@ select function_privs_are(
   'anon', array[]::text[], 'Anonymous clients cannot record Daily history'
 );
 select function_privs_are(
-  'public', 'create_daily_template_with_entry', array['uuid', 'uuid', 'text', 'date'],
+  'public', 'create_daily_template_with_entry', array['uuid', 'text', 'jsonb', 'date'],
   'anon', array[]::text[], 'Anonymous clients cannot create Daily'
 );
 select function_privs_are(
@@ -208,11 +247,11 @@ select function_privs_are(
   'anon', array[]::text[], 'Anonymous clients cannot close day'
 );
 select function_privs_are(
-  'public', 'save_daily_entry_bundle', array['uuid', 'uuid', 'text', 'boolean', 'integer', 'text', 'jsonb'],
+  'public', 'save_daily_entry_bundle', array['uuid', 'text', 'boolean', 'integer', 'text', 'jsonb'],
   'anon', array[]::text[], 'Anonymous clients cannot save a Daily entry bundle'
 );
 select function_privs_are(
-  'public', 'update_daily_template_bundle', array['uuid', 'uuid', 'uuid', 'text', 'jsonb', 'jsonb'],
+  'public', 'update_daily_template_bundle', array['uuid', 'text', 'jsonb'],
   'anon', array[]::text[], 'Anonymous clients cannot update a Daily template and current entry'
 );
 select function_privs_are(
@@ -325,6 +364,24 @@ select is(
   1::bigint,
   'Daily template item is copied exactly once'
 );
+insert into public.daily_template_items(id, template_id, title, position)
+values (
+  '31000000-0000-0000-0000-000000000004',
+  '30000000-0000-0000-0000-000000000003',
+  'Later template child',
+  1
+);
+select lives_ok(
+  $$select public.ensure_daily_entries_for_date('2026-08-30')$$,
+  'Repeated materialization after a template append succeeds without revising the existing entry'
+);
+select is(
+  (select count(*) from public.daily_entry_items where entry_id = (
+    select id from public.daily_entries where entry_date = '2026-08-30'
+  )),
+  1::bigint,
+  'Template append does not backfill a previously materialized date entry'
+);
 
 insert into public.daily_templates(id, project_id, title, is_active, position)
 select
@@ -378,8 +435,18 @@ select is(
     join public.daily_entries as entries on entries.id = items.entry_id
     where entries.entry_date = '2026-08-31'
   ),
+  2::bigint,
+  'Future entry receives the two current template items but not the date-only child'
+);
+select is(
+  (
+    select count(*)
+    from public.daily_entry_items as items
+    join public.daily_entries as entries on entries.id = items.entry_id
+    where entries.entry_date = '2026-08-31' and items.title_snapshot = 'Later template child'
+  ),
   1::bigint,
-  'Date-only child does not pollute future instances'
+  'Template child appended after date A materializes only for the future date'
 );
 
 select lives_ok(
@@ -602,6 +669,92 @@ select is(
   null::integer,
   'Restore keeps the prior workstation membership removed'
 );
+
+insert into public.projects(id, owner_id, name, color, status, position, is_fallback)
+values (
+  '45000000-0000-0000-0000-000000000004',
+  '10000000-0000-0000-0000-000000000001',
+  'Deleted project task owner', '#3979e8', 'active', 20, false
+);
+insert into public.tasks(
+  id, project_id, title, scheduled_date, actual_duration_minutes, completed, status
+) values (
+  '46000000-0000-0000-0000-000000000004',
+  '45000000-0000-0000-0000-000000000004',
+  'Restore after project delete', '2026-08-27', 12, false, 'active'
+);
+select lives_ok(
+  $$select public.transition_task(
+    '46000000-0000-0000-0000-000000000004', 'trashed', null
+  )$$,
+  'Task with historical actual can enter trash before its project is deleted'
+);
+select lives_ok(
+  $$select public.soft_delete_project('45000000-0000-0000-0000-000000000004')$$,
+  'Soft deletion migrates every current task reference, including trash'
+);
+select is(
+  (
+    select tasks.project_id
+    from public.tasks
+    where tasks.id = '46000000-0000-0000-0000-000000000004'
+  ),
+  (
+    select projects.id
+    from public.projects
+    where projects.owner_id = auth.uid() and projects.is_fallback
+  ),
+  'Trashed task now points to fallback before it can be restored'
+);
+select is(
+  (
+    select entries.project_id
+    from public.task_time_entries as entries
+    where entries.task_id = '46000000-0000-0000-0000-000000000004'
+      and entries.entry_date = '2026-08-27'
+  ),
+  '45000000-0000-0000-0000-000000000004'::uuid,
+  'Existing task ledger keeps the deleted project identity'
+);
+select lives_ok(
+  $$update public.tasks
+    set status = 'active', scheduled_date = '2026-09-02', deleted_at = null
+    where id = '46000000-0000-0000-0000-000000000004'$$,
+  'Restoring the trashed task retains its fallback assignment'
+);
+select is(
+  (
+    select tasks.project_id
+    from public.tasks
+    where tasks.id = '46000000-0000-0000-0000-000000000004'
+  ),
+  (
+    select projects.id
+    from public.projects
+    where projects.owner_id = auth.uid() and projects.is_fallback
+  ),
+  'Restored task cannot silently return to the deleted project'
+);
+select lives_ok(
+  $$update public.tasks
+    set actual_duration_minutes = 20
+    where id = '46000000-0000-0000-0000-000000000004'$$,
+  'Restored task can record additional actual time'
+);
+select is(
+  (
+    select entries.project_id
+    from public.task_time_entries as entries
+    where entries.task_id = '46000000-0000-0000-0000-000000000004'
+      and entries.entry_date = '2026-09-02'
+  ),
+  (
+    select projects.id
+    from public.projects
+    where projects.owner_id = auth.uid() and projects.is_fallback
+  ),
+  'New task actual ledger uses fallback rather than the deleted project'
+);
 select lives_ok(
   $$select public.transition_task(
     '40000000-0000-0000-0000-000000000004', 'trashed', null
@@ -636,6 +789,403 @@ select is(
   ),
   1::bigint,
   'Physical task deletion retains dated actual time while clearing task_id'
+);
+
+-- 模拟 20260901 前已落库的 close：raw 项目分钟 = task 40 + Daily exact 60 + 不可进一步归因的 residual 30。
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000001',
+  true
+);
+select lives_ok(
+  $$select public.ensure_daily_entries_for_date('2026-08-29')$$,
+  'Legacy migration fixture materializes the historical Daily entry'
+);
+update public.daily_entries
+set actual_duration_minutes = 60,
+    legacy_project_id = (
+      select id from public.projects where owner_id = auth.uid() and position = 0
+    )
+where owner_id = auth.uid() and entry_date = '2026-08-29';
+
+-- Case 1/2：formal history 必须胜过随后被编辑过的 current Daily entry。
+select lives_ok(
+  $$select public.ensure_daily_entries_for_date('2026-08-27')$$,
+  'History-priority fixture materializes the first historical Daily entry'
+);
+update public.daily_entries
+set actual_duration_minutes = 60,
+    legacy_project_id = (
+      select id from public.projects where owner_id = auth.uid() and position = 0
+    )
+where owner_id = auth.uid() and entry_date = '2026-08-27';
+select lives_ok(
+  $$select public.record_daily_history(
+    (select template_id from public.daily_entries
+      where owner_id = auth.uid() and entry_date = '2026-08-27'),
+    '2026-08-27', 'manual'
+  )$$,
+  'Formal Daily history captures the close-time actual before a later entry edit'
+);
+reset role;
+update public.daily_history_entries
+set legacy_project_id = (
+  select id from public.projects
+  where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0
+)
+where owner_id = '10000000-0000-0000-0000-000000000001'
+  and entry_date = '2026-08-27';
+select is(
+  (select actual_duration_minutes from public.daily_history_entries where entry_date = '2026-08-27'),
+  60,
+  'Formal Daily history preserves the original 60-minute actual'
+);
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000001',
+  true
+);
+update public.daily_entries
+set actual_duration_minutes = 30
+where owner_id = auth.uid() and entry_date = '2026-08-27';
+select is(
+  (select actual_duration_minutes from public.daily_entries where entry_date = '2026-08-27'),
+  30,
+  'Current Daily entry can diverge after history is recorded'
+);
+
+select lives_ok(
+  $$select public.ensure_daily_entries_for_date('2026-08-26')$$,
+  'History-priority fixture materializes the residual Daily entry'
+);
+update public.daily_entries
+set actual_duration_minutes = 60,
+    legacy_project_id = (
+      select id from public.projects where owner_id = auth.uid() and position = 0
+    )
+where owner_id = auth.uid() and entry_date = '2026-08-26';
+select lives_ok(
+  $$select public.record_daily_history(
+    (select template_id from public.daily_entries
+      where owner_id = auth.uid() and entry_date = '2026-08-26'),
+    '2026-08-26', 'manual'
+  )$$,
+  'Formal Daily history is available for the residual close fixture'
+);
+reset role;
+update public.daily_history_entries
+set legacy_project_id = (
+  select id from public.projects
+  where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0
+)
+where owner_id = '10000000-0000-0000-0000-000000000001'
+  and entry_date = '2026-08-26';
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000001',
+  true
+);
+update public.daily_entries
+set actual_duration_minutes = 30
+where owner_id = auth.uid() and entry_date = '2026-08-26';
+
+-- 20260830 的 history 只保存父项 20；旧 close 则已经保存父项 20 + child 40。
+select lives_ok(
+  $$select public.ensure_daily_entries_for_date('2026-08-25')$$,
+  'Parent-only history fixture materializes the pre-20260831 Daily entry'
+);
+update public.daily_entries
+set actual_duration_minutes = 20,
+    legacy_project_id = (
+      select id from public.projects where owner_id = auth.uid() and position = 0
+    )
+where owner_id = auth.uid() and entry_date = '2026-08-25';
+update public.daily_entry_items as items
+set actual_duration_minutes = 40
+from public.daily_entries as entries
+where entries.owner_id = auth.uid() and entries.entry_date = '2026-08-25'
+  and items.owner_id = entries.owner_id and items.entry_id = entries.id
+  and items.template_item_id = '31000000-0000-0000-0000-000000000003';
+select lives_ok(
+  $$select public.record_daily_history(
+    (select template_id from public.daily_entries
+      where owner_id = auth.uid() and entry_date = '2026-08-25'),
+    '2026-08-25', 'manual'
+  )$$,
+  'Current history trigger first records the parent-and-child total for the compatibility fixture'
+);
+reset role;
+update public.daily_history_entries
+set actual_duration_minutes = 20,
+    legacy_project_id = (
+      select id from public.projects
+      where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0
+    )
+where owner_id = '10000000-0000-0000-0000-000000000001'
+  and entry_date = '2026-08-25';
+select is(
+  (select actual_duration_minutes from public.daily_history_entries where entry_date = '2026-08-25'),
+  20,
+  'Compatibility fixture precisely represents the historical parent-only 20-minute history'
+);
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000001',
+  true
+);
+insert into public.tasks(
+  id, project_id, title, scheduled_date, actual_duration_minutes, completed, status
+)
+select
+  '43000000-0000-0000-0000-000000000004', id,
+  'Legacy close task residual', '2026-08-29', 40, false, 'active'
+from public.projects
+where owner_id = auth.uid() and position = 0;
+insert into public.tasks(
+  id, project_id, title, scheduled_date, actual_duration_minutes, completed, status
+)
+select
+  '43000000-0000-0000-0000-000000000006', id,
+  'History-priority exact close task', '2026-08-27', 40, false, 'active'
+from public.projects
+where owner_id = auth.uid() and position = 0;
+insert into public.tasks(
+  id, project_id, title, scheduled_date, actual_duration_minutes, completed, status
+)
+select
+  '43000000-0000-0000-0000-000000000007', id,
+  'History-priority residual close task', '2026-08-26', 40, false, 'active'
+from public.projects
+where owner_id = auth.uid() and position = 0;
+
+reset role;
+alter table public.daily_close_records disable trigger daily_close_capture_project_minutes;
+insert into public.daily_close_records(id, owner_id, close_date, project_minutes)
+select
+  '44000000-0000-0000-0000-000000000004',
+  '10000000-0000-0000-0000-000000000001',
+  '2026-08-29',
+  jsonb_build_object(id::text, 130)
+from public.projects
+where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0;
+insert into public.daily_close_records(id, owner_id, close_date, project_minutes)
+select
+  '44000000-0000-0000-0000-000000000005',
+  '10000000-0000-0000-0000-000000000001',
+  '2026-08-27',
+  jsonb_build_object(id::text, 100)
+from public.projects
+where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0;
+insert into public.daily_close_records(id, owner_id, close_date, project_minutes)
+select
+  '44000000-0000-0000-0000-000000000006',
+  '10000000-0000-0000-0000-000000000001',
+  '2026-08-26',
+  jsonb_build_object(id::text, 130)
+from public.projects
+where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0;
+insert into public.daily_close_records(id, owner_id, close_date, project_minutes)
+select
+  '44000000-0000-0000-0000-000000000007',
+  '10000000-0000-0000-0000-000000000001',
+  '2026-08-25',
+  jsonb_build_object(id::text, 60)
+from public.projects
+where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0;
+alter table public.daily_close_records enable trigger daily_close_capture_project_minutes;
+-- 模拟 migration 的精确窗口：repair 可写经核对的 snapshot，完成后立刻恢复防伪 trigger。
+alter table public.daily_close_records disable trigger daily_close_capture_project_minutes;
+select is(
+  private.exclude_legacy_daily_close_minutes(),
+  4,
+  'Legacy close repair handles entry fallback, total history, and a parent-only history allocation'
+);
+alter table public.daily_close_records enable trigger daily_close_capture_project_minutes;
+select is(
+  (
+    select (records.project_minutes ->> projects.id::text)::integer
+    from public.daily_close_records as records
+    join public.projects on projects.owner_id = records.owner_id and projects.position = 0
+    where records.id = '44000000-0000-0000-0000-000000000004'
+  ),
+  70,
+  'Legacy close retains unclassified task residual while removing Daily from project analytics'
+);
+select is(
+  (
+    select daily_minutes
+    from public.daily_close_record_daily_exclusions
+    where close_record_id = '44000000-0000-0000-0000-000000000004'
+  ),
+  60,
+  'Legacy close audit preserves the exact excluded Daily minutes'
+);
+select is(
+  (
+    select (records.project_minutes ->> projects.id::text)::integer
+    from public.daily_close_records as records
+    join public.projects on projects.owner_id = records.owner_id and projects.position = 0
+    where records.id = '44000000-0000-0000-0000-000000000005'
+  ),
+  40,
+  'History-priority repair uses formal 60 instead of mutable 30 for a fully covered close'
+);
+select is(
+  (
+    select daily_minutes
+    from public.daily_close_record_daily_exclusions
+    where close_record_id = '44000000-0000-0000-0000-000000000005'
+  ),
+  60,
+  'History-priority audit records the immutable 60-minute Daily exclusion'
+);
+select is(
+  (
+    select (records.project_minutes ->> projects.id::text)::integer
+    from public.daily_close_records as records
+    join public.projects on projects.owner_id = records.owner_id and projects.position = 0
+    where records.id = '44000000-0000-0000-0000-000000000006'
+  ),
+  70,
+  'History-priority repair retains the 30-minute task residual after excluding formal Daily 60'
+);
+select is(
+  (
+    select daily_minutes
+    from public.daily_close_record_daily_exclusions
+    where close_record_id = '44000000-0000-0000-0000-000000000006'
+  ),
+  60,
+  'History-priority residual audit never uses the later 30-minute current entry'
+);
+select is(
+  (
+    select (records.project_minutes ->> projects.id::text)::integer
+    from public.daily_close_records as records
+    join public.projects on projects.owner_id = records.owner_id and projects.position = 0
+    where records.id = '44000000-0000-0000-0000-000000000007'
+  ),
+  0,
+  'Parent-only 20 plus child 40 is fully removed from the old 60-minute project close'
+);
+select is(
+  (
+    select daily_minutes
+    from public.daily_close_record_daily_exclusions
+    where close_record_id = '44000000-0000-0000-0000-000000000007'
+  ),
+  60,
+  'Parent-only history audit records the reconstructed 20-plus-40 Daily total'
+);
+select is(
+  private.exclude_legacy_daily_close_minutes(),
+  0,
+  'Legacy close repair is idempotent after its audit row is recorded'
+);
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000001',
+  true
+);
+select lives_ok(
+  $$select public.ensure_daily_entries_for_date('2026-08-24')$$,
+  'Ambiguous parent-only history fixture materializes a Daily entry'
+);
+update public.daily_entries
+set actual_duration_minutes = 20,
+    legacy_project_id = (
+      select id from public.projects where owner_id = auth.uid() and position = 0
+    )
+where owner_id = auth.uid() and entry_date = '2026-08-24';
+update public.daily_entry_items as items
+set actual_duration_minutes = 40
+from public.daily_entries as entries
+where entries.owner_id = auth.uid() and entries.entry_date = '2026-08-24'
+  and items.owner_id = entries.owner_id and items.entry_id = entries.id
+  and items.template_item_id = '31000000-0000-0000-0000-000000000003';
+select lives_ok(
+  $$select public.record_daily_history(
+    (select template_id from public.daily_entries
+      where owner_id = auth.uid() and entry_date = '2026-08-24'),
+    '2026-08-24', 'manual'
+  )$$,
+  'Ambiguous fixture records its initial parent-and-child total'
+);
+reset role;
+update public.daily_history_entries
+set actual_duration_minutes = 20,
+    legacy_project_id = (
+      select id from public.projects
+      where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0
+    )
+where owner_id = '10000000-0000-0000-0000-000000000001'
+  and entry_date = '2026-08-24';
+reset role;
+alter table public.daily_entry_items disable trigger daily_entry_items_touch_updated_at;
+update public.daily_entry_items as items
+set actual_duration_minutes = 50,
+    updated_at = (
+      select history.recorded_at + interval '1 second'
+      from public.daily_history_entries as history
+      where history.owner_id = '10000000-0000-0000-0000-000000000001'
+        and history.entry_date = '2026-08-24'
+    )
+from public.daily_entries as entries
+where entries.owner_id = '10000000-0000-0000-0000-000000000001'
+  and entries.entry_date = '2026-08-24'
+  and items.owner_id = entries.owner_id and items.entry_id = entries.id;
+alter table public.daily_entry_items enable trigger daily_entry_items_touch_updated_at;
+alter table public.daily_close_records disable trigger daily_close_capture_project_minutes;
+insert into public.daily_close_records(id, owner_id, close_date, project_minutes)
+select
+  '44000000-0000-0000-0000-000000000008',
+  '10000000-0000-0000-0000-000000000001',
+  '2026-08-24',
+  jsonb_build_object(id::text, 60)
+from public.projects
+where owner_id = '10000000-0000-0000-0000-000000000001' and position = 0;
+select throws_ok(
+  $$select private.exclude_legacy_daily_close_minutes()$$,
+  '22023',
+  'LEGACY_DAILY_HISTORY_AMBIGUOUS',
+  'A changed child after parent-only history fails safe instead of guessing a project residual'
+);
+alter table public.daily_close_records enable trigger daily_close_capture_project_minutes;
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000001',
+  true
+);
+insert into public.tasks(
+  id, project_id, title, scheduled_date, actual_duration_minutes, completed, status
+)
+select
+  '43000000-0000-0000-0000-000000000005', id,
+  'Post repair close trigger task', '2026-08-28', 17, false, 'active'
+from public.projects
+where owner_id = auth.uid() and position = 0;
+select lives_ok(
+  $$insert into public.daily_close_records(owner_id, close_date, project_minutes)
+    values (auth.uid(), '2026-08-28', '{"forged-project":999999}'::jsonb)$$,
+  'New close records still invoke the server-derived trigger after legacy repair'
+);
+select is(
+  (
+    select (records.project_minutes ->> projects.id::text)::integer
+    from public.daily_close_records as records
+    join public.projects on projects.owner_id = records.owner_id and projects.position = 0
+    where records.owner_id = auth.uid() and records.close_date = '2026-08-28'
+  ),
+  17,
+  'Re-enabled close trigger derives new records from the task ledger'
 );
 
 set local role authenticated;
@@ -675,10 +1225,6 @@ select is(
         select project_id, minutes::bigint as minutes
         from public.task_time_entries
         where owner_id = auth.uid() and entry_date = '2026-08-30'
-        union all
-        select entries.project_id, public.daily_entry_total_actual(entries.id)::bigint
-        from public.daily_entries as entries
-        where entries.owner_id = auth.uid() and entries.entry_date = '2026-08-30'
       ) as sources
       group by sources.project_id
     ) as totals

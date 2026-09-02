@@ -12,6 +12,7 @@ import {
 } from './support/layout';
 import {
   bootstrapLocalAdapterWorkspace,
+  openWorkspaceSection,
   openSeededTaskEditor,
 } from './support/workspace';
 
@@ -83,5 +84,28 @@ test.describe('compact viewport layout matrix', () => {
       page.getByRole('dialog', { name: '编辑任务' }),
       '编辑任务 Dialog',
     );
+  });
+
+  test('keeps Daily draft names and planned minutes editable without horizontal overflow', async ({
+    page,
+  }) => {
+    await openWorkspaceSection(page, '项目');
+    await page.getByRole('button', { name: '新建 Daily', exact: true }).click();
+    await page.getByRole('button', { name: '+ 添加清单项', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: '新建 Daily' });
+    const row = dialog.locator('.daily-draft-row');
+    await expect(row).toBeVisible();
+    await expectElementFullyWithinViewport(page, dialog, '新建 Daily Dialog');
+    await expectElementWithinHorizontalViewport(
+      page,
+      row.getByLabel('清单项名称 1'),
+      'Daily 清单名称输入框',
+    );
+    await expectElementWithinHorizontalViewport(
+      page,
+      row.getByLabel('预计时间 1'),
+      'Daily 预计分钟输入框',
+    );
+    await expectNoUnexpectedHorizontalOverflow(page);
   });
 });

@@ -59,9 +59,6 @@ export function mergeLocalDailyTemplate(current: Daily, next: Daily) {
   }
   const entry: Daily = {
     ...current,
-    projectId: next.projectId,
-    project: next.project,
-    color: next.color,
     title: next.title,
     children: mergedChildren,
   };
@@ -237,7 +234,6 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
               {
                 id: crypto.randomUUID(),
                 dailyId: templateId,
-                projectId: daily.projectId,
                 date,
                 completed: isDailyCompleted(daily),
                 actual: getDailyActualMinutes(daily),
@@ -361,6 +357,41 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
     [updateAnnotationStrokes, updateHighlightColor, updateWorkstationTaskIds],
   );
   /** 在测试适配器中同步模板与当前 snapshot，并模拟服务端 runtime merge。 */
+  const createDailyTemplate = useCallback(
+    async (daily: Daily) => {
+      const template: Daily = {
+        ...daily,
+        children: daily.children.map((item) => ({
+          ...item,
+          id: item.templateItemId ?? item.id ?? crypto.randomUUID(),
+          templateItemId: item.templateItemId ?? item.id,
+          completed: false,
+          actual: 0,
+        })),
+      };
+      const entry: Daily = {
+        ...template,
+        entryId: crypto.randomUUID(),
+        children: template.children.map((item) => ({
+          ...item,
+          id: crypto.randomUUID(),
+          completed: false,
+          actual: 0,
+        })),
+      };
+      updateDailyTemplates((current) => [...current, template]);
+      updateDailyByDate((current) => ({
+        ...current,
+        [selectedDate]: [
+          ...(current[selectedDate] ??
+            createDailyInstance(selectedDate, dailyTemplates)),
+          entry,
+        ],
+      }));
+    },
+    [dailyTemplates, selectedDate, updateDailyByDate, updateDailyTemplates],
+  );
+  /** 在测试适配器中同步模板与当前 snapshot，并模拟服务端 runtime merge。 */
   const saveDailyTemplate = useCallback(
     async (next: Daily) => {
       const currentEntry =
@@ -385,11 +416,96 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
       updateDailyTemplates,
     ],
   );
+  /** 测试适配器在 localStorage 中模拟项目轻量属性更新。 */
+  const updateProject = useCallback(
+    async (projectId: string, name: string, color: string) => {
+      updateProjects((current) =>
+        current.map((project) =>
+          project.id === projectId ? { ...project, name, color } : project,
+        ),
+      );
+    },
+    [updateProjects],
+  );
+  /** 测试适配器模拟非 fallback 项目的归档切换。 */
+  const setProjectArchived = useCallback(
+    async (projectId: string, archived: boolean) => {
+      updateProjects((current) =>
+        current.map((project) =>
+          project.id === projectId && !project.isFallback
+            ? { ...project, status: archived ? 'archived' : 'active' }
+            : project,
+        ),
+      );
+    },
+    [updateProjects],
+  );
+  /** 测试适配器以不可见标记模拟项目软删除，并迁移所有当前 task 到 fallback。 */
+  const deleteProject = useCallback(
+    async (projectId: string) => {
+      const fallback = projects.find((project) => project.isFallback)?.id;
+      if (!fallback) throw new Error('TEST_FALLBACK_PROJECT_NOT_FOUND');
+      updateTasks((current) =>
+        current.map((task) =>
+          task.projectId === projectId ? { ...task, projectId: fallback } : task,
+        ),
+      );
+      updateProjects((current) =>
+        current.map((project) =>
+          project.id === projectId
+            ? { ...project, deletedAt: new Date().toISOString(), status: 'archived' }
+            : project,
+        ),
+      );
+    },
+    [projects, updateProjects, updateTasks],
+  );
+  /** 测试适配器只改模板生命周期，已生成日期实例保持原样。 */
+  const setDailyTemplateStatus = useCallback(
+    async (templateId: string, status: 'archive' | 'restore' | 'delete') => {
+      const now = new Date().toISOString();
+      updateDailyTemplates((current) =>
+        current.map((daily) =>
+          daily.id !== templateId
+            ? daily
+            : status === 'delete'
+              ? { ...daily, active: false, deletedAt: now }
+              : { ...daily, active: status === 'restore', deletedAt: undefined },
+        ),
+      );
+    },
+    [updateDailyTemplates],
+  );
+  /** 测试适配器只改模板清单生命周期，已生成日期实例保持原样。 */
+  const setDailyTemplateItemStatus = useCallback(
+    async (itemId: string, status: 'archive' | 'restore' | 'delete') => {
+      const now = new Date().toISOString();
+      updateDailyTemplates((current) =>
+        current.map((daily) => ({
+          ...daily,
+          children: daily.children.map((item) =>
+            (item.templateItemId ?? item.id) !== itemId
+              ? item
+              : status === 'delete'
+                ? { ...item, active: false, deletedAt: now }
+                : { ...item, active: status === 'restore', deletedAt: undefined },
+          ),
+        })),
+      );
+    },
+    [updateDailyTemplates],
+  );
   const commands = useMemo(
     () => ({
       createTask,
       createProject,
+      updateProject,
+      setProjectArchived,
+      deleteProject,
+      createDailyTemplate,
       saveDailyTemplate,
+      setDailyTemplateStatus,
+      setDailyTemplateItemStatus,
       transitionTask,
       recordDaily,
       closeDay,
@@ -398,9 +514,15 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
       closeDay,
       createProject,
       createTask,
+      createDailyTemplate,
+      deleteProject,
       recordDaily,
       saveDailyTemplate,
+      setDailyTemplateItemStatus,
+      setDailyTemplateStatus,
+      setProjectArchived,
       transitionTask,
+      updateProject,
     ],
   );
 

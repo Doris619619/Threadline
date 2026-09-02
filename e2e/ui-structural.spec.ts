@@ -39,7 +39,7 @@ const primaryWorkspaceViews: WorkspaceViewContract[] = [
     label: '项目',
     heading: '项目',
     panelTestId: 'project-panel',
-    keyControl: (page) => page.getByLabel('新项目名称', { exact: true }),
+    keyControl: (page) => page.getByRole('button', { name: '新建项目', exact: true }),
   },
   {
     label: '洞察',
@@ -60,7 +60,8 @@ const primaryWorkspaceViews: WorkspaceViewContract[] = [
  */
 async function expectPrimaryViewContract(page: Page, view: WorkspaceViewContract) {
   const panel = page.getByTestId(view.panelTestId);
-  await expect(page.getByRole('heading', { level: 1, name: view.heading })).toHaveCount(
+  const headingScope = view.label === '项目' ? panel : page;
+  await expect(headingScope.getByRole('heading', { level: 1, name: view.heading })).toHaveCount(
     1,
   );
   await expect(panel).toHaveCount(1);

@@ -8,11 +8,11 @@
 
 ## Daily
 
-“编辑 Daily”通过一个 RPC 同时修改长期模板和当前日期实例，因此当前界面与未来首次实例化会使用新名称、项目和子项；其他已经生成的日期继续保留原 snapshot。模板结构保存会锁定当前实例，复用稳定子项 ID，并保留服务器上较新的完成、耗时、结果及并发新增子项，避免一次标题或项目编辑覆盖另一端的运行态。日期实例的父级与全部子项也通过单个 RPC 保存，任一字段、子项或父级归属无效时整次写入回滚。客户端提供的子项 ID 必须属于目标模板或目标日期实例，不能借一次保存改写另一条 Daily。
+Daily 完全不属于 Project。旧记录可保留 `legacy_project_id` snapshot 兼容历史，但新模板、新实例不写 `project_id`，也绝不会投递至 fallback 项目。
 
-模板 RPC 一旦提交成功，即使随后刷新 bundle 暂时失败，界面也只提示“已保存、待刷新”，不会把已提交写入误报成可重试的保存失败。当前界面没有子项删除或重排操作；将来增加这两类操作时必须使用显式 tombstone 或 revision 冲突检测，不能把数组缺失直接解释成删除。
+创建模板与 0～N 个清单项经 `create_daily_template_with_entry` 单个 RPC 原子提交；名称、计划清单结构与 `planned_duration_minutes` 经 `update_daily_template_bundle` 保存。计划分钟只属于模板/entry snapshot，实际分钟只属于每日执行 entry，二者不能复用。`ensure_daily_entries_for_date` 只从该次 `INSERT ... RETURNING` 的新 entry 复制模板项：重复 materialize 同一天不会回填后来新增的模板项，未来首次 materialize 才采用最新模板结构。模板编辑只影响未来实例，已生成 entry/history 永远保留原 snapshot。
 
-Daily 父级完成与子项完成是独立状态；总实际耗时统一为父级 actual 加全部 child actual，并用于首页、history、收尾和 analytics。
+模板及清单项的归档、恢复、软删除使用 owner-scoped RPC。归档 Daily 仍可改名和修改既有清单项，但不能追加新清单项；删除是终态，任何过期客户端的恢复、归档或保存请求都不能令模板或清单项复活。Repository 可以保留 deleted child 以维持历史 identity，但模板管理 payload 必须排除 `deletedAt`，同时保留 archived child。`daily_templates`、`daily_template_items`、`daily_entries` 与 `daily_entry_items` 对 authenticated 仅授予 `SELECT`；其写入仅通过固定 `search_path`、检查 `auth.uid()` 且逐行 owner scope 的 SECURITY DEFINER RPC 完成。归档或删除后未来实例化会跳过对应记录；过去 entry/history 不修改。Daily 实际继续进入全局 Daily/总实际，但不再计入项目统计、占比或热力。
 
 ## 实际耗时与历史
 
@@ -20,6 +20,12 @@ Daily 父级完成与子项完成是独立状态；总实际耗时统一为父�
 
 迁移会在短暂阻止任务写入的同一事务中完成旧数据回填和 trigger 安装，避免并发更新穿过迁移窗口。有日期的旧 aggregate 会回填；原本没有业务日期的旧 actual 保持不可精确归因，绝不猜测日期。没有业务日期时禁止新增实际耗时；减少累计耗时只从当前业务日已经存在的账本份额扣减，份额不存在或不足时整次更新被拒绝，绝不会把 legacy 未归因分钟凭空写到当天。首页、项目页、每日收尾和 analytics 在云端即使账本为空也以它为真源；只有显式测试适配器可以回退到 task aggregate。
 
-每日关账仍接收旧客户端的项目分钟参数以保持 RPC 签名兼容，但数据库在 `daily_close_records` 写入前会忽略该参数，并从关账日期的只读任务账本与 Daily 父子总量重新按项目聚合。直接 INSERT/UPDATE 关账记录同样经过该触发器，因此旧缓存、旧客户端或同账号伪造参数都不能持久化错误汇总。
+每日关账仍接收旧客户端的项目分钟参数以保持 RPC 签名兼容，但数据库在 `daily_close_records` 写入前会忽略该参数，并仅从关账日期的只读任务账本按项目聚合；Daily 实际不再参与项目汇总。
+
+历史上由旧 trigger 写入的 close record 可能已经把项目内 Daily 合计混入 `project_minutes`。`20260830` 至 `20260831` 的短暂版本中，`daily_history_entries` 只保存 Daily 父项，而 close trigger 已聚合父项加子项；因此迁移先检查这类 history：仅当父项仍与 history 一致，且所有子项自记录后均未更新时，才用父子总和补齐旧 close 的 Daily 分量。正式 total history 仍优先于随后被修改的 current entry；没有 history 的旧工作区才回退到 `daily_entries.legacy_project_id` 与父子实际。无法证明 parent-only child snapshot 的行会以 `LEGACY_DAILY_HISTORY_AMBIGUOUS` 使迁移整体回滚，等待人工核对，而不是静默猜测或让 Daily 残留在项目统计。其余可验证行与同日 `task_time_entries` 双重核对，仅扣除 Daily 分量，并在 `daily_close_record_daily_exclusions` 留下审计行；repair 阶段会短暂关闭 close capture trigger 以保留经过核对的 task residual，结束后立即重新开启，所以新 close record 仍由 server-derived trigger 保护。close record、任务残差和项目 identity 均保留。若原始分钟无法证明仍能保留 ledger 对应的任务残差，迁移会以 `LEGACY_CLOSE_RECORD_DAILY_TOTAL_MISMATCH` 停止，而不是静默丢失项目历史或让 Daily 再次进入项目统计。
+
+## 项目归档与删除
+
+项目归档只从 active 选择器中隐藏，任务与历史仍保留。删除使用 `soft_delete_project`：fallback 项目禁止归档/删除但可修改名称和颜色；被删除项目的所有当前 task（包括回收站）原子改派到 fallback 项目，确保恢复后不会重新引用隐藏项目；`task_time_entries`、History snapshot 和旧 Daily snapshot 绝不重写，因此历史项目统计继续准确。云端项目读取自动排除 `deleted_at` 非空的行，刷新后不会重新出现。
 
 任务完成或重新打开由数据库触发器在同一事务附加正式 history event。

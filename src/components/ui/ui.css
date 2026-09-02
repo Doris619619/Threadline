@@ -176,7 +176,7 @@
 }
 
 .tl-sidebar-item.is-active {
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-soft);
   font-weight: 600;
 }

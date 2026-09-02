@@ -1,98 +1,106 @@
-/**
- * @fileoverview 回归 Daily 模板 RPC 的 entry/template item 稳定身份映射。
- */
+/** @fileoverview 验证 Daily 模板写入不携带项目，并在一个 RPC payload 中原子提交计划清单。 */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 import type { Daily } from '@/features/daily/types';
 import { SupabaseWorkspaceRepository } from '@/lib/supabase/workspace-repository';
 
-const baseDaily: Daily = {
-  entryId: '10000000-0000-4000-8000-000000000001',
+const daily: Daily = {
   id: '20000000-0000-4000-8000-000000000001',
-  projectId: '30000000-0000-4000-8000-000000000001',
-  project: '测试项目',
-  color: '#2f80ed',
   title: '每日整理',
-  actual: 20,
-  result: '完成',
-  completed: true,
+  actual: 0,
+  result: '',
+  completed: false,
   children: [
     {
-      id: '40000000-0000-4000-8000-000000000001',
+      templateItemId: '40000000-0000-4000-8000-000000000001',
       title: '整理收件箱',
-      completed: true,
-      actual: 15,
+      plannedDurationMinutes: 30,
+      completed: false,
+      actual: 0,
     },
   ],
 };
 
-/** 创建只记录 RPC 参数的 Supabase client。 */
-function createRpcClient() {
-  const rpc = vi.fn(async () => ({ data: { id: baseDaily.id }, error: null }));
-  return {
-    rpc,
-    client: { rpc } as unknown as SupabaseClient,
-  };
+/** 构造只记录 RPC 参数的 repository client。 */
+function client() {
+  const rpc = vi.fn(async () => ({ data: { id: daily.id }, error: null }));
+  return { rpc, client: { rpc } as unknown as SupabaseClient };
 }
 
 describe('SupabaseWorkspaceRepository Daily template command', () => {
-  it('reuses an entry item id as the stable template item mapping', async () => {
-    const { client, rpc } = createRpcClient();
-    const repository = new SupabaseWorkspaceRepository(client);
-
-    await repository.updateDailyTemplate(baseDaily);
-
-    expect(rpc).toHaveBeenCalledWith('update_daily_template_bundle', {
-      p_template_id: baseDaily.id,
-      p_entry_id: baseDaily.entryId,
-      p_project_id: baseDaily.projectId,
-      p_title: baseDaily.title,
-      p_template_items: [
+  it('sends only template identity, title and planned items when updating a Daily', async () => {
+    const fixture = client();
+    const repository = new SupabaseWorkspaceRepository(fixture.client);
+    await repository.updateDailyTemplate(daily);
+    expect(fixture.rpc).toHaveBeenCalledWith('update_daily_template_bundle', {
+      p_template_id: daily.id,
+      p_title: daily.title,
+      p_items: [
         {
-          id: baseDaily.children[0].id,
-          title: baseDaily.children[0].title,
+          id: daily.children[0].templateItemId,
+          title: '整理收件箱',
           position: 0,
-        },
-      ],
-      p_entry_items: [
-        {
-          id: baseDaily.children[0].id,
-          template_item_id: baseDaily.children[0].id,
-          title: baseDaily.children[0].title,
-          position: 0,
-          completed: true,
-          actual: 15,
+          planned_duration_minutes: 30,
         },
       ],
     });
   });
 
-  it('keeps an existing template item mapping unchanged', async () => {
-    const { client, rpc } = createRpcClient();
-    const repository = new SupabaseWorkspaceRepository(client);
-    const templateItemId = '50000000-0000-4000-8000-000000000001';
-
-    await repository.updateDailyTemplate({
-      ...baseDaily,
-      children: [{ ...baseDaily.children[0], templateItemId }],
-    });
-
-    const parameters = rpc.mock.calls[0][1];
-    expect(parameters.p_template_items[0].id).toBe(templateItemId);
-    expect(parameters.p_entry_items[0].template_item_id).toBe(templateItemId);
-  });
-
-  it('fails closed before RPC when an entry child has no stable id', async () => {
-    const { client, rpc } = createRpcClient();
-    const repository = new SupabaseWorkspaceRepository(client);
-
-    await expect(
-      repository.updateDailyTemplate({
-        ...baseDaily,
-        children: [{ ...baseDaily.children[0], id: undefined }],
+  it('creates a Daily and all checklist items through one atomic RPC', async () => {
+    const fixture = client();
+    const repository = new SupabaseWorkspaceRepository(fixture.client);
+    await repository.createDailyTemplate(daily, '2026-09-01');
+    expect(fixture.rpc).toHaveBeenCalledWith(
+      'create_daily_template_with_entry',
+      expect.objectContaining({
+        p_template_id: daily.id,
+        p_title: daily.title,
+        p_entry_date: '2026-09-01',
+        p_items: [
+          expect.objectContaining({
+            title: '整理收件箱',
+            planned_duration_minutes: 30,
+          }),
+        ],
       }),
-    ).rejects.toThrow('update Daily template: child missing entry item id');
-    expect(rpc).not.toHaveBeenCalled();
+    );
+  });
+
+  it('excludes deleted children but retains archived children in the template RPC payload', async () => {
+    const fixture = client();
+    const repository = new SupabaseWorkspaceRepository(fixture.client);
+    await repository.updateDailyTemplate({
+      ...daily,
+      children: [
+        daily.children[0],
+        {
+          templateItemId: '40000000-0000-4000-8000-000000000002',
+          title: '已归档但仍保留',
+          plannedDurationMinutes: 20,
+          active: false,
+          completed: false,
+          actual: 0,
+        },
+        {
+          templateItemId: '40000000-0000-4000-8000-000000000003',
+          title: '已删除且不得回写',
+          plannedDurationMinutes: 15,
+          deletedAt: '2026-09-02T00:00:00.000Z',
+          completed: false,
+          actual: 0,
+        },
+      ],
+    });
+    expect(fixture.rpc).toHaveBeenCalledWith('update_daily_template_bundle', {
+      p_template_id: daily.id,
+      p_title: daily.title,
+      p_items: [
+        expect.objectContaining({ id: daily.children[0].templateItemId }),
+        expect.objectContaining({
+          id: '40000000-0000-4000-8000-000000000002',
+        }),
+      ],
+    });
   });
 });

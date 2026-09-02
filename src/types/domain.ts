@@ -15,6 +15,7 @@ export type Project = {
   createdAt: string;
   updatedAt?: string;
   archivedAt?: string;
+  deletedAt?: string;
 };
 export type Task = {
   id: Id;

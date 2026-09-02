@@ -28,8 +28,20 @@ export type CloseAction = {
 };
 export type WorkspaceCommands = {
   createProject: (project: Project) => Promise<Project>;
+  updateProject: (projectId: string, name: string, color: string) => Promise<void>;
+  setProjectArchived: (projectId: string, archived: boolean) => Promise<void>;
+  deleteProject: (projectId: string) => Promise<void>;
   createTask: (task: Task) => Promise<Task>;
+  createDailyTemplate: (daily: Daily) => Promise<void>;
   saveDailyTemplate: (daily: Daily) => Promise<void>;
+  setDailyTemplateStatus: (
+    templateId: string,
+    status: 'archive' | 'restore' | 'delete',
+  ) => Promise<void>;
+  setDailyTemplateItemStatus: (
+    itemId: string,
+    status: 'archive' | 'restore' | 'delete',
+  ) => Promise<void>;
   transitionTask: (
     taskId: string,
     transition: TaskTransition,

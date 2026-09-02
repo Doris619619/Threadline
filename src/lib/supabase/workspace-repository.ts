@@ -49,6 +49,7 @@ function mapProject(row: JsonRecord): Project {
     createdAt: fromDatabaseInstant(String(row.created_at)) ?? String(row.created_at),
     updatedAt: fromDatabaseInstant(String(row.updated_at)),
     archivedAt: fromDatabaseInstant((row.archived_at as string | null) ?? null),
+    deletedAt: fromDatabaseInstant((row.deleted_at as string | null) ?? null),
   };
 }
 
@@ -96,17 +97,6 @@ function mapTaskTimeEntry(row: JsonRecord): TaskTimeEntry {
   };
 }
 
-/** 复用服务端 entry item UUID 建立稳定模板映射；缺少 entry identity 时拒绝写入。 */
-function prepareDailyTemplateChildren(daily: Daily) {
-  return daily.children.map((item) => {
-    if (!item.id) throw new Error('update Daily template: child missing entry item id');
-    return {
-      ...item,
-      templateItemId: item.templateItemId ?? item.id,
-    };
-  });
-}
-
 /** 将 UI task 映射成数据库 row；本地墙钟字段绝不经过 Date。 */
 function taskRow(task: Task) {
   return {
@@ -140,10 +130,9 @@ function mapDailyBundle(
 ): DailyBundle {
   const dailyTemplates = templates.map((template) => ({
     id: String(template.id),
-    projectId: String(template.project_id),
-    project: '',
-    color: '',
     title: String(template.title),
+    active: Boolean(template.is_active),
+    deletedAt: fromDatabaseInstant((template.deleted_at as string | null) ?? null),
     actual: 0,
     result: '',
     completed: false,
@@ -154,6 +143,9 @@ function mapDailyBundle(
         id: String(item.id),
         templateItemId: String(item.id),
         title: String(item.title),
+        plannedDurationMinutes: Number(item.planned_duration_minutes ?? 0),
+        active: Boolean(item.is_active),
+        deletedAt: fromDatabaseInstant((item.deleted_at as string | null) ?? null),
         completed: false,
         actual: 0,
       })),
@@ -164,9 +156,6 @@ function mapDailyBundle(
     (dailyByDate[date] ??= []).push({
       entryId: String(entry.id),
       id: String(entry.template_id),
-      projectId: String(entry.project_id),
-      project: String(entry.project_name_snapshot),
-      color: String(entry.color_snapshot),
       title: String(entry.title_snapshot),
       actual: Number(entry.actual_duration_minutes ?? 0),
       result: String(entry.result ?? ''),
@@ -179,6 +168,7 @@ function mapDailyBundle(
           templateItemId:
             item.template_item_id === null ? undefined : String(item.template_item_id),
           title: String(item.title_snapshot),
+          plannedDurationMinutes: Number(item.planned_duration_minutes_snapshot ?? 0),
           completed: Boolean(item.completed),
           actual: Number(item.actual_duration_minutes ?? 0),
         })),
@@ -200,7 +190,11 @@ export class SupabaseWorkspaceRepository {
 
   /** 查询当前 owner 的全部项目。 */
   async listProjects(): Promise<Project[]> {
-    const response = await this.client.from('projects').select('*').order('position');
+    const response = await this.client
+      .from('projects')
+      .select('*')
+      .is('deleted_at', null)
+      .order('position');
     return (assertResponse('list projects', response) as JsonRecord[]).map(mapProject);
   }
 
@@ -220,6 +214,37 @@ export class SupabaseWorkspaceRepository {
       .select()
       .single();
     return mapProject(assertResponse('save project', response) as JsonRecord);
+  }
+
+  /** 修改项目名称与识别色；fallback 约束由 owner-scoped RPC 统一执行。 */
+  async updateProjectDetails(
+    projectId: string,
+    name: string,
+    color: string,
+  ): Promise<Project> {
+    const response = await this.client.rpc('update_project_details', {
+      p_project_id: projectId,
+      p_name: name,
+      p_color: color,
+    });
+    return mapProject(assertResponse('update project details', response) as JsonRecord);
+  }
+
+  /** 归档或恢复非 fallback 项目，保留任务及历史引用。 */
+  async setProjectArchived(projectId: string, archived: boolean): Promise<Project> {
+    const response = await this.client.rpc('set_project_archived', {
+      p_project_id: projectId,
+      p_archived: archived,
+    });
+    return mapProject(assertResponse('set project archived', response) as JsonRecord);
+  }
+
+  /** 软删除项目并由数据库把所有当前 task 转至 fallback，绝不改写历史账本。 */
+  async softDeleteProject(projectId: string): Promise<Project> {
+    const response = await this.client.rpc('soft_delete_project', {
+      p_project_id: projectId,
+    });
+    return mapProject(assertResponse('soft delete project', response) as JsonRecord);
   }
 
   /** 查询 authoritative all-task identity set，供业务视图和 Annotation reconciliation 共用。 */
@@ -274,18 +299,22 @@ export class SupabaseWorkspaceRepository {
     return this.listDailyBundle();
   }
 
-  /** 原子创建长期模板及当前业务日期 entry，避免跨设备看到半完成 Daily。 */
-  async createDailyTemplate(daily: Daily, date: string): Promise<DailyBundle> {
+  /** 原子创建长期模板及当前业务日期 entry；终态 child 不得进入模板管理写入。 */
+  async createDailyTemplate(daily: Daily, date: string): Promise<void> {
     assertResponse(
       'create Daily template',
       await this.client.rpc('create_daily_template_with_entry', {
         p_template_id: daily.id,
-        p_project_id: daily.projectId,
         p_title: daily.title,
+        p_items: daily.children.filter((item) => !item.deletedAt).map((item, position) => ({
+          id: item.templateItemId ?? item.id ?? crypto.randomUUID(),
+          title: item.title,
+          position,
+          planned_duration_minutes: item.plannedDurationMinutes,
+        })),
         p_entry_date: toDatabaseDate(date),
       }),
     );
-    return this.listDailyBundle();
   }
 
   /** 查询模板、日期实例及两类 item，并在 mapper 中保持 ID 边界。 */
@@ -311,7 +340,6 @@ export class SupabaseWorkspaceRepository {
       'save Daily entry',
       await this.client.rpc('save_daily_entry_bundle', {
         p_entry_id: daily.entryId,
-        p_project_id: daily.projectId,
         p_title: daily.title,
         p_completed: daily.completed,
         p_actual_duration_minutes: daily.actual,
@@ -328,29 +356,18 @@ export class SupabaseWorkspaceRepository {
     );
   }
 
-  /** 同一 RPC 保存模板结构并 merge 当前 snapshot，保留服务端子项运行态。 */
+  /** 原子保存模板名称和非删除清单结构；历史 entry 保持既有 snapshot，归档 child 仍保留。 */
   async updateDailyTemplate(daily: Daily): Promise<void> {
-    if (!daily.entryId) throw new Error('update Daily template: missing entryId');
-    const children = prepareDailyTemplateChildren(daily);
     assertResponse(
       'update Daily template',
       await this.client.rpc('update_daily_template_bundle', {
         p_template_id: daily.id,
-        p_entry_id: daily.entryId,
-        p_project_id: daily.projectId,
         p_title: daily.title,
-        p_template_items: children.map((item, position) => ({
-          id: item.templateItemId,
+        p_items: daily.children.filter((item) => !item.deletedAt).map((item, position) => ({
+          id: item.templateItemId ?? item.id,
           title: item.title,
           position,
-        })),
-        p_entry_items: children.map((item, position) => ({
-          id: item.id,
-          template_item_id: item.templateItemId,
-          title: item.title,
-          position,
-          completed: item.completed,
-          actual: item.actual,
+          planned_duration_minutes: item.plannedDurationMinutes,
         })),
       }),
     );
@@ -382,11 +399,38 @@ export class SupabaseWorkspaceRepository {
       (row) => ({
         id: String(row.id),
         dailyId: String(row.template_id),
-        projectId: String(row.project_id),
         date: String(row.entry_date),
         completed: Boolean(row.completed),
         actual: Number(row.actual_duration_minutes ?? 0),
         result: String(row.result ?? ''),
+      }),
+    );
+  }
+
+  /** 将 Daily 整体归档、恢复或软删除；未来 entry 才会受影响。 */
+  async setDailyTemplateStatus(
+    templateId: string,
+    status: 'archive' | 'restore' | 'delete',
+  ) {
+    assertResponse(
+      'set Daily template status',
+      await this.client.rpc('set_daily_template_status', {
+        p_template_id: templateId,
+        p_status: status,
+      }),
+    );
+  }
+
+  /** 将单个 Daily 清单项归档、恢复或软删除，不修改过去 entry snapshot。 */
+  async setDailyTemplateItemStatus(
+    itemId: string,
+    status: 'archive' | 'restore' | 'delete',
+  ) {
+    assertResponse(
+      'set Daily template item status',
+      await this.client.rpc('set_daily_template_item_status', {
+        p_template_item_id: itemId,
+        p_status: status,
       }),
     );
   }

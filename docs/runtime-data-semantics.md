@@ -27,7 +27,7 @@ Supabase 是 Project、Task、Daily template/entry/history、HistoryEvent、Clos
 
 只有 Annotation、highlight color、Electron 窗口 geometry 等设备/UI 状态继续使用 `usePersistentState`。显式 `NEXT_PUBLIC_THREADLINE_TEST_ADAPTER=true` 只用于 Playwright/Electron 自动化，Vercel 禁止启用；缺少云配置不会自动切换该适配器。
 
-Daily template 与日期 entry 是不同身份。`daily_entries.id` 是日期实例 UUID，`template_id` 指向长期身份；UI mapper 仍让 `Daily.id` 表示 template UUID，并把 entry/item UUID 保存在内部字段。某日第一次读取会幂等 materialize 当前 active template snapshot；既有日期不会被未来模板修改覆盖。
+Daily 完全不属于 Project，旧 `legacy_project_id` 只用于历史兼容，新的 template、entry 与 history 不写项目绑定。Daily template 与日期 entry 是不同身份：`daily_entries.id` 是日期实例 UUID，`template_id` 指向长期身份；UI mapper 仍让 `Daily.id` 表示 template UUID，并把 entry/item UUID 保存在内部字段。某日第一次读取会幂等 materialize 当前 active template snapshot；模板的名称、清单结构、计划分钟及归档只影响未来实例，既有日期 entry/history 不会被覆盖。Daily 的实际投入仅贡献全局 Daily/总实际，不进入项目汇总或项目热力。
 
 ## 日期化批注
 

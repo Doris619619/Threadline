@@ -77,6 +77,7 @@ export default defineConfig({
     mobileLayoutProject('ui-layout-mobile-430', 430, 932),
     mobileLayoutProject('ui-layout-mobile-390', 390, 844),
     mobileLayoutProject('ui-layout-mobile-375', 375, 667),
+    mobileLayoutProject('ui-layout-mobile-320', 320, 568),
   ],
   ...(usesExternalTestServer
     ? {}

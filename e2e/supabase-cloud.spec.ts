@@ -33,8 +33,9 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
   await page.getByRole('button', { name: '项目', exact: true }).click();
   await expect(page.locator('.project-panel')).toBeVisible();
   await expect(
-    page.getByRole('button', { name: '【工作】', exact: true }),
+    page.getByTestId('project-panel').getByRole('heading', { level: 1, name: '项目' }),
   ).toBeVisible();
+  await expect(page.getByRole('button', { name: '新建项目', exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: '首页', exact: true }).click();
   const quickPanel = page.locator('.quick-panel');

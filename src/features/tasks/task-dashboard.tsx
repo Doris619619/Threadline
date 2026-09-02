@@ -11,7 +11,7 @@ import { Surface } from '@/components/ui/surface';
 import { DailyPanel } from '@/features/daily/daily-panel';
 import { CalendarPanel } from '@/features/calendar/calendar-panel';
 import { InsightsPanel } from '@/features/insights/insights-panel';
-import { ProjectPanel } from '@/features/projects/project-panel';
+import { ProjectManagementPage } from '@/features/projects/project-management-page';
 import { RhythmPanel } from '@/features/rhythm/rhythm-panel';
 import { SettingsPanel } from '@/features/settings/settings-panel';
 import { useWorkspaceData } from '@/features/workspace/workspace-data-provider';
@@ -53,10 +53,9 @@ export function TaskDashboard() {
     taskTimeEntriesAuthoritative,
     updateTasks,
     projects: workspaceProjects,
-    updateProjects,
     dailyByDate,
+    dailyTemplates,
     updateDailyByDate,
-    updateDailyTemplates,
     dailyHistory,
     closeRecords,
     annotationStrokes,
@@ -66,7 +65,13 @@ export function TaskDashboard() {
     highlightColor,
     updateHighlightColor,
     createTask,
+    createDailyTemplate,
     createProject,
+    updateProject,
+    setProjectArchived,
+    deleteProject,
+    setDailyTemplateStatus,
+    setDailyTemplateItemStatus,
     saveDailyTemplate,
     transitionTask,
     recordDaily,
@@ -171,7 +176,6 @@ export function TaskDashboard() {
 
   const closeDay = useCloseDay({
     closeDay: commitCloseDay,
-    daily,
     projects: workspaceProjects,
     selectedDate,
     shown,
@@ -241,14 +245,17 @@ export function TaskDashboard() {
     );
   if (active === 'projects')
     return (
-      <ProjectPanel
-        items={workspaceProjects}
-        tasks={tasks}
-        taskTimeEntries={taskTimeEntries}
-        taskTimeEntriesAuthoritative={taskTimeEntriesAuthoritative}
-        daily={daily}
-        dailyHistory={dailyHistory}
-        onChange={updateProjects}
+      <ProjectManagementPage
+        projects={workspaceProjects}
+        dailyTemplates={dailyTemplates}
+        onCreateProject={createProject}
+        onUpdateProject={updateProject}
+        onSetProjectArchived={setProjectArchived}
+        onDeleteProject={deleteProject}
+        onCreateDaily={createDailyTemplate}
+        onSaveDaily={saveDailyTemplate}
+        onSetDailyStatus={setDailyTemplateStatus}
+        onSetDailyItemStatus={setDailyTemplateItemStatus}
       />
     );
   if (active === 'calendar')
@@ -444,18 +451,9 @@ export function TaskDashboard() {
               items={daily}
               history={dailyHistory}
               date={selectedDate}
-              projects={workspaceProjects}
               onChange={(items) =>
                 updateDailyByDate((current) => ({ ...current, [selectedDate]: items }))
               }
-              onAdd={(item) => {
-                updateDailyTemplates((current) => [...current, item]);
-                updateDailyByDate((current) => {
-                  const existing = current[selectedDate] ?? [];
-                  return { ...current, [selectedDate]: [...existing, item] };
-                });
-              }}
-              onUpdateTemplate={saveDailyTemplate}
               onRecord={(entry) =>
                 void recordDaily(entry.dailyId, entry.date).catch(() => undefined)
               }

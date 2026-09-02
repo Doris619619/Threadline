@@ -1,7 +1,6 @@
 /** @fileoverview 验证每日收尾按业务日 ledger 汇总任务耗时，并继续合并 Daily 父子耗时。 */
 
 import { describe, expect, it, vi } from 'vitest';
-import type { Daily } from '@/features/daily/types';
 import { useCloseDay } from '@/features/tasks/hooks/use-close-day';
 import type { Project, Task, TaskTimeEntry } from '@/types/domain';
 
@@ -53,26 +52,11 @@ const taskTimeEntries: TaskTimeEntry[] = [
   },
 ];
 
-const daily: Daily[] = [
-  {
-    id: 'daily-1',
-    projectId: 'course',
-    project: '课程',
-    color: '#8b7cf6',
-    title: '复习',
-    actual: 10,
-    result: '',
-    completed: false,
-    children: [{ title: '错题', completed: false, actual: 20 }],
-  },
-];
-
 describe('close-day project minutes', () => {
   it('uses only selected-date task ledger entries instead of the movable task aggregate', async () => {
     const closeDay = vi.fn(async () => undefined);
     const submit = useCloseDay({
       closeDay,
-      daily,
       projects,
       selectedDate: '2026-08-31',
       shown,
@@ -85,7 +69,7 @@ describe('close-day project minutes', () => {
 
     expect(closeDay).toHaveBeenCalledWith('2026-08-31', [], {
       research: 80,
-      course: 30,
+      course: 0,
     });
   });
 
@@ -93,7 +77,6 @@ describe('close-day project minutes', () => {
     const closeDay = vi.fn(async () => undefined);
     const submit = useCloseDay({
       closeDay,
-      daily: [],
       projects,
       selectedDate: '2026-09-01',
       shown,
@@ -111,7 +94,6 @@ describe('close-day project minutes', () => {
     const closeDay = vi.fn(async () => undefined);
     const submit = useCloseDay({
       closeDay,
-      daily: [],
       projects,
       selectedDate: '2026-08-31',
       shown,
