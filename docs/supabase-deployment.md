@@ -5,7 +5,7 @@
 ## 需要在 Supabase 完成的操作
 
 1. 创建 **Production Supabase** 项目；如需安全使用 Vercel Preview，再创建独立 staging/test 项目。记录各自 Project URL 和 `sb_publishable_...` key，绝不复制 `service_role`、`sb_secret_` 或数据库密码到前端环境变量。
-2. 在 Authentication 中启用 Email/password。Threadline 客户端只有登录表单，没有公开注册表单；测试/正式账号由项目管理员创建。配置 Production 的 Site URL 和允许的 Vercel Production HTTPS redirect URL。
+8.2. 在 Authentication 中启用 Email/password。Threadline 客户端提供 iOS 风格欢迎页与登录输入表单，没有公开注册表单；测试/正式账号由项目管理员创建。配置 Production 的 Site URL 和允许的 Vercel Production HTTPS redirect URL。
 3. 在 Database Extensions / Cron 中先启用 `pg_cron`。迁移只会在检测到扩展时创建 `threadline-purge-expired-tasks` job；若扩展在迁移后才启用，需重新执行迁移中的 `cron.schedule(...)` 块。
 4. 在本机登录并关联项目，然后推送迁移：
 

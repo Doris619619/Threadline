@@ -13,6 +13,8 @@ import {
   type FormEvent,
   type ReactNode,
 } from 'react';
+import Image from 'next/image';
+import { ArrowLeft, Eye, EyeOff, Lock, Mail, X } from 'lucide-react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { Session, SupabaseClient, User } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -63,10 +65,12 @@ function CloudConfigurationRequired({ reason }: { reason: string }) {
   );
 }
 
-/** 提供 Email/password 登录表单，不在客户端保存密码或服务端 key。 */
+/** 提供 Email/password 登录门禁，支持 P1（欢迎页）与 P2（登录输入页）双向交互。 */
 function LoginGate({ client }: { client: SupabaseClient }) {
+  const [view, setView] = useState<'welcome' | 'form'>('welcome');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
 
@@ -82,35 +86,192 @@ function LoginGate({ client }: { client: SupabaseClient }) {
 
   return (
     <main className="auth-gate">
-      <form className="auth-card" onSubmit={(event) => void submit(event)}>
-        <p className="auth-eyebrow">Threadline Cloud</p>
-        <h1>登录我的工作台</h1>
-        <p>Web/PWA 与 Windows 使用同一账号同步任务、Daily、工作站与节律。</p>
-        <label>
-          邮箱
-          <input
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </label>
-        <label>
-          密码
-          <input
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </label>
-        {error && <p className="auth-error">{error}</p>}
-        <button type="submit" disabled={submitting}>
-          {submitting ? '正在登录…' : '登录'}
-        </button>
-      </form>
+      <div className="auth-viewport">
+        {view === 'welcome' ? (
+          <section className="auth-view auth-view-welcome" aria-label="欢迎页面">
+            <header className="auth-nav-bar">
+              <button
+                type="button"
+                className="auth-icon-btn"
+                aria-label="关闭"
+                onClick={() => setView('form')}
+              >
+                <X size={18} strokeWidth={2.2} />
+              </button>
+            </header>
+
+            <div className="auth-illustration-wrap">
+              <Image
+                src="/auth/welcome-illustration.jpg"
+                alt="欢迎来到 Threadline"
+                fill
+                priority
+                className="auth-illustration-img"
+                sizes="(max-width: 440px) 100vw, 440px"
+              />
+            </div>
+
+            <div className="auth-content-block">
+              <h1 className="auth-headline">欢迎回到 Threadline</h1>
+              <p className="auth-subline">使用指定账号继续，快速进入你的工作台。</p>
+            </div>
+
+            <div className="auth-action-block">
+              <div className="auth-pill-divider" aria-hidden="true" />
+              <button
+                type="button"
+                className="auth-primary-btn"
+                onClick={() => setView('form')}
+              >
+                使用指定账号继续
+              </button>
+            </div>
+
+            <footer className="auth-footer-card">
+              <p className="auth-footer-title">没有账号？</p>
+              <p className="auth-footer-prompt">请联系开发者</p>
+              <a
+                href="mailto:124090348@link.cuhk.edu.cn"
+                className="auth-footer-link"
+              >
+                124090348@link.cuhk.edu.cn
+              </a>
+            </footer>
+          </section>
+        ) : (
+          <section className="auth-view auth-view-form" aria-label="登录页面">
+            <header className="auth-nav-bar">
+              <button
+                type="button"
+                className="auth-icon-btn"
+                aria-label="返回"
+                onClick={() => setView('welcome')}
+              >
+                <ArrowLeft size={18} strokeWidth={2.2} />
+              </button>
+              <span className="auth-nav-title">登录</span>
+            </header>
+
+            <div className="auth-bg-illustration-wrap" aria-hidden="true">
+              <Image
+                src="/auth/login-illustration.jpg"
+                alt=""
+                fill
+                priority
+                className="auth-bg-illustration-img"
+                sizes="(max-width: 440px) 100vw, 440px"
+              />
+            </div>
+
+            <div className="auth-brand-badge">
+              <Image
+                src="/icon.png"
+                alt="Threadline"
+                width={40}
+                height={40}
+                className="auth-brand-logo"
+                unoptimized
+              />
+              <span className="auth-brand-name">Threadline</span>
+            </div>
+
+            <div className="auth-form-header">
+              <h1 className="auth-headline">登录我的工作台</h1>
+              <p className="auth-subline">请输入账号信息以继续。</p>
+            </div>
+
+            <form className="auth-form-card" onSubmit={(event) => void submit(event)}>
+              <label className="auth-field-label" htmlFor="auth-email">
+                邮箱
+              </label>
+              <div className="auth-input-group">
+                <span className="auth-input-icon" aria-hidden="true">
+                  <Mail size={18} strokeWidth={1.8} />
+                </span>
+                <input
+                  id="auth-email"
+                  type="email"
+                  className="auth-text-input"
+                  placeholder="邮箱"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </div>
+
+              <label className="auth-field-label" htmlFor="auth-password">
+                密码
+              </label>
+              <div className="auth-input-group">
+                <span className="auth-input-icon" aria-hidden="true">
+                  <Lock size={18} strokeWidth={1.8} />
+                </span>
+                <input
+                  id="auth-password"
+                  type={showPassword ? 'text' : 'password'}
+                  className="auth-text-input"
+                  placeholder="密码"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                />
+                <button
+                  type="button"
+                  className="auth-input-action-btn"
+                  aria-label={showPassword ? '隐藏密码' : '显示密码'}
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff size={18} strokeWidth={1.8} />
+                  ) : (
+                    <Eye size={18} strokeWidth={1.8} />
+                  )}
+                </button>
+              </div>
+
+              <div className="auth-form-auxiliary">
+                <a
+                  href="mailto:124090348@link.cuhk.edu.cn?subject=%E5%BF%98%E8%AE%B0%E5%AF%86%E7%A0%81%E7%94%B3%E8%AF%B7"
+                  className="auth-auxiliary-link"
+                >
+                  忘记密码？
+                </a>
+              </div>
+
+              {error && (
+                <p className="auth-error" role="alert">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className="auth-primary-btn"
+                disabled={submitting}
+              >
+                {submitting ? '正在登录…' : '登录'}
+              </button>
+            </form>
+
+            <footer className="auth-form-footer">
+              <div className="auth-footer-divider">
+                <span className="auth-divider-line" />
+                <span className="auth-divider-text">没有账号？</span>
+                <span className="auth-divider-line" />
+              </div>
+              <p className="auth-footer-prompt">请联系开发者</p>
+              <a
+                href="mailto:124090348@link.cuhk.edu.cn"
+                className="auth-footer-link"
+              >
+                124090348@link.cuhk.edu.cn
+              </a>
+            </footer>
+          </section>
+        )}
+      </div>
     </main>
   );
 }

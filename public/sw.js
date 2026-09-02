@@ -1,7 +1,7 @@
 /** Service Worker：缓存精确的应用壳与 Next 静态资源，绝不以 HTML 响应脚本或样式请求。 */
 
-const CACHE = 'threadline-shell-v2';
-const SHELL = ['/', '/manifest.webmanifest', '/icon.svg'];
+const CACHE = 'threadline-shell-v3';
+const SHELL = ['/', '/manifest.webmanifest', '/icon.svg', '/icon.png', '/auth/welcome-illustration.jpg', '/auth/login-illustration.jpg'];
 const PRECACHE_MANIFEST = '/sw-precache.json';
 
 /** 读取构建生成的 Next asset 清单；缺失时保留可运行的最小应用壳。 */

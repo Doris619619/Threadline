@@ -23,7 +23,9 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
 }) => {
   await page.goto('/');
 
-  // 首屏必须是 Auth gate，证明此 suite 没有走 local test adapter。
+  // 首屏在未登录时展示欢迎页，点击继续后进入登录表单
+  await expect(page.getByRole('heading', { name: '欢迎回到 Threadline' })).toBeVisible();
+  await page.getByRole('button', { name: '使用指定账号继续' }).click();
   await expect(page.getByRole('heading', { name: '登录我的工作台' })).toBeVisible();
   await page.getByLabel('邮箱').fill(email);
   await page.getByLabel('密码').fill(password);
@@ -57,5 +59,5 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
     .click();
   await expect(page.getByRole('heading', { name: '隐私', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '退出登录', exact: true }).click();
-  await expect(page.getByRole('heading', { name: '登录我的工作台' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '欢迎回到 Threadline' })).toBeVisible();
 });

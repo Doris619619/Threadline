@@ -1,13 +1,20 @@
-/** 文件用途：定义云配置、会话恢复和 Email/password 登录门禁样式。 */
+/** 文件用途：定义云配置、会话恢复以及符合 iOS / P1 / P2 设计规范的登录门禁样式。 */
 
 .auth-gate {
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: env(safe-area-inset-top, 16px) env(safe-area-inset-right, 16px)
+    env(safe-area-inset-bottom, 16px) env(safe-area-inset-left, 16px);
   background: var(--background);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  box-sizing: border-box;
 }
 
+/* 兼容未配置云工作区时的简单提示卡片 */
 .auth-card {
   width: min(420px, 100%);
   display: grid;
@@ -19,31 +26,6 @@
   box-shadow: var(--shadow-card);
 }
 
-.auth-card label {
-  display: grid;
-  gap: 6px;
-  font-size: var(--text-label-size);
-  color: var(--text-secondary);
-}
-
-.auth-card input {
-  min-height: var(--touch-target);
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  background: var(--surface);
-  color: inherit;
-}
-
-.auth-card button {
-  min-height: var(--touch-target);
-  border: 0;
-  border-radius: var(--radius-control);
-  background: var(--accent);
-  color: var(--text-on-accent);
-  font-weight: 600;
-}
-
 .auth-eyebrow {
   color: var(--accent);
   font-size: var(--text-caption-size);
@@ -52,6 +34,418 @@
   text-transform: uppercase;
 }
 
+/* 视口容器：限制在标准 iPhone 宽度 430px 内，自适应桌面居中和手机全屏体验 */
+.auth-viewport {
+  width: min(430px, 100%);
+  min-height: 640px;
+  max-height: 920px;
+  background: #ffffff;
+  border-radius: 36px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 480px) {
+  .auth-gate {
+    padding: 0;
+    background: #ffffff;
+  }
+  .auth-viewport {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+/* 通用视图容器 */
+.auth-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding: 16px 24px 32px;
+  box-sizing: border-box;
+  animation: authFadeIn 220ms ease-out;
+}
+
+@keyframes authFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 顶部导航条（iOS 风格返回/关闭） */
+.auth-nav-bar {
+  display: flex;
+  align-items: center;
+  position: relative;
+  min-height: 44px;
+  z-index: 10;
+}
+
+.auth-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 140ms ease, transform 120ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.auth-icon-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.auth-icon-btn:active {
+  transform: scale(0.92);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.auth-nav-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ========================================================= */
+/* P1: 欢迎页样式 (Welcome)                                   */
+/* ========================================================= */
+
+.auth-view-welcome .auth-illustration-wrap {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  margin-top: 12px;
+  margin-bottom: 20px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #f4f8ff;
+}
+
+.auth-illustration-img {
+  object-fit: cover;
+  object-position: center bottom;
+}
+
+.auth-content-block {
+  text-align: center;
+  padding: 8px 16px;
+}
+
+.auth-headline {
+  font-size: 26px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+}
+
+.auth-subline {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.auth-action-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: auto;
+  padding: 16px 0 20px;
+  gap: 16px;
+}
+
+.auth-pill-divider {
+  width: 48px;
+  height: 3.5px;
+  border-radius: 2px;
+  background: #e5e7eb;
+}
+
+.auth-primary-btn {
+  width: 100%;
+  height: 52px;
+  border-radius: 16px;
+  border: none;
+  background: #2563eb;
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
+  transition: transform 120ms ease, box-shadow 140ms ease, opacity 140ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.auth-primary-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.36);
+  opacity: 0.96;
+}
+
+.auth-primary-btn:active:not(:disabled) {
+  transform: scale(0.98);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.24);
+}
+
+.auth-primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 欢迎页底部的联系开发者卡片 */
+.auth-footer-card {
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 18px;
+  padding: 16px;
+  text-align: center;
+}
+
+.auth-footer-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 4px;
+}
+
+.auth-footer-prompt {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 4px;
+}
+
+.auth-footer-link {
+  font-size: 13px;
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 140ms ease;
+}
+
+.auth-footer-link:hover {
+  text-decoration: underline;
+  opacity: 0.85;
+}
+
+/* ========================================================= */
+/* P2: 登录表单页样式 (Form)                                  */
+/* ========================================================= */
+
+.auth-view-form {
+  overflow-y: auto;
+}
+
+.auth-bg-illustration-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 220px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.35;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9) 20%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9) 20%, transparent 100%);
+}
+
+.auth-bg-illustration-img {
+  object-fit: cover;
+  object-position: center top;
+}
+
+.auth-brand-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+  margin-bottom: 14px;
+  z-index: 2;
+}
+
+.auth-brand-logo {
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
+}
+
+.auth-brand-name {
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+.auth-form-header {
+  text-align: center;
+  margin-bottom: 20px;
+  z-index: 2;
+}
+
+.auth-form-header .auth-headline {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 6px;
+}
+
+.auth-form-header .auth-subline {
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* 浮层表单卡片 */
+.auth-form-card {
+  background: #ffffff;
+  border: 1px solid #eef2f6;
+  border-radius: 24px;
+  padding: 24px 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 2;
+}
+
+.auth-field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin-top: 2px;
+}
+
+.auth-input-group {
+  display: flex;
+  align-items: center;
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  min-height: 48px;
+  padding: 0 12px;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.auth-input-group:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3.5px rgba(59, 130, 246, 0.14);
+}
+
+.auth-input-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  margin-right: 10px;
+}
+
+.auth-text-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 15px;
+  color: #1e293b;
+  min-width: 0;
+  height: 44px;
+}
+
+.auth-text-input::placeholder {
+  color: #94a3b8;
+}
+
+.auth-input-action-btn {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 140ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.auth-input-action-btn:hover {
+  color: #475569;
+}
+
+.auth-form-auxiliary {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: -2px;
+  margin-bottom: 4px;
+}
+
+.auth-auxiliary-link {
+  font-size: 13px;
+  color: #6366f1;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-auxiliary-link:hover {
+  text-decoration: underline;
+}
+
 .auth-error {
-  color: var(--danger);
+  font-size: 13px;
+  color: var(--danger, #ef4444);
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 0;
+}
+
+/* 登录页底部 */
+.auth-form-footer {
+  margin-top: 24px;
+  text-align: center;
+  z-index: 2;
+}
+
+.auth-footer-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.auth-divider-line {
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.auth-divider-text {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
 }
