@@ -108,4 +108,84 @@ test.describe('compact viewport layout matrix', () => {
     );
     await expectNoUnexpectedHorizontalOverflow(page);
   });
+
+  test('mobile create state adheres to structural non-overlapping, hit area and horizontal boundaries', async ({
+    page,
+  }, testInfo) => {
+    if (!isMobileLayoutProject(testInfo.project.name)) return;
+
+    // 1. 测试今日日程移动端新增态结构
+    const schedule = page.locator('.schedule-panel');
+    await schedule.getByRole('button', { name: '添加', exact: true }).click();
+    const timedRow = schedule.locator('.timed-task-create-row');
+    await expect(timedRow).toBeVisible();
+
+    const projectSelect = timedRow.locator('.project-inline-select');
+    const titleInput = timedRow.locator('.timed-create-title-input');
+    const startTimeInput = timedRow.getByLabel('开始时间');
+    const endTimeInput = timedRow.getByLabel('结束时间');
+    const plannedDisplay = timedRow.locator('.timed-create-mobile-duration-display');
+    const actualInput = timedRow.getByLabel('实际耗时');
+    const cancelBtn = timedRow.locator('.timed-create-cancel-btn');
+    const confirmBtn = timedRow.locator('.timed-create-confirm-btn');
+
+    // 验证各行元素均在水平 viewport 内，且无横向溢出
+    await expectElementWithinHorizontalViewport(page, timedRow, '今日日程新增态卡片');
+    await expectElementWithinHorizontalViewport(page, projectSelect, '项目选择');
+    await expectElementWithinHorizontalViewport(page, titleInput, '任务名称输入框');
+    await expectElementWithinHorizontalViewport(page, startTimeInput, '开始时间输入框');
+    await expectElementWithinHorizontalViewport(page, endTimeInput, '结束时间输入框');
+    await expectElementWithinHorizontalViewport(page, plannedDisplay, '预计时长展示');
+    await expectElementWithinHorizontalViewport(page, actualInput, '实际耗时输入框');
+    await expectElementWithinHorizontalViewport(page, cancelBtn, '取消按钮');
+    await expectElementWithinHorizontalViewport(page, confirmBtn, '保存按钮');
+    await expectNoUnexpectedHorizontalOverflow(page);
+
+    // 验证内部行区域不重叠 (Row 1, Row 2, Row 3, Row 4)
+    await expectElementsNotToOverlap(projectSelect, titleInput, '项目选择与任务名称');
+    await expectElementsNotToOverlap(startTimeInput, endTimeInput, '开始时间与结束时间');
+    await expectElementsNotToOverlap(plannedDisplay, actualInput, '预计时长与实际耗时');
+    await expectElementsNotToOverlap(cancelBtn, confirmBtn, '取消按钮与保存按钮');
+    await expectElementsNotToOverlap(titleInput, startTimeInput, '任务名称与开始时间');
+    await expectElementsNotToOverlap(startTimeInput, plannedDisplay, '开始时间与预计时长');
+    await expectElementsNotToOverlap(plannedDisplay, confirmBtn, '预计时长与保存按钮');
+
+    // 验证触控尺寸满足 iOS 规范 (>= 40px, 目标 42~44px)
+    const cancelBox = (await cancelBtn.boundingBox())!;
+    const confirmBox = (await confirmBtn.boundingBox())!;
+    expect(cancelBox.height).toBeGreaterThanOrEqual(40);
+    expect(confirmBox.height).toBeGreaterThanOrEqual(40);
+    expect(confirmBox.width).toBeGreaterThanOrEqual(60);
+
+    // 验证预计时长自动计算
+    await startTimeInput.fill('08:30');
+    await endTimeInput.fill('10:00');
+    await expect(plannedDisplay).toContainText('1h30min');
+
+    // 2. 测试无时间待办移动端新增态紧凑单行结构
+    const quickPanel = page.locator('.quick-panel');
+    await quickPanel.getByRole('button', { name: '添加', exact: true }).click();
+    const quickRow = quickPanel.locator('.quick-task-create-row');
+    await expect(quickRow).toBeVisible();
+
+    const quickCheckbox = quickRow.locator('.quick-create-check-cell');
+    const quickProject = quickRow.locator('.quick-create-project');
+    const quickTitle = quickRow.locator('.quick-create-title');
+    const quickCancel = quickRow.locator('.quick-create-cancel-btn');
+    const quickConfirm = quickRow.locator('.quick-create-confirm-btn');
+
+    await expectElementWithinHorizontalViewport(page, quickRow, '无时间待办新增态卡片');
+    await expectElementWithinHorizontalViewport(page, quickTitle, '待办内容输入框');
+    await expectElementsNotToOverlap(quickCheckbox, quickProject, '待办 Checkbox 与项目');
+    await expectElementsNotToOverlap(quickProject, quickTitle, '待办项目与待办内容');
+    await expectElementsNotToOverlap(quickTitle, quickCancel, '待办内容与取消按钮');
+    await expectElementsNotToOverlap(quickCancel, quickConfirm, '待办取消与保存按钮');
+
+    const quickConfirmBox = (await quickConfirm.boundingBox())!;
+    const quickCancelBox = (await quickCancel.boundingBox())!;
+    expect(quickConfirmBox.height).toBeGreaterThanOrEqual(36);
+    expect(quickCancelBox.height).toBeGreaterThanOrEqual(36);
+
+    await expectNoUnexpectedHorizontalOverflow(page);
+  });
 });

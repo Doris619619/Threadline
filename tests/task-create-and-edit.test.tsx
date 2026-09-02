@@ -82,7 +82,7 @@ describe('useTaskCreateAndEdit', () => {
         projectId: activeProject.id,
         startTime: '830',
         endTime: '1000',
-        planned: '2h',
+        planned: '45min',
         actual: '45min',
         completed: true,
       });
@@ -95,11 +95,37 @@ describe('useTaskCreateAndEdit', () => {
         date: '2026-08-21',
         plannedStartTime: '08:30',
         plannedEndTime: '10:00',
-        plannedDurationMinutes: 120,
+        plannedDurationMinutes: 90,
         actualDurationMinutes: 45,
         schedulePendingTime: false,
         completed: true,
         status: 'active',
+      }),
+    );
+  });
+
+  it('automatically calculates planned duration from valid start and end times, overriding old planned draft', async () => {
+    const dependencies = createHookDependencies();
+    const { result } = renderHook(() => useTaskCreateAndEdit(dependencies));
+
+    await act(async () => {
+      await result.current.createTimedTask({
+        title: '时长覆盖测试',
+        projectId: activeProject.id,
+        startTime: '08:30',
+        endTime: '10:00',
+        planned: '45min',
+        actual: '',
+        completed: false,
+      });
+    });
+
+    expect(dependencies.createTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: '时长覆盖测试',
+        plannedStartTime: '08:30',
+        plannedEndTime: '10:00',
+        plannedDurationMinutes: 90,
       }),
     );
   });

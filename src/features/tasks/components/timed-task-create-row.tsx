@@ -1,15 +1,17 @@
-/** @fileoverview 渲染今日日程新增行，使用跨页面草稿控制器而不自行持久化状态。 */
+/** @fileoverview 渲染今日日程新增行，桌面保持紧凑网格，移动端切换为独立四行表单架构。 */
 
 'use client';
 
-import { Check, X } from 'lucide-react';
+import { Check, Clock, Info, X } from 'lucide-react';
 import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { TimedTaskCreateDraft } from '@/features/tasks/hooks/use-task-create-drafts';
 import type { TimedTaskDraft } from '@/features/tasks/task-drafts';
+import { formatMinutes, normalizeTime } from '@/features/tasks/task-time';
+import { calculateDuration } from '@/lib/task-rules';
 import type { Project } from '@/types/domain';
 
-/** 保持日程新增行 DOM、键盘和空标题取消契约；成功创建前始终保留草稿。 */
+/** 保持日程新增行 DOM、键盘和空标题取消契约；移动端提供符合 iOS 触控规范的四行表单。 */
 export function TimedTaskCreateRow({
   open,
   draft,
@@ -48,13 +50,13 @@ export function TimedTaskCreateRow({
     setSaving(true);
     try {
       const result = await onCreate({
-      actual: draft.actual,
-      completed: draft.completed,
-      endTime: draft.endTime,
-      planned: draft.planned,
-      projectId: draft.projectId,
-      startTime: draft.startTime,
-      title: draft.title,
+        actual: draft.actual,
+        completed: draft.completed,
+        endTime: draft.endTime,
+        planned: draft.planned,
+        projectId: draft.projectId,
+        startTime: draft.startTime,
+        title: draft.title,
       });
       if ('error' in result) return onChange({ timeError: result.error });
       if ('cancelled' in result) return onClose();
@@ -71,45 +73,24 @@ export function TimedTaskCreateRow({
     if (event.key === 'Escape') onClose();
   };
   if (!open) return null;
+
+  const normStart = normalizeTime(draft.startTime);
+  const normEnd = normalizeTime(draft.endTime);
+  const autoDurationMinutes =
+    normStart && normEnd && normEnd >= normStart
+      ? calculateDuration(normStart, normEnd)
+      : undefined;
+
   return (
-    <div className="timeline-row timeline-row-adding">
-      <div className="timeline-meta">
-        <div className="timeline-time-range-inputs">
-          <input
-            className="tl-inline-input timeline-time-input"
-            aria-label="开始时间"
-            placeholder="08:30"
-            value={draft.startTime}
-            autoFocus
-            onChange={(event) =>
-              onChange({ startTime: event.target.value, timeError: undefined })
-            }
-            onKeyDown={onKeyDown}
+    <div className="timeline-row timeline-row-adding timed-task-create-row">
+      <div className="timed-create-primary">
+        <div className="task-check-wrap timed-create-check-cell">
+          <Checkbox
+            checked={draft.completed}
+            onChange={(event) => onChange({ completed: event.target.checked })}
           />
-          <span aria-hidden="true">→</span>
-          <input
-            className="tl-inline-input timeline-time-input"
-            aria-label="结束时间"
-            placeholder="10:00"
-            value={draft.endTime}
-            onChange={(event) =>
-              onChange({ endTime: event.target.value, timeError: undefined })
-            }
-            onKeyDown={onKeyDown}
-          />
-          {draft.timeError && (
-            <span className="timeline-inline-error">{draft.timeError}</span>
-          )}
         </div>
-      </div>
-      <div className="task-check-wrap">
-        <Checkbox
-          checked={draft.completed}
-          onChange={(event) => onChange({ completed: event.target.checked })}
-        />
-      </div>
-      <div className="timeline-meta">
-        <div className="task-project-cell" style={{ position: 'relative' }}>
+        <div className="task-project-cell timed-create-project-cell" style={{ position: 'relative' }}>
           <select
             className="tl-inline-select project-inline-select"
             value={draft.projectId}
@@ -162,48 +143,104 @@ export function TimedTaskCreateRow({
             </div>
           )}
         </div>
-      </div>
-      <input
-        className="tl-inline-input task-title-input task-title"
-        placeholder="任务名称（按 Enter 保存）"
-        value={draft.title}
-        onChange={(event) => onChange({ title: event.target.value })}
-        onKeyDown={onKeyDown}
-      />
-      <div className="timeline-meta">
         <input
-          className="tl-inline-input task-duration-input task-duration task-duration-planned"
-          placeholder="45min"
-          value={draft.planned}
-          onChange={(event) => onChange({ planned: event.target.value })}
-          onKeyDown={onKeyDown}
-        />
-        <input
-          className="tl-inline-input task-duration-input task-duration task-duration-actual"
-          placeholder="实际耗时"
-          aria-label="实际耗时"
-          value={draft.actual}
-          onChange={(event) => onChange({ actual: event.target.value })}
+          className="tl-inline-input task-title-input task-title timed-create-title-input"
+          placeholder="任务名称（按 Enter 保存）"
+          value={draft.title}
+          onChange={(event) => onChange({ title: event.target.value })}
           onKeyDown={onKeyDown}
         />
       </div>
-      <div className="tl-inline-actions-cell">
+
+      <div className="timed-create-time">
+        <div className="timeline-time-range-inputs">
+          <div className="timed-create-time-field">
+            <input
+              className="tl-inline-input timeline-time-input"
+              aria-label="开始时间"
+              placeholder="开始时间"
+              value={draft.startTime}
+              onChange={(event) =>
+                onChange({ startTime: event.target.value, timeError: undefined })
+              }
+              onKeyDown={onKeyDown}
+            />
+            <Clock size={15} className="timed-create-field-icon" aria-hidden="true" />
+          </div>
+          <span className="timed-create-time-arrow" aria-hidden="true">→</span>
+          <div className="timed-create-time-field">
+            <input
+              className="tl-inline-input timeline-time-input"
+              aria-label="结束时间"
+              placeholder="结束时间"
+              value={draft.endTime}
+              onChange={(event) =>
+                onChange({ endTime: event.target.value, timeError: undefined })
+              }
+              onKeyDown={onKeyDown}
+            />
+            <Clock size={15} className="timed-create-field-icon" aria-hidden="true" />
+          </div>
+          {draft.timeError && (
+            <span className="timeline-inline-error">{draft.timeError}</span>
+          )}
+        </div>
+      </div>
+
+      <div className="timed-create-duration">
+        <div className="timed-create-duration-cell timed-create-planned-cell">
+          <input
+            className="tl-inline-input task-duration-input task-duration task-duration-planned timed-create-desktop-input"
+            placeholder="45min"
+            value={draft.planned}
+            onChange={(event) => onChange({ planned: event.target.value })}
+            onKeyDown={onKeyDown}
+          />
+          <div className="timed-create-mobile-duration-display" aria-label="预计时长">
+            <div className="timed-create-duration-labels">
+              <span className="timed-create-duration-title">预计时长</span>
+              <span className="timed-create-duration-value">
+                {autoDurationMinutes !== undefined
+                  ? formatMinutes(autoDurationMinutes)
+                  : '自动计算'}
+              </span>
+            </div>
+            <Info size={15} className="timed-create-field-icon" aria-hidden="true" />
+          </div>
+        </div>
+
+        <div className="timed-create-duration-cell timed-create-actual-cell">
+          <input
+            className="tl-inline-input task-duration-input task-duration task-duration-actual"
+            placeholder="实际耗时（可选）"
+            aria-label="实际耗时"
+            value={draft.actual}
+            onChange={(event) => onChange({ actual: event.target.value })}
+            onKeyDown={onKeyDown}
+          />
+          <Clock size={15} className="timed-create-field-icon timed-create-actual-icon" aria-hidden="true" />
+        </div>
+      </div>
+
+      <div className="tl-inline-actions-cell timed-create-actions">
         <button
           type="button"
-          className="tl-inline-confirm-btn"
+          className="tl-inline-cancel-btn timed-create-cancel-btn"
+          onClick={onClose}
+          title="取消"
+        >
+          <span className="timed-create-btn-text">取消</span>
+          <X size={14} className="timed-create-btn-icon" />
+        </button>
+        <button
+          type="button"
+          className="tl-inline-confirm-btn timed-create-confirm-btn"
           onClick={confirm}
           title="保存任务"
           disabled={saving}
         >
-          <Check size={14} />
-        </button>
-        <button
-          type="button"
-          className="tl-inline-cancel-btn"
-          onClick={onClose}
-          title="取消"
-        >
-          <X size={14} />
+          <span className="timed-create-btn-text">保存</span>
+          <Check size={14} className="timed-create-btn-icon" />
         </button>
       </div>
     </div>

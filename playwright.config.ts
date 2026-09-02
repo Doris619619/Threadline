@@ -23,15 +23,16 @@ function desktopLayoutProject(name: string, width: number, height: number) {
   };
 }
 
-/** 创建保留 iPhone 触控语义、但使用指定 viewport 与 screen 尺寸的移动布局项目。 */
+/** 创建保留触控语义、但使用指定 viewport 与 screen 尺寸的移动布局项目。使用 Desktop Chrome 配合指定 viewport/touch 模拟。 */
 function mobileLayoutProject(name: string, width: number, height: number) {
   return {
     name,
     testMatch: '**/ui-layout-matrix.spec.ts',
     use: {
-      ...devices['iPhone 13'],
+      ...devices['Desktop Chrome'],
       viewport: { width, height },
-      screen: { width, height },
+      hasTouch: true,
+      isMobile: true,
     },
   };
 }
@@ -44,6 +45,7 @@ export default defineConfig({
   workers: 1,
   use: {
     baseURL: e2eBaseUrl,
+    channel: 'chrome',
     timezoneId: 'Asia/Shanghai',
     trace: 'retain-on-failure',
     // 生产构建后 service worker 可能缓存已替换的 chunk；E2E 应只验证当前构建产物。
@@ -58,7 +60,7 @@ export default defineConfig({
     {
       name: 'mobile',
       testIgnore: defaultWebTestIgnore,
-      use: { ...devices['iPhone 13'] },
+      use: { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true },
     },
     {
       name: 'ui-structural',

@@ -1,4 +1,4 @@
-/** @fileoverview 渲染无时间待办新增行，使用跨页面草稿控制器而不自行持久化状态。 */
+/** @fileoverview 渲染无时间待办新增行，桌面保持紧凑单行，移动端提供符合 iOS 触控规范的单行快速新增。 */
 
 'use client';
 
@@ -47,9 +47,9 @@ export function QuickTaskCreateRow({
     setSaving(true);
     try {
       const result = await onCreate({
-      completed: draft.completed,
-      projectId: draft.projectId,
-      title: draft.title,
+        completed: draft.completed,
+        projectId: draft.projectId,
+        title: draft.title,
       });
       if ('cancelled' in result) return onClose();
       onReset();
@@ -62,14 +62,14 @@ export function QuickTaskCreateRow({
   };
   if (!open) return null;
   return (
-    <div className="quick-task-row quick-task-row-adding">
-      <div className="task-check-wrap">
+    <div className="quick-task-row quick-task-row-adding quick-task-create-row">
+      <div className="task-check-wrap quick-create-check-cell">
         <Checkbox
           checked={draft.completed}
           onChange={(event) => onChange({ completed: event.target.checked })}
         />
       </div>
-      <div style={{ position: 'relative' }}>
+      <div className="task-project-cell quick-create-project" style={{ position: 'relative' }}>
         <select
           className="tl-inline-select project-inline-select"
           value={draft.projectId}
@@ -123,7 +123,7 @@ export function QuickTaskCreateRow({
         )}
       </div>
       <input
-        className="tl-inline-input task-title-input"
+        className="tl-inline-input task-title-input quick-create-title"
         placeholder="待办内容（按 Enter 保存）"
         value={draft.title}
         autoFocus
@@ -133,23 +133,23 @@ export function QuickTaskCreateRow({
           if (event.key === 'Escape') onClose();
         }}
       />
-      <div className="tl-inline-actions-cell">
+      <div className="tl-inline-actions-cell quick-create-actions">
         <button
           type="button"
-          className="tl-inline-confirm-btn"
+          className="tl-inline-cancel-btn quick-create-cancel-btn"
+          onClick={onClose}
+          title="取消"
+        >
+          <X size={15} />
+        </button>
+        <button
+          type="button"
+          className="tl-inline-confirm-btn quick-create-confirm-btn"
           onClick={confirm}
           title="保存待办"
           disabled={saving}
         >
-          <Check size={14} />
-        </button>
-        <button
-          type="button"
-          className="tl-inline-cancel-btn"
-          onClick={onClose}
-          title="取消"
-        >
-          <X size={14} />
+          <Check size={15} />
         </button>
       </div>
       {saveError && <span className="timeline-inline-error" role="alert">{saveError}</span>}

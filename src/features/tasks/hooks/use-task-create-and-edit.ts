@@ -59,7 +59,8 @@ export function useTaskCreateAndEdit({
     if (draft.endTime.trim() && (!start || !end || end <= start)) {
       return { error: '结束时间需晚于有效的开始时间' };
     }
-    const duration = start && end ? calculateDuration(start, end) : undefined;
+    const duration =
+      start && end && end >= start ? calculateDuration(start, end) : undefined;
     const task: Task = {
       id: crypto.randomUUID(),
       projectId,
@@ -68,7 +69,7 @@ export function useTaskCreateAndEdit({
       plannedStartTime: start,
       schedulePendingTime: !start,
       plannedEndTime: end,
-      plannedDurationMinutes: parseDurationInput(draft.planned) ?? duration,
+      plannedDurationMinutes: duration ?? parseDurationInput(draft.planned),
       actualDurationMinutes: parseDurationInput(draft.actual),
       completed: draft.completed,
       completedAt: draft.completed ? new Date().toISOString() : undefined,
