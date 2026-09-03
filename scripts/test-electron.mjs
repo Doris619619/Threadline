@@ -235,6 +235,10 @@ try {
       ),
     'Edge restore must reveal synchronized Main',
   );
+  await page.getByRole('button', { name: '打开完整工作台' }).click();
+  await page.locator('.full-window-chrome').waitFor();
+  await page.getByRole('button', { name: '工作站', exact: true }).click();
+  await page.getByTestId('workstation-panel').waitFor();
   await page.getByRole('button', { name: '收起', exact: true }).click();
   await waitFor(
     async () =>
@@ -255,8 +259,6 @@ try {
       ),
     'second instance must restore the latest compact Main from Edge',
   );
-  await page.getByRole('button', { name: '打开完整工作台' }).click();
-  await page.locator('.full-window-chrome').waitFor();
   await page.getByRole('button', { name: '关闭窗口' }).click();
   await waitFor(
     async () => desktopProcess.exitCode !== null,

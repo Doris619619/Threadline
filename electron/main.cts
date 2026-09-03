@@ -655,10 +655,12 @@ async function applyDesktopState(
     }
   }
   await waitForMainReadyToShow();
-  try {
-    await publishCanonicalState(geometry, 'main', origin, fallbackReason);
-  } catch {
-    return ensureVisibleSurface('renderer-state-sync-timeout');
+  if (origin !== 'renderer-command') {
+    try {
+      await publishCanonicalState(geometry, 'main', origin, fallbackReason);
+    } catch {
+      return ensureVisibleSurface('renderer-state-sync-timeout');
+    }
   }
   revealMain();
   return {
