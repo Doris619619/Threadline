@@ -292,6 +292,7 @@ export const DailyTemplateManager = forwardRef<
             const activeItems = daily.children.filter(
               (item) => !item.deletedAt && item.active !== false,
             );
+            const visibleItems = daily.children.filter((item) => !item.deletedAt);
             const total = activeItems.reduce(
               (sum, item) => sum + (item.plannedDurationMinutes ?? 0),
               0,
@@ -332,10 +333,9 @@ export const DailyTemplateManager = forwardRef<
                 </div>
                 {isExpanded && (
                   <div className="daily-manager-items">
-                    <div className="daily-manager-inset">
-                      {daily.children
-                        .filter((item) => !item.deletedAt)
-                        .map((item) => {
+                    {visibleItems.length > 0 && (
+                      <div className="daily-manager-inset">
+                        {visibleItems.map((item) => {
                           const itemId = item.templateItemId ?? item.id;
                           if (!itemId) return null;
                           return (
@@ -357,7 +357,8 @@ export const DailyTemplateManager = forwardRef<
                             </button>
                           );
                         })}
-                    </div>
+                      </div>
+                    )}
                     {daily.active !== false && (
                       <button
                         className="manager-inline-action"
@@ -535,12 +536,14 @@ export const DailyTemplateManager = forwardRef<
               )}
             </>
           )}
-          <footer>
-            <Button variant="quiet" onClick={close}>
-              取消
-            </Button>
-            <Button onClick={submit}>{mode === 'create' ? '创建' : '保存'}</Button>
-          </footer>
+          {mode !== 'manage-template' && mode !== 'manage-item' && (
+            <footer>
+              <Button variant="quiet" onClick={close}>
+                取消
+              </Button>
+              <Button onClick={submit}>{mode === 'create' ? '创建' : '保存'}</Button>
+            </footer>
+          )}
         </ManagementDialog>
       )}
       {error && (

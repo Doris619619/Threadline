@@ -608,7 +608,7 @@
   }
 
   .daily-disclosure {
-    grid-template-columns: 12px minmax(0, 1fr) auto 18px;
+    grid-template-columns: 12px minmax(0, 1fr) auto;
     gap: var(--space-2);
   }
 
