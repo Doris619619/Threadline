@@ -192,6 +192,14 @@ test.describe('compact viewport layout matrix', () => {
     expect(quickCancelBox.height).toBeGreaterThanOrEqual(44);
     expect(quickCancelBox.width).toBeGreaterThanOrEqual(44);
 
+    // 3. 测试移动端已创建任务行紧凑卡片、操作收敛与元数据区域
+    const seededTimelineRow = schedule.locator('.timeline-row').first();
+    await expect(seededTimelineRow).toBeVisible();
+    await expect(seededTimelineRow.locator('.task-content-wrap')).toBeVisible();
+    await expect(seededTimelineRow.locator('.timeline-meta')).toBeVisible();
+    await expect(seededTimelineRow.locator('.task-drag-handle')).toBeHidden();
+    await expect(seededTimelineRow.locator('.task-workstation-action')).toBeHidden();
+
     await expectNoUnexpectedHorizontalOverflow(page);
   });
 });

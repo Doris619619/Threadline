@@ -19,7 +19,7 @@ import { cn } from '@/lib/cn';
 import type { Project, Task, TaskStatus } from '@/types/domain';
 
 /**
- * 渲染日程或无时间待办的一行。桌面用七列网格，手机用同一 DOM 叠成标题+metadata 列表。
+ * 渲染日程或无时间待办的一行。桌面用七列网格（contents 展开），手机用自适应卡片（标题+紧凑元数据）。
  */
 export function TaskLine({
   task,
@@ -189,17 +189,17 @@ export function TaskLine({
     (editingField === 'time' ? (
       <>
         <input
-        className="tl-inline-input timeline-time-input timeline-time"
-        defaultValue={timeDisplay}
-        placeholder="08:30"
-        autoFocus
-        draggable={false}
-        onDragStart={stopDragOnControl}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') saveTime(e.currentTarget.value);
-          if (e.key === 'Escape') setEditingField(undefined);
-        }}
-        onBlur={(e) => saveTime(e.currentTarget.value)}
+          className="tl-inline-input timeline-time-input timeline-time"
+          defaultValue={timeDisplay}
+          placeholder="08:30"
+          autoFocus
+          draggable={false}
+          onDragStart={stopDragOnControl}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') saveTime(e.currentTarget.value);
+            if (e.key === 'Escape') setEditingField(undefined);
+          }}
+          onBlur={(e) => saveTime(e.currentTarget.value)}
         />
         {timeError && <span className="timeline-inline-error" role="alert">{timeError}</span>}
       </>
@@ -275,6 +275,97 @@ export function TaskLine({
       </span>
     ));
 
+  const projectNode = (
+    <div className="task-project-cell" ref={projectPickerRef}>
+      {editingField === 'project' ? (
+        <div className="project-picker-popover">
+          <div className="project-picker-list">
+            {projects
+              .filter((p) => p.status === 'active' || p.id === task.projectId)
+              .map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={cn(
+                    'project-picker-item',
+                    p.id === task.projectId && 'is-selected',
+                  )}
+                  onClick={() => {
+                    onUpdate({
+                      ...task,
+                      projectId: p.id,
+                      updatedAt: new Date().toISOString(),
+                    });
+                    setEditingField(undefined);
+                  }}
+                >
+                  <ProjectTag name={p.name} color={p.color} />
+                </button>
+              ))}
+          </div>
+          {onAddProject && (
+            <>
+              <div className="project-picker-divider" />
+              {isAddingProject ? (
+                <div className="project-picker-new-form">
+                  <input
+                    placeholder="新项目名称"
+                    value={newProjectName}
+                    autoFocus
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleCreateProject();
+                      }
+                      if (e.key === 'Escape') {
+                        setIsAddingProject(false);
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="tl-inline-confirm-btn"
+                    onClick={handleCreateProject}
+                    title="创建新项目"
+                  >
+                    <Check size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    className="tl-inline-cancel-btn"
+                    onClick={() => setIsAddingProject(false)}
+                    title="取消"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="project-picker-new-btn"
+                  onClick={() => setIsAddingProject(true)}
+                >
+                  <Plus size={13} /> 新增项目
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      ) : null}
+      <span
+        className="tl-clickable-cell"
+        onClick={() => setEditingField('project')}
+        title="点击切换所属项目或新增项目"
+      >
+        <ProjectTag
+          name={project?.name ?? '未配置项目'}
+          color={project?.color ?? '#8793a7'}
+        />
+      </span>
+    </div>
+  );
+
   return (
     <div
       className={cn(
@@ -311,218 +402,39 @@ export function TaskLine({
         />
       </div>
 
-      {timed && (
-        <>
-          {timeNode}
-          <div className="task-project-cell" ref={projectPickerRef}>
-            {editingField === 'project' ? (
-              <div className="project-picker-popover">
-                <div className="project-picker-list">
-                  {projects
-                    .filter((p) => p.status === 'active' || p.id === task.projectId)
-                    .map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        className={cn(
-                          'project-picker-item',
-                          p.id === task.projectId && 'is-selected',
-                        )}
-                        onClick={() => {
-                          onUpdate({
-                            ...task,
-                            projectId: p.id,
-                            updatedAt: new Date().toISOString(),
-                          });
-                          setEditingField(undefined);
-                        }}
-                      >
-                        <ProjectTag name={p.name} color={p.color} />
-                      </button>
-                    ))}
-                </div>
-                {onAddProject && (
-                  <>
-                    <div className="project-picker-divider" />
-                    {isAddingProject ? (
-                      <div className="project-picker-new-form">
-                        <input
-                          placeholder="新项目名称"
-                          value={newProjectName}
-                          autoFocus
-                          onChange={(e) => setNewProjectName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleCreateProject();
-                            }
-                            if (e.key === 'Escape') {
-                              setIsAddingProject(false);
-                            }
-                          }}
-                        />
-                        <button
-                          type="button"
-                          className="tl-inline-confirm-btn"
-                          onClick={handleCreateProject}
-                          title="创建新项目"
-                        >
-                          <Check size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          className="tl-inline-cancel-btn"
-                          onClick={() => setIsAddingProject(false)}
-                          title="取消"
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        className="project-picker-new-btn"
-                        onClick={() => setIsAddingProject(true)}
-                      >
-                        <Plus size={13} /> 新增项目
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            ) : null}
-            <span
-              className="tl-clickable-cell"
-              onClick={() => setEditingField('project')}
-              title="点击切换所属项目或新增项目"
-            >
-              <ProjectTag
-                name={project?.name ?? '未配置项目'}
-                color={project?.color ?? '#8793a7'}
-              />
-            </span>
-          </div>
-        </>
-      )}
-
-      {editingField === 'title' ? (
-        <input
-          className="tl-inline-input task-title-input task-title"
-          defaultValue={task.title}
-          autoFocus
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') saveTitle(e.currentTarget.value);
-            if (e.key === 'Escape') setEditingField(undefined);
-          }}
-          onBlur={(e) => saveTitle(e.currentTarget.value)}
-        />
-      ) : (
-        <span
-          className="task-title tl-clickable-cell"
-          onClick={() => setEditingField('title')}
-          title={task.title}
-        >
-          {task.title}
-        </span>
-      )}
-
-      {!timed && (
-        <div className="task-project-cell" ref={projectPickerRef}>
-          {editingField === 'project' ? (
-            <div className="project-picker-popover">
-              <div className="project-picker-list">
-                {projects
-                  .filter((p) => p.status === 'active' || p.id === task.projectId)
-                  .map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      className={cn(
-                        'project-picker-item',
-                        p.id === task.projectId && 'is-selected',
-                      )}
-                      onClick={() => {
-                        onUpdate({
-                          ...task,
-                          projectId: p.id,
-                          updatedAt: new Date().toISOString(),
-                        });
-                        setEditingField(undefined);
-                      }}
-                    >
-                      <ProjectTag name={p.name} color={p.color} />
-                    </button>
-                  ))}
-              </div>
-              {onAddProject && (
-                <>
-                  <div className="project-picker-divider" />
-                  {isAddingProject ? (
-                    <div className="project-picker-new-form">
-                      <input
-                        placeholder="新项目名称"
-                        value={newProjectName}
-                        autoFocus
-                        onChange={(e) => setNewProjectName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleCreateProject();
-                          }
-                          if (e.key === 'Escape') {
-                            setIsAddingProject(false);
-                          }
-                        }}
-                      />
-                      <button
-                        type="button"
-                        className="tl-inline-confirm-btn"
-                        onClick={handleCreateProject}
-                        title="创建新项目"
-                      >
-                        <Check size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        className="tl-inline-cancel-btn"
-                        onClick={() => setIsAddingProject(false)}
-                        title="取消"
-                      >
-                        <X size={13} />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      className="project-picker-new-btn"
-                      onClick={() => setIsAddingProject(true)}
-                    >
-                      <Plus size={13} /> 新增项目
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-          ) : null}
+      <div className="task-content-wrap">
+        {editingField === 'title' ? (
+          <input
+            className="tl-inline-input task-title-input task-title"
+            defaultValue={task.title}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') saveTitle(e.currentTarget.value);
+              if (e.key === 'Escape') setEditingField(undefined);
+            }}
+            onBlur={(e) => saveTitle(e.currentTarget.value)}
+          />
+        ) : (
           <span
-            className="tl-clickable-cell"
-            onClick={() => setEditingField('project')}
-            title="点击切换所属项目或新增项目"
+            className="task-title tl-clickable-cell"
+            onClick={() => setEditingField('title')}
+            title={task.title}
           >
-            <ProjectTag
-              name={project?.name ?? '未配置项目'}
-              color={project?.color ?? '#8793a7'}
-            />
+            {task.title}
           </span>
-        </div>
-      )}
+        )}
 
-      {timed && (
-        <>
-          {plannedNode}
-          {actualNode}
-        </>
-      )}
+        <div className="timeline-meta">
+          {timed && timeNode}
+          {projectNode}
+          {timed && (
+            <>
+              {plannedNode}
+              {actualNode}
+            </>
+          )}
+        </div>
+      </div>
 
       <TaskRowActions
         taskId={task.id}

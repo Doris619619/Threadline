@@ -64,8 +64,7 @@
   letter-spacing: -0.01em;
 }
 
-.add-link,
-.daily-add {
+.add-link {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -79,8 +78,7 @@
   transition: color var(--motion-fast) ease;
 }
 
-.add-link:hover,
-.daily-add:hover {
+.add-link:hover {
   color: var(--accent);
 }
 
@@ -441,6 +439,7 @@
   grid-area: actions;
 }
 
+.task-content-wrap,
 .timeline-meta {
   display: contents;
 }
@@ -843,69 +842,157 @@
     overflow-x: visible;
   }
 
-  .timeline-row {
+  /* ================= 移动端：已创建任务卡片式布局 (P3) ================= */
+  .timeline-row,
+  .quick-task-row {
     min-width: 0;
-    grid-template-columns: var(--touch-target) minmax(0, 1fr) auto;
-    grid-template-areas:
-      'check title actions'
-      'check time actions'
-      'check meta actions';
-    gap: 2px 8px;
-    min-height: var(--touch-target);
-    padding: 10px 2px;
-    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    transition: background-color var(--motion-fast) ease, border-color var(--motion-fast) ease;
+    box-sizing: border-box;
   }
 
-  .timeline-row .timeline-time {
-    grid-area: time;
-    width: auto;
+  .timeline-row:last-child,
+  .quick-task-row:last-child {
+    margin-bottom: 0;
+  }
+
+  .timeline-row.completed,
+  .quick-task-row.completed {
+    opacity: 0.7;
+  }
+
+  .timeline-row .task-check-wrap,
+  .quick-task-row .task-check-wrap {
+    flex: 0 0 auto;
+    margin-top: 2px;
+    width: 20px;
+    height: 20px;
+  }
+
+  .task-content-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .task-title {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    font-size: 0.9375rem;
+    font-weight: 550;
+    line-height: 1.35;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    padding: 0;
   }
 
   .timeline-meta {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 4px 10px;
-    grid-area: meta;
+    gap: 6px 8px;
     min-width: 0;
   }
 
-  .timeline-row .task-project-cell,
-  .timeline-row .task-duration-planned,
-  .timeline-row .task-duration-actual {
-    grid-area: auto;
-    width: auto;
+  .timeline-time {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--surface-secondary);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    font-variant-numeric: tabular-nums;
   }
 
-  .timeline-row .task-title {
-    display: -webkit-box;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    white-space: normal;
-    text-overflow: ellipsis;
+  .timeline-time.is-pending-time {
+    color: var(--text-tertiary);
+    font-weight: 400;
+  }
+
+  .task-project-cell {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .task-duration {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    padding: 0;
+    width: auto;
   }
 
   .task-duration-prefix {
     display: inline;
   }
 
-  .task-actions > button,
-  .task-drag-handle {
-    width: var(--touch-target);
-    height: var(--touch-target);
+  .task-actions-cell {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: auto;
+    margin-top: -2px;
   }
 
-  /* ================= 移动端：今日日程独立新增态 (P3) ================= */
+  .task-workstation-action,
+  .task-drag-handle {
+    display: none;
+  }
+
+  .task-actions {
+    opacity: 1;
+  }
+
+  .task-actions > button {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    color: var(--text-tertiary);
+    background: transparent;
+  }
+
+  .task-actions > div {
+    right: 0;
+    top: calc(100% + 4px);
+    width: 130px;
+    z-index: 50;
+  }
+
+  /* ================= 移动端：今日日程独立新增态 (P2) ================= */
   .timeline-row-adding.timed-task-create-row {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
     width: 100%;
     margin-top: 8px;
-    padding: 14px 12px;
+    padding: 12px 12px;
     background: color-mix(in srgb, var(--accent) 5%, var(--surface));
     border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
     border-radius: var(--radius-md);
@@ -914,8 +1001,8 @@
   }
 
   .timed-create-primary {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
+    display: flex;
+    flex-direction: row;
     align-items: center;
     gap: 8px;
     width: 100%;
@@ -927,16 +1014,17 @@
   }
 
   .timed-create-project-cell {
+    flex: 0 0 auto;
     width: auto;
     min-width: 0;
   }
 
   .timed-create-project-cell .project-inline-select {
     width: auto;
-    min-width: 80px;
-    max-width: 110px;
-    height: 42px;
-    padding: 0 10px;
+    min-width: 68px;
+    max-width: 95px;
+    height: 38px;
+    padding: 0 8px;
     background: var(--surface);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
@@ -949,10 +1037,11 @@
   }
 
   .timed-create-title-input {
+    flex: 1 1 auto;
     width: 100%;
     min-width: 0;
-    height: 42px;
-    padding: 0 12px;
+    height: 38px;
+    padding: 0 10px;
     background: var(--surface);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
@@ -995,8 +1084,8 @@
   .timed-create-time-field input.timeline-time-input {
     width: 100%;
     min-width: 0;
-    height: 42px;
-    padding: 0 32px 0 12px;
+    height: 38px;
+    padding: 0 28px 0 10px;
     background: var(--surface);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
@@ -1015,7 +1104,7 @@
   .timed-create-field-icon {
     display: block;
     position: absolute;
-    right: 10px;
+    right: 8px;
     color: var(--text-tertiary);
     pointer-events: none;
   }
@@ -1023,7 +1112,7 @@
   .timed-create-time-arrow {
     display: inline-block;
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: 13px;
     text-align: center;
     user-select: none;
   }
@@ -1054,8 +1143,8 @@
     justify-content: space-between;
     width: 100%;
     min-width: 0;
-    height: 42px;
-    padding: 0 32px 0 12px;
+    height: 38px;
+    padding: 0 28px 0 10px;
     background: var(--surface);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
@@ -1072,7 +1161,7 @@
   }
 
   .timed-create-duration-title {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--text-tertiary);
   }
 
@@ -1094,8 +1183,8 @@
   .timed-create-actual-cell input.task-duration-actual {
     width: 100%;
     min-width: 0;
-    height: 42px;
-    padding: 0 32px 0 12px;
+    height: 38px;
+    padding: 0 28px 0 10px;
     background: var(--surface);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
@@ -1115,7 +1204,7 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
     min-width: 0;
     margin-top: 2px;
@@ -1126,10 +1215,9 @@
     position: relative;
     align-items: center;
     justify-content: center;
-    min-width: 68px;
+    min-width: 64px;
     height: 44px;
-    margin-block: -1px;
-    padding: 0 16px;
+    padding: 0 14px;
     background: transparent;
     color: var(--text-primary);
     border: 0;
@@ -1144,10 +1232,9 @@
     position: relative;
     align-items: center;
     justify-content: center;
-    min-width: 80px;
+    min-width: 76px;
     height: 44px;
-    margin-block: -1px;
-    padding: 0 20px;
+    padding: 0 18px;
     background: transparent;
     color: #ffffff;
     border: 0;
@@ -1159,7 +1246,7 @@
 
   .timed-create-confirm-btn::before {
     position: absolute;
-    inset: 1px 0;
+    inset: 3px 0;
     content: '';
     background: var(--accent);
     border-radius: var(--radius-sm);
@@ -1179,21 +1266,7 @@
     display: none;
   }
 
-  /* ================= 移动端：普通无时间待办与新增态 (P3) ================= */
-  .quick-task-row {
-    grid-template-columns: var(--touch-target) minmax(0, 1fr) auto;
-    grid-template-areas:
-      'check title actions'
-      'check meta actions';
-    min-height: var(--touch-target);
-    padding: 8px 2px;
-  }
-
-  .quick-task-row .timeline-meta {
-    display: flex;
-    grid-area: meta;
-  }
-
+  /* ================= 移动端：普通无时间待办与新增态 (P2) ================= */
   /* 移动端无时间待办新增态紧凑单行：[ □ ] [ 其他 ▼ ] [ 待办内容........ ] [ × ] [ ✓ ] */
   .quick-task-row-adding.quick-task-create-row {
     display: flex;
@@ -1320,8 +1393,7 @@
     z-index: 1;
   }
 
-  .add-link,
-  .daily-add {
+  .add-link {
     min-height: var(--touch-target);
     padding: 0 4px;
   }
