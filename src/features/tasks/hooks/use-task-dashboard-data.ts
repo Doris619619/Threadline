@@ -39,11 +39,10 @@ export function useTaskDashboardData({
       task.postponedFrom === selectedDate,
   );
   const daily = dailyByDate[selectedDate] ?? [];
+  /** 今日日程优先呈现已排定开始时间的任务；待填时间任务仍留在日程末尾等待补充。 */
   const timed = shown
     .filter((task) => Boolean(task.plannedStartTime) || task.schedulePendingTime)
     .sort((left, right) => {
-      if (left.schedulePendingTime !== right.schedulePendingTime)
-        return left.schedulePendingTime ? -1 : 1;
       if (left.plannedStartTime && right.plannedStartTime)
         return left.plannedStartTime.localeCompare(right.plannedStartTime);
       if (left.plannedStartTime) return -1;

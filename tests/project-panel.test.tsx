@@ -152,11 +152,11 @@ describe('ProjectManagementPage', () => {
 
   it('focuses the requested Daily business field for append, template edit, and item edit dialogs', () => {
     renderPanel();
-    const dailyMenu = screen.getByLabelText('英语学习操作');
-    fireEvent.click(dailyMenu);
+    const dailyRow = screen.getByRole('button', { name: '管理 Daily 英语学习' });
+    fireEvent.click(dailyRow);
     fireEvent.click(
-      within(dailyMenu.closest('details') as HTMLElement).getByRole('button', {
-        name: '修改',
+      within(screen.getByRole('dialog', { name: '英语学习' })).getByRole('button', {
+        name: '修改 Daily',
       }),
     );
     expect(screen.getByRole('dialog', { name: '修改 Daily' })).toBeVisible();
@@ -168,11 +168,11 @@ describe('ProjectManagementPage', () => {
     expect(document.activeElement).toBe(screen.getByLabelText('选择已有 Daily'));
     fireEvent.keyDown(document, { key: 'Escape' });
 
-    const itemMenu = screen.getByLabelText('词汇背诵操作');
-    fireEvent.click(itemMenu);
+    const itemRow = screen.getByRole('button', { name: '管理清单项 词汇背诵' });
+    fireEvent.click(itemRow);
     fireEvent.click(
-      within(itemMenu.closest('details') as HTMLElement).getByRole('button', {
-        name: '修改',
+      within(screen.getByRole('dialog', { name: '词汇背诵' })).getByRole('button', {
+        name: '修改清单项',
       }),
     );
     expect(screen.getByRole('dialog', { name: '修改清单项' })).toBeVisible();
@@ -265,11 +265,11 @@ describe('ProjectManagementPage', () => {
       ]),
     );
 
-    fireEvent.click(screen.getByLabelText('英语学习操作'));
+    fireEvent.click(screen.getByRole('button', { name: '管理 Daily 英语学习' }));
     fireEvent.click(
-      within(
-        screen.getByLabelText('英语学习操作').closest('details') as HTMLElement,
-      ).getByRole('button', { name: '修改' }),
+      within(screen.getByRole('dialog', { name: '英语学习' })).getByRole('button', {
+        name: '修改 Daily',
+      }),
     );
     fireEvent.click(screen.getByRole('button', { name: '保存' }));
     await waitFor(() => expect(props.onSaveDaily).toHaveBeenCalledTimes(2));
@@ -285,11 +285,11 @@ describe('ProjectManagementPage', () => {
       ]),
     );
 
-    fireEvent.click(screen.getByLabelText('词汇背诵操作'));
+    fireEvent.click(screen.getByRole('button', { name: '管理清单项 词汇背诵' }));
     fireEvent.click(
-      within(
-        screen.getByLabelText('词汇背诵操作').closest('details') as HTMLElement,
-      ).getByRole('button', { name: '修改' }),
+      within(screen.getByRole('dialog', { name: '词汇背诵' })).getByRole('button', {
+        name: '修改清单项',
+      }),
     );
     fireEvent.click(screen.getByRole('button', { name: '保存' }));
     await waitFor(() => expect(props.onSaveDaily).toHaveBeenCalledTimes(3));
@@ -332,11 +332,11 @@ describe('ProjectManagementPage', () => {
     const archivedDaily = { ...daily[0], active: false };
     const props = renderPanel({ dailyTemplates: [archivedDaily] });
 
-    fireEvent.click(screen.getByLabelText('英语学习操作'));
+    fireEvent.click(screen.getByRole('button', { name: '管理 Daily 英语学习' }));
     fireEvent.click(
-      within(
-        screen.getByLabelText('英语学习操作').closest('details') as HTMLElement,
-      ).getByRole('button', { name: '修改' }),
+      within(screen.getByRole('dialog', { name: '英语学习' })).getByRole('button', {
+        name: '修改 Daily',
+      }),
     );
     expect(
       screen.queryByRole('button', { name: '添加清单项' }),
@@ -350,11 +350,11 @@ describe('ProjectManagementPage', () => {
       expect.objectContaining({ id: 'daily-1', title: '归档后仍可改名' }),
     );
 
-    fireEvent.click(screen.getByLabelText('词汇背诵操作'));
+    fireEvent.click(screen.getByRole('button', { name: '管理清单项 词汇背诵' }));
     fireEvent.click(
-      within(
-        screen.getByLabelText('词汇背诵操作').closest('details') as HTMLElement,
-      ).getByRole('button', { name: '修改' }),
+      within(screen.getByRole('dialog', { name: '词汇背诵' })).getByRole('button', {
+        name: '修改清单项',
+      }),
     );
     fireEvent.change(screen.getByLabelText('清单项名称'), {
       target: { value: '归档后仍可改清单' },

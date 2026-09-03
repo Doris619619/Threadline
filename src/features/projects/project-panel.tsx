@@ -97,12 +97,12 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
 
     return (
       <section className="manager-section" aria-labelledby="project-manager-heading">
+        <div className="manager-section-heading">
+          <h2 id="project-manager-heading">
+            我的项目 <span>{items.length}</span>
+          </h2>
+        </div>
         <div className="manager-card manager-card--projects">
-          <div className="manager-card-heading">
-            <h2 id="project-manager-heading">
-              我的项目 <span>{items.length}</span>
-            </h2>
-          </div>
           <div className="manager-list manager-list--projects">
             {items.map((project) => (
               <button

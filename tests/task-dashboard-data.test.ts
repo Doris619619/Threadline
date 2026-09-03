@@ -58,4 +58,32 @@ describe('task dashboard time source capability', () => {
     expect(result.actual).toBe(120);
     expect(result.analyticsInput.taskTimeEntries).toBeUndefined();
   });
+
+  it('places tasks with a start time before time-pending tasks in today schedule', () => {
+    const result = useTaskDashboardData({
+      ...sharedInput,
+      taskTimeEntriesAuthoritative: false,
+      tasks: [
+        { ...tasks[0], id: 'pending-time', schedulePendingTime: true },
+        {
+          ...tasks[0],
+          id: 'afternoon',
+          plannedStartTime: '14:00',
+          schedulePendingTime: false,
+        },
+        {
+          ...tasks[0],
+          id: 'morning',
+          plannedStartTime: '09:00',
+          schedulePendingTime: false,
+        },
+      ],
+    });
+
+    expect(result.timed.map((task) => task.id)).toEqual([
+      'morning',
+      'afternoon',
+      'pending-time',
+    ]);
+  });
 });

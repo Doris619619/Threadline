@@ -201,7 +201,11 @@ export function TaskLine({
           }}
           onBlur={(e) => saveTime(e.currentTarget.value)}
         />
-        {timeError && <span className="timeline-inline-error" role="alert">{timeError}</span>}
+        {timeError && (
+          <span className="timeline-inline-error" role="alert">
+            {timeError}
+          </span>
+        )}
       </>
     ) : (
       <time
@@ -425,8 +429,8 @@ export function TaskLine({
         )}
 
         <div className="timeline-meta">
-          {timed && timeNode}
           {projectNode}
+          {timed && timeNode}
           {timed && (
             <>
               {plannedNode}
