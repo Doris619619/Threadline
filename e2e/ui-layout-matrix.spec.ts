@@ -12,6 +12,7 @@ import {
 } from './support/layout';
 import {
   bootstrapLocalAdapterWorkspace,
+  openProjectCreateDialog,
   openWorkspaceSection,
   openSeededTaskEditor,
 } from './support/workspace';
@@ -93,7 +94,7 @@ test.describe('compact viewport layout matrix', () => {
     page,
   }) => {
     await openWorkspaceSection(page, '项目');
-    await page.getByRole('button', { name: '新建 Daily', exact: true }).click();
+    await openProjectCreateDialog(page, '新建 Daily');
     await page.getByRole('button', { name: '+ 添加清单项', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: '新建 Daily' });
     const row = dialog.locator('.daily-draft-row');
@@ -110,6 +111,41 @@ test.describe('compact viewport layout matrix', () => {
       'Daily 预计分钟输入框',
     );
     await expectNoUnexpectedHorizontalOverflow(page);
+  });
+
+  test('keeps the grouped project page singular, contained, and reachable through one create entry', async ({
+    page,
+  }, testInfo) => {
+    await openWorkspaceSection(page, '项目');
+    const panel = page.getByTestId('project-panel');
+    const newTrigger = page.getByRole('button', { name: '新建', exact: true });
+
+    await expect(
+      page.getByRole('heading', { level: 1, name: '项目', exact: true }),
+    ).toHaveCount(1);
+    await expect(page.locator('h1').filter({ hasText: /^项目$/ })).toHaveCount(1);
+    await expect(page.locator('.tl-header')).toHaveCount(0);
+    await expect(panel).toBeVisible();
+    await expect(panel.getByRole('heading', { name: /我的项目/ })).toBeVisible();
+    await expect(panel.getByRole('heading', { name: /Daily/ })).toBeVisible();
+    await expectElementWithinHorizontalViewport(page, panel, '项目管理页面');
+    await expectNoUnexpectedHorizontalOverflow(page);
+
+    if (isMobileLayoutProject(testInfo.project.name)) {
+      const triggerBox = (await newTrigger.boundingBox())!;
+      expect(triggerBox.height).toBeGreaterThanOrEqual(44);
+      expect(triggerBox.width).toBeGreaterThanOrEqual(44);
+    }
+
+    await openProjectCreateDialog(page, '新建项目');
+    await expect(page.getByLabel('项目名称')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: '新建项目' })).toBeHidden();
+
+    await openProjectCreateDialog(page, '新建 Daily');
+    await expect(page.getByLabel('Daily 名称')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: '新建 Daily' })).toBeHidden();
   });
 
   test('mobile create state adheres to structural non-overlapping, hit area and horizontal boundaries', async ({
@@ -146,11 +182,19 @@ test.describe('compact viewport layout matrix', () => {
 
     // 验证内部行区域不重叠 (Row 1, Row 2, Row 3, Row 4)
     await expectElementsNotToOverlap(projectSelect, titleInput, '项目选择与任务名称');
-    await expectElementsNotToOverlap(startTimeInput, endTimeInput, '开始时间与结束时间');
+    await expectElementsNotToOverlap(
+      startTimeInput,
+      endTimeInput,
+      '开始时间与结束时间',
+    );
     await expectElementsNotToOverlap(plannedDisplay, actualInput, '预计时长与实际耗时');
     await expectElementsNotToOverlap(cancelBtn, confirmBtn, '取消按钮与保存按钮');
     await expectElementsNotToOverlap(titleInput, startTimeInput, '任务名称与开始时间');
-    await expectElementsNotToOverlap(startTimeInput, plannedDisplay, '开始时间与预计时长');
+    await expectElementsNotToOverlap(
+      startTimeInput,
+      plannedDisplay,
+      '开始时间与预计时长',
+    );
     await expectElementsNotToOverlap(plannedDisplay, confirmBtn, '预计时长与保存按钮');
 
     // 断言真实可点击元素满足 iOS 44×44pt 触控目标，而不是只检查内部视觉按钮。
@@ -180,7 +224,11 @@ test.describe('compact viewport layout matrix', () => {
 
     await expectElementWithinHorizontalViewport(page, quickRow, '无时间待办新增态卡片');
     await expectElementWithinHorizontalViewport(page, quickTitle, '待办内容输入框');
-    await expectElementsNotToOverlap(quickCheckbox, quickProject, '待办 Checkbox 与项目');
+    await expectElementsNotToOverlap(
+      quickCheckbox,
+      quickProject,
+      '待办 Checkbox 与项目',
+    );
     await expectElementsNotToOverlap(quickProject, quickTitle, '待办项目与待办内容');
     await expectElementsNotToOverlap(quickTitle, quickCancel, '待办内容与取消按钮');
     await expectElementsNotToOverlap(quickCancel, quickConfirm, '待办取消与保存按钮');
@@ -203,8 +251,16 @@ test.describe('compact viewport layout matrix', () => {
     const checkWrap = seededTimelineRow.locator('.task-check-wrap');
     const contentWrap = seededTimelineRow.locator('.task-content-wrap');
     const actionsCell = seededTimelineRow.locator('.task-actions-cell');
-    await expectElementsNotToOverlap(checkWrap, contentWrap, 'Checkbox 触控区与任务内容');
-    await expectElementsNotToOverlap(contentWrap, actionsCell, '任务内容与更多操作按钮');
+    await expectElementsNotToOverlap(
+      checkWrap,
+      contentWrap,
+      'Checkbox 触控区与任务内容',
+    );
+    await expectElementsNotToOverlap(
+      contentWrap,
+      actionsCell,
+      '任务内容与更多操作按钮',
+    );
 
     const checkWrapBox = (await checkWrap.boundingBox())!;
     expect(checkWrapBox.width).toBeGreaterThanOrEqual(44);

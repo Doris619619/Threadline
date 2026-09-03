@@ -5,6 +5,7 @@
 import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
 import {
   bootstrapLocalAdapterWorkspace,
+  openProjectCreateDialog,
   openWorkspaceSection,
 } from './support/workspace';
 
@@ -561,7 +562,7 @@ test('creates a task on the selected future date', async ({ page }) => {
 
 test('creates a Daily definition that appears on following dates', async ({ page }) => {
   await openWorkspaceSection(page, '项目');
-  await page.getByRole('button', { name: /新建 Daily/ }).click();
+  await openProjectCreateDialog(page, '新建 Daily');
   await page.getByLabel('Daily 名称').fill('晚间复盘');
   await page.getByRole('button', { name: '创建', exact: true }).click();
   await openWorkspaceSection(page, '首页');
@@ -589,7 +590,7 @@ test('daily subtask completion does not complete its parent', async ({ page }) =
 
 test('manages Daily independently with planned checklist items', async ({ page }) => {
   await openWorkspaceSection(page, '项目');
-  await page.getByRole('button', { name: /新建 Daily/ }).click();
+  await openProjectCreateDialog(page, '新建 Daily');
   await page.getByLabel('Daily 名称').fill('阅读训练');
   await page.getByRole('button', { name: '+ 添加清单项' }).click();
   await page.getByLabel('清单项名称 1').fill('整理笔记');
@@ -599,7 +600,7 @@ test('manages Daily independently with planned checklist items', async ({ page }
   await expect(page.getByText('1 项 · 20 分钟')).toBeVisible();
   await expect(page.getByLabel('新 Daily 所属项目')).toHaveCount(0);
   await page.getByRole('button', { name: /阅读训练/ }).click();
-  await page.getByRole('button', { name: '+ 添加清单项' }).last().click();
+  await page.getByRole('button', { name: '添加清单项' }).last().click();
   await page.getByLabel('清单项名称').fill('阅读记录');
   await page.getByLabel('预计时间').fill('10');
   await page.getByRole('button', { name: '保存', exact: true }).click();
@@ -703,8 +704,8 @@ test('shows task and daily data in unified insight periods', async ({ page }) =>
 
 test('edits a project from its management menu', async ({ page }) => {
   await openWorkspaceSection(page, '项目');
-  await page.getByLabel('AI研究操作').click();
-  await page.getByRole('button', { name: '修改', exact: true }).click();
+  await page.getByRole('button', { name: '管理项目 AI研究', exact: true }).click();
+  await page.getByRole('button', { name: '修改项目', exact: true }).click();
   await page.getByLabel('项目名称', { exact: true }).fill('AI 实验室');
   await page.getByRole('button', { name: '保存', exact: true }).click();
   await expect(page.getByText('AI 实验室', { exact: true })).toBeVisible();

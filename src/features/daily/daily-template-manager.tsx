@@ -2,8 +2,8 @@
 
 'use client';
 
-import { ChevronDown, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
-import { useState, type MouseEvent } from 'react';
+import { ChevronDown, Circle, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
+import { forwardRef, useImperativeHandle, useState, type MouseEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ManagementDialog } from '@/components/ui/management-dialog';
@@ -12,6 +12,16 @@ import type { Daily } from '@/features/daily/types';
 type Status = 'archive' | 'restore' | 'delete';
 type DraftItem = { id: string; title: string; plannedDurationMinutes: number };
 type DialogMode = 'create' | 'append' | 'edit-template' | 'edit-item';
+type DailyTemplateManagerProps = {
+  items: Daily[];
+  onCreate: (daily: Daily) => Promise<void>;
+  onSave: (daily: Daily) => Promise<void>;
+  onSetStatus: (id: string, status: Status) => Promise<void>;
+  onSetItemStatus: (id: string, status: Status) => Promise<void>;
+};
+
+/** 暴露 Daily 创建入口给项目页头，仍由本组件维护模板草稿和保存规则。 */
+export type DailyTemplateManagerHandle = { openCreate: () => void };
 
 /** 将计划分钟转换为清单与模板摘要中的统一文案。 */
 function planned(minutes: number) {
@@ -130,19 +140,13 @@ function DraftItems({
 }
 
 /** 渲染 Daily 模板管理区；这里不显示任何执行态、实际耗时或项目归属。 */
-export function DailyTemplateManager({
-  items,
-  onCreate,
-  onSave,
-  onSetStatus,
-  onSetItemStatus,
-}: {
-  items: Daily[];
-  onCreate: (daily: Daily) => Promise<void>;
-  onSave: (daily: Daily) => Promise<void>;
-  onSetStatus: (id: string, status: Status) => Promise<void>;
-  onSetItemStatus: (id: string, status: Status) => Promise<void>;
-}) {
+export const DailyTemplateManager = forwardRef<
+  DailyTemplateManagerHandle,
+  DailyTemplateManagerProps
+>(function DailyTemplateManager(
+  { items, onCreate, onSave, onSetStatus, onSetItemStatus },
+  ref,
+) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [mode, setMode] = useState<DialogMode>();
   const [targetId, setTargetId] = useState('');
@@ -273,122 +277,134 @@ export function DailyTemplateManager({
       }
       close();
     });
+
+  /** 将现有 Daily 创建流程以受限 handle 交给项目页唯一入口调用。 */
+  useImperativeHandle(ref, () => ({ openCreate }));
+
   return (
     <section
       className="manager-section"
       aria-labelledby="daily-template-manager-heading"
     >
-      <div className="manager-section-heading">
-        <h2 id="daily-template-manager-heading">Daily</h2>
-        <Button size="compact" onClick={openCreate}>
-          <Plus size={15} /> 新建 Daily
-        </Button>
-      </div>
-      <div className="manager-list">
-        {visible.map((daily) => {
-          const activeItems = daily.children.filter(
-            (item) => !item.deletedAt && item.active !== false,
-          );
-          const total = activeItems.reduce(
-            (sum, item) => sum + (item.plannedDurationMinutes ?? 0),
-            0,
-          );
-          const isExpanded = Boolean(expanded[daily.id]);
-          return (
-            <div className="daily-manager-row" key={daily.id}>
-              <div className="daily-manager-head">
-                <button
-                  className="daily-disclosure"
-                  aria-expanded={isExpanded}
-                  onClick={() =>
-                    setExpanded((current) => ({
-                      ...current,
-                      [daily.id]: !current[daily.id],
-                    }))
-                  }
-                >
-                  <ChevronDown size={16} />
-                  <span>{daily.title}</span>
-                </button>
-                <span className="manager-status">
-                  {daily.active === false
-                    ? '已归档'
-                    : `${activeItems.length} 项 · ${planned(total)}`}
-                </span>
-                <DailyMenu
-                  label={`${daily.title}操作`}
-                  actions={[
-                    ['修改', () => openTemplateEdit(daily)],
-                    [
-                      daily.active === false ? '恢复' : '归档',
-                      () =>
-                        void run(() =>
-                          onSetStatus(
-                            daily.id,
-                            daily.active === false ? 'restore' : 'archive',
+      <div className="manager-card manager-card--daily">
+        <div className="manager-card-heading">
+          <h2 id="daily-template-manager-heading">
+            Daily <span>{visible.length}</span>
+          </h2>
+        </div>
+        <div className="manager-list manager-list--daily">
+          {visible.map((daily) => {
+            const activeItems = daily.children.filter(
+              (item) => !item.deletedAt && item.active !== false,
+            );
+            const total = activeItems.reduce(
+              (sum, item) => sum + (item.plannedDurationMinutes ?? 0),
+              0,
+            );
+            const isExpanded = expanded[daily.id] ?? true;
+            return (
+              <div className="daily-manager-row" key={daily.id}>
+                <div className="daily-manager-head">
+                  <button
+                    className="daily-disclosure"
+                    aria-expanded={isExpanded}
+                    onClick={() =>
+                      setExpanded((current) => ({
+                        ...current,
+                        [daily.id]: !(current[daily.id] ?? true),
+                      }))
+                    }
+                  >
+                    <span aria-hidden="true" className="daily-template-dot" />
+                    <span>{daily.title}</span>
+                    <span className="manager-status">
+                      {daily.active === false
+                        ? '已归档'
+                        : `${activeItems.length} 项 · ${planned(total)}`}
+                    </span>
+                    <ChevronDown aria-hidden="true" size={18} />
+                  </button>
+                  <DailyMenu
+                    label={`${daily.title}操作`}
+                    actions={[
+                      ['修改', () => openTemplateEdit(daily)],
+                      [
+                        daily.active === false ? '恢复' : '归档',
+                        () =>
+                          void run(() =>
+                            onSetStatus(
+                              daily.id,
+                              daily.active === false ? 'restore' : 'archive',
+                            ),
                           ),
-                        ),
-                    ],
-                    [
-                      '删除',
-                      () => void run(() => onSetStatus(daily.id, 'delete')),
-                      true,
-                    ],
-                  ]}
-                />
-              </div>
-              {isExpanded && (
-                <div className="daily-manager-items">
-                  {daily.children
-                    .filter((item) => !item.deletedAt)
-                    .map((item) => {
-                      const itemId = item.templateItemId ?? item.id;
-                      if (!itemId) return null;
-                      return (
-                        <div className="daily-manager-item" key={itemId}>
-                          <span>{item.title}</span>
-                          <span>
-                            {item.active === false
-                              ? '已归档'
-                              : planned(item.plannedDurationMinutes ?? 0)}
-                          </span>
-                          <DailyMenu
-                            label={`${item.title}操作`}
-                            actions={[
-                              ['修改', () => openItemEdit(daily, item)],
-                              [
-                                item.active === false ? '恢复' : '归档',
-                                () =>
-                                  void run(() =>
-                                    onSetItemStatus(
-                                      itemId,
-                                      item.active === false ? 'restore' : 'archive',
-                                    ),
-                                  ),
-                              ],
-                              [
-                                '删除',
-                                () => void run(() => onSetItemStatus(itemId, 'delete')),
-                                true,
-                              ],
-                            ]}
-                          />
-                        </div>
-                      );
-                    })}
-                  {daily.active !== false && (
-                    <button
-                      className="manager-inline-action"
-                      onClick={() => openAppend(daily.id)}
-                    >
-                      + 添加清单项
-                    </button>
-                  )}
+                      ],
+                      [
+                        '删除',
+                        () => void run(() => onSetStatus(daily.id, 'delete')),
+                        true,
+                      ],
+                    ]}
+                  />
                 </div>
-              )}
-            </div>
-          );
-        })}
+                {isExpanded && (
+                  <div className="daily-manager-items">
+                    <div className="daily-manager-inset">
+                      {daily.children
+                        .filter((item) => !item.deletedAt)
+                        .map((item) => {
+                          const itemId = item.templateItemId ?? item.id;
+                          if (!itemId) return null;
+                          return (
+                            <div className="daily-manager-item" key={itemId}>
+                              <Circle aria-hidden="true" size={20} strokeWidth={1.6} />
+                              <span>{item.title}</span>
+                              <span>
+                                {item.active === false
+                                  ? '已归档'
+                                  : planned(item.plannedDurationMinutes ?? 0)}
+                              </span>
+                              <DailyMenu
+                                label={`${item.title}操作`}
+                                actions={[
+                                  ['修改', () => openItemEdit(daily, item)],
+                                  [
+                                    item.active === false ? '恢复' : '归档',
+                                    () =>
+                                      void run(() =>
+                                        onSetItemStatus(
+                                          itemId,
+                                          item.active === false ? 'restore' : 'archive',
+                                        ),
+                                      ),
+                                  ],
+                                  [
+                                    '删除',
+                                    () =>
+                                      void run(() => onSetItemStatus(itemId, 'delete')),
+                                    true,
+                                  ],
+                                ]}
+                              />
+                            </div>
+                          );
+                        })}
+                    </div>
+                    {daily.active !== false && (
+                      <button
+                        className="manager-inline-action"
+                        onClick={() => openAppend(daily.id)}
+                        type="button"
+                      >
+                        <Plus aria-hidden="true" size={20} strokeWidth={1.8} />
+                        添加清单项
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
       {mode && (
         <ManagementDialog
@@ -498,4 +514,4 @@ export function DailyTemplateManager({
       )}
     </section>
   );
-}
+});

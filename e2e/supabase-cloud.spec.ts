@@ -24,7 +24,9 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
   await page.goto('/');
 
   // 首屏在未登录时展示欢迎页，点击继续后进入登录表单
-  await expect(page.getByRole('heading', { name: '欢迎回到 Threadline' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: '欢迎回到 Threadline' }),
+  ).toBeVisible();
   await page.getByRole('button', { name: '使用指定账号继续' }).click();
   await expect(page.getByRole('heading', { name: '登录我的工作台' })).toBeVisible();
   await page.getByLabel('邮箱').fill(email);
@@ -35,9 +37,9 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
   await page.getByRole('button', { name: '项目', exact: true }).click();
   await expect(page.locator('.project-panel')).toBeVisible();
   await expect(
-    page.getByTestId('project-panel').getByRole('heading', { level: 1, name: '项目' }),
-  ).toBeVisible();
-  await expect(page.getByRole('button', { name: '新建项目', exact: true })).toBeVisible();
+    page.getByRole('heading', { level: 1, name: '项目', exact: true }),
+  ).toHaveCount(1);
+  await expect(page.getByRole('button', { name: '新建', exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: '首页', exact: true }).click();
   const quickPanel = page.locator('.quick-panel');
@@ -59,5 +61,7 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
     .click();
   await expect(page.getByRole('heading', { name: '隐私', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '退出登录', exact: true }).click();
-  await expect(page.getByRole('heading', { name: '欢迎回到 Threadline' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: '欢迎回到 Threadline' }),
+  ).toBeVisible();
 });
