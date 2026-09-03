@@ -1,5 +1,5 @@
 /**
- * @fileoverview 验证移动端与桌面端任务行 DOM 契约、操作收敛、触控热区、图标资源透明度与登录页防裁切规范。
+ * @fileoverview 验证移动端与桌面端任务行 DOM 契约、操作收敛、触控热区、各平台图标资源契约与登录页防裁切规范。
  */
 
 import { readFileSync } from 'node:fs';
@@ -7,6 +7,7 @@ import { resolve } from 'node:path';
 import { render, fireEvent, cleanup } from '@testing-library/react';
 import sharp from 'sharp';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { threadlineMetadata } from '@/app/root-document';
 import { TaskLine } from '@/features/tasks/components/task-line';
 import { TaskRowActions } from '@/features/tasks/components/task-row-actions';
 import type { Project, Task } from '@/types/domain';
@@ -211,8 +212,8 @@ describe('mobile layout and visual regression contracts', () => {
     );
   });
 
-  /** 验证实际图标资源（PNG/SVG）无外部不透明白色画布，四角完全透明。 */
-  it('validates actual icon assets have true alpha transparency and no outer white canvas', async () => {
+  /** 验证普通网页图标（PNG/SVG）保留视觉透明圆角，四角完全透明。 */
+  it('validates brand icon assets have true alpha transparency for standard web display', async () => {
     const iconPngBuffer = readFileSync(projectFile('public/icon.png'));
     const desktopIconPngBuffer = readFileSync(projectFile('public/desktop/threadline-app-icon.png'));
 
@@ -245,5 +246,61 @@ describe('mobile layout and visual regression contracts', () => {
     // 验证 SVG 嵌入的是带透明通道的 PNG
     const svgContent = readFileSync(projectFile('public/icon.svg'), 'utf8');
     expect(svgContent).toContain('data:image/png;base64,');
+  });
+
+  /** 验证 Apple Touch Icon 和 PWA Maskable Icon 专供全画布不透明正方形，四角 alpha=255。 */
+  it('validates apple-touch-icon and icon-maskable have full-bleed opaque backgrounds without transparent corners', async () => {
+    const appleIconBuffer = readFileSync(projectFile('public/apple-touch-icon.png'));
+    const maskableIconBuffer = readFileSync(projectFile('public/icon-maskable.png'));
+
+    for (const [name, buffer] of [
+      ['apple-touch-icon.png', appleIconBuffer],
+      ['icon-maskable.png', maskableIconBuffer],
+    ] as const) {
+      const meta = await sharp(buffer).metadata();
+      expect(meta.width).toBe(512);
+      expect(meta.height).toBe(512);
+
+      const { data, info } = await sharp(buffer).raw().toBuffer({ resolveWithObject: true });
+      const getPixel = (x: number, y: number) => {
+        const idx = (y * info.width + x) * 4;
+        return [data[idx], data[idx + 1], data[idx + 2], data[idx + 3]];
+      };
+
+      // 验证四角与各处均为完全不透明 (Alpha = 255)
+      expect(getPixel(0, 0)[3], `${name} top-left alpha`).toBe(255);
+      expect(getPixel(info.width - 1, 0)[3], `${name} top-right alpha`).toBe(255);
+      expect(getPixel(0, info.height - 1)[3], `${name} bottom-left alpha`).toBe(255);
+      expect(getPixel(info.width - 1, info.height - 1)[3], `${name} bottom-right alpha`).toBe(255);
+
+      // 验证中心 Threadline 标志正常
+      expect(getPixel(Math.floor(info.width / 2), Math.floor(info.height / 2))[3]).toBe(255);
+    }
+  });
+
+  /** 验证 Root Metadata 与 Manifest 分别引用符合平台规范的专用资源。 */
+  it('validates root document metadata and webmanifest reference the dedicated platform assets', () => {
+    // 验证 Metadata 分离引用
+    expect(threadlineMetadata.icons).toEqual({
+      icon: '/icon.png',
+      apple: '/apple-touch-icon.png',
+    });
+
+    // 验证 Web Manifest
+    const manifest = JSON.parse(readFileSync(projectFile('public/manifest.webmanifest'), 'utf8'));
+    const iconAny = manifest.icons.find((i: { purpose?: string; src: string }) => i.src === '/icon.png');
+    const iconMaskable = manifest.icons.find((i: { purpose?: string; src: string }) => i.src === '/icon-maskable.png');
+
+    expect(iconAny).toBeDefined();
+    expect(iconAny.purpose).toBe('any');
+    expect(iconMaskable).toBeDefined();
+    expect(iconMaskable.purpose).toBe('maskable');
+
+    // 验证 Service Worker 预缓存列表覆盖所有专用图标
+    const swContent = readFileSync(projectFile('public/sw.js'), 'utf8');
+    expect(swContent).toContain("'/apple-touch-icon.png'");
+    expect(swContent).toContain("'/icon-maskable.png'");
+    expect(swContent).toContain("'/icon.png'");
+    expect(swContent).toContain("'/icon.svg'");
   });
 });

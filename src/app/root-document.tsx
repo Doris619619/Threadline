@@ -10,7 +10,7 @@ export const threadlineMetadata: Metadata = {
   manifest: '/manifest.webmanifest',
   icons: {
     icon: '/icon.png',
-    apple: '/icon.png',
+    apple: '/apple-touch-icon.png',
   },
 };
 
