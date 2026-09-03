@@ -1,5 +1,5 @@
 /**
- * @fileoverview 任务行操作菜单与拖拽柄；桌面靠精确指针悬停，触控端点击展开。
+ * @fileoverview 任务行操作菜单与拖拽柄；桌面靠精确指针悬停，移动端收敛为纯净更多菜单。
  */
 
 'use client';
@@ -10,7 +10,7 @@ import { cn } from '@/lib/cn';
 import type { TaskStatus } from '@/types/domain';
 
 /**
- * 渲染工作站开关、更多菜单和拖拽柄。菜单在触控下用点击开关，不依赖 hover。
+ * 渲染工作站开关、更多菜单和拖拽柄。移动端默认只展示干净的更多菜单，次要操作收敛到菜单内。
  */
 export function TaskRowActions({
   taskId,

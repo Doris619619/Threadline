@@ -102,3 +102,33 @@ it('does not preview a zero-minute duration that the save layer rejects', () => 
 
   expect(screen.getAllByLabelText('预计时长').at(-1)).toHaveTextContent('自动计算');
 });
+
+it('ensures timed create row groups project select and task title in the same primary row container', () => {
+  const { container } = render(
+    <TimedTaskCreateRow
+      open
+      draft={{
+        title: '',
+        projectId: 'work',
+        projectName: '',
+        startTime: '',
+        endTime: '',
+        planned: '',
+        actual: '',
+        completed: false,
+        isAddingProject: false,
+      }}
+      projects={projects}
+      onCreate={async () => ({ task: {} })}
+      onCreateProject={async () => projects[0]}
+      onChange={() => undefined}
+      onReset={() => undefined}
+      onClose={() => undefined}
+    />,
+  );
+
+  const primaryRow = container.querySelector('.timed-create-primary');
+  expect(primaryRow).not.toBeNull();
+  expect(primaryRow?.querySelector('.project-inline-select')).not.toBeNull();
+  expect(primaryRow?.querySelector('.timed-create-title-input')).not.toBeNull();
+});
