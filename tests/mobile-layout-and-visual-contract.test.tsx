@@ -1,11 +1,12 @@
 /**
- * @fileoverview 验证移动端与桌面端任务行 DOM 契约、操作收敛、登录页顶部人物防裁切与全站图标无白边 CSS 规范。
+ * @fileoverview 验证移动端与桌面端任务行 DOM 契约、操作收敛、触控热区、图标资源透明度与登录页防裁切规范。
  */
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { render, fireEvent, cleanup } from '@testing-library/react';
+import sharp from 'sharp';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TaskLine } from '@/features/tasks/components/task-line';
 import { TaskRowActions } from '@/features/tasks/components/task-row-actions';
 import type { Project, Task } from '@/types/domain';
@@ -64,6 +65,9 @@ const quickTask: Task = {
 };
 
 describe('mobile layout and visual regression contracts', () => {
+  afterEach(() => {
+    cleanup();
+  });
   /** 验证今日日程已创建态将时间、项目、预计和实际收拢在连续的元数据区域内。 */
   it('groups timed task title and all metadata within a unified task-content-wrap', () => {
     const { container } = render(
@@ -124,10 +128,9 @@ describe('mobile layout and visual regression contracts', () => {
     expect(meta?.querySelector('.timeline-time')).toBeNull();
   });
 
-  /** 验证移动端操作收敛：支持工作站下拉项切换，且仅暴露标准更多操作入口。 */
-  it('converges task actions into more-options menu and provides workstation toggle action', () => {
-    const onToggleWorkstation = vi.fn();
-    render(
+  /** 验证移动端操作收敛：不再提供工作站相关操作，仅保留编辑、移期、待安排、放弃和删除。 */
+  it('converges task actions into more-options menu without workstation items', () => {
+    const { getByLabelText, getByText, queryByText } = render(
       <TaskRowActions
         taskId="task-1"
         title="测试任务"
@@ -138,19 +141,20 @@ describe('mobile layout and visual regression contracts', () => {
         onEdit={vi.fn()}
         onMove={vi.fn()}
         onReschedule={vi.fn()}
-        onToggleWorkstation={onToggleWorkstation}
       />,
     );
 
-    const moreButton = screen.getByLabelText('测试任务更多操作');
+    const moreButton = getByLabelText('测试任务更多操作');
     expect(moreButton).toBeVisible();
 
     fireEvent.click(moreButton);
-    const workstationMenuItem = screen.getByText('加入工作站');
-    expect(workstationMenuItem).toBeVisible();
-
-    fireEvent.click(workstationMenuItem);
-    expect(onToggleWorkstation).toHaveBeenCalledWith('task-1');
+    expect(queryByText('加入工作站')).toBeNull();
+    expect(queryByText('从工作站移除')).toBeNull();
+    expect(getByText('详细编辑')).toBeVisible();
+    expect(getByText('移期')).toBeVisible();
+    expect(getByText('待安排')).toBeVisible();
+    expect(getByText('放弃')).toBeVisible();
+    expect(getByText('删除')).toBeVisible();
   });
 
   /** 验证登录/欢迎页顶部人物插画使用 center top 裁切，保留头部完整。 */
@@ -179,5 +183,67 @@ describe('mobile layout and visual regression contracts', () => {
     expect(startupCss).toMatch(
       /\.threadline-startup-icon-wrap img\s*\{[^}]*background:\s*transparent/s,
     );
+  });
+
+  /** 验证移动端 CSS 契约：Checkbox 与更多操作拥有独立 44x44 触控区且工作站/拖拽柄在移动端彻底隐藏。 */
+  it('enforces 44x44 touch hit areas and hidden workstation/drag actions on mobile task rows', () => {
+    const dashboardCss = readFileSync(projectFile('src/features/tasks/task-dashboard.css'), 'utf8');
+    
+    // Checkbox 触控包装容器在移动端占用 44x44 布局独立槽位，杜绝侵占标题
+    expect(dashboardCss).toMatch(
+      /\.timeline-row \.task-check-wrap,\s*\.quick-task-row \.task-check-wrap\s*\{[^}]*flex:\s*0 0 44px/s,
+    );
+    expect(dashboardCss).toMatch(
+      /\.timeline-row \.task-check-wrap,\s*\.quick-task-row \.task-check-wrap\s*\{[^}]*width:\s*44px/s,
+    );
+
+    // 更多操作按钮在移动端满足 44x44 触控热区
+    expect(dashboardCss).toMatch(
+      /\.task-actions > button:not\(\.task-workstation-action\)\s*\{[^}]*width:\s*44px/s,
+    );
+    expect(dashboardCss).toMatch(
+      /\.task-actions > button:not\(\.task-workstation-action\)\s*\{[^}]*height:\s*44px/s,
+    );
+
+    // 移动端工作站与拖拽手柄彻底隐藏
+    expect(dashboardCss).toMatch(
+      /\.task-actions > \.task-workstation-action,\s*\.task-actions-cell \.task-workstation-action,\s*\.task-actions-cell \.task-drag-handle\s*\{[^}]*display:\s*none !important/s,
+    );
+  });
+
+  /** 验证实际图标资源（PNG/SVG）无外部不透明白色画布，四角完全透明。 */
+  it('validates actual icon assets have true alpha transparency and no outer white canvas', async () => {
+    const iconPngBuffer = readFileSync(projectFile('public/icon.png'));
+    const desktopIconPngBuffer = readFileSync(projectFile('public/desktop/threadline-app-icon.png'));
+
+    const meta = await sharp(iconPngBuffer).metadata();
+    expect(meta.format).toBe('png');
+    expect(meta.hasAlpha).toBe(true);
+
+    const { data, info } = await sharp(iconPngBuffer).raw().toBuffer({ resolveWithObject: true });
+    expect(info.channels).toBe(4);
+
+    const getAlpha = (x: number, y: number) => {
+      const idx = (y * info.width + x) * 4;
+      return data[idx + 3];
+    };
+
+    // 验证四角完全透明（Alpha = 0）
+    expect(getAlpha(0, 0)).toBe(0);
+    expect(getAlpha(info.width - 1, 0)).toBe(0);
+    expect(getAlpha(0, info.height - 1)).toBe(0);
+    expect(getAlpha(info.width - 1, info.height - 1)).toBe(0);
+
+    // 验证中心图标主体是不透明的
+    expect(getAlpha(Math.floor(info.width / 2), Math.floor(info.height / 2))).toBe(255);
+
+    // 验证桌面图标具有相同的透明度属性
+    const desktopMeta = await sharp(desktopIconPngBuffer).metadata();
+    expect(desktopMeta.format).toBe('png');
+    expect(desktopMeta.hasAlpha).toBe(true);
+
+    // 验证 SVG 嵌入的是带透明通道的 PNG
+    const svgContent = readFileSync(projectFile('public/icon.svg'), 'utf8');
+    expect(svgContent).toContain('data:image/png;base64,');
   });
 });

@@ -88,19 +88,6 @@ export function TaskRowActions({
             <Pencil size={13} />
             详细编辑
           </button>
-          {onToggleWorkstation && (
-            <button
-              type="button"
-              className="task-workstation-menu-item"
-              onClick={() => {
-                setMenuOpen(false);
-                onToggleWorkstation(taskId);
-              }}
-            >
-              <Plus size={13} />
-              {inWorkstation ? '从工作站移除' : '加入工作站'}
-            </button>
-          )}
           {canChangeWorkflow && (
             <button
               type="button"

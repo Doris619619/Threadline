@@ -192,13 +192,37 @@ test.describe('compact viewport layout matrix', () => {
     expect(quickCancelBox.height).toBeGreaterThanOrEqual(44);
     expect(quickCancelBox.width).toBeGreaterThanOrEqual(44);
 
-    // 3. 测试移动端已创建任务行紧凑卡片、操作收敛与元数据区域
+    // 3. 测试移动端已创建任务行紧凑卡片、操作收敛、44x44 触控区与完全无工作站操作
     const seededTimelineRow = schedule.locator('.timeline-row').first();
     await expect(seededTimelineRow).toBeVisible();
     await expect(seededTimelineRow.locator('.task-content-wrap')).toBeVisible();
     await expect(seededTimelineRow.locator('.timeline-meta')).toBeVisible();
     await expect(seededTimelineRow.locator('.task-drag-handle')).toBeHidden();
     await expect(seededTimelineRow.locator('.task-workstation-action')).toBeHidden();
+
+    const checkWrap = seededTimelineRow.locator('.task-check-wrap');
+    const contentWrap = seededTimelineRow.locator('.task-content-wrap');
+    const actionsCell = seededTimelineRow.locator('.task-actions-cell');
+    await expectElementsNotToOverlap(checkWrap, contentWrap, 'Checkbox 触控区与任务内容');
+    await expectElementsNotToOverlap(contentWrap, actionsCell, '任务内容与更多操作按钮');
+
+    const checkWrapBox = (await checkWrap.boundingBox())!;
+    expect(checkWrapBox.width).toBeGreaterThanOrEqual(44);
+    expect(checkWrapBox.height).toBeGreaterThanOrEqual(44);
+
+    const moreBtn = seededTimelineRow.getByLabel('邮件处理更多操作');
+    await expect(moreBtn).toBeVisible();
+    const moreBtnBox = (await moreBtn.boundingBox())!;
+    expect(moreBtnBox.width).toBeGreaterThanOrEqual(44);
+    expect(moreBtnBox.height).toBeGreaterThanOrEqual(44);
+
+    await moreBtn.click();
+    const moreMenu = seededTimelineRow.locator('.task-actions > div');
+    await expect(moreMenu).toBeVisible();
+    await expect(moreMenu.getByText('加入工作站')).toHaveCount(0);
+    await expect(moreMenu.getByText('从工作站移除')).toHaveCount(0);
+    await expect(moreMenu.getByText('详细编辑')).toBeVisible();
+    await expect(moreMenu.getByText('删除')).toBeVisible();
 
     await expectNoUnexpectedHorizontalOverflow(page);
   });
