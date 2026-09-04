@@ -190,6 +190,37 @@
   color: var(--danger);
   font-size: 0.68rem;
 }
+
+@media (max-width: 760px) {
+  /* 手机窄窗在保留 16px 以上录入字号时改为两行，避免紧凑新增行横向溢出。 */
+  .compact-add-row {
+    gap: 8px;
+  }
+
+  .compact-add-row input,
+  .compact-add-row select {
+    height: var(--touch-target);
+    padding: 0 8px;
+    font-size: var(--mobile-form-control-font-size);
+  }
+
+  .compact-add-confirm {
+    width: var(--touch-target);
+    height: var(--touch-target);
+  }
+
+  .compact-timed-add-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--touch-target);
+  }
+
+  .compact-timed-add-row .compact-add-time {
+    grid-column: 1 / -1;
+  }
+
+  .compact-quick-add-row {
+    grid-template-columns: minmax(84px, 0.75fr) minmax(0, 1fr) var(--touch-target);
+  }
+}
 .workstation-panel {
   display: flex;
   min-height: 0;
@@ -542,5 +573,3 @@
 .tl-window-controls i:nth-child(3) {
   background: #28c840;
 }
-
-
