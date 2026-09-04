@@ -141,8 +141,8 @@ test.describe('iPhone text control zoom guard', () => {
     await schedule.getByRole('button', { name: '添加', exact: true }).click();
     await expectVisibleTextControlsAtLeast16px(page, '今日日程新增行');
 
-    const quickPanel = page.locator('.quick-panel');
-    await quickPanel.getByRole('button', { name: '添加', exact: true }).click();
+    const waitingPanel = page.locator('.waiting-panel');
+    await waitingPanel.getByRole('button', { name: '添加', exact: true }).click();
     await expectVisibleTextControlsAtLeast16px(page, '待安排新增行');
 
     const seededTask = page.locator('.timeline-row').filter({ hasText: '邮件处理' });

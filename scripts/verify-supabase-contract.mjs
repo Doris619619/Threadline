@@ -17,6 +17,10 @@ const dailyManagerMigration = await readFile(
   join(migrationsDirectory, '202609010001_project_daily_manager.sql'),
   'utf8',
 );
+const waitingTaskMigration = await readFile(
+  join(migrationsDirectory, '202609040001_waiting_task_pool.sql'),
+  'utf8',
+);
 
 /** 要求迁移包含关键片段，错误信息直接指出缺失的审核约束。 */
 function requirePattern(pattern, description) {
@@ -233,10 +237,12 @@ requirePattern(
   /set constraints workstation_owner_position_key deferred/i,
   'atomic reorder defer',
 );
-requirePattern(
-  /p_transition not in \('scheduled', 'rescheduled', 'backlog', 'abandoned', 'trashed'\)/i,
-  'atomic scheduled task transition',
-);
+if (!/tasks_state_shape_check[\s\S]*?status <> 'waiting'[\s\S]*?scheduled_date is null[\s\S]*?status <> 'active'[\s\S]*?scheduled_date is not null/is.test(waitingTaskMigration))
+  throw new Error('Supabase contract missing: waiting and active state shape constraints');
+if (!/p_transition not in \('scheduled', 'rescheduled', 'waiting', 'abandoned', 'trashed'\)[\s\S]*?update public\.tasks as tasks set[\s\S]*?schedule_pending_time[\s\S]*?planned_start_time[\s\S]*?planned_end_time[\s\S]*?planned_duration_minutes/is.test(waitingTaskMigration))
+  throw new Error('Supabase contract missing: atomic waiting and scheduled transition shape');
+if (!/create or replace function public\.complete_waiting_task[\s\S]*?update public\.tasks set status = 'active', scheduled_date = p_completed_date[\s\S]*?completed = true/is.test(waitingTaskMigration))
+  throw new Error('Supabase contract missing: atomic waiting completion attribution');
 requirePattern(
   /security definer\s+set search_path = pg_catalog/is,
   'fixed purge search_path',
@@ -277,6 +283,7 @@ for (const rpc of [
   'record_daily_history\\(uuid, date, text\\)',
   'create_daily_template_with_entry\\(uuid, uuid, text, date\\)',
   'transition_task\\(uuid, text, date\\)',
+  'complete_waiting_task\\(uuid, date\\)',
   'add_workstation_task\\(uuid\\)',
   'reorder_workstation\\(uuid\\[\\]\\)',
   'close_day\\(date, jsonb, jsonb\\)',

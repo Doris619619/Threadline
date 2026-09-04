@@ -10,11 +10,13 @@ import type { CloseRecord, HistoryEvent, Task } from '@/types/domain';
 const eventLabel: Record<string, string> = {
   rescheduled: '已移期',
   backlog: '待安排',
+  waiting: '待安排',
   abandoned: '放弃',
   scheduled: '已安排',
   close_tomorrow: '收尾：移至明天',
   close_date: '收尾：指定日期',
   close_backlog: '收尾：待安排',
+  close_waiting: '收尾：待安排',
   close_abandoned: '收尾：放弃',
 };
 
@@ -60,8 +62,10 @@ export function HistoryPanel({
                   </td>
                   <td>{eventLabel[event.type] ?? event.type}</td>
                   <td>
-                    {event.payload?.fromDate ??
-                      getLocalDateKeyFromTimestamp(event.occurredAt)}
+                    {event.type === 'scheduled' && !event.payload?.fromDate
+                      ? '—'
+                      : (event.payload?.fromDate ??
+                        getLocalDateKeyFromTimestamp(event.occurredAt))}
                   </td>
                   <td>{event.payload?.toDate ?? '—'}</td>
                 </tr>

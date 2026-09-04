@@ -111,6 +111,7 @@ describe('useTaskCreateAndEdit', () => {
         schedulePendingTime: false,
         completed: true,
         status: 'active',
+        importance: 'normal',
       }),
     );
   });
@@ -138,6 +139,24 @@ describe('useTaskCreateAndEdit', () => {
         plannedEndTime: '10:00',
         plannedDurationMinutes: 90,
       }),
+    );
+  });
+
+  it('defaults compact scheduled creation to normal importance', async () => {
+    const dependencies = createHookDependencies();
+    const { result } = renderHook(() => useTaskCreateAndEdit(dependencies));
+
+    await act(async () => {
+      await result.current.createCompactTimedTask({
+        projectId: activeProject.id,
+        title: '迷你日程',
+        start: '09:00',
+        end: '10:00',
+      });
+    });
+
+    expect(dependencies.createTask).toHaveBeenCalledWith(
+      expect.objectContaining({ title: '迷你日程', status: 'active', importance: 'normal' }),
     );
   });
 
@@ -186,6 +205,7 @@ describe('useTaskCreateAndEdit', () => {
         plannedEndTime: '15:30',
         plannedDurationMinutes: 90,
         actualDurationMinutes: 30,
+        importance: 'normal',
       }),
     );
 
@@ -196,6 +216,7 @@ describe('useTaskCreateAndEdit', () => {
       date: '2026-08-19',
       completed: false,
       status: 'active',
+      importance: 'normal',
       createdAt: '2026-08-19T01:00:00.000Z',
       updatedAt: '2026-08-19T01:00:00.000Z',
     };
@@ -225,5 +246,129 @@ describe('useTaskCreateAndEdit', () => {
       }),
     );
     expect(updating.createTask).not.toHaveBeenCalled();
+  });
+
+  it('preserves historical actual duration while editing waiting task details', async () => {
+    const editing: Task = {
+      id: 'waiting-with-actual',
+      projectId: activeProject.id,
+      title: '旧标题',
+      actualDurationMinutes: 30,
+      completed: false,
+      status: 'waiting',
+      importance: 'normal',
+      createdAt: '2026-08-19T01:00:00.000Z',
+      updatedAt: '2026-08-19T01:00:00.000Z',
+    };
+    const dependencies = createHookDependencies(editing);
+    const { result } = renderHook(() => useTaskCreateAndEdit(dependencies));
+
+    await act(async () => {
+      await expect(
+        result.current.saveTask(
+          taskForm({
+            title: '新标题',
+            project: activeProject.id,
+            importance: 'important',
+          }),
+        ),
+      ).resolves.toBeUndefined();
+    });
+
+    expect(dependencies.updateTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: editing.id,
+        title: '新标题',
+        status: 'waiting',
+        date: undefined,
+        schedulePendingTime: false,
+        plannedStartTime: undefined,
+        plannedEndTime: undefined,
+        plannedDurationMinutes: undefined,
+        importance: 'important',
+        actualDurationMinutes: 30,
+      }),
+    );
+  });
+
+  it('clears schedule-pending state when an active task receives a start time', async () => {
+    const editing: Task = {
+      id: 'active-pending-time',
+      projectId: activeProject.id,
+      title: '待填开始时间',
+      date: '2026-09-04',
+      schedulePendingTime: true,
+      completed: false,
+      status: 'active',
+      importance: 'normal',
+      createdAt: '2026-09-04T01:00:00.000Z',
+      updatedAt: '2026-09-04T01:00:00.000Z',
+    };
+    const dependencies = createHookDependencies(editing);
+    const { result } = renderHook(() => useTaskCreateAndEdit(dependencies));
+
+    await act(async () => {
+      await result.current.saveTask(
+        taskForm({
+          title: editing.title,
+          project: activeProject.id,
+          start: '0900',
+          end: '',
+          planned: '',
+          actual: '',
+        }),
+      );
+    });
+
+    expect(dependencies.updateTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: editing.id,
+        date: '2026-09-04',
+        status: 'active',
+        plannedStartTime: '09:00',
+        schedulePendingTime: false,
+      }),
+    );
+  });
+
+  it('sets schedule-pending state when an active task start time is cleared', async () => {
+    const editing: Task = {
+      id: 'active-with-start',
+      projectId: activeProject.id,
+      title: '已有开始时间',
+      date: '2026-09-04',
+      plannedStartTime: '09:00',
+      schedulePendingTime: false,
+      completed: false,
+      status: 'active',
+      importance: 'normal',
+      createdAt: '2026-09-04T01:00:00.000Z',
+      updatedAt: '2026-09-04T01:00:00.000Z',
+    };
+    const dependencies = createHookDependencies(editing);
+    const { result } = renderHook(() => useTaskCreateAndEdit(dependencies));
+
+    await act(async () => {
+      await result.current.saveTask(
+        taskForm({
+          title: editing.title,
+          project: activeProject.id,
+          start: '',
+          end: '',
+          planned: '',
+          actual: '',
+        }),
+      );
+    });
+
+    expect(dependencies.updateTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: editing.id,
+        date: '2026-09-04',
+        status: 'active',
+        plannedStartTime: undefined,
+        schedulePendingTime: true,
+      }),
+    );
   });
 });

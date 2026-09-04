@@ -15,7 +15,6 @@ export type TimedTaskDraft = {
 
 /** 完整工作台无时间待办新增行提交给动作层的字段。 */
 export type QuickTaskDraft = {
-  completed: boolean;
   projectId: string;
   title: string;
 };

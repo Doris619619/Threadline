@@ -25,6 +25,7 @@ export function makeTask(
     actualDurationMinutes,
     completed,
     status: 'active',
+    importance: 'normal',
     createdAt: businessDate,
     updatedAt: businessDate,
   };

@@ -31,6 +31,7 @@ const task = (id: string, status: Task['status'], date?: string): Task => ({
   date,
   completed: false,
   status,
+  importance: 'normal',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 });

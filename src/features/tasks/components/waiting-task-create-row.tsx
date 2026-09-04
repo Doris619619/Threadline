@@ -1,16 +1,15 @@
-/** @fileoverview 渲染无时间待办新增行，桌面保持紧凑单行，移动端提供符合 iOS 触控规范的单行快速新增。 */
+/** @fileoverview 渲染待安排新增行，桌面紧凑且移动端保持 iOS 触控尺寸。 */
 
 'use client';
 
 import { Check, X } from 'lucide-react';
 import { useState } from 'react';
-import { Checkbox } from '@/components/ui/checkbox';
 import type { QuickTaskCreateDraft } from '@/features/tasks/hooks/use-task-create-drafts';
 import type { QuickTaskDraft } from '@/features/tasks/task-drafts';
 import type { Project } from '@/types/domain';
 
 /** 保持无时间待办的项目选择、Enter/Escape 和空标题取消行为。 */
-export function QuickTaskCreateRow({
+export function WaitingTaskCreateRow({
   open,
   draft,
   projects,
@@ -41,13 +40,12 @@ export function QuickTaskCreateRow({
     const created = await onCreateProject(draft.projectName.trim());
     onChange({ projectId: created.id, projectName: '', isAddingProject: false });
   };
-  /** 空标题沿用动作层的取消结果；只有真实创建成功才清空草稿。 */
+  /** 空标题沿用动作层的取消结果；待安排始终以未完成状态创建。 */
   const confirm = async () => {
     if (saving) return;
     setSaving(true);
     try {
       const result = await onCreate({
-        completed: draft.completed,
         projectId: draft.projectId,
         title: draft.title,
       });
@@ -63,12 +61,7 @@ export function QuickTaskCreateRow({
   if (!open) return null;
   return (
     <div className="quick-task-row quick-task-row-adding quick-task-create-row">
-      <div className="task-check-wrap quick-create-check-cell">
-        <Checkbox
-          checked={draft.completed}
-          onChange={(event) => onChange({ completed: event.target.checked })}
-        />
-      </div>
+      <div className="task-check-wrap quick-create-check-cell" aria-hidden="true" />
       <div className="task-project-cell quick-create-project" style={{ position: 'relative' }}>
         <select
           className="tl-inline-select project-inline-select"

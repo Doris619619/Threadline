@@ -88,7 +88,7 @@ export function ReviewPanel({
     [
       '进入待安排',
       history.filter(
-        (event) => event.type === 'backlog' && inPeriod(event.occurredAt.slice(0, 10)),
+        (event) => (event.type === 'waiting' || event.type === 'backlog') && inPeriod(event.occurredAt.slice(0, 10)),
       ).length,
     ],
   ] as const;

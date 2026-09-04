@@ -3,7 +3,7 @@
  */
 
 export type Id = string;
-export type TaskStatus = 'active' | 'rescheduled' | 'backlog' | 'abandoned' | 'trashed';
+export type TaskStatus = 'active' | 'waiting' | 'abandoned' | 'trashed';
 export type ProjectStatus = 'active' | 'archived';
 export type Project = {
   id: Id;
@@ -22,7 +22,7 @@ export type Task = {
   projectId: Id;
   title: string;
   date?: string;
-  /** 已拖入今日日程但尚未填写开始时间；显示在日程最上方。 */
+  /** 已进入某个业务日但尚未填写开始时间，仅表示待填时间 UI 状态。 */
   schedulePendingTime?: boolean;
   plannedStartTime?: string;
   plannedEndTime?: string;
@@ -31,8 +31,8 @@ export type Task = {
   completed: boolean;
   completedAt?: string;
   status: TaskStatus;
-  backlogImportance?: 'important' | 'not_important';
-  ddlAt?: string;
+  /** 所有任务均持久化的重要性；待安排池以此字段分组，新任务默认普通。 */
+  importance: 'important' | 'normal';
   postponedFrom?: string;
   postponedTo?: string;
   abandonedAt?: string;

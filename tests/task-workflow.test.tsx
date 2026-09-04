@@ -15,6 +15,7 @@ function taskFixture(overrides: Partial<Task> = {}): Task {
     date: '2026-08-20',
     completed: false,
     status: 'active',
+    importance: 'normal',
     createdAt: '2026-08-20T01:00:00.000Z',
     updatedAt: '2026-08-20T01:00:00.000Z',
     ...overrides,

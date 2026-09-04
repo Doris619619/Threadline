@@ -27,6 +27,7 @@ const task = (overrides: Partial<Task>): Task => ({
   date: '2026-08-20',
   completed: true,
   status: 'active',
+  importance: 'normal',
   createdAt: '2026-08-20',
   updatedAt: '2026-08-20',
   ...overrides,

@@ -96,9 +96,24 @@ export function createInitialTasks(today = getLocalDateKey()): Task[] {
     makeTask(today, 'demo', 'research', '跑 Demo', '14:20', undefined, 45),
     makeTask(today, 'meeting', 'work', '会议记录', '15:10', '16:10', 60, 58, true),
     makeTask(today, 'gym', 'life', '健身', '17:00', undefined, 60),
-    makeTask(today, 'adapter', 'other', '买转换插头'),
-    makeTask(today, 'pickup', 'life', '取快递'),
+    makeWaitingTask('adapter', 'other', '买转换插头'),
+    makeWaitingTask('pickup', 'life', '取快递'),
   ];
+}
+
+/** 测试/离线首开示例的无日期任务必须使用 waiting，而不是伪装为无时间 active。 */
+function makeWaitingTask(id: string, projectId: string, title: string): Task {
+  const now = new Date().toISOString();
+  return {
+    id,
+    projectId,
+    title,
+    completed: false,
+    status: 'waiting',
+    importance: 'normal',
+    createdAt: now,
+    updatedAt: now,
+  };
 }
 
 /** 判断回收站任务是否超过 30 天保留期。 */

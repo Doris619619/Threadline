@@ -4,18 +4,18 @@
 
 import { useRef, useState } from 'react';
 
-type TaskDropZone = 'schedule' | 'quick';
+type TaskDropZone = 'schedule' | 'waiting';
 
 /**
  * 将纯交互状态与落点识别封装起来；调用方提供实际的任务移动动作。
  */
 export function useTaskDragAndDrop({
   interactionLocked,
-  onMoveToQuick,
+  onMoveToWaiting,
   onMoveToSchedule,
 }: {
   interactionLocked: boolean;
-  onMoveToQuick: (taskId: string) => void;
+  onMoveToWaiting: (taskId: string) => void;
   onMoveToSchedule: (taskId: string) => void;
 }) {
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
@@ -50,7 +50,7 @@ export function useTaskDragAndDrop({
     const element = document.elementFromPoint(clientX, clientY);
     const zone = element?.closest<HTMLElement>('[data-task-drop-zone]')?.dataset
       .taskDropZone;
-    return zone === 'schedule' || zone === 'quick' ? zone : null;
+    return zone === 'schedule' || zone === 'waiting' ? zone : null;
   };
 
   /** 统一结束 Pointer fallback，并只调用调用方提供的持久化移动动作。 */
@@ -60,7 +60,7 @@ export function useTaskDragAndDrop({
     if (!taskId || (activePointerDrag && pointerId !== activePointerDrag.pointerId)) return;
     const target = getDropZoneAtPoint(clientX, clientY);
     if (target === 'schedule') onMoveToSchedule(taskId);
-    if (target === 'quick') onMoveToQuick(taskId);
+    if (target === 'waiting') onMoveToWaiting(taskId);
     pointerDragRef.current = undefined;
     handleTaskDragEnd();
   };
@@ -114,22 +114,22 @@ export function useTaskDragAndDrop({
     handleTaskDragEnd();
   };
 
-  /** 允许浏览器原生拖拽进入无时间待办区域。 */
-  const handleQuickDragOver = (event: React.DragEvent) => {
+  /** 允许浏览器原生拖拽进入持续待安排区域。 */
+  const handleWaitingDragOver = (event: React.DragEvent) => {
     if (interactionLocked) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
-    setDropTarget('quick');
+    setDropTarget('waiting');
   };
 
-  /** 将原生拖放的任务移回无时间待办区域。 */
-  const handleQuickDrop = (event: React.DragEvent) => {
+  /** 将原生拖放的任务原子移回持续待安排区域。 */
+  const handleWaitingDrop = (event: React.DragEvent) => {
     if (interactionLocked) return;
     event.preventDefault();
     setDropTarget(null);
     const taskId = getDraggedTaskId(event);
     if (!taskId) return;
-    onMoveToQuick(taskId);
+    onMoveToWaiting(taskId);
     handleTaskDragEnd();
   };
 
@@ -139,8 +139,8 @@ export function useTaskDragAndDrop({
     handlePointerDragEnd,
     handlePointerDragMove,
     handlePointerDragStart,
-    handleQuickDragOver,
-    handleQuickDrop,
+    handleWaitingDragOver,
+    handleWaitingDrop,
     handleScheduleDragOver,
     handleScheduleDrop,
     handleTaskDragEnd,

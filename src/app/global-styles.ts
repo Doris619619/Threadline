@@ -9,7 +9,6 @@ import '../features/tasks/compact-workspace.css';
 import '../components/app-shell.css';
 import '../features/tasks/task-dashboard.css';
 import '../features/daily/daily.css';
-import '../features/tasks/task-planning.css';
 import '../features/tasks/task-dialogs.css';
 import '../features/projects/projects.css';
 import '../features/reviews/reviews.css';

@@ -17,7 +17,7 @@ export type { CompactQuickTaskDraft, CompactTimedTaskDraft } from '@/features/ta
 
 type CompactWorkspaceProps = {
   timed: Task[];
-  quick: Task[];
+  waiting: Task[];
   projects: Project[];
   workstationTaskIds: string[];
   onUpdateTask: (task: Task) => void;
@@ -26,6 +26,7 @@ type CompactWorkspaceProps = {
   onReorderWorkstation: (sourceId: string, targetId: string) => void;
   onCreateTimedTask: (draft: CompactTimedTaskDraft) => Promise<void>;
   onCreateQuickTask: (draft: CompactQuickTaskDraft) => Promise<void>;
+  onCompleteWaitingTask: (taskId: string) => void;
 };
 
 /** 从动态项目集合解析任务项目；历史缺失项目保留可读的其他标签。 */
@@ -102,13 +103,13 @@ function MiniScheduleRow({
 }
 
 /** 渲染迷你今日中的单行无时间待办，并维持与排程任务一致的操作密度。 */
-function MiniQuickRow({
+function MiniWaitingRow({
   task,
   projects,
   inWorkstation,
-  onUpdateTask,
   onToggleWorkstation,
-}: Pick<CompactWorkspaceProps, 'projects' | 'onUpdateTask' | 'onToggleWorkstation'> & {
+  onCompleteWaitingTask,
+}: Pick<CompactWorkspaceProps, 'projects' | 'onToggleWorkstation' | 'onCompleteWaitingTask'> & {
   task: Task;
   inWorkstation: boolean;
 }) {
@@ -117,14 +118,7 @@ function MiniQuickRow({
       <Checkbox
         aria-label={`完成${task.title}`}
         checked={task.completed}
-        onChange={(event) =>
-          onUpdateTask({
-            ...task,
-            completed: event.target.checked,
-            completedAt: event.target.checked ? new Date().toISOString() : undefined,
-            updatedAt: new Date().toISOString(),
-          })
-        }
+        onChange={() => onCompleteWaitingTask(task.id)}
       />
       <CompactTaskLabel task={task} projects={projects} />
       <button
@@ -352,7 +346,7 @@ export function MiniTodayPanel(props: CompactWorkspaceProps) {
       </section>
       <section className="compact-section">
         <header>
-          <h2>无时间待办</h2>
+          <h2>待安排</h2>
           <button
             type="button"
             className="compact-add-trigger"
@@ -362,16 +356,26 @@ export function MiniTodayPanel(props: CompactWorkspaceProps) {
           </button>
         </header>
         <ul>
-          {props.quick.map((task) => (
-            <MiniQuickRow
-              key={task.id}
-              task={task}
-              projects={props.projects}
-              inWorkstation={has(task.id)}
-              onUpdateTask={props.onUpdateTask}
-              onToggleWorkstation={props.onToggleWorkstation}
-            />
-          ))}
+          {(['important', 'normal'] as const).map((importance) => {
+            const items = props.waiting.filter((task) => (task.importance ?? 'normal') === importance);
+            return items.length ? (
+              <li className="mini-waiting-group" key={importance}>
+                <h3>{importance === 'important' ? '重要' : '普通'}</h3>
+                <ul>
+                  {items.map((task) => (
+                    <MiniWaitingRow
+                      key={task.id}
+                      task={task}
+                      projects={props.projects}
+                      inWorkstation={has(task.id)}
+                      onToggleWorkstation={props.onToggleWorkstation}
+                      onCompleteWaitingTask={props.onCompleteWaitingTask}
+                    />
+                  ))}
+                </ul>
+              </li>
+            ) : null;
+          })}
           {addingQuick && (
             <CompactQuickAddRow
               projects={props.projects}
@@ -381,8 +385,8 @@ export function MiniTodayPanel(props: CompactWorkspaceProps) {
               }}
             />
           )}
-          {!props.quick.length && !addingQuick && (
-            <li className="compact-empty">暂无未定时间待办。</li>
+          {!props.waiting.length && !addingQuick && (
+            <li className="compact-empty">暂无待安排事项。</li>
           )}
         </ul>
       </section>

@@ -27,7 +27,7 @@ export function useTaskDashboardController({
   updateWorkstationTaskIds: React.Dispatch<React.SetStateAction<string[]>>;
   transitionTask: (
     taskId: string,
-    transition: 'scheduled' | 'rescheduled' | 'backlog' | 'abandoned' | 'trashed',
+    transition: 'scheduled' | 'rescheduled' | 'waiting' | 'abandoned' | 'trashed',
     targetDate?: string,
   ) => Promise<Task>;
 }) {
@@ -44,38 +44,25 @@ export function useTaskDashboardController({
   const resize = useScheduleResize();
   const [autoFocusTimeTaskId, setAutoFocusTimeTaskId] = useState<string | null>(null);
 
-  /** 将无时间任务移到日程，并保留原有的待填时间和焦点行为。 */
+  /** 将待安排任务原子安排到当前所选业务日，并只在成功返回后聚焦时间。 */
   const moveTaskToSchedule = (taskId: string) => {
-    const task = data.shown.find((item) => item.id === taskId);
-    if (!task || task.plannedStartTime || task.schedulePendingTime) return;
-    workflow.updateTask({
-      ...task,
-      schedulePendingTime: true,
-      plannedStartTime: undefined,
-      plannedEndTime: undefined,
-      plannedDurationMinutes: undefined,
-      updatedAt: new Date().toISOString(),
-    });
-    setAutoFocusTimeTaskId(taskId);
+    const task = data.waiting.find((item) => item.id === taskId);
+    if (!task) return;
+    void transitionTask(taskId, 'scheduled', dataInput.selectedDate)
+      .then(() => setAutoFocusTimeTaskId(taskId))
+      .catch(() => undefined);
   };
 
-  /** 将日程任务移回无时间待办，并清理所有排程字段。 */
-  const moveTaskToQuick = (taskId: string) => {
+  /** 将日程任务原子移入持续待安排池。 */
+  const moveTaskToWaiting = (taskId: string) => {
     const task = data.shown.find((item) => item.id === taskId);
     if (!task) return;
-    workflow.updateTask({
-      ...task,
-      schedulePendingTime: false,
-      plannedStartTime: undefined,
-      plannedEndTime: undefined,
-      plannedDurationMinutes: undefined,
-      updatedAt: new Date().toISOString(),
-    });
+    void transitionTask(taskId, 'waiting').catch(() => undefined);
   };
 
   const dragAndDrop = useTaskDragAndDrop({
     interactionLocked,
-    onMoveToQuick: moveTaskToQuick,
+    onMoveToWaiting: moveTaskToWaiting,
     onMoveToSchedule: moveTaskToSchedule,
   });
 

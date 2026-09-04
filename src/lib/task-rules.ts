@@ -25,6 +25,6 @@ export function isDailyComplete(
 /**
  * 限制已完成任务进入待安排、放弃和移期等未完成流转；删除仍是允许的独立数据生命周期操作。
  */
-export function canTransitionTask(task: Task, nextStatus: TaskStatus): boolean {
+export function canTransitionTask(task: Task, nextStatus: TaskStatus | 'rescheduled'): boolean {
   return !task.completed || nextStatus === 'trashed';
 }
