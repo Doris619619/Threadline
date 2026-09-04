@@ -213,12 +213,6 @@
   border-top: 1px solid var(--border-subtle);
 }
 
-.daily-manager-head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--touch-target);
-  align-items: center;
-}
-
 .daily-disclosure {
   display: grid;
   width: 100%;
@@ -247,28 +241,6 @@
   font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.daily-expand-button {
-  display: grid;
-  width: var(--touch-target);
-  height: var(--touch-target);
-  place-items: center;
-  color: var(--text-tertiary);
-  background: transparent;
-  border: 0;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: transform var(--motion-fast) ease;
-}
-
-.daily-expand-button:hover,
-.daily-expand-button:focus-visible {
-  background: var(--surface-secondary);
-}
-
-.daily-expand-button[aria-expanded='false'] > svg {
-  transform: rotate(-90deg);
 }
 
 .daily-manager-items {

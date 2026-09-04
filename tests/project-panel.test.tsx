@@ -77,8 +77,8 @@ function renderPanel({
     onSetDailyStatus: vi.fn(async () => undefined),
     onSetDailyItemStatus: vi.fn(async () => undefined),
   };
-  render(<ProjectManagementPage {...props} />);
-  return props;
+  const renderResult = render(<ProjectManagementPage {...props} />);
+  return { ...props, ...renderResult };
 }
 
 /** 通过项目页唯一入口选择创建类型，保持测试与实际菜单路径一致。 */
@@ -123,6 +123,19 @@ describe('ProjectManagementPage', () => {
     expect(screen.queryByLabelText(/所属项目/)).not.toBeInTheDocument();
     expect(screen.getByText('词汇背诵')).toBeVisible();
     expect(screen.getByText('30 分钟')).toBeVisible();
+    expect(screen.getByRole('button', { name: '管理清单项 词汇背诵' })).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: /展开.*英语学习/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps an empty Daily free of an inset while retaining its add-item action', () => {
+    const { container } = renderPanel({
+      dailyTemplates: [{ ...daily[0], children: [] }],
+    });
+
+    expect(container.querySelector('.daily-manager-inset')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '添加清单项' })).toBeVisible();
   });
 
   it('opens project creation in the shared named Dialog instead of a persistent form', () => {

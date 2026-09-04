@@ -598,8 +598,8 @@ test('manages Daily independently with planned checklist items', async ({ page }
   await page.getByRole('button', { name: '创建', exact: true }).click();
   await expect(page.getByText('阅读训练', { exact: true })).toBeVisible();
   await expect(page.getByText('1 项 · 20 分钟')).toBeVisible();
+  await expect(page.getByText('整理笔记', { exact: true })).toBeVisible();
   await expect(page.getByLabel('新 Daily 所属项目')).toHaveCount(0);
-  await page.getByRole('button', { name: /阅读训练/ }).click();
   await page.getByRole('button', { name: '添加清单项' }).last().click();
   await page.getByLabel('清单项名称').fill('阅读记录');
   await page.getByLabel('预计时间').fill('10');
