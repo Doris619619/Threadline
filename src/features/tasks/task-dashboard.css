@@ -190,7 +190,9 @@
   border-radius: var(--radius-control);
   outline: none;
   box-sizing: border-box;
-  transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+  transition:
+    border-color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease;
 }
 
 .tl-inline-input:focus {
@@ -224,7 +226,9 @@
   border-radius: var(--radius-control);
   outline: none;
   cursor: pointer;
-  transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+  transition:
+    border-color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease;
 }
 
 .tl-inline-select:focus {
@@ -842,6 +846,19 @@
     overflow-x: visible;
   }
 
+  .timeline-row .tl-inline-input,
+  .quick-task-row .tl-inline-input,
+  .timeline-row .tl-inline-select,
+  .quick-task-row .tl-inline-select,
+  .project-picker-new-form input {
+    min-height: var(--touch-target);
+    height: var(--touch-target);
+  }
+
+  .project-picker-new-form {
+    gap: 6px;
+  }
+
   /* ================= 移动端：已创建任务卡片式布局 (P3) ================= */
   .timeline-row,
   .quick-task-row {
@@ -856,7 +873,9 @@
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-    transition: background-color var(--motion-fast) ease, border-color var(--motion-fast) ease;
+    transition:
+      background-color var(--motion-fast) ease,
+      border-color var(--motion-fast) ease;
     box-sizing: border-box;
   }
 

@@ -118,3 +118,9 @@
   font-size: 0.75rem;
   cursor: pointer;
 }
+
+@media (max-width: 760px) {
+  .daily-entry .tl-input {
+    min-height: 36px;
+  }
+}

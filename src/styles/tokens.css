@@ -68,6 +68,7 @@ html[data-theme='blue'] {
   --text-caption-size: 0.75rem;
   --text-caption-leading: 1.35;
   --text-caption-weight: 500;
+  --mobile-form-control-font-size: 1rem;
   --control-height: 36px;
   --control-height-compact: 32px;
   --touch-target: 44px;
@@ -85,5 +86,6 @@ html[data-theme='blue'] {
     --text-body-size: 1.0625rem;
     --text-secondary-size: 0.875rem;
     --text-caption-size: 0.8125rem;
+    --mobile-form-control-font-size: max(1rem, var(--text-body-size));
   }
 }

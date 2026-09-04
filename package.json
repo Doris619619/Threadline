@@ -33,7 +33,7 @@
     "test:watch": "vitest",
     "playwright": "playwright",
     "test:e2e": "node scripts/test-web.mjs",
-    "test:e2e:ui": "node scripts/test-web.mjs --project=ui-structural --project=ui-accessibility --project=ui-layout-desktop-1440 --project=ui-layout-desktop-1366 --project=ui-layout-desktop-1280 --project=ui-layout-desktop-1024 --project=ui-layout-mobile-430 --project=ui-layout-mobile-390 --project=ui-layout-mobile-375 --project=ui-layout-mobile-320 --project=ui-layout-iphone-webkit",
+    "test:e2e:ui": "node scripts/test-web.mjs --project=ui-structural --project=ui-accessibility --project=ui-layout-desktop-1440 --project=ui-layout-desktop-1366 --project=ui-layout-desktop-1280 --project=ui-layout-desktop-1024 --project=ui-layout-mobile-430 --project=ui-layout-mobile-390 --project=ui-layout-mobile-375 --project=ui-layout-mobile-320 --project=ui-layout-iphone-webkit --project=ui-mobile-form-controls",
     "test:css-tokens": "vitest run tests/css-token-contract.test.ts --maxWorkers=1",
     "test:electron": "node scripts/test-electron-suite.mjs",
     "test:electron:packaged": "node scripts/test-packaged-electron.mjs",

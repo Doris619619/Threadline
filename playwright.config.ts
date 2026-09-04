@@ -12,14 +12,22 @@ const e2eBaseUrl = `http://127.0.0.1:${e2ePort}`;
 const usesExternalTestServer = process.env.THREADLINE_EXTERNAL_TEST_SERVER === 'true';
 
 /** 默认 local adapter 项目跳过由专用配置负责的 UI 与真实 Supabase 测试。 */
-const defaultWebTestIgnore = ['**/ui-*.spec.ts', '**/supabase-cloud.spec.ts'];
+const defaultWebTestIgnore = [
+  '**/ui-*.spec.ts',
+  '**/mobile-form-controls.spec.ts',
+  '**/supabase-cloud.spec.ts',
+];
 
 /** 创建只收集紧凑布局矩阵文件的桌面项目，避免业务 E2E 被每个 viewport 重复执行。 */
 function desktopLayoutProject(name: string, width: number, height: number) {
   return {
     name,
     testMatch: '**/ui-layout-matrix.spec.ts',
-    use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: { width, height } },
+    use: {
+      ...devices['Desktop Chrome'],
+      channel: 'chrome',
+      viewport: { width, height },
+    },
   };
 }
 
@@ -35,6 +43,15 @@ function mobileLayoutProject(name: string, width: number, height: number) {
       viewport: { width, height },
       screen: { width, height },
     },
+  };
+}
+
+/** 创建专用 iPhone WebKit 项目，验证会触发 Safari 自动缩放的表单字号前置条件。 */
+function mobileFormControlsProject() {
+  return {
+    name: 'ui-mobile-form-controls',
+    testMatch: '**/mobile-form-controls.spec.ts',
+    use: { ...devices['iPhone 13'], browserName: 'webkit' },
   };
 }
 
@@ -60,17 +77,31 @@ export default defineConfig({
     {
       name: 'mobile',
       testIgnore: defaultWebTestIgnore,
-      use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true },
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chrome',
+        viewport: { width: 390, height: 844 },
+        hasTouch: true,
+        isMobile: true,
+      },
     },
     {
       name: 'ui-structural',
       testMatch: '**/ui-structural.spec.ts',
-      use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: { width: 1440, height: 900 } },
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chrome',
+        viewport: { width: 1440, height: 900 },
+      },
     },
     {
       name: 'ui-accessibility',
       testMatch: '**/ui-accessibility.spec.ts',
-      use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: { width: 1440, height: 900 } },
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chrome',
+        viewport: { width: 1440, height: 900 },
+      },
     },
     desktopLayoutProject('ui-layout-desktop-1440', 1440, 900),
     desktopLayoutProject('ui-layout-desktop-1366', 1366, 768),
@@ -80,6 +111,7 @@ export default defineConfig({
     mobileLayoutProject('ui-layout-mobile-390', 390, 844),
     mobileLayoutProject('ui-layout-mobile-375', 375, 667),
     mobileLayoutProject('ui-layout-mobile-320', 320, 568),
+    mobileFormControlsProject(),
     {
       name: 'ui-layout-iphone-webkit',
       testMatch: '**/ui-layout-matrix.spec.ts',
