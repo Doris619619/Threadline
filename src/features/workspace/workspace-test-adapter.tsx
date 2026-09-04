@@ -307,6 +307,12 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
                 : action.action === 'abandoned'
                   ? task.date
                   : undefined,
+            schedulePendingTime: action.action === 'waiting' ? false : task.schedulePendingTime,
+            plannedStartTime: action.action === 'waiting' ? undefined : task.plannedStartTime,
+            plannedEndTime: action.action === 'waiting' ? undefined : task.plannedEndTime,
+            plannedDurationMinutes:
+              action.action === 'waiting' ? undefined : task.plannedDurationMinutes,
+            importance: action.action === 'waiting' ? task.importance ?? 'normal' : task.importance,
             postponedFrom:
               action.action === 'tomorrow' || action.action === 'date'
                 ? task.date

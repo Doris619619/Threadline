@@ -225,9 +225,9 @@ test.describe('compact viewport layout matrix', () => {
     await expect(plannedDisplay).toContainText('1h30min');
 
     // 2. 测试无时间待办移动端新增态紧凑单行结构
-    const quickPanel = page.locator('.quick-panel');
-    await quickPanel.getByRole('button', { name: '添加', exact: true }).click();
-    const quickRow = quickPanel.locator('.quick-task-create-row');
+    const waitingPanel = page.locator('.waiting-panel');
+    await waitingPanel.getByRole('button', { name: '添加', exact: true }).click();
+    const quickRow = waitingPanel.locator('.quick-task-create-row');
     await expect(quickRow).toBeVisible();
 
     const quickCheckbox = quickRow.locator('.quick-create-check-cell');

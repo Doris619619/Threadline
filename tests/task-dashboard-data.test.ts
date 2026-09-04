@@ -23,6 +23,7 @@ const tasks: Task[] = [
     actualDurationMinutes: 120,
     completed: false,
     status: 'active',
+    importance: 'normal',
     createdAt: '2026-08-30T00:00:00.000Z',
     updatedAt: '2026-08-31T00:00:00.000Z',
   },
@@ -59,12 +60,13 @@ describe('task dashboard time source capability', () => {
     expect(result.analyticsInput.taskTimeEntries).toBeUndefined();
   });
 
-  it('places tasks with a start time before time-pending tasks in today schedule', () => {
+  it('keeps every active task on the selected date visible, with timed tasks first', () => {
     const result = useTaskDashboardData({
       ...sharedInput,
       taskTimeEntriesAuthoritative: false,
       tasks: [
         { ...tasks[0], id: 'pending-time', schedulePendingTime: true },
+        { ...tasks[0], id: 'untimed', schedulePendingTime: false },
         {
           ...tasks[0],
           id: 'afternoon',
@@ -84,6 +86,7 @@ describe('task dashboard time source capability', () => {
       'morning',
       'afternoon',
       'pending-time',
+      'untimed',
     ]);
   });
 

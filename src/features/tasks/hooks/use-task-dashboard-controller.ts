@@ -62,7 +62,7 @@ export function useTaskDashboardController({
 
   const dragAndDrop = useTaskDragAndDrop({
     interactionLocked,
-    onMoveToQuick: moveTaskToWaiting,
+    onMoveToWaiting: moveTaskToWaiting,
     onMoveToSchedule: moveTaskToSchedule,
   });
 

@@ -317,7 +317,7 @@
 }
 
 .schedule-panel.is-drop-target,
-.quick-panel.is-drop-target {
+.waiting-panel.is-drop-target {
   outline: 2px dashed var(--accent);
   outline-offset: -2px;
   background: color-mix(in srgb, var(--accent-muted) 55%, transparent);

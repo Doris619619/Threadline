@@ -45,24 +45,6 @@
     grid-column: span 2;
   }
 
-  .queue-row {
-    grid-template-columns: auto 1fr;
-    gap: 8px;
-    padding: 8px 0;
-  }
-
-  .queue-row select,
-  .queue-row .tl-input,
-  .queue-row button {
-    grid-column: span 1;
-  }
-
-  .planning-queue header {
-    align-items: flex-start;
-    gap: 8px;
-    flex-direction: column;
-  }
-
   .stats-bar-row {
     grid-template-columns: 72px minmax(0, 1fr) 68px;
   }

@@ -8,7 +8,6 @@ import {
   fromDatabaseInstant,
   fromDatabaseWallTime,
   toDatabaseDate,
-  toDatabaseLocalDateTime,
   toDatabaseWallTime,
 } from '@/lib/supabase/time-mapper';
 import type {
@@ -73,7 +72,8 @@ function mapTask(row: JsonRecord): Task {
     completed: Boolean(row.completed),
     completedAt: fromDatabaseInstant((row.completed_at as string | null) ?? null),
     status: row.status as Task['status'],
-    importance: (row.importance as Task['importance'] | null) ?? undefined,
+    // 迁移前同步下来的旧 row 也必须在领域层获得稳定的默认重要性。
+    importance: (row.importance as Task['importance'] | null) ?? 'normal',
     postponedFrom: (row.postponed_from as string | null) ?? undefined,
     postponedTo: (row.postponed_to as string | null) ?? undefined,
     abandonedAt: fromDatabaseInstant((row.abandoned_at as string | null) ?? null),
@@ -109,7 +109,7 @@ function taskRow(task: Task) {
     completed: task.completed,
     completed_at: task.completedAt ?? null,
     status: task.status,
-    importance: task.importance ?? null,
+    importance: task.importance ?? 'normal',
     postponed_from: toDatabaseDate(task.postponedFrom),
     postponed_to: toDatabaseDate(task.postponedTo),
     abandoned_at: task.abandonedAt ?? null,

@@ -124,6 +124,8 @@ export function TaskDashboard() {
     handlePointerDragStart,
     handleScheduleDragOver,
     handleScheduleDrop,
+    handleWaitingDragOver,
+    handleWaitingDrop,
     handleTaskDragEnd,
     handleTaskDragStart,
     isDayClosed,
@@ -399,7 +401,11 @@ export function TaskDashboard() {
           <div className="side-column">
             <WaitingTaskPanel
               isAdding={createDrafts.quickOpen}
+              isDropTarget={dropTarget === 'waiting'}
               onAdd={() => createDrafts.openQuick(defaultProjectId)}
+              onDragLeave={() => setDropTarget(null)}
+              onDragOver={handleWaitingDragOver}
+              onDrop={handleWaitingDrop}
               waiting={waiting}
             >
               <div className="waiting-tasks">

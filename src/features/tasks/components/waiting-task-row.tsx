@@ -6,7 +6,7 @@ import { CalendarDays, MoreHorizontal, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ProjectTag } from '@/components/ui/project-tag';
-import { getLocalDateKey } from '@/lib/local-date';
+import { addLocalDateDays, getLocalDateKey } from '@/lib/local-date';
 import type { Project, Task } from '@/types/domain';
 
 /** 保持待安排行紧凑，并将详细编辑入口放在任务主体而非更多菜单。 */
@@ -29,6 +29,7 @@ export function WaitingTaskRow({
   const [dateOpen, setDateOpen] = useState(false);
   const project = projects.find((item) => item.id === task.projectId);
   const today = getLocalDateKey();
+  const tomorrow = addLocalDateDays(today, 1);
   return (
     <div className="waiting-task-row">
       <Checkbox
@@ -74,7 +75,7 @@ export function WaitingTaskRow({
             setMenuOpen(false);
           }}>
             <h3>安排到其他日期</h3>
-            <input aria-label="安排日期" name="date" type="date" min={today} defaultValue={today} />
+            <input aria-label="安排日期" name="date" type="date" min={tomorrow} defaultValue={tomorrow} />
             <footer><button type="button" onClick={() => setDateOpen(false)}>取消</button><button type="submit">安排</button></footer>
           </form>
         </div>

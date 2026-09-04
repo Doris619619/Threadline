@@ -9,17 +9,31 @@ import type { Task } from '@/types/domain';
 export function WaitingTaskPanel({
   children,
   isAdding,
+  isDropTarget,
   onAdd,
+  onDragLeave,
+  onDragOver,
+  onDrop,
   waiting,
 }: {
   children: ReactNode;
   isAdding: boolean;
+  isDropTarget: boolean;
   onAdd: () => void;
+  onDragLeave: () => void;
+  onDragOver: (event: React.DragEvent) => void;
+  onDrop: (event: React.DragEvent) => void;
   waiting: Task[];
 }) {
   void waiting;
   return (
-    <Surface className="waiting-panel">
+    <Surface
+      className={`waiting-panel${isDropTarget ? ' is-drop-target' : ''}`}
+      data-task-drop-zone="waiting"
+      onDragLeave={onDragLeave}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+    >
       <header>
         <h2>待安排</h2>
         <button className="add-link" type="button" onClick={onAdd}>

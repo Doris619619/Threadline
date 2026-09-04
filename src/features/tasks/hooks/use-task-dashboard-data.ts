@@ -39,16 +39,14 @@ export function useTaskDashboardData({
       task.postponedFrom === selectedDate,
   );
   const daily = dailyByDate[selectedDate] ?? [];
-  /** 今日日程优先呈现已排定开始时间的任务；待填时间任务仍留在日程末尾等待补充。 */
-  const timed = shown
-    .filter((task) => Boolean(task.plannedStartTime) || task.schedulePendingTime)
-    .sort((left, right) => {
-      if (left.plannedStartTime && right.plannedStartTime)
-        return left.plannedStartTime.localeCompare(right.plannedStartTime);
-      if (left.plannedStartTime) return -1;
-      if (right.plannedStartTime) return 1;
-      return 0;
-    });
+  /** 所有当前业务日 active task 都属于日程；仅以开始时间决定其在有时间段之前或之后。 */
+  const timed = [...shown].sort((left, right) => {
+    if (left.plannedStartTime && right.plannedStartTime)
+      return left.plannedStartTime.localeCompare(right.plannedStartTime);
+    if (left.plannedStartTime) return -1;
+    if (right.plannedStartTime) return 1;
+    return 0;
+  });
   const waiting = tasks.filter((task) => task.status === 'waiting' && !task.completed);
   const done = shown.filter((task) => task.completed).length;
   const actual = taskTimeEntriesAuthoritative

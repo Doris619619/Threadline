@@ -54,7 +54,7 @@ function taskFixture(overrides: Partial<Task> = {}): Task {
 }
 
 describe('SupabaseWorkspaceRepository task boundary', () => {
-  it('serializes task wall clocks without UTC conversion and maps the server-returned row', async () => {
+  it('persists a newly created scheduled task with normal importance and maps its server row', async () => {
     const single = vi.fn().mockResolvedValue({ data: databaseTaskRow(), error: null });
     const select = vi.fn().mockReturnValue({ single });
     const upsert = vi.fn().mockReturnValue({ select });
@@ -88,6 +88,22 @@ describe('SupabaseWorkspaceRepository task boundary', () => {
       postponed_to: null,
       abandoned_at: null,
       deleted_at: null,
+    });
+  });
+
+  it('normalizes a legacy null importance from a server row to normal', async () => {
+    const single = vi.fn().mockResolvedValue({
+      data: databaseTaskRow({ importance: null }),
+      error: null,
+    });
+    const select = vi.fn().mockReturnValue({ single });
+    const upsert = vi.fn().mockReturnValue({ select });
+    const repository = new SupabaseWorkspaceRepository({
+      from: vi.fn().mockReturnValue({ upsert }),
+    } as unknown as SupabaseClient);
+
+    await expect(repository.saveTask(taskFixture())).resolves.toMatchObject({
+      importance: 'normal',
     });
   });
 

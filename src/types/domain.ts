@@ -31,8 +31,8 @@ export type Task = {
   completed: boolean;
   completedAt?: string;
   status: TaskStatus;
-  /** 待安排池内用于轻量分组；所有新任务默认普通。 */
-  importance?: 'important' | 'normal';
+  /** 所有任务均持久化的重要性；待安排池以此字段分组，新任务默认普通。 */
+  importance: 'important' | 'normal';
   postponedFrom?: string;
   postponedTo?: string;
   abandonedAt?: string;

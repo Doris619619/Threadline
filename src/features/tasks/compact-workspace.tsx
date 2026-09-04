@@ -358,16 +358,23 @@ export function MiniTodayPanel(props: CompactWorkspaceProps) {
         <ul>
           {(['important', 'normal'] as const).map((importance) => {
             const items = props.waiting.filter((task) => (task.importance ?? 'normal') === importance);
-            return items.length ? <li className="mini-waiting-group" key={importance}><h3>{importance === 'important' ? '重要' : '普通'}</h3>{items.map((task) => (
-            <MiniWaitingRow
-              key={task.id}
-              task={task}
-              projects={props.projects}
-              inWorkstation={has(task.id)}
-              onToggleWorkstation={props.onToggleWorkstation}
-              onCompleteWaitingTask={props.onCompleteWaitingTask}
-            />
-          ))}</li> : null;
+            return items.length ? (
+              <li className="mini-waiting-group" key={importance}>
+                <h3>{importance === 'important' ? '重要' : '普通'}</h3>
+                <ul>
+                  {items.map((task) => (
+                    <MiniWaitingRow
+                      key={task.id}
+                      task={task}
+                      projects={props.projects}
+                      inWorkstation={has(task.id)}
+                      onToggleWorkstation={props.onToggleWorkstation}
+                      onCompleteWaitingTask={props.onCompleteWaitingTask}
+                    />
+                  ))}
+                </ul>
+              </li>
+            ) : null;
           })}
           {addingQuick && (
             <CompactQuickAddRow

@@ -42,16 +42,16 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
   await expect(page.getByRole('button', { name: '新建', exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: '首页', exact: true }).click();
-  const quickPanel = page.locator('.quick-panel');
-  await quickPanel.getByRole('button', { name: '添加', exact: true }).click();
-  await quickPanel.getByPlaceholder('待办内容（按 Enter 保存）').fill(taskTitle);
-  await quickPanel.getByTitle('保存待办').click();
-  await expect(quickPanel.getByText(taskTitle, { exact: true })).toBeVisible();
+  const waitingPanel = page.locator('.waiting-panel');
+  await waitingPanel.getByRole('button', { name: '添加', exact: true }).click();
+  await waitingPanel.getByPlaceholder('待办内容（按 Enter 保存）').fill(taskTitle);
+  await waitingPanel.getByTitle('保存待办').click();
+  await expect(waitingPanel.getByText(taskTitle, { exact: true })).toBeVisible();
 
   await page.reload();
   await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();
   await expect(
-    page.locator('.quick-panel').getByText(taskTitle, { exact: true }),
+    page.locator('.waiting-panel').getByText(taskTitle, { exact: true }),
   ).toBeVisible();
 
   await page.getByRole('button', { name: '设置', exact: true }).click();

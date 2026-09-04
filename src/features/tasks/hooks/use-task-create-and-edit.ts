@@ -74,6 +74,7 @@ export function useTaskCreateAndEdit({
       completed: draft.completed,
       completedAt: draft.completed ? new Date().toISOString() : undefined,
       status: 'active',
+      importance: 'normal',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -116,6 +117,7 @@ export function useTaskCreateAndEdit({
       schedulePendingTime: !draft.start,
       completed: false,
       status: 'active',
+      importance: 'normal',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -181,7 +183,7 @@ export function useTaskCreateAndEdit({
       plannedDurationMinutes: isWaiting ? undefined : planned,
       importance: isWaiting
         ? (String(form.get('importance') ?? 'normal') as Task['importance'])
-        : editing?.importance,
+        : (editing?.importance ?? 'normal'),
       actualDurationMinutes: numberOrUndefined(form.get('actual')),
       updatedAt: new Date().toISOString(),
     };

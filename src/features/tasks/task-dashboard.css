@@ -38,7 +38,7 @@
   font-weight: 600;
 }
 
-.quick-panel {
+.waiting-panel {
   padding: 16px 20px 14px;
 }
 
@@ -64,7 +64,7 @@
 .waiting-date-sheet footer { display: flex; justify-content: flex-end; gap: 8px; }
 @media (min-width: 700px) { .waiting-date-backdrop { align-items: center; justify-items: center; } .waiting-date-sheet { width: min(360px, calc(100vw - 32px)); border-radius: var(--radius-lg); } }
 
-.quick-panel header,
+.waiting-panel header,
 .schedule-panel > header,
 .daily-panel > header {
   display: flex;
@@ -850,7 +850,7 @@
   }
 
   .schedule-panel,
-  .quick-panel,
+  .waiting-panel,
   .daily-panel {
     padding: var(--space-4);
   }

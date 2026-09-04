@@ -111,6 +111,7 @@ describe('useTaskCreateAndEdit', () => {
         schedulePendingTime: false,
         completed: true,
         status: 'active',
+        importance: 'normal',
       }),
     );
   });
@@ -138,6 +139,24 @@ describe('useTaskCreateAndEdit', () => {
         plannedEndTime: '10:00',
         plannedDurationMinutes: 90,
       }),
+    );
+  });
+
+  it('defaults compact scheduled creation to normal importance', async () => {
+    const dependencies = createHookDependencies();
+    const { result } = renderHook(() => useTaskCreateAndEdit(dependencies));
+
+    await act(async () => {
+      await result.current.createCompactTimedTask({
+        projectId: activeProject.id,
+        title: '迷你日程',
+        start: '09:00',
+        end: '10:00',
+      });
+    });
+
+    expect(dependencies.createTask).toHaveBeenCalledWith(
+      expect.objectContaining({ title: '迷你日程', status: 'active', importance: 'normal' }),
     );
   });
 
@@ -186,6 +205,7 @@ describe('useTaskCreateAndEdit', () => {
         plannedEndTime: '15:30',
         plannedDurationMinutes: 90,
         actualDurationMinutes: 30,
+        importance: 'normal',
       }),
     );
 
@@ -196,6 +216,7 @@ describe('useTaskCreateAndEdit', () => {
       date: '2026-08-19',
       completed: false,
       status: 'active',
+      importance: 'normal',
       createdAt: '2026-08-19T01:00:00.000Z',
       updatedAt: '2026-08-19T01:00:00.000Z',
     };

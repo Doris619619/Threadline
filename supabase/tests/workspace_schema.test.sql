@@ -2,7 +2,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(149);
+select plan(158);
 
 select has_table('public', 'daily_history_entries', 'Daily history has an explicit table');
 select has_table(
@@ -490,6 +490,27 @@ cross join (values
 ) as values_to_insert(id, title, actual_duration_minutes)
 where projects.owner_id = auth.uid() and projects.position = 0;
 
+-- 新建日程必须是可直接保存的 active 形状，并由数据库默认补全 normal 重要性。
+select lives_ok(
+  $$insert into public.tasks(id, project_id, title, scheduled_date, completed, status)
+    select '41500000-0000-0000-0000-000000000004', id, 'New scheduled task', '2026-09-04', false, 'active'
+    from public.projects where owner_id = auth.uid() and position = 0$$,
+  'A newly saved scheduled task satisfies the active state shape'
+);
+select is(
+  (select importance from public.tasks where id = '41500000-0000-0000-0000-000000000004'),
+  'normal',
+  'A newly saved scheduled task receives normal importance'
+);
+select throws_ok(
+  $$insert into public.tasks(id, project_id, title, scheduled_date, completed, status)
+    select '41600000-0000-0000-0000-000000000004', id, 'legacy-invalid-state', null, false, 'active'
+    from public.projects where owner_id = auth.uid() and position = 0$$,
+  '23514',
+  null,
+  'Legacy-invalid-state active task without a date is rejected after migration'
+);
+
 reset role;
 alter table public.tasks disable trigger tasks_capture_actual_time;
 insert into public.tasks(
@@ -501,7 +522,7 @@ select
   '10000000-0000-0000-0000-000000000001',
   projects.id,
   'Legacy undated actual',
-  null,
+  '2026-09-03',
   100,
   false,
   'active'
@@ -509,9 +530,6 @@ from public.projects as projects
 where projects.owner_id = '10000000-0000-0000-0000-000000000001'
   and projects.position = 0;
 alter table public.tasks enable trigger tasks_capture_actual_time;
-update public.tasks
-set scheduled_date = '2026-09-03'
-where id = '42000000-0000-0000-0000-000000000004';
 
 set local role authenticated;
 select set_config(
@@ -570,6 +588,65 @@ select set_config(
   'request.jwt.claim.sub',
   '10000000-0000-0000-0000-000000000001',
   true
+);
+
+-- close_day -> waiting 必须与 transition_task -> waiting 使用同一状态形状。
+insert into public.tasks(
+  id, project_id, title, scheduled_date, schedule_pending_time,
+  planned_start_time, planned_end_time, planned_duration_minutes, completed, status
+)
+select
+  '41700000-0000-0000-0000-000000000004', id, 'Close into waiting', '2026-09-04', false,
+  '09:00', '10:00', 60, false, 'active'
+from public.projects where owner_id = auth.uid() and position = 0;
+select lives_ok(
+  $$select public.close_day(
+    '2026-09-04',
+    '[{"task_id":"41700000-0000-0000-0000-000000000004","action":"waiting"}]'::jsonb,
+    '{}'::jsonb
+  )$$,
+  'Close day can atomically move an active task into waiting'
+);
+select is(
+  (
+    select status || ':' || coalesce(scheduled_date::text, '—') || ':' || schedule_pending_time::text
+      || ':' || (planned_start_time is null)::text || ':' || (planned_end_time is null)::text
+      || ':' || (planned_duration_minutes is null)::text
+    from public.tasks where id = '41700000-0000-0000-0000-000000000004'
+  ),
+  'waiting:—:false:true:true:true',
+  'Close-day waiting clears every schedule field in its single task update'
+);
+select is(
+  (select event_type from public.history_events where task_id = '41700000-0000-0000-0000-000000000004'),
+  'close_waiting',
+  'Close-day waiting writes the dedicated close_waiting history event'
+);
+
+-- waiting 直接完成先归属客户端本地日期，完成触发器才能写正确快照与统计账本。
+insert into public.tasks(id, project_id, title, completed, status)
+select '41800000-0000-0000-0000-000000000004', id, 'Complete waiting directly', false, 'waiting'
+from public.projects where owner_id = auth.uid() and position = 0;
+select lives_ok(
+  $$select public.complete_waiting_task('41800000-0000-0000-0000-000000000004', '2026-09-04')$$,
+  'Waiting task can complete through the atomic local-date RPC'
+);
+select is(
+  (
+    select status || ':' || scheduled_date::text || ':' || schedule_pending_time::text
+      || ':' || (planned_start_time is null)::text || ':' || completed::text
+    from public.tasks where id = '41800000-0000-0000-0000-000000000004'
+  ),
+  'active:2026-09-04:false:true:true',
+  'Direct waiting completion becomes a visible active task on the supplied local date'
+);
+select is(
+  (
+    select task_date_snapshot from public.history_events
+    where task_id = '41800000-0000-0000-0000-000000000004' and event_type = 'completed'
+  ),
+  '2026-09-04'::date,
+  'Direct waiting completion history snapshots the supplied local date'
 );
 
 select lives_ok(
