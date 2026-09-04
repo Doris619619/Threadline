@@ -205,6 +205,20 @@ test.describe('compact viewport layout matrix', () => {
     expect(confirmBox.height).toBeGreaterThanOrEqual(44);
     expect(confirmBox.width).toBeGreaterThanOrEqual(44);
 
+    for (const [control, label] of [
+      [projectSelect, '今日日程项目选择'],
+      [titleInput, '今日日程任务名称'],
+      [startTimeInput, '今日日程开始时间'],
+      [endTimeInput, '今日日程结束时间'],
+      [plannedDisplay, '今日日程预计时长'],
+      [actualInput, '今日日程实际耗时'],
+    ] as const) {
+      expect(
+        (await control.boundingBox())?.height,
+        `${label}触控高度`,
+      ).toBeGreaterThanOrEqual(44);
+    }
+
     // 验证预计时长自动计算
     await startTimeInput.fill('08:30');
     await endTimeInput.fill('10:00');
@@ -239,6 +253,16 @@ test.describe('compact viewport layout matrix', () => {
     expect(quickConfirmBox.width).toBeGreaterThanOrEqual(44);
     expect(quickCancelBox.height).toBeGreaterThanOrEqual(44);
     expect(quickCancelBox.width).toBeGreaterThanOrEqual(44);
+
+    for (const [control, label] of [
+      [quickProject.locator('.project-inline-select'), '无时间待办项目选择'],
+      [quickTitle, '无时间待办任务名称'],
+    ] as const) {
+      expect(
+        (await control.boundingBox())?.height,
+        `${label}触控高度`,
+      ).toBeGreaterThanOrEqual(44);
+    }
 
     // 3. 测试移动端已创建任务行紧凑卡片、操作收敛、44x44 触控区与完全无工作站操作
     const seededTimelineRow = schedule.locator('.timeline-row').first();
