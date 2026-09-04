@@ -74,3 +74,10 @@
   background: var(--surface-secondary);
   cursor: not-allowed;
 }
+
+@media (max-width: 760px) {
+  .queue-row .tl-input,
+  .queue-row select {
+    min-height: 36px;
+  }
+}

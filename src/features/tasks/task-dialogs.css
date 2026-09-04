@@ -140,3 +140,10 @@
   min-height: 30px;
   font-size: 0.75rem;
 }
+
+@media (max-width: 760px) {
+  .close-task .tl-input,
+  .close-task select {
+    min-height: 36px;
+  }
+}

@@ -37,25 +37,4 @@
   .insights-charts {
     grid-template-columns: 1fr;
   }
-
-  .daily-entry .tl-input,
-  .close-task .tl-input,
-  .close-task select,
-  .queue-row .tl-input,
-  .queue-row select {
-    min-height: 36px;
-  }
-
-  .timeline-row .tl-inline-input,
-  .quick-task-row .tl-inline-input,
-  .timeline-row .tl-inline-select,
-  .quick-task-row .tl-inline-select,
-  .project-picker-new-form input {
-    min-height: var(--touch-target);
-    height: var(--touch-target);
-  }
-
-  .project-picker-new-form {
-    gap: 6px;
-  }
 }

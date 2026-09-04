@@ -373,14 +373,20 @@ function publishUserGeometry(): void {
   }, 180);
 }
 
-/** 安全显示 Main，然后才隐藏 Edge，保持至少一个可见 surface 的切换不变量。 */
+/** 安全显示 Main，然后释放无状态 Edge，保持至少一个可见 surface 的切换不变量。 */
 function revealMain(): void {
   if (!mainWindow || mainWindow.isDestroyed())
     throw new Error('Main window is unavailable');
   if (mainWindow.isMinimized()) mainWindow.restore();
   mainWindow.show();
   mainWindow.focus();
-  if (edgeWindow && !edgeWindow.isDestroyed()) edgeWindow.hide();
+  if (edgeWindow && !edgeWindow.isDestroyed()) {
+    const currentEdge = edgeWindow;
+    intentionallyClosingEdge = true;
+    edgeWindow = undefined;
+    currentEdge.destroy();
+    intentionallyClosingEdge = false;
+  }
 }
 
 /** 以 Main 为最终安全 surface；仅在 Main 可见后才销毁已故障的 Edge。 */
