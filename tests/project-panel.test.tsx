@@ -129,13 +129,20 @@ describe('ProjectManagementPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('keeps an empty Daily free of an inset while retaining its add-item action', () => {
+  it('keeps an empty Daily checklist free of an inset while retaining its add-item action', () => {
     const { container } = renderPanel({
       dailyTemplates: [{ ...daily[0], children: [] }],
     });
 
     expect(container.querySelector('.daily-manager-inset')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '添加清单项' })).toBeVisible();
+  });
+
+  it('keeps the Daily 0 label without rendering an empty grouped card', () => {
+    const { container } = renderPanel({ dailyTemplates: [] });
+
+    expect(screen.getByRole('heading', { name: 'Daily 0' })).toBeVisible();
+    expect(container.querySelector('.manager-card--daily')).not.toBeInTheDocument();
   });
 
   it('opens project creation in the shared named Dialog instead of a persistent form', () => {

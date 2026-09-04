@@ -161,9 +161,15 @@ test.describe('desktop task drag scheduling', () => {
       .locator('.schedule-panel .timeline-row')
       .filter({ hasText: '取快递' });
     await expect(persistedPendingTask).toBeVisible();
-    await expect(page.locator('.schedule-panel .timeline-row').first()).toContainText(
-      '取快递',
-    );
+    await expect(
+      persistedPendingTask.locator('.timeline-time.is-pending-time'),
+    ).toBeVisible();
+    const scheduledRowText = await page
+      .locator('.schedule-panel .timeline-row')
+      .allTextContents();
+    expect(
+      scheduledRowText.findIndex((text) => text.includes('取快递')),
+    ).toBeGreaterThan(scheduledRowText.findIndex((text) => text.includes('邮件处理')));
 
     await persistedPendingTask.locator('.timeline-time').click();
     const timeInput = persistedPendingTask.locator('.timeline-time-input');
