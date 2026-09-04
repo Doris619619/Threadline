@@ -177,7 +177,8 @@ export function useTaskCreateAndEdit({
       title,
       projectId: String(form.get('project')),
       date: isWaiting ? undefined : (editing?.date ?? selectedDate),
-      schedulePendingTime: isWaiting ? false : editing?.schedulePendingTime,
+      // active 日程的待填时间状态由本次保存后的开始时间唯一派生，不能继承旧状态。
+      schedulePendingTime: isWaiting ? false : !start,
       plannedStartTime: isWaiting ? undefined : start,
       plannedEndTime: isWaiting ? undefined : end,
       plannedDurationMinutes: isWaiting ? undefined : planned,

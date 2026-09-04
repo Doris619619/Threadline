@@ -290,4 +290,85 @@ describe('useTaskCreateAndEdit', () => {
       }),
     );
   });
+
+  it('clears schedule-pending state when an active task receives a start time', async () => {
+    const editing: Task = {
+      id: 'active-pending-time',
+      projectId: activeProject.id,
+      title: '待填开始时间',
+      date: '2026-09-04',
+      schedulePendingTime: true,
+      completed: false,
+      status: 'active',
+      importance: 'normal',
+      createdAt: '2026-09-04T01:00:00.000Z',
+      updatedAt: '2026-09-04T01:00:00.000Z',
+    };
+    const dependencies = createHookDependencies(editing);
+    const { result } = renderHook(() => useTaskCreateAndEdit(dependencies));
+
+    await act(async () => {
+      await result.current.saveTask(
+        taskForm({
+          title: editing.title,
+          project: activeProject.id,
+          start: '0900',
+          end: '',
+          planned: '',
+          actual: '',
+        }),
+      );
+    });
+
+    expect(dependencies.updateTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: editing.id,
+        date: '2026-09-04',
+        status: 'active',
+        plannedStartTime: '09:00',
+        schedulePendingTime: false,
+      }),
+    );
+  });
+
+  it('sets schedule-pending state when an active task start time is cleared', async () => {
+    const editing: Task = {
+      id: 'active-with-start',
+      projectId: activeProject.id,
+      title: '已有开始时间',
+      date: '2026-09-04',
+      plannedStartTime: '09:00',
+      schedulePendingTime: false,
+      completed: false,
+      status: 'active',
+      importance: 'normal',
+      createdAt: '2026-09-04T01:00:00.000Z',
+      updatedAt: '2026-09-04T01:00:00.000Z',
+    };
+    const dependencies = createHookDependencies(editing);
+    const { result } = renderHook(() => useTaskCreateAndEdit(dependencies));
+
+    await act(async () => {
+      await result.current.saveTask(
+        taskForm({
+          title: editing.title,
+          project: activeProject.id,
+          start: '',
+          end: '',
+          planned: '',
+          actual: '',
+        }),
+      );
+    });
+
+    expect(dependencies.updateTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: editing.id,
+        date: '2026-09-04',
+        status: 'active',
+        plannedStartTime: undefined,
+        schedulePendingTime: true,
+      }),
+    );
+  });
 });

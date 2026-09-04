@@ -746,7 +746,7 @@ try {
       scheduled_date: null,
       actual_duration_minutes: 0,
       completed: false,
-      status: 'active',
+      status: 'waiting',
     })
     .select('id')
     .single();
