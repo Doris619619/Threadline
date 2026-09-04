@@ -214,6 +214,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { isCompact, isEdgeCollapsed, isNativeDesktop } = useDesktopWindow();
   const cloudRuntime = useOptionalCloudRuntime();
   const activeItem = navigation.find((item) => item.id === active) ?? navigation[0];
+  const usesDedicatedProjectHeader = active === 'projects';
   /** 切换当前工作日期。 */
   const shiftDate = (amount: number) =>
     setSelectedDate((current) => addLocalDateDays(current, amount));
@@ -265,7 +266,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   type="button"
                   className={cn(
                     'tl-sidebar-item',
-                    navigation.slice(4).some((item) => item.id === active) && 'is-active',
+                    navigation.slice(4).some((item) => item.id === active) &&
+                      'is-active',
                   )}
                   aria-expanded={mobileMoreOpen}
                   aria-controls="mobile-more-navigation"
@@ -307,7 +309,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </aside>
         )}
         <main id="main-content" className="tl-main">
-          {!isCompact && (
+          {!isCompact && !usesDedicatedProjectHeader && (
             <header className="tl-header">
               <div>
                 <h1>{activeItem.label === '首页' ? '我的工作台' : activeItem.label}</h1>

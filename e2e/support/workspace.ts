@@ -71,6 +71,16 @@ export async function openWorkspaceSection(page: Page, label: string) {
   await mobileNavigation.getByRole('button', { name: label, exact: true }).click();
 }
 
+/** 通过项目页面唯一的新建菜单进入指定 Dialog，避免测试绕过实际用户路径。 */
+export async function openProjectCreateDialog(
+  page: Page,
+  target: '新建项目' | '新建 Daily',
+) {
+  await page.getByRole('button', { name: '新建', exact: true }).click();
+  await page.getByRole('menuitem', { name: target, exact: true }).click();
+  await expect(page.getByRole('dialog', { name: target, exact: true })).toBeVisible();
+}
+
 /**
  * 通过种子“邮件处理”的行操作打开编辑任务 Dialog，供 viewport 与无障碍 smoke 共享。
  */

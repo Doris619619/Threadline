@@ -19,6 +19,7 @@ html[data-theme='blue'] {
   --accent-border: #b6d4ff;
   --accent-text: #0066d6;
   --accent-muted: var(--accent-soft);
+  --daily-accent: #7559d9;
   --success: #248a4d;
   --warning: #a86400;
   --danger: #d92d20;

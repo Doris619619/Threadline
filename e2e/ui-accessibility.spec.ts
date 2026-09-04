@@ -6,6 +6,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   bootstrapLocalAdapterWorkspace,
+  openProjectCreateDialog,
   openSeededTaskEditor,
   openWorkspaceSection,
 } from './support/workspace';
@@ -164,13 +165,19 @@ test.describe('accessibility smoke', () => {
     await expect(dialog).toBeHidden();
   });
 
-  test('traps focus and restores the trigger for Project and Daily management dialogs', async ({
+  test('traps focus and restores the unified project-page trigger for management dialogs', async ({
     page,
   }) => {
     await openWorkspaceSection(page, '项目');
-    const projectTrigger = page.getByRole('button', { name: '新建项目', exact: true });
-    await projectTrigger.focus();
-    await projectTrigger.press('Enter');
+    const createTrigger = page.getByRole('button', { name: '新建', exact: true });
+    await createTrigger.focus();
+    await createTrigger.press('Enter');
+    const projectCreateOption = page.getByRole('menuitem', {
+      name: '新建项目',
+      exact: true,
+    });
+    await expect(projectCreateOption).toBeVisible();
+    await projectCreateOption.press('Enter');
     const projectDialog = page.getByRole('dialog', { name: '新建项目' });
     await expect(projectDialog).toBeVisible();
     await expectFocusInsideDialog(projectDialog);
@@ -178,16 +185,14 @@ test.describe('accessibility smoke', () => {
     await expectFocusInsideDialog(projectDialog);
     await page.keyboard.press('Escape');
     await expect(projectDialog).toBeHidden();
-    await expect(projectTrigger).toBeFocused();
+    await expect(createTrigger).toBeFocused();
 
-    const dailyTrigger = page.getByRole('button', { name: '新建 Daily', exact: true });
-    await dailyTrigger.focus();
-    await dailyTrigger.press('Enter');
+    await openProjectCreateDialog(page, '新建 Daily');
     const dailyDialog = page.getByRole('dialog', { name: '新建 Daily' });
     await expect(dailyDialog).toBeVisible();
     await expectFocusInsideDialog(dailyDialog);
     await page.keyboard.press('Escape');
     await expect(dailyDialog).toBeHidden();
-    await expect(dailyTrigger).toBeFocused();
+    await expect(createTrigger).toBeFocused();
   });
 });

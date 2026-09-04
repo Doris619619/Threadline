@@ -1,467 +1,613 @@
 /**
- * @fileoverview 定义项目管理面板样式。
+ * @fileoverview 定义项目和 Daily 模板管理页的 grouped surface、响应式布局与管理 Dialog 样式。
  */
-
-/* ================= 项目管理 ProjectPanel ================= */
 
 .project-panel {
   display: grid;
-  gap: 16px;
+  width: min(100%, 1050px);
+  margin: 4px auto 0;
+  gap: var(--space-8);
 }
 
-.project-panel > header {
+.project-page-heading {
   display: flex;
-  align-items: center;
+  min-height: 76px;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: var(--space-5);
 }
 
-.project-panel h2 {
+.project-page-heading h1 {
   margin: 0;
-  font-size: var(--text-section-size);
-  font-weight: var(--text-section-weight);
+  color: var(--text-primary);
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.15;
 }
 
-.project-panel p {
-  margin: 4px 0 0;
+.project-page-heading p {
+  margin: var(--space-2) 0 0;
   color: var(--text-secondary);
-  font-size: var(--text-secondary-size);
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
-.project-create {
-  display: flex;
-  gap: 6px;
-  align-items: center;
+.project-create-menu {
+  position: relative;
+  min-width: var(--touch-target);
+  flex: 0 0 auto;
 }
 
-.project-create .tl-input {
-  width: 130px;
-  min-height: 32px;
-}
-
-.project-create input[type='color'] {
-  width: 32px;
-  height: 32px;
-  padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+.project-create-trigger {
+  display: grid;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  place-items: center;
+  color: var(--text-primary);
   background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 50%;
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    transform var(--motion-fast) ease;
+}
+
+.project-create-trigger span {
+  display: none;
+}
+
+.project-create-trigger:hover,
+.project-create-trigger[aria-expanded='true'] {
+  background: var(--surface-secondary);
+  border-color: var(--border);
+}
+
+.project-create-trigger:active {
+  transform: scale(0.96);
+}
+
+.project-create-actions {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  display: grid;
+  min-width: 188px;
+  padding: var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-popover);
+}
+
+.project-create-actions button {
+  display: flex;
+  min-height: var(--touch-target);
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+  color: var(--text-primary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-body-size);
+  font-weight: 600;
+  text-align: left;
   cursor: pointer;
 }
 
-.project-list {
-  display: grid;
+.project-create-actions button:hover,
+.project-create-actions button:focus-visible {
+  background: var(--accent-soft);
 }
 
-.project-row {
+.manager-section {
   display: grid;
-  grid-template-columns: 140px 72px minmax(0, 1fr) auto auto;
+  gap: var(--space-3);
+}
+
+.manager-card {
+  overflow: clip;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  box-shadow: var(--shadow-card);
+}
+
+.manager-section-heading {
+  display: flex;
+  min-height: 28px;
   align-items: center;
-  gap: 12px;
-  min-height: 44px;
-  padding: 4px 14px;
-  border-top: 1px solid var(--border-subtle);
-  font-size: var(--text-secondary-size);
 }
 
-.project-row:first-child {
-  border-top: 0;
+.manager-section-heading h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.0625rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
 }
 
-.project-row b {
-  color: var(--text-tertiary);
-  font-size: var(--text-caption-size);
+.manager-section-heading h2 span {
+  margin-left: var(--space-2);
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
   font-weight: 500;
 }
 
-.project-row span {
-  color: var(--text-secondary);
-  font-size: var(--text-caption-size);
+.manager-list {
+  display: grid;
 }
 
-.project-row small {
-  color: var(--text-tertiary);
-  font-size: var(--text-caption-size);
-}
-
-.project-select {
-  display: inline-flex;
-  padding: 0;
-  color: inherit;
+.manager-row {
+  display: grid;
+  width: 100%;
+  min-height: 68px;
+  grid-template-columns: 12px minmax(0, 1fr) auto 20px;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0 var(--space-5);
+  color: var(--text-primary);
   background: transparent;
   border: 0;
+  border-top: 1px solid var(--border-subtle);
+  font: inherit;
+  text-align: left;
   cursor: pointer;
+  transition: background-color var(--motion-fast) ease;
 }
 
-.project-detail {
-  margin-top: 16px;
+.manager-list--projects .manager-row:first-child {
+  border-top: 0;
 }
 
-.project-detail > header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+.manager-row:hover {
+  background: color-mix(in srgb, var(--accent-soft) 36%, var(--surface));
 }
 
-/* 新管理页以列表和分隔线表达层级，避免把项目与 Daily 堆成 Dashboard 卡片。 */
-.manager-heading {
-  margin-bottom: 28px;
+.manager-row:active {
+  background: var(--accent-soft);
 }
-.manager-heading h1 {
-  margin: 0;
-  font-size: 1.55rem;
-  font-weight: 650;
-}
-.manager-heading p {
-  margin: 5px 0 0;
-}
-.manager-section {
-  padding: 22px 0;
-  border-top: 1px solid var(--border-subtle);
-}
-.manager-section-heading,
-.daily-manager-head,
-.manager-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.manager-section-heading {
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-.manager-section h2 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-}
-.manager-create,
-.daily-draft-row,
-.manager-dialog footer {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.manager-create .tl-input {
-  width: 150px;
-}
-.manager-create input[type='color'] {
-  width: 30px;
-  height: 30px;
-  padding: 2px;
-  border: 1px solid var(--border);
+
+.project-dot,
+.daily-template-dot {
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: var(--surface);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 5%);
 }
-.manager-list {
-  border-top: 1px solid var(--border-subtle);
+
+.daily-template-dot {
+  background: var(--daily-accent);
 }
-.manager-row {
-  min-height: 44px;
-  padding: 4px 8px;
-  border-bottom: 1px solid var(--border-subtle);
-}
-.project-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex: 0 0 auto;
-}
-.manager-primary,
-.daily-disclosure {
-  min-width: 0;
-  flex: 1;
-}
+
 .manager-primary {
-  font-size: 0.92rem;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
 .manager-status {
+  min-width: 0;
   color: var(--text-secondary);
   font-size: var(--text-secondary-size);
   font-weight: var(--text-secondary-weight);
+  line-height: var(--text-secondary-leading);
   white-space: nowrap;
 }
-.manager-menu {
-  position: relative;
-  flex: 0 0 auto;
+
+.manager-row-chevron {
+  color: var(--text-tertiary);
 }
-.manager-menu summary {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  list-style: none;
-  cursor: pointer;
-  border-radius: 6px;
+
+.daily-manager-row + .daily-manager-row {
+  border-top: 1px solid var(--border-subtle);
 }
-.manager-menu summary::-webkit-details-marker {
-  display: none;
-}
-.manager-menu summary:hover {
-  background: var(--surface-secondary);
-}
-.manager-menu > div {
-  position: absolute;
-  z-index: 3;
-  top: 32px;
-  right: 0;
-  min-width: 92px;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 10%);
-}
-.manager-menu button {
-  display: block;
-  width: 100%;
-  padding: 6px 8px;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--text-primary);
-  text-align: left;
-  cursor: pointer;
-}
-.manager-menu button:hover {
-  background: var(--surface-secondary);
-}
-.manager-menu .is-danger {
-  color: var(--danger);
-}
-.daily-manager-row {
-  border-bottom: 1px solid var(--border-subtle);
-}
-.daily-manager-head {
-  min-height: 44px;
-  padding: 4px 8px;
-}
+
 .daily-disclosure {
-  display: flex;
+  display: grid;
+  width: 100%;
+  min-height: 68px;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 6px;
-  border: 0;
-  background: transparent;
+  gap: var(--space-3);
+  padding: 0 var(--space-5);
   color: var(--text-primary);
+  background: transparent;
+  border: 0;
+  font: inherit;
   text-align: left;
   cursor: pointer;
-  font-size: 0.92rem;
+  transition: background-color var(--motion-fast) ease;
 }
-.daily-disclosure svg {
-  transition: transform 150ms ease;
+
+.daily-disclosure:hover {
+  background: color-mix(in srgb, var(--accent-soft) 30%, var(--surface));
 }
-.daily-disclosure[aria-expanded='false'] svg {
-  transform: rotate(-90deg);
+
+.daily-disclosure > span:nth-child(2) {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 1rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
 .daily-manager-items {
-  margin-left: 30px;
-  padding: 0 8px 8px;
+  display: grid;
+  gap: var(--space-3);
+  padding: 0 var(--space-5) var(--space-4);
 }
+
+.daily-manager-inset {
+  overflow: clip;
+  background: color-mix(in srgb, var(--surface-secondary) 72%, var(--surface));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-surface);
+}
+
 .daily-manager-item {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 28px;
+  width: 100%;
+  min-height: 56px;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
   align-items: center;
-  min-height: 32px;
-  gap: 8px;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
   color: var(--text-primary);
-  font-size: var(--text-secondary-size);
-}
-.manager-inline-action {
-  min-height: 28px;
-  padding: 0;
+  background: transparent;
   border: 0;
+  font: inherit;
+  font-size: var(--text-body-size);
+  text-align: left;
+  cursor: pointer;
+}
+
+.daily-manager-item + .daily-manager-item {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.daily-manager-item:hover,
+.daily-manager-item:focus-visible {
+  background: color-mix(in srgb, var(--accent-soft) 28%, var(--surface-secondary));
+}
+
+.daily-manager-item > svg {
+  color: var(--text-secondary);
+}
+
+.daily-manager-item > span:first-of-type {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.daily-manager-item > span:last-of-type {
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+  white-space: nowrap;
+}
+
+.manager-inline-action {
+  display: inline-flex;
+  width: fit-content;
+  min-height: var(--touch-target);
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
   color: var(--accent-text);
   background: transparent;
+  border: 0;
+  border-radius: var(--radius-control);
+  font-size: var(--text-body-size);
+  font-weight: 500;
   cursor: pointer;
-  font-size: var(--text-caption-size);
 }
+
+.manager-inline-action:hover {
+  background: var(--accent-soft);
+}
+
+.manager-action-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.manager-action-list .tl-button {
+  width: 100%;
+  min-height: var(--touch-target);
+  text-align: left;
+}
+
 .manager-dialog-backdrop {
   position: fixed;
-  z-index: 20;
+  z-index: 40;
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 20px;
+  padding: var(--space-5);
   background: rgb(20 24 32 / 28%);
   touch-action: none;
 }
+
 .manager-dialog {
-  width: min(100%, 480px);
   display: grid;
-  gap: 14px;
-  padding: 20px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  width: min(100%, 480px);
+  max-height: calc(100dvh - 40px);
+  gap: var(--space-4);
+  overflow: auto;
+  padding: var(--space-5);
   background: var(--surface);
-  box-shadow: 0 18px 48px rgb(0 0 0 / 16%);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  box-shadow: var(--shadow-window);
 }
+
 .manager-dialog header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-3);
 }
+
 .manager-dialog h2 {
   margin: 0;
+  font-size: var(--text-section-size);
 }
+
 .manager-dialog header button {
-  border: 0;
+  display: grid;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  place-items: center;
+  color: var(--text-secondary);
   background: transparent;
+  border: 0;
+  border-radius: 50%;
   font-size: 1.25rem;
   cursor: pointer;
 }
+
+.manager-dialog header button:hover {
+  background: var(--surface-secondary);
+}
+
+.manager-dialog footer,
+.daily-draft-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .manager-dialog footer {
   justify-content: flex-end;
 }
 
-@media (max-width: 760px) {
-  .manager-section-heading {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-  .manager-create {
-    width: 100%;
-  }
-  .manager-create .tl-input {
-    flex: 1;
-  }
-  .manager-row,
-  .daily-manager-head {
-    padding-inline: 2px;
-  }
-  .manager-status {
-    max-width: 100px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-
-@media (max-width: 760px) {
-  .project-panel header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-3);
-  }
-
-  .project-create {
-    flex-wrap: wrap;
-  }
-
-  .project-row {
-    grid-template-columns: 1fr auto;
-    gap: 6px 12px;
-    min-height: var(--touch-target);
-    padding: 12px 4px;
-    font-size: var(--text-secondary-size);
-  }
-
-  .project-row span {
-    grid-column: 1 / -1;
-  }
-}
-
-/* Daily 模板管理器的创建模式、计划时长与项目颜色编辑控件。 */
 .manager-color-field {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   color: var(--text-secondary);
   font-size: var(--text-secondary-size);
 }
+
 .manager-color-field input[type='color'] {
-  width: 34px;
-  height: 34px;
-  padding: 2px;
+  width: 36px;
+  height: 36px;
+  padding: var(--space-1);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 50%;
-  background: var(--surface);
 }
+
 .daily-draft-items {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
 }
+
 .daily-draft-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 120px 30px;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 120px 36px;
 }
+
 .daily-draft-remove {
   display: grid;
+  width: var(--touch-target);
+  min-height: var(--touch-target);
   place-items: center;
-  width: 30px;
-  min-height: 30px;
   padding: 0;
-  border: 0;
-  border-radius: 6px;
   color: var(--text-secondary);
   background: transparent;
+  border: 0;
+  border-radius: var(--radius-control);
   cursor: pointer;
 }
+
 .daily-draft-remove:hover {
   color: var(--danger);
   background: var(--surface-secondary);
 }
+
 .daily-mode-switch {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  padding: 3px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  padding: var(--space-1);
   background: var(--surface-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
 }
+
 .daily-mode-switch button {
-  min-height: 30px;
-  border: 0;
-  border-radius: 5px;
+  min-height: var(--touch-target);
   color: var(--text-secondary);
   background: transparent;
-  cursor: pointer;
+  border: 0;
+  border-radius: var(--radius-sm);
   font-size: var(--text-caption-size);
+  cursor: pointer;
 }
+
 .daily-mode-switch button[aria-selected='true'] {
   color: var(--text-primary);
   background: var(--surface);
   box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
 }
+
 .manager-dialog label:not(.manager-color-field) {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
   color: var(--text-secondary);
   font-size: var(--text-caption-size);
 }
+
 .manager-dialog select {
-  min-height: 36px;
-  padding: 0 10px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
   color: var(--text-primary);
   background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
 }
+
 @media (max-width: 760px) {
+  .project-panel {
+    width: 100%;
+    margin-top: var(--space-1);
+    gap: var(--space-6);
+  }
+
+  .project-page-heading {
+    min-height: 96px;
+    padding: var(--space-2) var(--space-1) 0;
+  }
+
+  .project-page-heading h1 {
+    font-size: 2rem;
+  }
+
+  .project-page-heading p {
+    max-width: 19rem;
+    font-size: var(--text-body-size);
+  }
+
+  .project-create-trigger {
+    display: inline-flex;
+    width: 100%;
+    gap: 6px;
+    padding: 0 var(--space-2);
+    color: var(--accent);
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  .project-create-trigger span {
+    display: inline;
+    font-size: var(--text-body-size);
+    font-weight: 500;
+  }
+
+  .project-create-trigger:hover,
+  .project-create-trigger[aria-expanded='true'] {
+    background: var(--accent-soft);
+    border-color: transparent;
+  }
+
+  .manager-card {
+    border-radius: var(--radius-surface);
+  }
+
+  .manager-row {
+    min-height: 60px;
+    padding-inline: var(--space-4);
+  }
+
+  .daily-disclosure {
+    min-height: 60px;
+    padding-inline: var(--space-4);
+  }
+
+  .daily-disclosure > .manager-status {
+    font-size: var(--text-caption-size);
+  }
+
+  .daily-manager-items {
+    padding-inline: var(--space-3);
+  }
+
+  .daily-manager-item {
+    min-height: 56px;
+    gap: var(--space-2);
+    padding-inline: var(--space-3);
+  }
+
+  .daily-manager-item > span:last-of-type {
+    font-size: var(--text-caption-size);
+  }
+
   .daily-draft-row {
-    grid-template-columns: minmax(0, 1fr) 92px 34px;
+    grid-template-columns: minmax(0, 1fr) 92px var(--touch-target);
+  }
+
+  .manager-dialog .tl-button,
+  .manager-dialog .tl-input,
+  .manager-dialog select,
+  .manager-color-field input[type='color'] {
+    min-height: var(--touch-target);
+  }
+
+  .manager-color-field input[type='color'] {
+    width: var(--touch-target);
+    height: var(--touch-target);
   }
 }
 
-/* 小屏把名称与预计分钟拆为两行，保留足够的输入宽度与触控删除目标。 */
 @media (max-width: 480px) {
+  .project-page-heading p {
+    max-width: 15rem;
+  }
+
+  .daily-disclosure {
+    grid-template-columns: 12px minmax(0, 1fr) auto;
+    gap: var(--space-2);
+  }
+
+  .daily-disclosure > .manager-status {
+    max-width: 6.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .daily-draft-row {
-    grid-template-columns: minmax(0, 1fr) 34px;
+    grid-template-columns: minmax(0, 1fr) var(--touch-target);
     grid-template-rows: auto auto;
   }
+
   .daily-draft-row .tl-input:first-child {
     grid-column: 1 / -1;
     grid-row: 1;
   }
+
   .daily-draft-row .tl-input:nth-child(2) {
     grid-column: 1;
     grid-row: 2;
-    width: 100%;
   }
+
   .daily-draft-remove {
     grid-column: 2;
     grid-row: 1 / span 2;
-    align-self: stretch;
-    width: 34px;
-    min-height: 44px;
+    min-height: var(--touch-target);
   }
 }
