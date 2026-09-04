@@ -22,7 +22,7 @@ export type Task = {
   projectId: Id;
   title: string;
   date?: string;
-  /** 已拖入今日日程但尚未填写开始时间；显示在日程最上方。 */
+  /** 已进入某个业务日但尚未填写开始时间，仅表示待填时间 UI 状态。 */
   schedulePendingTime?: boolean;
   plannedStartTime?: string;
   plannedEndTime?: string;

@@ -184,7 +184,10 @@ export function useTaskCreateAndEdit({
       importance: isWaiting
         ? (String(form.get('importance') ?? 'normal') as Task['importance'])
         : (editing?.importance ?? 'normal'),
-      actualDurationMinutes: numberOrUndefined(form.get('actual')),
+      // Waiting Dialog 不提供 actual 输入；保留历史实际投入，避免编辑标题/重要性时触发负向账本变更。
+      actualDurationMinutes: isWaiting
+        ? editing?.actualDurationMinutes
+        : numberOrUndefined(form.get('actual')),
       updatedAt: new Date().toISOString(),
     };
     if (editing) updateTask(nextTask);

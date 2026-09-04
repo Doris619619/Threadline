@@ -247,4 +247,47 @@ describe('useTaskCreateAndEdit', () => {
     );
     expect(updating.createTask).not.toHaveBeenCalled();
   });
+
+  it('preserves historical actual duration while editing waiting task details', async () => {
+    const editing: Task = {
+      id: 'waiting-with-actual',
+      projectId: activeProject.id,
+      title: '旧标题',
+      actualDurationMinutes: 30,
+      completed: false,
+      status: 'waiting',
+      importance: 'normal',
+      createdAt: '2026-08-19T01:00:00.000Z',
+      updatedAt: '2026-08-19T01:00:00.000Z',
+    };
+    const dependencies = createHookDependencies(editing);
+    const { result } = renderHook(() => useTaskCreateAndEdit(dependencies));
+
+    await act(async () => {
+      await expect(
+        result.current.saveTask(
+          taskForm({
+            title: '新标题',
+            project: activeProject.id,
+            importance: 'important',
+          }),
+        ),
+      ).resolves.toBeUndefined();
+    });
+
+    expect(dependencies.updateTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: editing.id,
+        title: '新标题',
+        status: 'waiting',
+        date: undefined,
+        schedulePendingTime: false,
+        plannedStartTime: undefined,
+        plannedEndTime: undefined,
+        plannedDurationMinutes: undefined,
+        importance: 'important',
+        actualDurationMinutes: 30,
+      }),
+    );
+  });
 });

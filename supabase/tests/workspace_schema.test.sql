@@ -2,7 +2,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(158);
+select plan(159);
 
 select has_table('public', 'daily_history_entries', 'Daily history has an explicit table');
 select has_table(
@@ -317,11 +317,11 @@ select throws_ok(
   'Owner cannot create a second fallback project'
 );
 select throws_ok(
-  $$insert into public.tasks(id, project_id, title, completed, status)
+  $$insert into public.tasks(id, project_id, title, scheduled_date, completed, status)
     values (
       '22000000-0000-0000-0000-000000000002',
       '21000000-0000-0000-0000-000000000002',
-      'Cross-owner task', false, 'active'
+      'Cross-owner task', '2026-09-04', false, 'active'
     )$$,
   '23503',
   null,
@@ -723,8 +723,19 @@ select is(
 );
 select is(
   (select postponed_from from public.tasks where id = '40000000-0000-0000-0000-000000000004'),
-  '2026-08-30'::date,
-  'Direct trash preserves the original business date in postponed_from'
+  null::date,
+  'Direct trash does not invent a postponement date'
+);
+select is(
+  (
+    select event_type || ':' || task_date_snapshot::text
+    from public.history_events
+    where task_id = '40000000-0000-0000-0000-000000000004'
+    order by occurred_at desc
+    limit 1
+  ),
+  'trashed:2026-08-30',
+  'Trash history preserves the deletion-date snapshot'
 );
 select lives_ok(
   $$update public.tasks
