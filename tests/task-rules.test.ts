@@ -20,7 +20,7 @@ describe('task rules', () => {
   it('requires completed tasks to be explicitly reopened before workflow changes', () => {
     const completedTask = { completed: true, status: 'active' } as never;
 
-    expect(canTransitionTask(completedTask, 'backlog')).toBe(false);
+    expect(canTransitionTask(completedTask, 'waiting')).toBe(false);
     expect(canTransitionTask(completedTask, 'abandoned')).toBe(false);
     expect(canTransitionTask(completedTask, 'rescheduled')).toBe(false);
     expect(canTransitionTask(completedTask, 'trashed')).toBe(true);

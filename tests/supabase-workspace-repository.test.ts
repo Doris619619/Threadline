@@ -21,8 +21,7 @@ function databaseTaskRow(overrides: Record<string, unknown> = {}) {
     completed: false,
     completed_at: null,
     status: 'active',
-    backlog_importance: null,
-    ddl_at: '2026-08-25 18:00:00',
+    importance: 'normal',
     postponed_from: null,
     postponed_to: null,
     abandoned_at: null,
@@ -47,7 +46,7 @@ function taskFixture(overrides: Partial<Task> = {}): Task {
     actualDurationMinutes: 30,
     completed: false,
     status: 'active',
-    ddlAt: '2026-08-25T18:00',
+    importance: 'normal',
     createdAt: '2026-08-20T01:00:00.000Z',
     updatedAt: '2026-08-20T02:00:00.000Z',
     ...overrides,
@@ -67,7 +66,7 @@ describe('SupabaseWorkspaceRepository task boundary', () => {
     await expect(repository.saveTask(taskFixture())).resolves.toMatchObject({
       plannedStartTime: '09:30',
       plannedEndTime: '10:45',
-      ddlAt: '2026-08-25T18:00',
+      importance: 'normal',
       createdAt: '2026-08-19T17:00:00.000Z',
     });
     expect(from).toHaveBeenCalledWith('tasks');
@@ -84,8 +83,7 @@ describe('SupabaseWorkspaceRepository task boundary', () => {
       completed: false,
       completed_at: null,
       status: 'active',
-      backlog_importance: null,
-      ddl_at: '2026-08-25T18:00:00',
+      importance: 'normal',
       postponed_from: null,
       postponed_to: null,
       abandoned_at: null,
@@ -95,7 +93,7 @@ describe('SupabaseWorkspaceRepository task boundary', () => {
 
   it('passes a nullable target date to the atomic transition RPC and returns the mapped task', async () => {
     const rpc = vi.fn().mockResolvedValue({
-      data: databaseTaskRow({ status: 'rescheduled' }),
+      data: databaseTaskRow({ status: 'active' }),
       error: null,
     });
     const repository = new SupabaseWorkspaceRepository({
@@ -104,7 +102,7 @@ describe('SupabaseWorkspaceRepository task boundary', () => {
 
     await expect(
       repository.transitionTask('task-1', 'rescheduled', '2026-08-24'),
-    ).resolves.toMatchObject({ id: 'task-1', status: 'rescheduled' });
+    ).resolves.toMatchObject({ id: 'task-1', status: 'active' });
     expect(rpc).toHaveBeenCalledWith('transition_task', {
       p_task_id: 'task-1',
       p_transition: 'rescheduled',

@@ -93,7 +93,7 @@ export function CloseDialog({
               <select name={`action-${task.id}`} defaultValue="tomorrow">
                 <option value="tomorrow">移到明天</option>
                 <option value="date">选择日期</option>
-                <option value="backlog">待安排</option>
+                <option value="waiting">待安排</option>
                 <option value="abandoned">放弃</option>
               </select>
               <Input name={`date-${task.id}`} type="date" defaultValue={tomorrow} />
@@ -182,7 +182,7 @@ export function TaskDialog({
   onClose,
 }: {
   open: boolean;
-  mode?: 'normal' | 'unscheduled';
+  mode?: 'normal' | 'waiting';
   editing?: Task;
   projects: Project[];
   onSave: (data: FormData) => Promise<string | undefined>;
@@ -190,7 +190,7 @@ export function TaskDialog({
 }) {
   const [error, setError] = useState<string>();
   if (!open) return null;
-  const isUnscheduled = mode === 'unscheduled' && !editing?.plannedStartTime;
+  const isWaiting = mode === 'waiting';
   const defaultProjectId =
     editing?.projectId ?? resolveActiveProject(projects)?.id ?? '';
 
@@ -202,11 +202,11 @@ export function TaskDialog({
         aria-modal="true"
         aria-label={
           editing
-            ? isUnscheduled
-              ? '修改无时间待办'
+            ? isWaiting
+              ? '修改待安排事项'
               : '编辑任务'
-            : isUnscheduled
-              ? '添加无时间待办'
+            : isWaiting
+              ? '添加待安排事项'
               : '添加任务'
         }
       >
@@ -220,20 +220,20 @@ export function TaskDialog({
             <div>
               <p>
                 {editing
-                  ? isUnscheduled
-                    ? '编辑无时间待办'
+                  ? isWaiting
+                    ? '编辑待安排事项'
                     : '编辑任务'
-                  : isUnscheduled
-                    ? '无时间待办'
+                  : isWaiting
+                    ? '待安排'
                     : '快速新建'}
               </p>
               <h2>
                 {editing
-                  ? isUnscheduled
+                  ? isWaiting
                     ? '修改待办事项'
                     : '修改任务'
-                  : isUnscheduled
-                    ? '添加无时间待办'
+                  : isWaiting
+                    ? '添加待安排事项'
                     : '添加任务'}
               </h2>
             </div>
@@ -252,7 +252,7 @@ export function TaskDialog({
             />
           </label>
 
-          {isUnscheduled ? (
+          {isWaiting ? (
             <div className="task-form-grid" style={{ gridTemplateColumns: '1fr' }}>
               <label>
                 项目
@@ -268,6 +268,13 @@ export function TaskDialog({
                         {project.name}
                       </option>
                     ))}
+                </select>
+              </label>
+              <label>
+                重要性
+                <select name="importance" defaultValue={editing?.importance ?? 'normal'}>
+                  <option value="normal">普通</option>
+                  <option value="important">重要</option>
                 </select>
               </label>
             </div>
@@ -324,7 +331,7 @@ export function TaskDialog({
             </div>
           )}
 
-          {!isUnscheduled && (
+          {!isWaiting && (
             <p>开始和结束同时填写时自动计算预计时长；不支持跨午夜。</p>
           )}
 

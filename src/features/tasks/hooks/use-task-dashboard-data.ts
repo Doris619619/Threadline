@@ -49,10 +49,7 @@ export function useTaskDashboardData({
       if (right.plannedStartTime) return 1;
       return 0;
     });
-  const quick = shown.filter(
-    (task) => !task.plannedStartTime && !task.schedulePendingTime,
-  );
-  const backlog = tasks.filter((task) => task.status === 'backlog');
+  const waiting = tasks.filter((task) => task.status === 'waiting' && !task.completed);
   const done = shown.filter((task) => task.completed).length;
   const actual = taskTimeEntriesAuthoritative
     ? taskTimeEntries
@@ -72,14 +69,13 @@ export function useTaskDashboardData({
       dailyHistory,
       closeRecords,
     },
-    backlog,
+    waiting,
     daily,
     dailyActual,
     dailyDone,
     done,
     isDayClosed: closeRecords.some((record) => record.date === selectedDate),
     normalTaskTotal: shown.length + movedFromSelectedDate.length,
-    quick,
     shown,
     timed,
     tomorrow: addLocalDateDays(selectedDate, 1),

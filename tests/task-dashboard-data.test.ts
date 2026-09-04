@@ -86,4 +86,25 @@ describe('task dashboard time source capability', () => {
       'pending-time',
     ]);
   });
+
+  it('keeps waiting tasks visible across selected dates without treating time fields as ownership', () => {
+    const waiting: Task = {
+      ...tasks[0],
+      id: 'waiting-important',
+      status: 'waiting',
+      date: undefined,
+      schedulePendingTime: false,
+      importance: 'important',
+    };
+    const result = useTaskDashboardData({
+      ...sharedInput,
+      selectedDate: '2026-09-02',
+      taskTimeEntriesAuthoritative: false,
+      tasks: [waiting, { ...tasks[0], id: 'scheduled', date: '2026-09-02', schedulePendingTime: false }],
+    });
+
+    expect(result.waiting).toEqual([waiting]);
+    expect(result.shown.map((task) => task.id)).toEqual(['scheduled']);
+    expect(result.normalTaskTotal).toBe(1);
+  });
 });

@@ -6,7 +6,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 import {
   fromDatabaseInstant,
-  fromDatabaseLocalDateTime,
   fromDatabaseWallTime,
   toDatabaseDate,
   toDatabaseLocalDateTime,
@@ -74,9 +73,7 @@ function mapTask(row: JsonRecord): Task {
     completed: Boolean(row.completed),
     completedAt: fromDatabaseInstant((row.completed_at as string | null) ?? null),
     status: row.status as Task['status'],
-    backlogImportance:
-      (row.backlog_importance as Task['backlogImportance'] | null) ?? undefined,
-    ddlAt: fromDatabaseLocalDateTime((row.ddl_at as string | null) ?? null),
+    importance: (row.importance as Task['importance'] | null) ?? undefined,
     postponedFrom: (row.postponed_from as string | null) ?? undefined,
     postponedTo: (row.postponed_to as string | null) ?? undefined,
     abandonedAt: fromDatabaseInstant((row.abandoned_at as string | null) ?? null),
@@ -112,8 +109,7 @@ function taskRow(task: Task) {
     completed: task.completed,
     completed_at: task.completedAt ?? null,
     status: task.status,
-    backlog_importance: task.backlogImportance ?? null,
-    ddl_at: toDatabaseLocalDateTime(task.ddlAt),
+    importance: task.importance ?? null,
     postponed_from: toDatabaseDate(task.postponedFrom),
     postponed_to: toDatabaseDate(task.postponedTo),
     abandoned_at: task.abandonedAt ?? null,
@@ -277,7 +273,7 @@ export class SupabaseWorkspaceRepository {
   /** 通过事务命令完成 task transition、history 和 trash workstation 副作用。 */
   async transitionTask(
     taskId: string,
-    transition: 'scheduled' | 'rescheduled' | 'backlog' | 'abandoned' | 'trashed',
+    transition: 'scheduled' | 'rescheduled' | 'waiting' | 'abandoned' | 'trashed',
     targetDate?: string,
   ): Promise<Task> {
     const response = await this.client.rpc('transition_task', {
@@ -286,6 +282,15 @@ export class SupabaseWorkspaceRepository {
       p_target_date: targetDate ?? null,
     });
     return mapTask(assertResponse('transition task', response) as JsonRecord);
+  }
+
+  /** 通过数据库原子命令完成待安排任务，确保完成 history 的日期快照正确。 */
+  async completeWaitingTask(taskId: string, completedDate: string): Promise<Task> {
+    const response = await this.client.rpc('complete_waiting_task', {
+      p_task_id: taskId,
+      p_completed_date: completedDate,
+    });
+    return mapTask(assertResponse('complete waiting task', response) as JsonRecord);
   }
 
   /** 幂等实例化业务日期并重新读取完整 Daily bundle。 */
@@ -496,7 +501,7 @@ export class SupabaseWorkspaceRepository {
     date: string,
     actions: Array<{
       taskId: string;
-      action: 'tomorrow' | 'date' | 'backlog' | 'abandoned';
+      action: 'tomorrow' | 'date' | 'waiting' | 'abandoned';
       targetDate?: string;
     }>,
     projectMinutes: Record<string, number>,

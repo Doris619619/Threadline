@@ -80,8 +80,8 @@ export function useTaskCreateAndEdit({
     return { task: await createTask(task) };
   };
 
-  /** 从无时间待办行草稿创建任务，不推断时间。 */
-  const createQuickTask = async (draft: QuickTaskDraft) => {
+  /** 创建不绑定任何日期的待安排任务；重要性默认普通。 */
+  const createWaitingTask = async (draft: QuickTaskDraft) => {
     if (!draft.title.trim()) return { cancelled: true };
     const projectId = resolveActiveProject(projects, draft.projectId)?.id;
     if (!projectId) return { error: '请先创建一个可用项目' };
@@ -89,10 +89,9 @@ export function useTaskCreateAndEdit({
       id: crypto.randomUUID(),
       projectId,
       title: draft.title.trim(),
-      date: selectedDate,
-      completed: draft.completed,
-      completedAt: draft.completed ? new Date().toISOString() : undefined,
-      status: 'active',
+      completed: false,
+      status: 'waiting',
+      importance: 'normal',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -123,17 +122,17 @@ export function useTaskCreateAndEdit({
     await createTask(task);
   };
 
-  /** 从迷你今日写入无时间待办，不额外推断时间或完成状态。 */
-  const createCompactQuickTask = async (draft: CompactQuickTaskDraft) => {
+  /** 从迷你今日写入持续待安排任务，不产生日期绑定。 */
+  const createCompactWaitingTask = async (draft: CompactQuickTaskDraft) => {
     const projectId = resolveActiveProject(projects, draft.projectId)?.id;
     if (!projectId) throw new Error('请先创建一个可用项目');
     const task: Task = {
       id: crypto.randomUUID(),
       projectId,
       title: draft.title,
-      date: selectedDate,
       completed: false,
-      status: 'active',
+      status: 'waiting',
+      importance: 'normal',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -162,6 +161,7 @@ export function useTaskCreateAndEdit({
     if (end && start && end === start) return '结束时间需晚于开始时间';
     const planned =
       calculateDuration(start, end) ?? numberOrUndefined(form.get('planned'));
+    const isWaiting = editing?.status === 'waiting';
     const base =
       editing ??
       makeTask(
@@ -174,10 +174,14 @@ export function useTaskCreateAndEdit({
       ...base,
       title,
       projectId: String(form.get('project')),
-      date: editing?.date ?? selectedDate,
-      plannedStartTime: start,
-      plannedEndTime: end,
-      plannedDurationMinutes: planned,
+      date: isWaiting ? undefined : (editing?.date ?? selectedDate),
+      schedulePendingTime: isWaiting ? false : editing?.schedulePendingTime,
+      plannedStartTime: isWaiting ? undefined : start,
+      plannedEndTime: isWaiting ? undefined : end,
+      plannedDurationMinutes: isWaiting ? undefined : planned,
+      importance: isWaiting
+        ? (String(form.get('importance') ?? 'normal') as Task['importance'])
+        : editing?.importance,
       actualDurationMinutes: numberOrUndefined(form.get('actual')),
       updatedAt: new Date().toISOString(),
     };
@@ -187,10 +191,10 @@ export function useTaskCreateAndEdit({
   };
 
   return {
-    createCompactQuickTask,
+    createCompactWaitingTask,
     createCompactTimedTask,
     createProjectDirectly,
-    createQuickTask,
+    createWaitingTask,
     createTimedTask,
     saveTask,
   };

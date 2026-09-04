@@ -42,6 +42,28 @@
   padding: 16px 20px 14px;
 }
 
+/* 待安排池在一个 Surface 内使用轻量分组，移动端菜单避免横向拥挤。 */
+.waiting-panel { min-width: 0; }
+.waiting-panel > header { display: flex; align-items: center; justify-content: space-between; }
+.waiting-tasks { display: grid; gap: 14px; }
+.waiting-group { display: grid; gap: 6px; }
+.waiting-group h3 { margin: 0; color: var(--text-secondary); font-size: var(--text-caption-size); }
+.waiting-task-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 42px; }
+.waiting-task-main { display: flex; min-width: 0; align-items: center; gap: 8px; border: 0; background: transparent; color: var(--text-primary); text-align: left; cursor: pointer; }
+.waiting-task-main > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.waiting-task-actions { position: relative; }
+.waiting-task-actions > button { display: grid; width: 40px; height: 40px; place-items: center; border: 0; background: transparent; color: var(--text-secondary); }
+.waiting-task-menu { position: absolute; z-index: 10; right: 0; top: 42px; display: grid; min-width: 172px; padding: 6px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); box-shadow: 0 8px 24px rgb(0 0 0 / 0.14); }
+.waiting-task-menu button { display: flex; gap: 8px; align-items: center; min-height: 40px; padding: 0 8px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-primary); text-align: left; }
+.waiting-task-menu hr { width: 100%; border: 0; border-top: 1px solid var(--border); }
+.waiting-task-menu .is-danger { color: var(--danger); }
+.waiting-date-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; align-items: end; background: rgb(0 0 0 / 0.28); }
+.waiting-date-sheet { display: grid; gap: 14px; padding: 20px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--surface); }
+.waiting-date-sheet h3 { margin: 0; }
+.waiting-date-sheet input { min-height: 44px; font-size: 16px; }
+.waiting-date-sheet footer { display: flex; justify-content: flex-end; gap: 8px; }
+@media (min-width: 700px) { .waiting-date-backdrop { align-items: center; justify-items: center; } .waiting-date-sheet { width: min(360px, calc(100vw - 32px)); border-radius: var(--radius-lg); } }
+
 .quick-panel header,
 .schedule-panel > header,
 .daily-panel > header {

@@ -104,7 +104,7 @@ export function TaskRowActions({
               type="button"
               onClick={() => {
                 setMenuOpen(false);
-                onMove(taskId, 'backlog');
+                onMove(taskId, 'waiting');
               }}
             >
               待安排

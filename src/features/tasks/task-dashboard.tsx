@@ -19,15 +19,16 @@ import { useOptionalStartupProgress } from '@/features/startup/startup-progress-
 import { CompactWindowHeader, useWorkspaceView } from '@/components/app-shell';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import { resolveActiveProject } from '@/lib/project-rules';
+import { getLocalDateKey } from '@/lib/local-date';
 import { MiniTodayPanel, WorkstationPanel } from '@/features/tasks/compact-workspace';
 import { formatMinutes } from '@/features/tasks/task-time';
 import { DesktopScheduleList } from '@/features/tasks/components/desktop-schedule-list';
 import { TaskLine } from '@/features/tasks/components/task-line';
 import { TimedTaskCreateRow } from '@/features/tasks/components/timed-task-create-row';
-import { QuickTaskCreateRow } from '@/features/tasks/components/quick-task-create-row';
+import { WaitingTaskCreateRow } from '@/features/tasks/components/waiting-task-create-row';
 import { SchedulePanel } from '@/features/tasks/components/schedule-panel';
-import { QuickTaskPanel } from '@/features/tasks/components/quick-task-panel';
-import { PlanningQueue } from '@/features/tasks/components/planning-queue';
+import { WaitingTaskPanel } from '@/features/tasks/components/waiting-task-panel';
+import { WaitingTaskRow } from '@/features/tasks/components/waiting-task-row';
 import {
   CloseDialog,
   RescheduleDialog,
@@ -76,6 +77,7 @@ export function TaskDashboard() {
     transitionTask,
     recordDaily,
     closeDay: commitCloseDay,
+    completeWaitingTask,
     hydrated,
   } = useWorkspaceData();
   const defaultProjectId = resolveActiveProject(workspaceProjects)?.id ?? '';
@@ -84,7 +86,7 @@ export function TaskDashboard() {
 
   const [editing, setEditing] = useState<Task | undefined>();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
-  const [taskDialogMode, setTaskDialogMode] = useState<'normal' | 'unscheduled'>(
+  const [taskDialogMode, setTaskDialogMode] = useState<'normal' | 'waiting'>(
     'normal',
   );
   const [rescheduling, setRescheduling] = useState<Task | undefined>();
@@ -109,7 +111,7 @@ export function TaskDashboard() {
     actual,
     analyticsInput,
     autoFocusTimeTaskId,
-    backlog,
+    waiting,
     clearWorkstation,
     daily,
     dailyActual,
@@ -120,8 +122,6 @@ export function TaskDashboard() {
     handlePointerDragEnd,
     handlePointerDragMove,
     handlePointerDragStart,
-    handleQuickDragOver,
-    handleQuickDrop,
     handleScheduleDragOver,
     handleScheduleDrop,
     handleTaskDragEnd,
@@ -130,7 +130,6 @@ export function TaskDashboard() {
     isResizingSchedule,
     moveTask: move,
     normalTaskTotal,
-    quick,
     reorderWorkstation,
     rescheduleTask,
     scheduleRatio,
@@ -159,10 +158,10 @@ export function TaskDashboard() {
   });
 
   const {
-    createCompactQuickTask,
+    createCompactWaitingTask,
     createCompactTimedTask,
     createProjectDirectly,
-    createQuickTask,
+    createWaitingTask,
     createTimedTask,
     saveTask,
   } = useTaskCreateAndEdit({
@@ -191,7 +190,7 @@ export function TaskDashboard() {
       </Surface>
     );
 
-  const open = (task?: Task, mode: 'normal' | 'unscheduled' = 'normal') => {
+  const open = (task?: Task, mode: 'normal' | 'waiting' = 'normal') => {
     setEditing(task);
     setTaskDialogMode(mode);
     setTaskDialogOpen(true);
@@ -218,7 +217,7 @@ export function TaskDashboard() {
         <CompactWindowHeader />
         <MiniTodayPanel
           timed={timed}
-          quick={quick}
+          waiting={waiting}
           projects={workspaceProjects}
           workstationTaskIds={workstationTaskIds}
           onUpdateTask={update}
@@ -226,7 +225,10 @@ export function TaskDashboard() {
           onClearWorkstation={clearWorkstation}
           onReorderWorkstation={reorderWorkstation}
           onCreateTimedTask={createCompactTimedTask}
-          onCreateQuickTask={createCompactQuickTask}
+          onCreateQuickTask={createCompactWaitingTask}
+          onCompleteWaitingTask={(id) => {
+            void completeWaitingTask(id, getLocalDateKey()).catch(() => undefined);
+          }}
         />
       </>
     );
@@ -395,58 +397,29 @@ export function TaskDashboard() {
         </SchedulePanel>
         {!isMiniToday && (
           <div className="side-column">
-            <QuickTaskPanel
-              isDropTarget={dropTarget === 'quick'}
+            <WaitingTaskPanel
               isAdding={createDrafts.quickOpen}
               onAdd={() => createDrafts.openQuick(defaultProjectId)}
-              onCloseAdd={createDrafts.closeQuick}
-              onDragLeave={() => setDropTarget(null)}
-              onDragOver={handleQuickDragOver}
-              onDrop={handleQuickDrop}
+              waiting={waiting}
             >
-              {() => (
-                <div className="quick-tasks">
-                  {quick.length === 0 && !createDrafts.quickOpen ? (
-                    <p className="empty-copy">暂无未定时间的待办事项</p>
-                  ) : (
-                    quick.map((task) => (
-                      <TaskLine
-                        key={task.id}
-                        task={task}
-                        onUpdate={update}
-                        onEdit={() => open(task, 'unscheduled')}
-                        onMove={move}
-                        onReschedule={() => setRescheduling(task)}
-                        projects={workspaceProjects}
-                        onAddProject={createProjectDirectly}
-                        draggable={!annotationInteractionLocked}
-                        isDragging={draggingTaskId === task.id}
-                        interactionLocked={annotationInteractionLocked}
-                        onDragStart={() => handleTaskDragStart(task.id)}
-                        onDragEnd={handleTaskDragEnd}
-                        onPointerDragStart={(event) =>
-                          handlePointerDragStart(task.id, event)
-                        }
-                        onPointerDragMove={handlePointerDragMove}
-                        onPointerDragEnd={handlePointerDragEnd}
-                        inWorkstation={workstationTaskIds.includes(task.id)}
-                        onToggleWorkstation={toggleWorkstationTask}
-                      />
-                    ))
-                  )}
-                  <QuickTaskCreateRow
+              <div className="waiting-tasks">
+                  {(['important', 'normal'] as const).map((importance) => {
+                    const items = waiting.filter((task) => (task.importance ?? 'normal') === importance);
+                    if (!items.length) return null;
+                    return <section className="waiting-group" key={importance}><h3>{importance === 'important' ? '重要' : '普通'}</h3>{items.map((task) => <WaitingTaskRow key={task.id} task={task} projects={workspaceProjects} onEdit={() => open(task, 'waiting')} onDelete={(id) => move(id, 'trashed')} onSchedule={(id, date) => { void transitionTask(id, 'scheduled', date).then(() => { if (date === getLocalDateKey()) setAutoFocusTimeTaskId(id); }).catch(() => undefined); }} onComplete={(id) => { void completeWaitingTask(id, getLocalDateKey()).catch(() => undefined); }} />)}</section>;
+                  })}
+                  <WaitingTaskCreateRow
                     open={createDrafts.quickOpen}
                     draft={createDrafts.quickDraft}
                     projects={workspaceProjects}
-                    onCreate={createQuickTask}
+                    onCreate={createWaitingTask}
                     onCreateProject={createProjectDirectly}
                     onChange={createDrafts.updateQuickDraft}
                     onReset={() => createDrafts.resetQuick(defaultProjectId)}
                     onClose={createDrafts.closeQuick}
                   />
-                </div>
-              )}
-            </QuickTaskPanel>
+              </div>
+            </WaitingTaskPanel>
             <DailyPanel
               items={daily}
               history={dailyHistory}
@@ -461,17 +434,6 @@ export function TaskDashboard() {
           </div>
         )}
       </div>
-      {!isMiniToday && (
-        <PlanningQueue
-          tasks={backlog}
-          projects={workspaceProjects}
-          onUpdate={update}
-          onMove={move}
-          onArrange={(id) => {
-            void transitionTask(id, 'scheduled', selectedDate).catch(() => undefined);
-          }}
-        />
-      )}
       {!isMiniToday && (
         <button
           className="finish-day"

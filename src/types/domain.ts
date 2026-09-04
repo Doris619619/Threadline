@@ -3,7 +3,7 @@
  */
 
 export type Id = string;
-export type TaskStatus = 'active' | 'rescheduled' | 'backlog' | 'abandoned' | 'trashed';
+export type TaskStatus = 'active' | 'waiting' | 'abandoned' | 'trashed';
 export type ProjectStatus = 'active' | 'archived';
 export type Project = {
   id: Id;
@@ -31,8 +31,8 @@ export type Task = {
   completed: boolean;
   completedAt?: string;
   status: TaskStatus;
-  backlogImportance?: 'important' | 'not_important';
-  ddlAt?: string;
+  /** 待安排池内用于轻量分组；所有新任务默认普通。 */
+  importance?: 'important' | 'normal';
   postponedFrom?: string;
   postponedTo?: string;
   abandonedAt?: string;

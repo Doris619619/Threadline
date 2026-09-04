@@ -24,7 +24,7 @@ export function useTaskWorkflow({
   updateWorkstationTaskIds: Dispatch<SetStateAction<string[]>>;
   transitionTask: (
     taskId: string,
-    transition: 'scheduled' | 'rescheduled' | 'backlog' | 'abandoned' | 'trashed',
+    transition: 'scheduled' | 'rescheduled' | 'waiting' | 'abandoned' | 'trashed',
     targetDate?: string,
   ) => Promise<Task>;
 }) {
@@ -49,6 +49,10 @@ export function useTaskWorkflow({
         ...task,
         status: 'active',
         date: selectedDate,
+        schedulePendingTime: true,
+        plannedStartTime: undefined,
+        plannedEndTime: undefined,
+        plannedDurationMinutes: undefined,
         completed: false,
         completedAt: undefined,
         deletedAt: undefined,

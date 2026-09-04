@@ -20,10 +20,10 @@ import type {
 } from '@/types/domain';
 
 export type TaskTransition =
-  'scheduled' | 'rescheduled' | 'backlog' | 'abandoned' | 'trashed';
+  'scheduled' | 'rescheduled' | 'waiting' | 'abandoned' | 'trashed';
 export type CloseAction = {
   taskId: string;
-  action: 'tomorrow' | 'date' | 'backlog' | 'abandoned';
+  action: 'tomorrow' | 'date' | 'waiting' | 'abandoned';
   targetDate?: string;
 };
 export type WorkspaceCommands = {
@@ -47,6 +47,8 @@ export type WorkspaceCommands = {
     transition: TaskTransition,
     targetDate?: string,
   ) => Promise<Task>;
+  /** 原子完成待安排任务，并将完成归属到调用端传入的本地业务日。 */
+  completeWaitingTask: (taskId: string, completedDate: string) => Promise<Task>;
   recordDaily: (
     templateId: string,
     date: string,

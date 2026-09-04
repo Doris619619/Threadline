@@ -496,6 +496,21 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     [ownerKey, queryClient, repository, updateAnnotationStrokes],
   );
 
+  /** 完成待安排任务时由数据库先补齐本地业务日，再触发完成历史写入。 */
+  const completeWaitingTask = useCallback(
+    async (taskId: string, completedDate: string) => {
+      if (!navigator.onLine) throw new Error('当前离线，无法完成待安排任务。');
+      const task = await repository.completeWaitingTask(taskId, completedDate);
+      queryClient.setQueryData<Task[]>(
+        ['workspace', ownerKey, 'tasks'],
+        (current = []) => current.map((item) => (item.id === task.id ? task : item)),
+      );
+      await queryClient.invalidateQueries({ queryKey: ['workspace', ownerKey, 'history'] });
+      return task;
+    },
+    [ownerKey, queryClient, repository],
+  );
+
   const recordDaily = useCallback(
     async (
       templateId: string,
@@ -737,6 +752,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       setDailyTemplateStatus,
       setDailyTemplateItemStatus,
       transitionTask,
+      completeWaitingTask,
       recordDaily,
       closeDay,
     }),
@@ -752,6 +768,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       setDailyTemplateStatus,
       setProjectArchived,
       transitionTask,
+      completeWaitingTask,
       updateProject,
     ],
   );

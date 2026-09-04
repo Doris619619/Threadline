@@ -168,13 +168,22 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
         status:
           transition === 'scheduled' || transition === 'rescheduled'
             ? 'active'
-            : transition === 'backlog'
-              ? 'backlog'
-              : transition,
+            : transition,
         date:
           transition === 'scheduled' || transition === 'rescheduled'
             ? targetDate
-            : undefined,
+            : transition === 'waiting'
+              ? undefined
+              : current.date,
+        schedulePendingTime:
+          transition === 'scheduled' ? true : transition === 'waiting' ? false : current.schedulePendingTime,
+        plannedStartTime:
+          transition === 'scheduled' || transition === 'waiting' ? undefined : current.plannedStartTime,
+        plannedEndTime:
+          transition === 'scheduled' || transition === 'waiting' ? undefined : current.plannedEndTime,
+        plannedDurationMinutes:
+          transition === 'scheduled' || transition === 'waiting' ? undefined : current.plannedDurationMinutes,
+        importance: transition === 'waiting' ? current.importance ?? 'normal' : current.importance,
         postponedFrom:
           transition !== 'scheduled'
             ? (current.date ?? current.postponedFrom)
@@ -200,7 +209,7 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
           type: transition,
           occurredAt: now,
           payload: {
-            fromDate: current.date ?? getLocalDateKey(),
+            ...(current.date ? { fromDate: current.date } : {}),
             ...(targetDate ? { toDate: targetDate } : {}),
           },
         },
@@ -221,6 +230,34 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
       updateTasks,
       updateWorkstationTaskIds,
     ],
+  );
+
+  /** 在测试环境中模拟 waiting 完成的数据库原子状态形状与完成历史。 */
+  const completeWaitingTask = useCallback(
+    async (taskId: string, completedDate: string) => {
+      const current = tasks.find((task) => task.id === taskId && task.status === 'waiting');
+      if (!current) throw new Error('TEST_WAITING_TASK_NOT_FOUND');
+      const completedAt = new Date().toISOString();
+      const next: Task = {
+        ...current,
+        status: 'active',
+        date: completedDate,
+        schedulePendingTime: false,
+        plannedStartTime: undefined,
+        plannedEndTime: undefined,
+        plannedDurationMinutes: undefined,
+        completed: true,
+        completedAt,
+        updatedAt: completedAt,
+      };
+      updateTasks((items) => items.map((task) => (task.id === taskId ? next : task)));
+      updateHistory((items) => [
+        { id: crypto.randomUUID(), taskId, type: 'completed', occurredAt: completedAt, payload: { completed: 'true' } },
+        ...items,
+      ]);
+      return next;
+    },
+    [tasks, updateHistory, updateTasks],
   );
 
   const recordDaily = useCallback(
@@ -507,6 +544,7 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
       setDailyTemplateStatus,
       setDailyTemplateItemStatus,
       transitionTask,
+      completeWaitingTask,
       recordDaily,
       closeDay,
     }),
@@ -522,6 +560,7 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
       setDailyTemplateStatus,
       setProjectArchived,
       transitionTask,
+      completeWaitingTask,
       updateProject,
     ],
   );

@@ -4,7 +4,7 @@ import type { Project, Task, TaskTimeEntry } from '@/types/domain';
 
 type CloseAction = {
   taskId: string;
-  action: 'tomorrow' | 'date' | 'backlog' | 'abandoned';
+  action: 'tomorrow' | 'date' | 'waiting' | 'abandoned';
   targetDate?: string;
 };
 

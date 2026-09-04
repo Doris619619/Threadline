@@ -17,7 +17,7 @@ Calendar、Insights 与报告不分别计算统计，而是通过 `src/lib/analy
 
 - 业务日期使用 PostgreSQL `date`。
 - 计划开始/结束使用 `time`，按用户本地墙钟解释。
-- `ddl_at` 使用 `timestamp without time zone`，保持 `datetime-local` 原值，不自动转 UTC。
+- 待安排任务以 `status=waiting` 和 `importance=important|normal` 持久化；它们没有 DDL、日期或排程时间字段。
 - created/updated/completed/deleted/abandoned/recorded 等审计时间使用 `timestamptz`。
 - `src/lib/supabase/time-mapper.ts` 显式映射以上类型；业务 date/time 不调用 `Date`。
 

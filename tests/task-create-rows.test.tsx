@@ -2,7 +2,7 @@
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { QuickTaskCreateRow } from '@/features/tasks/components/quick-task-create-row';
+import { WaitingTaskCreateRow } from '@/features/tasks/components/waiting-task-create-row';
 import { TimedTaskCreateRow } from '@/features/tasks/components/timed-task-create-row';
 import { useTaskCreateDrafts } from '@/features/tasks/hooks/use-task-create-drafts';
 import type { Project } from '@/types/domain';
@@ -17,7 +17,7 @@ function DraftHarness({ home }: { home: boolean }) {
   return home ? <>
     <button onClick={() => drafts.openTimed('work')}>打开日程</button><button onClick={() => drafts.openQuick('work')}>打开待办</button>
     <TimedTaskCreateRow open={drafts.timedOpen} draft={drafts.timedDraft} projects={projects} onCreate={createTimed} onCreateProject={() => projects[0]} onChange={drafts.updateTimedDraft} onReset={() => drafts.resetTimed('work')} onClose={drafts.closeTimed} />
-    <QuickTaskCreateRow open={drafts.quickOpen} draft={drafts.quickDraft} projects={projects} onCreate={createQuick} onCreateProject={() => projects[0]} onChange={drafts.updateQuickDraft} onReset={() => drafts.resetQuick('work')} onClose={drafts.closeQuick} />
+    <WaitingTaskCreateRow open={drafts.quickOpen} draft={drafts.quickDraft} projects={projects} onCreate={createQuick} onCreateProject={() => projects[0]} onChange={drafts.updateQuickDraft} onReset={() => drafts.resetQuick('work')} onClose={drafts.closeQuick} />
   </> : <p>其他页面</p>;
 }
 
