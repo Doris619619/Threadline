@@ -27,6 +27,7 @@ import {
 } from '@/features/workspace/workspace-data-context';
 export { useWorkspaceData } from '@/features/workspace/workspace-data-context';
 import { LocalWorkspaceTestAdapter } from '@/features/workspace/workspace-test-adapter';
+import { usesLocalWorkspace } from '@/lib/workspace-runtime';
 import { useAnnotationStrokes } from '@/hooks/use-annotation-strokes';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import { reconcileTaskAnnotations } from '@/lib/annotation-reconciliation';
@@ -839,9 +840,9 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/** 按显式构建标记选择测试适配器；缺少 Supabase 时绝不自动切换。 */
+/** 仅 Preview 演示或显式测试使用本地数据；普通云运行时不会自动回退。 */
 export function WorkspaceDataProvider({ children }: { children: ReactNode }) {
-  return process.env.NEXT_PUBLIC_THREADLINE_TEST_ADAPTER === 'true' ? (
+  return usesLocalWorkspace() ? (
     <LocalWorkspaceTestAdapter>{children}</LocalWorkspaceTestAdapter>
   ) : (
     <CloudWorkspaceDataProvider>{children}</CloudWorkspaceDataProvider>

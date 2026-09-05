@@ -32,7 +32,11 @@ Copy-Item .env.example .env.local
 pnpm dev
 ```
 
-访问 `http://localhost:3000`。未提供 Supabase 环境变量时只显示“尚未配置云工作区”，不会读取旧业务 localStorage。首次登录会原子创建“工作 / 课程 / AI研究 / 生活 / 其他”五个 UUID 项目，不创建 demo task、Daily 或 history。Playwright/Electron 的本地 seed 仅由测试脚本显式构建 `NEXT_PUBLIC_THREADLINE_TEST_ADAPTER=true`，Vercel 会拒绝该标记。
+访问 `http://localhost:3000`。普通本地/云运行时未提供 Supabase 环境变量时显示“尚未配置云工作区”，不会读取旧业务 localStorage。首次登录会原子创建“工作 / 课程 / AI研究 / 生活 / 其他”五个 UUID 项目，不创建 demo task、Daily 或 history。
+
+**PR 在线预览**：Vercel Preview 没有配置 Supabase URL/key 时自动进入演示模式，手机或电脑打开 PR 的 Preview 链接即可操作今日任务、重要/普通待安排和 Daily，无需登录或新增 Supabase 项目。演示数据为虚构样例，使用独立浏览器存储；刷新保留操作，换设备、浏览器或部署域名不会同步。优先使用 PR 的固定分支预览链接，单次部署链接仍指向旧版本。配置了 staging/test Supabase 的 Preview 继续走真实云登录；Production 必须使用正式云配置。Playwright/Electron 仍使用显式 `NEXT_PUBLIC_THREADLINE_TEST_ADAPTER=true`，该测试标记禁止部署到 Vercel。
+
+执行 `pnpm test:preview` 可构建与 Vercel 相同的无云演示并验证桌面、320px 手机和 iPhone WebKit 的真实交互，不需要 Docker。演示模式不是跨设备同步或数据库验收。
 
 常用质量检查：
 

@@ -6,19 +6,22 @@ Threadline 的测试目标是阻止功能、云端边界、桌面壳和明显布
 
 ## 分层与命令
 
-| 层                     | 命令                          | 负责的风险                                                                         |
-| ---------------------- | ----------------------------- | ---------------------------------------------------------------------------------- |
-| Unit / component       | `pnpm test`                   | 纯规则、mapper、状态和局部组件行为。                                               |
-| Coverage gate          | `pnpm test:coverage`          | 显式高风险业务模块的新代码没有进入单测覆盖。                                       |
-| CSS token contract     | `pnpm test:css-tokens`        | 无 fallback 的 CSS custom property 引用缺失定义。                                  |
-| Web adapter E2E        | `pnpm test:e2e`               | 确定性的任务、Daily、PWA 与 Web 行为。                                             |
+| 层                     | 命令                          | 负责的风险                                                                                              |
+| ---------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Unit / component       | `pnpm test`                   | 纯规则、mapper、状态和局部组件行为。                                                                    |
+| Coverage gate          | `pnpm test:coverage`          | 显式高风险业务模块的新代码没有进入单测覆盖。                                                            |
+| CSS token contract     | `pnpm test:css-tokens`        | 无 fallback 的 CSS custom property 引用缺失定义。                                                       |
+| Web adapter E2E        | `pnpm test:e2e`               | 确定性的任务、Daily、PWA 与 Web 行为。                                                                  |
+| Hosted Preview demo    | `pnpm test:preview`           | 无云 Vercel Preview 自动进入工作台，Daily/任务交互、刷新保存、独立存储及无 Supabase 请求。              |
 | UI invariants          | `pnpm test:e2e:ui`            | 全局横向溢出、重复主结构、关键控件、Dialog/Popover 边界、Chrome viewport matrix 与 iPhone WebKit 回归。 |
-| Local Supabase browser | `pnpm test:supabase:browser`  | Browser → Auth → CloudRuntimeProvider → RLS database → workspace → UI 的真实链路。 |
-| Electron behavior      | `pnpm test:electron`          | 开发壳的窗口切换、单实例和确定退出。                                               |
-| Packaged Electron      | `pnpm test:electron:packaged` | 通过 Renderer CDP 验证 `win-unpacked` EXE 的 protocol、CSP、Preload、实际 Windows 图标与退出。 |
-| Desktop parity         | `pnpm desktop:verify:parity`  | Preview 与 canonical package-dir 的静态 runtime 合同。                             |
+| Local Supabase browser | `pnpm test:supabase:browser`  | Browser → Auth → CloudRuntimeProvider → RLS database → workspace → UI 的真实链路。                      |
+| Electron behavior      | `pnpm test:electron`          | 开发壳的窗口切换、单实例和确定退出。                                                                    |
+| Packaged Electron      | `pnpm test:electron:packaged` | 通过 Renderer CDP 验证 `win-unpacked` EXE 的 protocol、CSP、Preload、实际 Windows 图标与退出。          |
+| Desktop parity         | `pnpm desktop:verify:parity`  | Preview 与 canonical package-dir 的静态 runtime 合同。                                                  |
 
 `test:e2e` 只让既有功能用例运行一次 desktop 和一次 mobile；布局矩阵的 8 个 Chrome viewport（含 320/375/390/430px 手机宽度）与一条 `iPhone 13` device preset/WebKit 回归只收集 `ui-layout-matrix.spec.ts`。因此不会把整套业务流乘以所有尺寸。
+
+`test:preview` 使用独立配置，关闭 test adapter 并以 `VERCEL_ENV=preview`、空 URL/key 构建真实演示。它只在桌面、320px 手机和 iPhone WebKit 各跑一次 Preview 用户流程，不启动 Supabase/Docker。设置 `THREADLINE_PREVIEW_URL` 后可通过 `pnpm exec playwright test --config playwright.preview.config.ts` 对已部署页面复用同一验收；每个用例使用全新浏览器上下文，不修改其他访问者的演示数据。
 
 ## UI 与无障碍边界
 

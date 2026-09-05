@@ -25,8 +25,28 @@ function validate(
 }
 
 describe('cloud build environment gate', () => {
-  it('allows an intentionally unconfigured Vercel Preview page', () => {
-    expect(validate('web', { VERCEL_ENV: 'preview' }).status).toBe(0);
+  it('allows a browser demo for Vercel Preview without Supabase', () => {
+    const result = validate('web', { VERCEL_ENV: 'preview' });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('isolated browser demo');
+  });
+
+  it('rejects partial cloud configuration instead of falling back to demo', () => {
+    expect(
+      validate('web', {
+        VERCEL_ENV: 'preview',
+        NEXT_PUBLIC_SUPABASE_URL: 'https://staging.supabase.co',
+      }).status,
+    ).toBe(1);
+  });
+
+  it('keeps the explicit test adapter forbidden on Vercel', () => {
+    expect(
+      validate('web', {
+        VERCEL_ENV: 'preview',
+        NEXT_PUBLIC_THREADLINE_TEST_ADAPTER: 'true',
+      }).status,
+    ).toBe(1);
   });
 
   it('rejects Production Supabase semantics in a Vercel Preview', () => {

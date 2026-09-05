@@ -1,5 +1,5 @@
 /**
- * @fileoverview 仅为 Playwright/Electron 显式测试构建提供隔离的 localStorage 工作区适配器。
+ * @fileoverview 为 Preview 演示与 Playwright/Electron 显式测试提供本地工作区适配器。
  */
 
 'use client';
@@ -21,6 +21,9 @@ import {
 } from '@/features/workspace/workspace-seed';
 import { useAnnotationStrokes } from '@/hooks/use-annotation-strokes';
 import { usePersistentState } from '@/hooks/use-persistent-state';
+import { isPreviewDemo } from '@/lib/workspace-runtime';
+import { createDemoDailies, createDemoTasks } from './demo-seed';
+import { PreviewDemoNotice } from './preview-demo-notice';
 import { getLocalDateKey } from '@/lib/local-date';
 import type { CloseRecord, HistoryEvent, Project, Task } from '@/types/domain';
 
@@ -79,13 +82,14 @@ export function mergeLocalDailyTemplate(current: Daily, next: Daily) {
 }
 
 /**
- * 仅供 Playwright/Electron 显式测试构建使用的本地适配器；生产构建不会挂载。
+ * Preview 演示与显式测试共用业务交互；演示 seed 与存储命名空间独立，生产不会挂载。
  */
 export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode }) {
   const { selectedDate } = useWorkspaceView();
   const [tasks, updateTasks, tasksHydrated] = usePersistentState(
     'threadline.tasks.v1',
-    () => withoutExpiredTasks(createInitialTasks()),
+    () =>
+      withoutExpiredTasks(isPreviewDemo() ? createDemoTasks() : createInitialTasks()),
     withoutExpiredTasks,
   );
   const [projects, updateProjects, projectsHydrated] = usePersistentState(
@@ -95,11 +99,15 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
   const [dailyByDate, updateDailyByDate, dailyHydrated] = usePersistentState<
     Record<string, Daily[]>
   >('threadline.daily-by-date.v1', () => ({
-    [getLocalDateKey()]: createDailyInstance(getLocalDateKey()),
+    [getLocalDateKey()]: isPreviewDemo()
+      ? createDemoDailies()
+      : createDailyInstance(getLocalDateKey()),
   }));
   const [dailyTemplates, updateDailyTemplates, templatesHydrated] = usePersistentState<
     Daily[]
-  >('threadline.daily-templates.v1', () => createDailyInstance(getLocalDateKey()));
+  >('threadline.daily-templates.v1', () =>
+    isPreviewDemo() ? createDemoDailies() : createDailyInstance(getLocalDateKey()),
+  );
   const [dailyHistory, updateDailyHistory, dailyHistoryHydrated] = usePersistentState<
     DailyHistoryEntry[]
   >('threadline.daily-history.v1', []);
@@ -621,6 +629,7 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
 
   return (
     <WorkspaceContextProviders
+      notice={isPreviewDemo() ? <PreviewDemoNotice /> : undefined}
       values={{
         hydrated,
         taskState,

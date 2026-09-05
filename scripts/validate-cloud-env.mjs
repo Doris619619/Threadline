@@ -86,5 +86,7 @@ if (mode === 'electron-production') {
 console.log(
   url
     ? `Cloud env validation passed for ${mode} (${cloudEnvironment ?? 'local'}).`
-    : `Cloud env validation passed for ${mode}: intentional unconfigured UI.`,
+    : vercelEnvironment === 'preview' && mode === 'web'
+      ? 'Cloud env validation passed for web: isolated browser demo (no Supabase).'
+      : `Cloud env validation passed for ${mode}: intentional unconfigured UI.`,
 );
