@@ -120,7 +120,7 @@ test.describe('compact viewport layout matrix', () => {
     await expect(
       daily.getByRole('checkbox', { name: '完成 Daily 算法训练' }),
     ).toBeChecked();
-    await expect(daily.getByText('实际合计', { exact: false })).toContainText('18');
+    await expect(daily.locator('.daily-actual-total strong')).toHaveText('18');
     await expectNoUnexpectedHorizontalOverflow(page);
     await page.screenshot({ path: info.outputPath('daily-home.png'), fullPage: true });
     await page.reload();
@@ -358,18 +358,15 @@ test.describe('compact viewport layout matrix', () => {
     await expect(seededTimelineRow.locator('.task-workstation-action')).toBeHidden();
 
     const checkWrap = seededTimelineRow.locator('.task-check-wrap');
-    const contentWrap = seededTimelineRow.locator('.task-content-wrap');
     const actionsCell = seededTimelineRow.locator('.task-actions-cell');
-    await expectElementsNotToOverlap(
-      checkWrap,
-      contentWrap,
-      'Checkbox 触控区与任务内容',
-    );
-    await expectElementsNotToOverlap(
-      contentWrap,
-      actionsCell,
-      '任务内容与更多操作按钮',
-    );
+    // display:contents 不生成盒子；逐一检查真正渲染的内容，保留不重叠的原约束。
+    for (const content of await seededTimelineRow
+      .locator('.task-title, .task-project-cell, .timeline-time, .task-duration')
+      .all()) {
+      await expectElementsNotToOverlap(checkWrap, content, 'Checkbox 触控区与任务内容');
+      await expectElementsNotToOverlap(content, actionsCell, '任务内容与更多操作按钮');
+      await expectElementWithinHorizontalViewport(page, content, '日程内容');
+    }
 
     const checkWrapBox = (await checkWrap.boundingBox())!;
     expect(checkWrapBox.width).toBeGreaterThanOrEqual(44);

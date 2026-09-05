@@ -9,7 +9,7 @@ import { Moon, ChevronRight } from 'lucide-react';
 import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
 import { StatItem } from '@/components/ui/stat-item';
 import { Surface } from '@/components/ui/surface';
-import { DailyPanel } from '@/features/daily/daily-panel';
+import { DailyPanel, type DailyPanelHandle } from '@/features/daily/daily-panel';
 import { CalendarPanel } from '@/features/calendar/calendar-panel';
 import { InsightsPanel } from '@/features/insights/insights-panel';
 import { ProjectManagementPage } from '@/features/projects/project-management-page';
@@ -92,6 +92,22 @@ export function TaskDashboard() {
   const [taskDialogMode, setTaskDialogMode] = useState<'normal' | 'waiting'>('normal');
   const [rescheduling, setRescheduling] = useState<Task | undefined>();
   const closeDialog = useRef<HTMLDialogElement>(null);
+  const dailyPanel = useRef<DailyPanelHandle>(null);
+  const [preparingClose, setPreparingClose] = useState(false);
+
+  /** 收尾前等待失焦保存和最新草稿，失败由 Daily 行显示并阻止旧快照关账。 */
+  const openCloseDialog = async () => {
+    if (preparingClose) return;
+    setPreparingClose(true);
+    try {
+      await dailyPanel.current?.flush();
+      closeDialog.current?.showModal();
+    } catch {
+      // Daily 行已显示具体错误；不打开收尾弹窗，也不清空输入。
+    } finally {
+      setPreparingClose(false);
+    }
+  };
 
   useEffect(() => {
     if (annotationTool === 'none') return;
@@ -458,18 +474,25 @@ export function TaskDashboard() {
                 })}
               </div>
             </WaitingTaskPanel>
-            <DailyPanel items={daily} date={selectedDate} onSave={saveDailyEntry} />
+            <DailyPanel
+              ref={dailyPanel}
+              items={daily}
+              date={selectedDate}
+              onSave={saveDailyEntry}
+            />
           </div>
         )}
       </div>
       {!isMiniToday && (
         <button
           className="finish-day"
-          disabled={isDayClosed}
-          onClick={() => closeDialog.current?.showModal()}
+          disabled={isDayClosed || preparingClose}
+          onClick={() => void openCloseDialog()}
         >
           <Moon size={18} aria-hidden="true" />
-          <span>{isDayClosed ? '今日已结束' : '结束今天'}</span>
+          <span>
+            {isDayClosed ? '今日已结束' : preparingClose ? '正在保存…' : '结束今天'}
+          </span>
           <ChevronRight size={18} aria-hidden="true" />
         </button>
       )}

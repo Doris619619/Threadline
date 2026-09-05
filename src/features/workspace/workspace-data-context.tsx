@@ -34,7 +34,7 @@ export type WorkspaceCommands = {
   createTask: (task: Task) => Promise<Task>;
   createDailyTemplate: (daily: Daily) => Promise<void>;
   saveDailyTemplate: (daily: Daily) => Promise<void>;
-  /** 保存一个日期实例并返回真实完成状态，供首页等待保存后记录。 */
+  /** 保存一个日期实例并在真实写入完成后 resolve，供首页等待后收尾。 */
   saveDailyEntry: (daily: Daily, date: string) => Promise<void>;
   setDailyTemplateStatus: (
     templateId: string,

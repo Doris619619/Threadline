@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { Plus } from 'lucide-react';
 import { Surface } from '@/components/ui/surface';
+import { cn } from '@/lib/cn';
 
 /** 在一个 Surface 内按重要性分组，避免把待安排拆成两张巨型卡片。 */
 export function WaitingTaskPanel({
@@ -20,7 +21,7 @@ export function WaitingTaskPanel({
 }) {
   return (
     <Surface
-      className={`waiting-panel${isDropTarget ? 'is-drop-target' : ''}`}
+      className={cn('waiting-panel', isDropTarget && 'is-drop-target')}
       data-task-drop-zone="waiting"
       onDragLeave={onDragLeave}
       onDragOver={onDragOver}

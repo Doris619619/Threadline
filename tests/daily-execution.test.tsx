@@ -9,7 +9,8 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DailyPanel } from '@/features/daily/daily-panel';
+import { createRef } from 'react';
+import { DailyPanel, type DailyPanelHandle } from '@/features/daily/daily-panel';
 import type { Daily } from '@/features/daily/types';
 
 const daily: Daily = {
@@ -46,6 +47,66 @@ function setup(onSave = vi.fn().mockResolvedValue(undefined), item = daily) {
 }
 
 describe('Daily home execution', () => {
+  it('waits for the latest saved minutes before allowing close-day to continue', async () => {
+    const ref = createRef<DailyPanelHandle>();
+    let release!: () => void;
+    const onSave = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            release = resolve;
+          }),
+      )
+      .mockResolvedValue(undefined);
+    render(<DailyPanel ref={ref} items={[daily]} date="2026-09-05" onSave={onSave} />);
+    const input = screen.getByLabelText(
+      '算法训练 ' + daily.children[0].title + '实际耗时',
+    );
+    fireEvent.change(input, { target: { value: '1' } });
+    fireEvent.blur(input);
+    fireEvent.change(input, { target: { value: '18' } });
+    const onReady = vi.fn();
+    let closing!: Promise<void>;
+    act(() => {
+      closing = ref.current!.flush().then(onReady);
+    });
+    expect(onReady).not.toHaveBeenCalled();
+    await act(async () => {
+      release();
+      await closing;
+    });
+    expect(onSave).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        children: expect.arrayContaining([expect.objectContaining({ actual: 18 })]),
+      }),
+      '2026-09-05',
+    );
+    expect(onReady).toHaveBeenCalledOnce();
+  });
+
+  it('rejects close-day while an invalid draft is retained, then allows correction', async () => {
+    const ref = createRef<DailyPanelHandle>();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<DailyPanel ref={ref} items={[daily]} date="2026-09-05" onSave={onSave} />);
+    const input = screen.getByLabelText(
+      '算法训练 ' + daily.children[0].title + '实际耗时',
+    );
+    fireEvent.change(input, { target: { value: '-1' } });
+    await act(async () => {
+      await expect(ref.current!.flush()).rejects.toThrow('非负整数');
+    });
+    expect(onSave).not.toHaveBeenCalled();
+    expect(input).toHaveValue(-1);
+    expect(screen.getByRole('alert')).toBeVisible();
+    fireEvent.change(input, { target: { value: '8' } });
+    await act(async () => {
+      await ref.current!.flush();
+    });
+    expect(onSave).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('shows every child and actual field without a result form or disclosure', () => {
     setup();
     expect(screen.getByText(daily.children[0].title)).toBeVisible();

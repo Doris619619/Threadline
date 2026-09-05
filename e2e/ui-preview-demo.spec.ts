@@ -155,6 +155,14 @@ test('keeps scheduled metadata compact and close-day controls inside the viewpor
   await finish.scrollIntoViewIfNeeded();
   await expect(finish).toBeVisible();
   await page.screenshot({ path: info.outputPath('home-bottom.png') });
+  const dailyMinutes = page.getByLabel('算法训练 完成一道动态规划题并整理思路实际耗时');
+  await dailyMinutes.fill('-1');
+  await finish.click();
+  await expect(
+    page.getByRole('dialog', { name: '结束今天', exact: true }),
+  ).not.toBeVisible();
+  await expect(page.locator('.daily-save-error')).toBeVisible();
+  await dailyMinutes.fill('8');
   await finish.click();
   const dialog = page.getByRole('dialog', { name: '结束今天', exact: true });
   await expect(dialog).toBeVisible();

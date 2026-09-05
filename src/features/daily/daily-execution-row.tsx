@@ -1,5 +1,6 @@
 /** @fileoverview 首页 Daily 复用项目页的内嵌清单层级，勾选与耗时自动保存。 */
 
+import { useImperativeHandle, type Ref } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
@@ -10,6 +11,9 @@ import {
 } from '@/features/daily/daily-rules';
 import { useDailyExecution } from '@/features/daily/use-daily-execution';
 import type { Daily } from '@/features/daily/types';
+
+/** 收尾只能在当前日期实例的最新草稿成功提交后继续。 */
+export type DailyExecutionHandle = { flush: () => Promise<Daily> };
 
 /** 未设置预计时长时省略空信息，给任务内容留出空间。 */
 function PlannedMinutes({ minutes }: { minutes: number }) {
@@ -50,15 +54,22 @@ function ActualMinutes({
 
 /** 展示父级汇总和常显子项；历史快照由结束今天统一生成，不设额外记录操作。 */
 export function DailyExecutionRow({
+  ref,
   daily,
   date,
   onSave,
 }: {
+  ref?: Ref<DailyExecutionHandle>;
   daily: Daily;
   date: string;
   onSave: (daily: Daily, date: string) => Promise<void>;
 }) {
-  const { draft, edit, save, saving, error } = useDailyExecution(daily, date, onSave);
+  const { draft, edit, flush, save, saving, error } = useDailyExecution(
+    daily,
+    date,
+    onSave,
+  );
+  useImperativeHandle(ref, () => ({ flush }));
   const hasChildren = draft.daily.children.length > 0;
   const hasActual =
     draft.actual !== '' || draft.childrenActual.some((value) => value !== '');
