@@ -51,6 +51,15 @@ node scripts/test-period-integration.mjs
 
 集成脚本只允许 loopback API，验证预计在安排/移期/待安排/完成/收尾中保留、实际账本不变、生理期 CRUD、日期与并发冲突、账号隔离、旧标记保留和另一客户端收到真实 Realtime 事件。数据库 pgTAP 159 项断言已通过。
 
-最终本地结果：45 个单元测试文件、197 项测试全部通过；六种 viewport/浏览器的新增端到端流程 18 项全部通过，普通手机日程实测行高为 88px（375/390/430px，320px 和 WebKit 也为 88px）。320px 月历日期格宽度至少 44px。此前布局矩阵与手机表单回归 27 项通过；最终另跑的现有无障碍与 390px 布局回归 13 项也全部通过，没有放宽 axe 既有基线。类型检查、Lint、SQL 静态合同、Web 生产构建和 Electron 静态前端构建也均通过；构建使用显式测试适配器，不是可发布的生产云配置产物。自动化 E2E 覆盖手机 375/390/430px、320px 兜底、桌面 1440px 与模拟 iPhone WebKit，保留页面截图。测试包含独立预计流转、生理期完整表单、离线失败重试、长标题、范围切换与空数据。最终 390px 页面截图另存于 `.tmp/period-final-screenshots/`，测试产物保留在被 Git 忽略的 `test-results/`，不提交用户私密数据。
+最终本地结果：45 个单元测试文件、197 项测试全部通过；六种 viewport/浏览器的新增端到端流程 18 项全部通过，普通手机日程实测行高为 88px（375/390/430px，320px 和 WebKit 也为 88px）。320px 月历日期格宽度至少 44px。此前布局矩阵与手机表单回归 27 项通过；最终另跑的现有无障碍与 390px 布局回归 13 项也全部通过，没有放宽 axe 既有基线。类型检查、Lint、SQL 静态合同、Web 生产构建和 Electron 静态前端构建也均通过；构建使用显式测试适配器，不是可发布的生产云配置产物。自动化 E2E 覆盖手机 375/390/430px、320px 兜底、桌面 1440px 与模拟 iPhone WebKit，保留页面截图。测试包含独立预计流转、生理期完整表单、离线失败重试、长标题、范围切换与空数据。最终 390px 页面截图另存于 `.tmp/period-final-screenshots/`，其中四张固定测试样例同步到本文末尾的 PR 界面材料；其他测试产物保留在被 Git 忽略的 `test-results/`，不提交用户私密数据。
 
 真实 iPhone Safari/PWA 的键盘、动态文字和捏合缩放，以及打包后的 Windows 原生窗口手工验收，仍需在对应设备单独完成；模拟 WebKit 不能代表已完成真机验收。当前应用沿用既有蓝色浅色主题，操作系统深色偏好测试检查可用性，不代表新增完整深色主题。
+
+## PR 界面材料
+
+以下为 390px 测试适配器的固定样例（2026-08-23），不包含真实账号或生理期数据。PNG 是自动化浏览器的原始全页截图，固定底栏停留在截图时的视口位置；不能用它代替真机验收。
+
+- [首页紧凑列表](screenshots/task-estimates-periods/home-390.png)
+- [洞察](screenshots/task-estimates-periods/insights-390.png)
+- [设置](screenshots/task-estimates-periods/settings-390.png)
+- [生理期记录](screenshots/task-estimates-periods/rhythm-390.png)
