@@ -33,7 +33,8 @@ const primaryWorkspaceViews: WorkspaceViewContract[] = [
     label: '日历',
     heading: '日历',
     panelTestId: 'calendar-panel',
-    keyControl: (page) => page.getByRole('grid'),
+    keyControl: (page) =>
+      page.getByRole('group', { name: /项目投入热力$/ }).getByRole('button').first(),
   },
   {
     label: '项目',
