@@ -38,6 +38,8 @@ pnpm dev
 
 执行 `pnpm test:preview` 可构建与 Vercel 相同的无云演示并验证桌面、320px 手机和 iPhone WebKit 的真实交互，不需要 Docker。演示模式不是跨设备同步或数据库验收。
 
+如果手机打开预览后显示“Log in to Vercel”，这是 Vercel 项目的 Deployment Protection，与 Threadline 登录无关。需要免登录分享时，在项目 Settings → Deployment Protection → Vercel Authentication 关闭 Require Log In 并保存；这是项目级访问设置，应由项目所有者确认。详细范围见[部署说明](docs/supabase-deployment.md#vercel-环境变量)。
+
 常用质量检查：
 
 ```bash

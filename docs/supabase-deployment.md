@@ -91,6 +91,8 @@ Preview 有两种允许状态：
 
 演示访问者可以创建/编辑/完成任务、记录 Daily、切换日期并刷新保留操作。数据只属于当前浏览器与域名，不会同步到正式账号或其他设备。清除该站点数据可重置示例。推荐分享 Vercel 的分支 Preview URL（随分支推送更新）；单次 deployment URL 保持对应旧提交。此能力随代码合并后供后续 PR 自动使用。
 
+**Vercel 访问保护另行配置**：如果未登录浏览器被转到“Log in to Vercel”，应用代码尚未得到执行，不代表演示构建失败。要让手机拿到链接直接打开，需由项目所有者确认，在 Settings → Deployment Protection → Vercel Authentication 关闭 Require Log In 并保存。该设置是项目级的；当前 Standard Protection 同时覆盖预览和自动生成的生产部署 URL，关闭会让这些入口公开，Threadline 自身的登录和 Supabase RLS 仍保留。若保留保护，访问者必须先登录获准的 Vercel 账号，或使用单独授权的 Shareable Link。参见 [Vercel Deployment Protection](https://vercel.com/docs/deployment-protection)。
+
 `pnpm test:preview` 在无数据库的 production build 上验证桌面、窄手机和 iPhone WebKit 的交互、存储隔离与无 Supabase 请求；CI 的独立 `preview-demo` job 会执行该门禁。已部署页面可用 `THREADLINE_PREVIEW_URL=<https-url> pnpm exec playwright test --config playwright.preview.config.ts` 验收。真实 iPhone Safari/PWA 手工验收与云同步验收仍需分别记录。
 
 ## Electron Production
