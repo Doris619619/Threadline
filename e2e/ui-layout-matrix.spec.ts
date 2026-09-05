@@ -47,6 +47,89 @@ test.describe('compact viewport layout matrix', () => {
     );
   });
 
+  test('shows every Daily field with full names and iOS touch targets', async ({
+    page,
+  }, info) => {
+    const longName = '完成一道动态规划题并完整记录状态转移方程和解题思路';
+    await page.evaluate((title) => {
+      const daily = {
+        id: 'layout-daily',
+        title: '算法训练',
+        actual: 0,
+        completed: false,
+        result: '',
+        children: [
+          {
+            id: 'layout-one',
+            title,
+            plannedDurationMinutes: 30,
+            completed: false,
+            actual: 0,
+          },
+          {
+            id: 'layout-two',
+            title: '复盘昨天的错题',
+            plannedDurationMinutes: 20,
+            completed: false,
+            actual: 0,
+          },
+        ],
+      };
+      localStorage.setItem(
+        'threadline.daily-by-date.v1',
+        JSON.stringify({ '2026-08-23': [daily] }),
+      );
+      localStorage.setItem('threadline.daily-templates.v1', JSON.stringify([daily]));
+    }, longName);
+    await page.reload();
+    const daily = page.getByRole('region', { name: 'Daily 算法训练', exact: true });
+    await expect(daily.getByText(longName, { exact: true })).toBeVisible();
+    await expect(daily.getByText('预计 30 分钟', { exact: true })).toBeVisible();
+    await expect(daily.getByText('预计 50 分钟', { exact: true })).toBeVisible();
+    await expect(daily.getByLabel('算法训练今日结果')).toBeVisible();
+    await expect(daily.getByRole('spinbutton')).toHaveCount(2);
+    await expect(daily.locator('details, [aria-expanded]')).toHaveCount(0);
+    for (const name of await daily
+      .locator('.daily-parent-title, .daily-child-name')
+      .all()) {
+      const dimensions = await name.evaluate((element) => ({
+        scrollWidth: element.scrollWidth,
+        clientWidth: element.clientWidth,
+        scrollHeight: element.scrollHeight,
+        clientHeight: element.clientHeight,
+      }));
+      expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth + 1);
+      expect(dimensions.scrollHeight).toBeLessThanOrEqual(dimensions.clientHeight + 1);
+    }
+    for (const circle of await daily.locator('.daily-circle').all()) {
+      const box = (await circle.boundingBox())!;
+      expect(box.width).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+    }
+    for (const input of await daily.locator('input[type=number], textarea').all()) {
+      await expectElementWithinHorizontalViewport(page, input, 'Daily 输入');
+      expect(
+        await input.evaluate((element) =>
+          parseFloat(getComputedStyle(element).fontSize),
+        ),
+      ).toBeGreaterThanOrEqual(16);
+    }
+    const firstInput = daily.getByLabel('算法训练 ' + longName + '实际耗时');
+    await firstInput.fill('18');
+    await daily.getByRole('checkbox', { name: '完成 ' + longName }).check();
+    await expect(
+      daily.getByRole('checkbox', { name: '完成 Daily 算法训练' }),
+    ).toBeChecked();
+    await expect(daily.getByText('实际合计', { exact: false })).toContainText('18');
+    await expectNoUnexpectedHorizontalOverflow(page);
+    await page.screenshot({ path: info.outputPath('daily-home.png'), fullPage: true });
+    await page.reload();
+    await expect(firstInput).toHaveValue('18');
+    await expect(
+      daily.getByRole('checkbox', { name: '完成 Daily 算法训练' }),
+    ).toBeChecked();
+  });
+
   test('keeps the home shell, title, and seeded task usable', async ({
     page,
   }, testInfo) => {
@@ -226,7 +309,9 @@ test.describe('compact viewport layout matrix', () => {
 
     // 2. 测试无时间待办移动端新增态紧凑单行结构
     const waitingPanel = page.locator('.waiting-panel');
-    await waitingPanel.getByRole('button', { name: '添加', exact: true }).click();
+    await waitingPanel
+      .getByRole('button', { name: '添加普通事项', exact: true })
+      .click();
     const quickRow = waitingPanel.locator('.quick-task-create-row');
     await expect(quickRow).toBeVisible();
 

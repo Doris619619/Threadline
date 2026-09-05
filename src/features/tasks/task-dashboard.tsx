@@ -27,7 +27,10 @@ import { TaskLine } from '@/features/tasks/components/task-line';
 import { TimedTaskCreateRow } from '@/features/tasks/components/timed-task-create-row';
 import { WaitingTaskCreateRow } from '@/features/tasks/components/waiting-task-create-row';
 import { SchedulePanel } from '@/features/tasks/components/schedule-panel';
-import { WaitingTaskPanel } from '@/features/tasks/components/waiting-task-panel';
+import {
+  WaitingTaskPanel,
+  WaitingTaskGroup,
+} from '@/features/tasks/components/waiting-task-panel';
 import { WaitingTaskRow } from '@/features/tasks/components/waiting-task-row';
 import {
   CloseDialog,
@@ -56,7 +59,7 @@ export function TaskDashboard() {
     projects: workspaceProjects,
     dailyByDate,
     dailyTemplates,
-    updateDailyByDate,
+    saveDailyEntry,
     dailyHistory,
     closeRecords,
     annotationStrokes,
@@ -86,9 +89,7 @@ export function TaskDashboard() {
 
   const [editing, setEditing] = useState<Task | undefined>();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
-  const [taskDialogMode, setTaskDialogMode] = useState<'normal' | 'waiting'>(
-    'normal',
-  );
+  const [taskDialogMode, setTaskDialogMode] = useState<'normal' | 'waiting'>('normal');
   const [rescheduling, setRescheduling] = useState<Task | undefined>();
   const closeDialog = useRef<HTMLDialogElement>(null);
 
@@ -400,42 +401,69 @@ export function TaskDashboard() {
         {!isMiniToday && (
           <div className="side-column">
             <WaitingTaskPanel
-              isAdding={createDrafts.quickOpen}
               isDropTarget={dropTarget === 'waiting'}
-              onAdd={() => createDrafts.openQuick(defaultProjectId)}
               onDragLeave={() => setDropTarget(null)}
               onDragOver={handleWaitingDragOver}
               onDrop={handleWaitingDrop}
-              waiting={waiting}
             >
               <div className="waiting-tasks">
-                  {(['important', 'normal'] as const).map((importance) => {
-                    const items = waiting.filter((task) => (task.importance ?? 'normal') === importance);
-                    if (!items.length) return null;
-                    return <section className="waiting-group" key={importance}><h3>{importance === 'important' ? '重要' : '普通'}</h3>{items.map((task) => <WaitingTaskRow key={task.id} task={task} projects={workspaceProjects} onEdit={() => open(task, 'waiting')} onDelete={(id) => move(id, 'trashed')} onSchedule={(id, date) => { void transitionTask(id, 'scheduled', date).then(() => { if (date === getLocalDateKey()) setAutoFocusTimeTaskId(id); }).catch(() => undefined); }} onComplete={(id) => { void completeWaitingTask(id, getLocalDateKey()).catch(() => undefined); }} />)}</section>;
-                  })}
-                  <WaitingTaskCreateRow
-                    open={createDrafts.quickOpen}
-                    draft={createDrafts.quickDraft}
-                    projects={workspaceProjects}
-                    onCreate={createWaitingTask}
-                    onCreateProject={createProjectDirectly}
-                    onChange={createDrafts.updateQuickDraft}
-                    onReset={() => createDrafts.resetQuick(defaultProjectId)}
-                    onClose={createDrafts.closeQuick}
-                  />
+                {(['important', 'normal'] as const).map((importance) => {
+                  const items = waiting.filter(
+                    (task) => (task.importance ?? 'normal') === importance,
+                  );
+                  return (
+                    <WaitingTaskGroup
+                      key={importance}
+                      importance={importance}
+                      count={items.length}
+                      onAdd={() => createDrafts.openQuick(defaultProjectId, importance)}
+                    >
+                      {items.map((task) => (
+                        <WaitingTaskRow
+                          key={task.id}
+                          task={task}
+                          projects={workspaceProjects}
+                          onEdit={() => open(task, 'waiting')}
+                          onDelete={(id) => move(id, 'trashed')}
+                          onSchedule={(id, date) => {
+                            void transitionTask(id, 'scheduled', date)
+                              .then(() => {
+                                if (date === getLocalDateKey())
+                                  setAutoFocusTimeTaskId(id);
+                              })
+                              .catch(() => undefined);
+                          }}
+                          onComplete={(id) => {
+                            void completeWaitingTask(id, getLocalDateKey()).catch(
+                              () => undefined,
+                            );
+                          }}
+                        />
+                      ))}
+                      <WaitingTaskCreateRow
+                        open={
+                          createDrafts.quickOpen &&
+                          createDrafts.quickDraft.importance === importance
+                        }
+                        draft={createDrafts.quickDraft}
+                        projects={workspaceProjects}
+                        onCreate={createWaitingTask}
+                        onCreateProject={createProjectDirectly}
+                        onChange={createDrafts.updateQuickDraft}
+                        onReset={() => createDrafts.resetQuick(defaultProjectId)}
+                        onClose={createDrafts.closeQuick}
+                      />
+                    </WaitingTaskGroup>
+                  );
+                })}
               </div>
             </WaitingTaskPanel>
             <DailyPanel
               items={daily}
               history={dailyHistory}
               date={selectedDate}
-              onChange={(items) =>
-                updateDailyByDate((current) => ({ ...current, [selectedDate]: items }))
-              }
-              onRecord={(entry) =>
-                void recordDaily(entry.dailyId, entry.date).catch(() => undefined)
-              }
+              onSave={saveDailyEntry}
+              onRecord={(entry) => recordDaily(entry.dailyId, entry.date)}
             />
           </div>
         )}

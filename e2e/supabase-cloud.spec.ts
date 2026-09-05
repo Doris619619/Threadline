@@ -43,8 +43,8 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
 
   await page.getByRole('button', { name: '首页', exact: true }).click();
   const waitingPanel = page.locator('.waiting-panel');
-  await waitingPanel.getByRole('button', { name: '添加', exact: true }).click();
-  await waitingPanel.getByPlaceholder('待办内容（按 Enter 保存）').fill(taskTitle);
+  await waitingPanel.getByRole('button', { name: '添加普通事项', exact: true }).click();
+  await waitingPanel.getByPlaceholder('事项内容').fill(taskTitle);
   await waitingPanel.getByTitle('保存待办').click();
   await expect(waitingPanel.getByText(taskTitle, { exact: true })).toBeVisible();
 

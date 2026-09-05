@@ -7,35 +7,74 @@ import { TimedTaskCreateRow } from '@/features/tasks/components/timed-task-creat
 import { useTaskCreateDrafts } from '@/features/tasks/hooks/use-task-create-drafts';
 import type { Project } from '@/types/domain';
 
-const projects: Project[] = [{ id: 'work', name: '工作', color: '#4f8cff', status: 'active', createdAt: '' }];
+const projects: Project[] = [
+  { id: 'work', name: '工作', color: '#4f8cff', status: 'active', createdAt: '' },
+];
 
 /** 模拟首页被切出再返回；Hook 留在 Dashboard 层，新增行可卸载。 */
 function DraftHarness({ home }: { home: boolean }) {
   const drafts = useTaskCreateDrafts();
-  const createTimed = (draft: { title: string }) => draft.title.trim() ? { task: {} } : { cancelled: true };
-  const createQuick = (draft: { title: string }) => draft.title.trim() ? { task: {} } : { cancelled: true };
-  return home ? <>
-    <button onClick={() => drafts.openTimed('work')}>打开日程</button><button onClick={() => drafts.openQuick('work')}>打开待办</button>
-    <TimedTaskCreateRow open={drafts.timedOpen} draft={drafts.timedDraft} projects={projects} onCreate={createTimed} onCreateProject={() => projects[0]} onChange={drafts.updateTimedDraft} onReset={() => drafts.resetTimed('work')} onClose={drafts.closeTimed} />
-    <WaitingTaskCreateRow open={drafts.quickOpen} draft={drafts.quickDraft} projects={projects} onCreate={createQuick} onCreateProject={() => projects[0]} onChange={drafts.updateQuickDraft} onReset={() => drafts.resetQuick('work')} onClose={drafts.closeQuick} />
-  </> : <p>其他页面</p>;
+  const createTimed = (draft: { title: string }) =>
+    draft.title.trim() ? { task: {} } : { cancelled: true };
+  const createQuick = (draft: { title: string }) =>
+    draft.title.trim() ? { task: {} } : { cancelled: true };
+  return home ? (
+    <>
+      <button onClick={() => drafts.openTimed('work')}>打开日程</button>
+      <button onClick={() => drafts.openQuick('work')}>打开待办</button>
+      <TimedTaskCreateRow
+        open={drafts.timedOpen}
+        draft={drafts.timedDraft}
+        projects={projects}
+        onCreate={createTimed}
+        onCreateProject={() => projects[0]}
+        onChange={drafts.updateTimedDraft}
+        onReset={() => drafts.resetTimed('work')}
+        onClose={drafts.closeTimed}
+      />
+      <WaitingTaskCreateRow
+        open={drafts.quickOpen}
+        draft={drafts.quickDraft}
+        projects={projects}
+        onCreate={createQuick}
+        onCreateProject={() => projects[0]}
+        onChange={drafts.updateQuickDraft}
+        onReset={() => drafts.resetQuick('work')}
+        onClose={drafts.closeQuick}
+      />
+    </>
+  ) : (
+    <p>其他页面</p>
+  );
 }
 
 describe('task create row draft lifecycle', () => {
   it('keeps drafts after close/reopen and Dashboard child unmount, including actual blank-title cancellation', () => {
     const view = render(<DraftHarness home />);
-    fireEvent.click(screen.getByText('打开日程')); fireEvent.click(screen.getByText('打开待办'));
-    fireEvent.change(screen.getByPlaceholderText('任务名称（按 Enter 保存）'), { target: { value: '日程草稿' } });
-    fireEvent.change(screen.getByPlaceholderText('待办内容（按 Enter 保存）'), { target: { value: '待办草稿' } });
+    fireEvent.click(screen.getByText('打开日程'));
+    fireEvent.click(screen.getByText('打开待办'));
+    fireEvent.change(screen.getByPlaceholderText('任务名称（按 Enter 保存）'), {
+      target: { value: '日程草稿' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('事项内容'), {
+      target: { value: '待办草稿' },
+    });
     fireEvent.click(screen.getAllByTitle('取消')[0]);
     fireEvent.click(screen.getAllByTitle('取消')[0]);
-    fireEvent.click(screen.getByText('打开日程')); fireEvent.click(screen.getByText('打开待办'));
-    expect(screen.getByPlaceholderText('任务名称（按 Enter 保存）')).toHaveValue('日程草稿');
-    expect(screen.getByPlaceholderText('待办内容（按 Enter 保存）')).toHaveValue('待办草稿');
-    view.rerender(<DraftHarness home={false} />); view.rerender(<DraftHarness home />);
-    fireEvent.click(screen.getByText('打开日程')); fireEvent.click(screen.getByText('打开待办'));
-    expect(screen.getByPlaceholderText('任务名称（按 Enter 保存）')).toHaveValue('日程草稿');
-    expect(screen.getByPlaceholderText('待办内容（按 Enter 保存）')).toHaveValue('待办草稿');
+    fireEvent.click(screen.getByText('打开日程'));
+    fireEvent.click(screen.getByText('打开待办'));
+    expect(screen.getByPlaceholderText('任务名称（按 Enter 保存）')).toHaveValue(
+      '日程草稿',
+    );
+    expect(screen.getByPlaceholderText('事项内容')).toHaveValue('待办草稿');
+    view.rerender(<DraftHarness home={false} />);
+    view.rerender(<DraftHarness home />);
+    fireEvent.click(screen.getByText('打开日程'));
+    fireEvent.click(screen.getByText('打开待办'));
+    expect(screen.getByPlaceholderText('任务名称（按 Enter 保存）')).toHaveValue(
+      '日程草稿',
+    );
+    expect(screen.getByPlaceholderText('事项内容')).toHaveValue('待办草稿');
   });
 });
 
@@ -68,12 +107,14 @@ it('retains a timed draft and exposes a retryable error when persistence rejects
     />,
   );
   fireEvent.click(screen.getAllByTitle('保存任务').at(-1)!);
-  await waitFor(() => expect(onChange).toHaveBeenCalledWith({ timeError: '网络写入失败' }));
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith({ timeError: '网络写入失败' }),
+  );
   expect(onReset).not.toHaveBeenCalled();
   expect(onClose).not.toHaveBeenCalled();
-  expect(screen.getAllByPlaceholderText('任务名称（按 Enter 保存）').at(-1)).toHaveValue(
-    '不能丢失的任务',
-  );
+  expect(
+    screen.getAllByPlaceholderText('任务名称（按 Enter 保存）').at(-1),
+  ).toHaveValue('不能丢失的任务');
 });
 
 it('does not preview a zero-minute duration that the save layer rejects', () => {

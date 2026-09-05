@@ -364,16 +364,23 @@
 
   .tl-header {
     align-items: flex-start;
+    flex-wrap: wrap;
+    gap: var(--space-2);
     padding: 4px 0 12px;
   }
 
   .tl-header > div:first-child {
-    flex: 0 1 auto;
+    flex: 0 0 auto;
     min-width: 0;
   }
 
   .tl-header h1 {
     white-space: nowrap;
+  }
+
+  /* 窄屏日期工具栏换行，标题不再因 flex 收缩与日期重叠。 */
+  .tl-header-actions {
+    margin-left: auto;
   }
 
   .tl-header p {

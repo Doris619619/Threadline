@@ -145,7 +145,9 @@ test.describe('desktop task drag scheduling', () => {
     const schedulePanel = page.locator('.schedule-panel');
 
     await waitingTask.getByRole('button', { name: '取快递更多操作' }).click();
-    await waitingTask.getByRole('menuitem', { name: '安排到今天', exact: true }).click();
+    await waitingTask
+      .getByRole('menuitem', { name: '安排到今天', exact: true })
+      .click();
 
     const pendingTask = schedulePanel
       .locator('.timeline-row')
@@ -233,8 +235,8 @@ test('creates a timed task from explicit start and end time inputs', async ({
 
 test('creates a waiting task from the inline waiting row', async ({ page }) => {
   const waitingPanel = page.locator('.waiting-panel');
-  await waitingPanel.getByRole('button', { name: '添加', exact: true }).click();
-  await waitingPanel.getByPlaceholder('待办内容（按 Enter 保存）').fill('订购实验耗材');
+  await waitingPanel.getByRole('button', { name: '添加普通事项', exact: true }).click();
+  await waitingPanel.getByPlaceholder('事项内容').fill('订购实验耗材');
   await waitingPanel.getByTitle('保存待办').click();
   const row = page.locator('.waiting-task-row').filter({ hasText: '订购实验耗材' });
   await expect(row).toBeVisible();
@@ -262,7 +264,9 @@ test('completion can be toggled without a dialog', async ({ page }) => {
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
-test('completes a waiting task into today without leaving it invisible', async ({ page }) => {
+test('completes a waiting task into today without leaving it invisible', async ({
+  page,
+}) => {
   const waiting = page.locator('.waiting-task-row').filter({ hasText: '取快递' });
   await waiting.getByRole('checkbox', { name: '完成取快递' }).click();
   const completed = page.locator('.timeline-row').filter({ hasText: '取快递' });
@@ -274,7 +278,9 @@ test('completes a waiting task into today without leaving it invisible', async (
   ).toBeVisible();
 });
 
-test('clearing a scheduled start time leaves the task in today schedule', async ({ page }) => {
+test('clearing a scheduled start time leaves the task in today schedule', async ({
+  page,
+}) => {
   const email = page.locator('.timeline-row').filter({ hasText: '邮件处理' });
   await email.locator('.timeline-time').click();
   const input = email.locator('.timeline-time-input');
@@ -575,20 +581,23 @@ test('creates a fresh Daily instance for another date without inheriting child c
     page.getByRole('checkbox', { name: '完成 Daily 背单词' }),
   ).not.toBeChecked();
   await page.getByRole('button', { name: '后一天' }).click();
-  await expect(
-    page.getByRole('checkbox', { name: '完成 Daily 背单词' }),
-  ).not.toBeChecked();
+  await expect(page.getByRole('checkbox', { name: '完成 Daily 背单词' })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: '完成 新词' })).toBeChecked();
 });
 
-test('keeps a newly created waiting task visible across selected dates', async ({ page }) => {
+test('keeps a newly created waiting task visible across selected dates', async ({
+  page,
+}) => {
   await page.getByRole('button', { name: '后一天' }).click();
   const waitingPanel = page.locator('.waiting-panel');
-  await waitingPanel.getByRole('button', { name: '添加', exact: true }).click();
-  await waitingPanel.getByPlaceholder('待办内容（按 Enter 保存）').fill('未来日期任务');
+  await waitingPanel.getByRole('button', { name: '添加普通事项', exact: true }).click();
+  await waitingPanel.getByPlaceholder('事项内容').fill('未来日期任务');
   await waitingPanel.getByTitle('保存待办').click();
   await expect(waitingPanel.getByText('未来日期任务', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '前一天' }).click();
-  await expect(page.locator('.waiting-panel').getByText('未来日期任务', { exact: true })).toBeVisible();
+  await expect(
+    page.locator('.waiting-panel').getByText('未来日期任务', { exact: true }),
+  ).toBeVisible();
 });
 
 test('creates a Daily definition that appears on following dates', async ({ page }) => {
@@ -612,12 +621,19 @@ test('moves an item to waiting then schedules it for today', async ({ page }) =>
   await expect(page.getByRole('checkbox', { name: '完成邮件处理' })).toBeVisible();
 });
 
-test('daily subtask completion does not complete its parent', async ({ page }) => {
+test('daily subtask completion completes its parent and parent undo clears children', async ({
+  page,
+}) => {
   const child = page.getByRole('checkbox', { name: '完成 新词' });
   await child.check();
-  await expect(
-    page.getByRole('checkbox', { name: '完成 Daily 背单词' }),
-  ).not.toBeChecked();
+  await expect(page.getByRole('checkbox', { name: '完成 Daily 背单词' })).toBeChecked();
+  await page.reload();
+  const parent = page.getByRole('checkbox', { name: '完成 Daily 背单词' });
+  await expect(parent).toBeChecked();
+  await parent.uncheck();
+  await expect(child).not.toBeChecked();
+  await page.reload();
+  await expect(parent).not.toBeChecked();
 });
 
 test('manages Daily independently with planned checklist items', async ({ page }) => {
@@ -679,7 +695,9 @@ test('deletes a task and restores it from trash', async ({ page }) => {
   await page.getByRole('button', { name: '恢复', exact: true }).click();
   await expect(page.getByText('回收站为空。')).toBeVisible();
   await openWorkspaceSection(page, '首页');
-  await expect(page.locator('.timeline-row').filter({ hasText: '取快递' })).toBeVisible();
+  await expect(
+    page.locator('.timeline-row').filter({ hasText: '取快递' }),
+  ).toBeVisible();
 });
 
 test('purges trash entries older than thirty days on reload', async ({ page }) => {
@@ -711,7 +729,9 @@ test('closes today and moves unfinished work into waiting', async ({ page }) => 
   await dialog.getByRole('button', { name: '确认结束今天', exact: true }).click();
   const waiting = page.locator('.waiting-panel');
   await expect(waiting).toContainText('邮件处理');
-  await expect(waiting.locator('.waiting-task-row').filter({ hasText: '邮件处理' })).toBeVisible();
+  await expect(
+    waiting.locator('.waiting-task-row').filter({ hasText: '邮件处理' }),
+  ).toBeVisible();
   await expect(page.getByRole('button', { name: '今日已结束' })).toBeDisabled();
 });
 

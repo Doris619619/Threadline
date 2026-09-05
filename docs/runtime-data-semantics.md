@@ -29,6 +29,15 @@ Supabase 是 Project、Task、Daily template/entry/history、HistoryEvent、Clos
 
 Daily 完全不属于 Project，旧 `legacy_project_id` 只用于历史兼容，新的 template、entry 与 history 不写项目绑定。Daily template 与日期 entry 是不同身份：`daily_entries.id` 是日期实例 UUID，`template_id` 指向长期身份；UI mapper 仍让 `Daily.id` 表示 template UUID，并把 entry/item UUID 保存在内部字段。某日第一次读取会幂等 materialize 当前 active template snapshot；模板的名称、清单结构、计划分钟及归档只影响未来实例，既有日期 entry/history 不会被覆盖。Daily 的实际投入仅贡献全局 Daily/总实际，不进入项目汇总或项目热力。
 
+## 首页 Daily 执行与待安排分组
+
+- `isDailyCompleted` 统一采用父级直接完成或任一子项完成。子项取消后按剩余子项重新判断；父级取消同时清空全部子项勾选，不清空分钟与结果。每天只计算一次 Daily，下一天实例重新开始。
+- 首页始终显示父子行、固定预计分钟、实际分钟和结果。预计分钟读取日期实例的清单快照；实际逐项填写，父级只汇总。没有子项的实例可直接填父级实际；旧实例已有父级分钟保留为明确标注的额外耗时，不批量清零或迁移到子项。
+- iPhone 表单使用至少 16px 字号和 44px 命中区域，长任务名换行；窄屏页头允许日期工具栏换行，避免标题相撞。
+- `DailyExecutionRow` 与 `useDailyExecution` 管理单个实例草稿；输入失焦保存，圆圈直接保存，正式记录先等待该实例的最新提交完成。`saveDailyEntry` 返回 Promise，父子字段由 `save_daily_entry_bundle` 原子保存。草稿在失败和后台刷新时保留，执行区提供重试。已有正式历史仍保留记录时的快照，本次不回写历史。
+- 待安排两组和添加入口常显。快速创建草稿携带 `importance`，普通/重要由入口指定；编辑重要性只改变同一任务的分类，不复制任务、不改变排程或历史实际投入。
+- 云端必须包含 `202609040001_waiting_task_pool.sql` 和 `202609050001_daily_completion.sql`。前者先移除旧状态约束，再转换旧待办，最后建立新约束；否则包含旧无时间待办的数据库会因不认识 `waiting` 而迁移失败。部署前备份并核对转换范围，部署后核对迁移、任务和历史账本，禁止 reset。
+
 ## 日期化批注
 
 批注由专用的 `useAnnotationStrokes` 管理，使用 `threadline.annotations.v2`，不创建 Supabase annotation table 或 Realtime。日期笔迹必须携带 `targetDate`，全局笔迹明确使用 `targetScope: 'global'`；两种笔迹都保留可选的 `targetTaskId`。

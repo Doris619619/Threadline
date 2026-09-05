@@ -4,6 +4,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
+import { isDailyCompleted } from '@/features/daily/daily-rules';
 import {
   fromDatabaseInstant,
   fromDatabaseWallTime,
@@ -311,12 +312,14 @@ export class SupabaseWorkspaceRepository {
       await this.client.rpc('create_daily_template_with_entry', {
         p_template_id: daily.id,
         p_title: daily.title,
-        p_items: daily.children.filter((item) => !item.deletedAt).map((item, position) => ({
-          id: item.templateItemId ?? item.id ?? crypto.randomUUID(),
-          title: item.title,
-          position,
-          planned_duration_minutes: item.plannedDurationMinutes,
-        })),
+        p_items: daily.children
+          .filter((item) => !item.deletedAt)
+          .map((item, position) => ({
+            id: item.templateItemId ?? item.id ?? crypto.randomUUID(),
+            title: item.title,
+            position,
+            planned_duration_minutes: item.plannedDurationMinutes,
+          })),
         p_entry_date: toDatabaseDate(date),
       }),
     );
@@ -346,7 +349,7 @@ export class SupabaseWorkspaceRepository {
       await this.client.rpc('save_daily_entry_bundle', {
         p_entry_id: daily.entryId,
         p_title: daily.title,
-        p_completed: daily.completed,
+        p_completed: isDailyCompleted(daily),
         p_actual_duration_minutes: daily.actual,
         p_result: daily.result,
         p_items: daily.children.map((item, position) => ({
@@ -368,12 +371,14 @@ export class SupabaseWorkspaceRepository {
       await this.client.rpc('update_daily_template_bundle', {
         p_template_id: daily.id,
         p_title: daily.title,
-        p_items: daily.children.filter((item) => !item.deletedAt).map((item, position) => ({
-          id: item.templateItemId ?? item.id,
-          title: item.title,
-          position,
-          planned_duration_minutes: item.plannedDurationMinutes,
-        })),
+        p_items: daily.children
+          .filter((item) => !item.deletedAt)
+          .map((item, position) => ({
+            id: item.templateItemId ?? item.id,
+            title: item.title,
+            position,
+            planned_duration_minutes: item.plannedDurationMinutes,
+          })),
       }),
     );
   }

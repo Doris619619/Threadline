@@ -38,6 +38,21 @@ function taskForm(fields: Record<string, string>): FormData {
 }
 
 describe('useTaskCreateAndEdit', () => {
+  it.each(['important', 'normal'] as const)(
+    'persists the %s waiting entry classification',
+    async (importance) => {
+      const dependencies = createHookDependencies();
+      const { result } = renderHook(() => useTaskCreateAndEdit(dependencies));
+      await result.current.createWaitingTask({
+        projectId: activeProject.id,
+        title: '按入口分类',
+        importance,
+      });
+      expect(dependencies.createTask).toHaveBeenCalledWith(
+        expect.objectContaining({ importance, status: 'waiting', title: '按入口分类' }),
+      );
+    },
+  );
   it('rejects malformed timed drafts while preserving normalized times and explicit planned duration', async () => {
     const dependencies = createHookDependencies();
     const { result } = renderHook(() => useTaskCreateAndEdit(dependencies));
@@ -156,7 +171,11 @@ describe('useTaskCreateAndEdit', () => {
     });
 
     expect(dependencies.createTask).toHaveBeenCalledWith(
-      expect.objectContaining({ title: '迷你日程', status: 'active', importance: 'normal' }),
+      expect.objectContaining({
+        title: '迷你日程',
+        status: 'active',
+        importance: 'normal',
+      }),
     );
   });
 

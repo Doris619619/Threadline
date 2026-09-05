@@ -9,6 +9,8 @@ alter table public.tasks alter column importance set not null;
 alter table public.tasks add constraint tasks_importance_check check (importance in ('important', 'normal'));
 
 -- 旧 backlog、未完成旧 quick 与遗留 rescheduled 都必须先规范化，随后才收紧状态形状。
+-- 必须先移除旧状态约束：旧库不认识 waiting，否则真实旧任务在转换时会被拒绝。
+alter table public.tasks drop constraint if exists tasks_status_check;
 update public.tasks
 set status = 'waiting', scheduled_date = null, schedule_pending_time = false,
     planned_start_time = null, planned_end_time = null, planned_duration_minutes = null
@@ -21,7 +23,6 @@ update public.tasks
 set status = 'active', scheduled_date = coalesce((completed_at at time zone 'UTC')::date, (created_at at time zone 'UTC')::date)
 where status = 'rescheduled' and scheduled_date is null and completed;
 
-alter table public.tasks drop constraint if exists tasks_status_check;
 alter table public.tasks add constraint tasks_status_check check (status in ('active', 'waiting', 'abandoned', 'trashed'));
 alter table public.tasks add constraint tasks_state_shape_check check (
   (status <> 'waiting' or (scheduled_date is null and schedule_pending_time = false
