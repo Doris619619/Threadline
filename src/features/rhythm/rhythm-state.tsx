@@ -1,110 +1,104 @@
-/** @fileoverview 通过 Supabase 同步节律标记，同时保持它与 workspace analytics 相互独立。 */
-
+/** @fileoverview 独立生理期状态：云端 RLS/Realtime 与 Preview 适配器共享校验和异步操作契约。 */
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCloudRuntime } from '@/features/auth/cloud-runtime-provider';
-import { usePersistentState } from '@/hooks/use-persistent-state';
+import { useLocalPeriodState } from './use-local-period-state';
 import { usesLocalWorkspace } from '@/lib/workspace-runtime';
+import { getLocalDateKey } from '@/lib/local-date';
+import { validatePeriod, type PeriodDraft, type PeriodRecord } from './period-rules';
+import { listPeriods, savePeriod, deletePeriod } from './period-repository';
 
-type RhythmState = { marks: Record<string, boolean> };
-type RhythmActions = { toggleMark: (date: string) => void };
-const RhythmStateContext = createContext<RhythmState | null>(null);
-const RhythmActionsContext = createContext<RhythmActions | null>(null);
+type RhythmContext = {
+  marks: Record<string, boolean>;
+  periods: PeriodRecord[];
+  loading: boolean;
+  error?: string;
+  save: (draft: PeriodDraft) => Promise<void>;
+  remove: (id: string) => Promise<void>;
+  retry: () => void;
+};
+const Context = createContext<RhythmContext | null>(null);
 
-/** 提供 owner-scoped 云端节律标记；Realtime 只失效 query，不产生写回。 */
+/** 云端读取失败不伪装空数据；写入成功再刷新，Realtime 仅使账号查询失效。 */
 function CloudRhythmStateProvider({ children }: { children: ReactNode }) {
   const { client, repository, user } = useCloudRuntime();
   const queryClient = useQueryClient();
+  const key = ['rhythm', user.id];
   const query = useQuery({
-    queryKey: ['rhythm', user.id],
-    queryFn: () => repository.listRhythmMarks(),
+    queryKey: key,
+    networkMode: 'always',
+    queryFn: async () => {
+      if (!navigator.onLine) throw new Error('当前离线，无法读取记录，请联网后重试');
+      const [marks, periods] = await Promise.all([
+        repository.listRhythmMarks(),
+        listPeriods(client),
+      ]);
+      return { marks, periods };
+    },
   });
   const mutation = useMutation({
-    mutationFn: ({ date, marked }: { date: string; marked: boolean }) =>
-      repository.saveRhythmMark(date, marked),
-    onSuccess: (row) =>
-      queryClient.setQueryData<Record<string, boolean>>(
-        ['rhythm', user.id],
-        (current = {}) => ({ ...current, [row.date]: row.marked }),
-      ),
+    // 离线时立即报告错误并保留表单，不能让 React Query 将操作无限暂停在“保存中”。
+    networkMode: 'always',
+    mutationFn: async (action: { draft: PeriodDraft } | { id: string }) => {
+      if (!navigator.onLine) throw new Error('当前离线，输入已保留，请联网后重试');
+      if ('draft' in action) {
+        validatePeriod(action.draft, query.data?.periods ?? [], getLocalDateKey());
+        await savePeriod(
+          client,
+          action.draft,
+          Boolean(query.data?.periods.some((p) => p.id === action.draft.id)),
+        );
+      } else await deletePeriod(client, action.id);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: key });
+    },
   });
-  const marks = useMemo(() => query.data ?? {}, [query.data]);
-  const { isPending, mutate } = mutation;
-
   useEffect(() => {
-    const channel = client
-      .channel(`rhythm:${user.id}`)
-      .on(
+    const channel = client.channel(`periods:${user.id}`);
+    for (const table of ['period_records', 'rhythm_marks'])
+      channel.on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'rhythm_marks',
-          filter: `owner_id=eq.${user.id}`,
-        },
+        { event: '*', schema: 'public', table, filter: `owner_id=eq.${user.id}` },
         () => void queryClient.invalidateQueries({ queryKey: ['rhythm', user.id] }),
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'rhythm_marks',
-          filter: `owner_id=eq.${user.id}`,
-        },
-        () => void queryClient.invalidateQueries({ queryKey: ['rhythm', user.id] }),
-      )
-      .subscribe();
+      );
+    channel.subscribe();
     return () => {
       void client.removeChannel(channel);
     };
   }, [client, queryClient, user.id]);
-
-  const state = useMemo(() => ({ marks }), [marks]);
-  const actions = useMemo(
-    () => ({
-      toggleMark: (date: string) => {
-        if (!navigator.onLine || isPending) return;
-        mutate({ date, marked: !marks[date] });
-      },
-    }),
-    [isPending, marks, mutate],
-  );
   return (
-    <RhythmActionsContext.Provider value={actions}>
-      <RhythmStateContext.Provider value={state}>
-        {children}
-      </RhythmStateContext.Provider>
-    </RhythmActionsContext.Provider>
+    <Context.Provider
+      value={{
+        marks: query.data?.marks ?? {},
+        periods: query.data?.periods ?? [],
+        loading: query.isPending,
+        error: query.error?.message,
+        save: async (draft) => {
+          await mutation.mutateAsync({ draft });
+        },
+        remove: async (id) => {
+          await mutation.mutateAsync({ id });
+        },
+        retry: () => {
+          void query.refetch();
+        },
+      }}
+    >
+      {children}
+    </Context.Provider>
   );
 }
 
-/** 为 Preview 演示和显式测试提供本地节律标记。 */
+/** Preview 保留旧标记键，新记录使用独立键，更新前执行与云端相同的日期规则。 */
 function LocalRhythmTestAdapter({ children }: { children: ReactNode }) {
-  const [marks, setMarks] = usePersistentState<Record<string, boolean>>(
-    'threadline.test.rhythm.v1',
-    {},
-  );
-  const state = useMemo(() => ({ marks }), [marks]);
-  const actions = useMemo(
-    () => ({
-      toggleMark: (date: string) =>
-        setMarks((current) => ({ ...current, [date]: !current[date] })),
-    }),
-    [setMarks],
-  );
-  return (
-    <RhythmActionsContext.Provider value={actions}>
-      <RhythmStateContext.Provider value={state}>
-        {children}
-      </RhythmStateContext.Provider>
-    </RhythmActionsContext.Provider>
-  );
+  const state = useLocalPeriodState();
+  return <Context.Provider value={state}>{children}</Context.Provider>;
 }
 
-/** Preview 演示和显式测试使用本地标记，生产缺配置时由 Auth gate 阻断。 */
+/** 生产只使用云端；本地状态仅适用于显式测试与 Preview。 */
 export function RhythmStateProvider({ children }: { children: ReactNode }) {
   return usesLocalWorkspace() ? (
     <LocalRhythmTestAdapter>{children}</LocalRhythmTestAdapter>
@@ -112,12 +106,10 @@ export function RhythmStateProvider({ children }: { children: ReactNode }) {
     <CloudRhythmStateProvider>{children}</CloudRhythmStateProvider>
   );
 }
-
-/** 读取节律领域状态与唯一的日期标记动作。 */
+/** 读取独立私密领域，不向工作台统计暴露生理期数据。 */
 export function useRhythmState() {
-  const state = useContext(RhythmStateContext);
-  const actions = useContext(RhythmActionsContext);
-  if (!state || !actions)
+  const state = useContext(Context);
+  if (!state)
     throw new Error('useRhythmState must be used inside RhythmStateProvider.');
-  return { ...state, ...actions };
+  return state;
 }

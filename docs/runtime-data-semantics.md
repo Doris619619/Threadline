@@ -17,9 +17,11 @@ Calendar、Insights 与报告不分别计算统计，而是通过 `src/lib/analy
 
 - 业务日期使用 PostgreSQL `date`。
 - 计划开始/结束使用 `time`，按用户本地墙钟解释。
-- 待安排任务以 `status=waiting` 和 `importance=important|normal` 持久化；它们没有旧到期字段、日期或排程时间字段。
+- 待安排任务以 `status=waiting` 和 `importance=important|normal` 持久化；它们没有旧到期字段、日期或起止时间，但允许独立可空的 `planned_duration_minutes`，所有任务流转都保留它。
 - created/updated/completed/deleted/abandoned/recorded 等审计时间使用 `timestamptz`。
 - `src/lib/supabase/time-mapper.ts` 显式映射以上类型；业务 date/time 不调用 `Date`。
+
+生理期起止使用独立的 `period_records` 日期字段；天数包含起止当天，允许同日、跨月和跨年。数据库按 Asia/Shanghai 的业务日拒绝未来记录，通过账号与闭区间的 GiST 排他约束阻止重叠和双进行中记录。
 
 ## 云端与本地状态
 
@@ -37,6 +39,8 @@ Daily 完全不属于 Project，旧 `legacy_project_id` 只用于历史兼容，
 - `DailyExecutionRow` 与 `useDailyExecution` 管理单个实例草稿；输入失焦保存，复选框直接保存；“结束今天”通过 DailyPanel 的 flush 屏障等待全部最新草稿成功保存，失败保留行内错误并阻止打开收尾；正式记录由现有收尾命令生成，首页不再单独调用 recordDaily。`saveDailyEntry` 返回 Promise，父子字段由 `save_daily_entry_bundle` 原子保存。草稿在失败和后台刷新时保留，执行区提供重试。已有正式历史仍保留记录时的快照，本次不回写历史。
 - 待安排两组和添加入口常显。快速创建草稿携带 `importance`，普通/重要由入口指定；编辑重要性只改变同一任务的分类，不复制任务、不改变排程或历史实际投入。
 - 云端必须包含 `202609040001_waiting_task_pool.sql` 和 `202609050001_daily_completion.sql`。前者先移除旧状态约束，再转换旧待办，最后建立新约束；否则包含旧无时间待办的数据库会因不认识 `waiting` 而迁移失败。部署前备份并核对转换范围，部署后核对迁移、任务和历史账本，禁止 reset。
+
+生理期使用独立仓储与查询键，不进入任务工作区或 analytics。保存和软删除等待返回确认；离线立即报错而不排队。云端加载失败可以重试，Preview 也等待本地持久化确认并保留失败输入。新客户端要求先部署 `202609050002_independent_task_estimates.sql` 与 `202609050003_period_records.sql`，实际影响见 [迁移与验收](task-estimates-and-periods.md)。
 
 ## 日期化批注
 

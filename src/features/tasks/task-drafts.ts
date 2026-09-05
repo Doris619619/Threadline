@@ -13,8 +13,9 @@ export type TimedTaskDraft = {
   title: string;
 };
 
-/** 完整工作台无时间待办新增行提交给动作层的字段。 */
+/** 完整工作台无日期待安排新增行提交给动作层的字段。 */
 export type QuickTaskDraft = {
+  planned?: string;
   /** 分组添加入口指定重要性；旧调用默认普通。 */
   importance?: 'important' | 'normal';
   projectId: string;
@@ -23,11 +24,15 @@ export type QuickTaskDraft = {
 
 /** 迷你今日中可选起止时间的紧凑新增草稿。 */
 export type CompactTimedTaskDraft = {
+  planned?: string;
   projectId: string;
   title: string;
   start?: string;
   end?: string;
 };
 
-/** 迷你今日中无时间待办的紧凑新增草稿。 */
-export type CompactQuickTaskDraft = Pick<CompactTimedTaskDraft, 'projectId' | 'title'>;
+/** 迷你今日中无日期待安排的紧凑新增草稿。 */
+export type CompactQuickTaskDraft = Pick<
+  CompactTimedTaskDraft,
+  'projectId' | 'title' | 'planned'
+>;

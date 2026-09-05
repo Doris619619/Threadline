@@ -611,11 +611,11 @@ select is(
   (
     select status || ':' || coalesce(scheduled_date::text, '—') || ':' || schedule_pending_time::text
       || ':' || (planned_start_time is null)::text || ':' || (planned_end_time is null)::text
-      || ':' || (planned_duration_minutes is null)::text
+      || ':' || planned_duration_minutes::text
     from public.tasks where id = '41700000-0000-0000-0000-000000000004'
   ),
-  'waiting:—:false:true:true:true',
-  'Close-day waiting clears every schedule field in its single task update'
+  'waiting:—:false:true:true:60',
+  'Close-day waiting clears dates and clock times while preserving the independent estimate'
 );
 select is(
   (select event_type from public.history_events where task_id = '41700000-0000-0000-0000-000000000004'),

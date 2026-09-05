@@ -1,0 +1,179 @@
+/** @fileoverview 跨手机与桌面验收独立预计、生理期完整记录流程，并保留可审阅页面截图。 */
+import { expect, test } from '@playwright/test';
+import {
+  bootstrapLocalAdapterWorkspace,
+  openWorkspaceSection,
+} from './support/workspace';
+import { expectNoUnexpectedHorizontalOverflow } from './support/layout';
+
+test.beforeEach(async ({ page }, info) => {
+  await bootstrapLocalAdapterWorkspace(page, `period-ui-${info.testId}`);
+});
+
+test('independent estimates persist through schedule and waiting; compact pages stay readable', async ({
+  page,
+}, info) => {
+  const schedule = page.locator('.schedule-panel');
+  await schedule.getByRole('button', { name: '添加', exact: true }).click();
+  const form = schedule.locator('.timed-task-create-row');
+  await form.getByPlaceholder('任务名称（按 Enter 保存）').fill('只有预计的任务');
+  await form.getByLabel('预计时长（分钟）').fill('90');
+  await form.getByTitle('保存任务').click();
+  const row = schedule.locator('.timeline-row').filter({ hasText: '只有预计的任务' });
+  await expect(row).toContainText('1h30min');
+  await row.getByRole('button', { name: '只有预计的任务更多操作' }).click();
+  await page.getByRole('button', { name: '待安排', exact: true }).click();
+  const waiting = page
+    .locator('.waiting-task-row')
+    .filter({ hasText: '只有预计的任务' });
+  await expect(waiting).toContainText('1h30min');
+  await waiting.getByRole('button', { name: '只有预计的任务更多操作' }).click();
+  await page.getByRole('menuitem', { name: '安排到今天' }).click();
+  await expect(row).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(row).toContainText('1h30min');
+  await page.reload();
+  await expect(row).toContainText('1h30min');
+  await expectNoUnexpectedHorizontalOverflow(page);
+  await info.attach('schedule-row-metrics', {
+    body: JSON.stringify(await row.boundingBox()),
+    contentType: 'application/json',
+  });
+  if (
+    (page.viewportSize()?.width ?? 1440) >= 375 &&
+    (page.viewportSize()?.width ?? 1440) <= 430
+  ) {
+    expect((await row.boundingBox())!.height).toBeLessThanOrEqual(96);
+  }
+  await page.screenshot({ path: info.outputPath('home.png'), fullPage: true });
+  for (const label of ['洞察', '设置']) {
+    await openWorkspaceSection(page, label);
+    await expectNoUnexpectedHorizontalOverflow(page);
+    if (label === '设置')
+      await expect(page.getByLabel('选择日期', { exact: true })).toHaveCount(0);
+    await page.screenshot({
+      path: info.outputPath(label === '洞察' ? 'insights.png' : 'settings.png'),
+      fullPage: true,
+    });
+  }
+});
+
+test('period start, end, backfill, edit, delete and offline retry use real form state', async ({
+  page,
+  context,
+}, info) => {
+  await openWorkspaceSection(page, '节律');
+  await page.getByRole('button', { name: '记录开始', exact: true }).click();
+  let dialog = page.getByRole('dialog');
+  await expect(dialog.getByLabel('开始日期', { exact: true })).toHaveValue(
+    '2026-08-23',
+  );
+  await dialog.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(page.getByRole('heading', { name: '进行中 · 第 1 天' })).toBeVisible();
+  await page.getByRole('button', { name: '记录结束', exact: true }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: '保存', exact: true })
+    .click();
+  await expect(page.locator('.period-history li')).toContainText('1 天');
+  await page.getByRole('button', { name: '补录', exact: true }).click();
+  dialog = page.getByRole('dialog');
+  await dialog.getByLabel('开始日期', { exact: true }).fill('2026-07-29');
+  await dialog.getByLabel('结束日期', { exact: true }).fill('2026-08-02');
+  await context.setOffline(true);
+  await dialog.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(dialog.getByRole('alert')).toContainText('离线');
+  await expect(dialog.getByLabel('开始日期', { exact: true })).toHaveValue(
+    '2026-07-29',
+  );
+  await context.setOffline(false);
+  await dialog.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(page.locator('.period-history li')).toHaveCount(2);
+  await expect(page.locator('.period-statistics')).toContainText('3 天');
+  await expectNoUnexpectedHorizontalOverflow(page);
+  const dateTarget = await page.locator('.rhythm-grid button').first().boundingBox();
+  expect(dateTarget!.width).toBeGreaterThanOrEqual(44);
+  expect(dateTarget!.height).toBeGreaterThanOrEqual(44);
+  await page.screenshot({ path: info.outputPath('rhythm.png'), fullPage: true });
+  await page
+    .locator('.period-history li')
+    .filter({ hasText: '2026-07-29' })
+    .getByRole('button')
+    .click();
+  await page
+    .getByRole('dialog')
+    .getByLabel('结束日期', { exact: true })
+    .fill('2026-08-03');
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: '保存', exact: true })
+    .click();
+  await expect(
+    page.locator('.period-history li').filter({ hasText: '2026-07-29' }),
+  ).toContainText('6 天');
+  await page
+    .locator('.period-history li')
+    .filter({ hasText: '2026-07-29' })
+    .getByRole('button')
+    .click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: '删除记录', exact: true })
+    .click();
+  await page.getByRole('dialog').getByRole('button', { name: '确认删除' }).click();
+  await expect(page.locator('.period-history li')).toHaveCount(1);
+  await page.reload();
+  await openWorkspaceSection(page, '节律');
+  await expect(page.locator('.period-history li')).toHaveCount(1);
+});
+
+test('long titles, range filters, empty estimates and OS color preferences remain usable', async ({
+  page,
+}, info) => {
+  const title = '需要完整显示的很长待安排任务名称 LongTitleWithoutSpacesForWrapping';
+  await page.getByRole('button', { name: '添加普通事项', exact: true }).click();
+  const form = page.locator('.quick-task-create-row');
+  await form.getByLabel('普通事项内容').fill(title);
+  await form.getByLabel('预计时长（分钟）').fill('90');
+  await form.getByTitle('保存待办').click();
+  const waiting = page.locator('.waiting-task-row').filter({ hasText: title });
+  await expect(waiting).toContainText('1h30min');
+  await expectNoUnexpectedHorizontalOverflow(page);
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.screenshot({
+    path: info.outputPath('home-long-title-dark-preference.png'),
+    fullPage: true,
+  });
+  await expect(page.locator('meta[name="viewport"]')).not.toHaveAttribute(
+    'content',
+    /user-scalable=no|maximum-scale=1/,
+  );
+  await openWorkspaceSection(page, '洞察');
+  await expect(page.getByRole('button', { name: '本周', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  for (const preset of ['当天', '本月', '本周']) {
+    await page.getByRole('button', { name: preset, exact: true }).click();
+    await expect(page.locator('.insights-filters input')).toHaveCount(0);
+  }
+  await page.getByRole('button', { name: '自定义', exact: true }).click();
+  await page
+    .locator('.insights-filters')
+    .getByLabel('开始', { exact: true })
+    .fill('2030-01-01');
+  await page
+    .locator('.insights-filters')
+    .getByLabel('结束', { exact: true })
+    .fill('2030-01-02');
+  await expect(page.locator('.insights-summary')).toContainText('暂无任务');
+  await expect(page.locator('.insight-estimates')).toContainText('暂无足够数据');
+  await expect(page.locator('.recharts-responsive-container')).toHaveCount(0);
+  await expect(page.locator('[data-report-document]')).toContainText('暂无足够数据');
+  await expectNoUnexpectedHorizontalOverflow(page);
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.screenshot({
+    path: info.outputPath('insights-empty-light-preference.png'),
+    fullPage: true,
+  });
+});

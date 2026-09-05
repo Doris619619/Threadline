@@ -108,7 +108,7 @@ describe('useTaskCreateAndEdit', () => {
         projectId: activeProject.id,
         startTime: '830',
         endTime: '1000',
-        planned: '45min',
+        planned: '45',
         actual: '45min',
         completed: true,
       });
@@ -121,7 +121,7 @@ describe('useTaskCreateAndEdit', () => {
         date: '2026-08-21',
         plannedStartTime: '08:30',
         plannedEndTime: '10:00',
-        plannedDurationMinutes: 90,
+        plannedDurationMinutes: 45,
         actualDurationMinutes: 45,
         schedulePendingTime: false,
         completed: true,
@@ -131,7 +131,7 @@ describe('useTaskCreateAndEdit', () => {
     );
   });
 
-  it('automatically calculates planned duration from valid start and end times, overriding old planned draft', async () => {
+  it('keeps explicit planned duration independent from valid start and end times', async () => {
     const dependencies = createHookDependencies();
     const { result } = renderHook(() => useTaskCreateAndEdit(dependencies));
 
@@ -141,7 +141,7 @@ describe('useTaskCreateAndEdit', () => {
         projectId: activeProject.id,
         startTime: '08:30',
         endTime: '10:00',
-        planned: '45min',
+        planned: '45',
         actual: '',
         completed: false,
       });
@@ -152,7 +152,7 @@ describe('useTaskCreateAndEdit', () => {
         title: '时长覆盖测试',
         plannedStartTime: '08:30',
         plannedEndTime: '10:00',
-        plannedDurationMinutes: 90,
+        plannedDurationMinutes: 45,
       }),
     );
   });
@@ -222,7 +222,7 @@ describe('useTaskCreateAndEdit', () => {
         date: '2026-08-21',
         plannedStartTime: '14:00',
         plannedEndTime: '15:30',
-        plannedDurationMinutes: 90,
+        plannedDurationMinutes: 999,
         actualDurationMinutes: 30,
         importance: 'normal',
       }),

@@ -3,6 +3,7 @@
 'use client';
 
 import { CalendarDays, MoreHorizontal, Trash2 } from 'lucide-react';
+import { formatEstimate } from '../task-time';
 import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ProjectTag } from '@/components/ui/project-tag';
@@ -39,7 +40,13 @@ export function WaitingTaskRow({
       />
       <button type="button" className="waiting-task-main" onClick={onEdit}>
         {project && <ProjectTag name={project.name} color={project.color} />}
-        <span>{task.title}</span>
+        <span className="waiting-task-title">
+          {task.title}
+          <small className="waiting-estimate">
+            {' '}
+            · {formatEstimate(task.plannedDurationMinutes)}
+          </small>
+        </span>
       </button>
       <div className="waiting-task-actions">
         <button
@@ -52,14 +59,23 @@ export function WaitingTaskRow({
         </button>
         {menuOpen && (
           <div className="waiting-task-menu" role="menu">
-            <button type="button" role="menuitem" onClick={() => onSchedule(task.id, today)}>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => onSchedule(task.id, today)}
+            >
               <CalendarDays size={15} /> 安排到今天
             </button>
             <button type="button" role="menuitem" onClick={() => setDateOpen(true)}>
               <CalendarDays size={15} /> 安排到其他日期…
             </button>
             <hr />
-            <button type="button" role="menuitem" className="is-danger" onClick={() => onDelete(task.id)}>
+            <button
+              type="button"
+              role="menuitem"
+              className="is-danger"
+              onClick={() => onDelete(task.id)}
+            >
               <Trash2 size={15} /> 删除
             </button>
           </div>
@@ -67,16 +83,30 @@ export function WaitingTaskRow({
       </div>
       {dateOpen && (
         <div className="waiting-date-backdrop" role="presentation">
-          <form className="waiting-date-sheet" onSubmit={(event) => {
-            event.preventDefault();
-            const date = String(new FormData(event.currentTarget).get('date') ?? '');
-            if (date) onSchedule(task.id, date);
-            setDateOpen(false);
-            setMenuOpen(false);
-          }}>
+          <form
+            className="waiting-date-sheet"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const date = String(new FormData(event.currentTarget).get('date') ?? '');
+              if (date) onSchedule(task.id, date);
+              setDateOpen(false);
+              setMenuOpen(false);
+            }}
+          >
             <h3>安排到其他日期</h3>
-            <input aria-label="安排日期" name="date" type="date" min={tomorrow} defaultValue={tomorrow} />
-            <footer><button type="button" onClick={() => setDateOpen(false)}>取消</button><button type="submit">安排</button></footer>
+            <input
+              aria-label="安排日期"
+              name="date"
+              type="date"
+              min={tomorrow}
+              defaultValue={tomorrow}
+            />
+            <footer>
+              <button type="button" onClick={() => setDateOpen(false)}>
+                取消
+              </button>
+              <button type="submit">安排</button>
+            </footer>
           </form>
         </div>
       )}

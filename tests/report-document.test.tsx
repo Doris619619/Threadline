@@ -41,5 +41,33 @@ describe('ReportDocument', () => {
 
     expect(screen.getByText('旧版项目汇总')).toBeVisible();
     expect(screen.queryByText('精确记录')).not.toBeInTheDocument();
+    expect(screen.getByText('暂无足够数据')).toBeVisible();
+  });
+  it('compares paired estimates without changing ledger totals in the export', () => {
+    const result = createAnalyticsResult({
+      tasks: [],
+      projects: [],
+      dailyByDate: {},
+      dailyHistory: [],
+      closeRecords: [],
+      taskTimeEntries: [
+        {
+          id: 'entry',
+          taskId: 'task',
+          projectId: 'project',
+          date: '2026-08-20',
+          minutes: 120,
+        },
+      ],
+    });
+    const report = buildReportData({
+      title: '独立预计报告',
+      result,
+      projectNames: new Map(),
+      estimateComparison: { pairedCount: 1, actual: 40, planned: 30 },
+    });
+    expect(report.totalActualMinutes).toBe(120);
+    render(<ReportDocument report={report} />);
+    expect(screen.getByText('比预计多 10 分钟')).toBeVisible();
   });
 });

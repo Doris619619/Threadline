@@ -11,7 +11,6 @@ function formatMinutes(minutes: number): string {
 
 /** 描述估时偏差，但不把实际低于预计错误标记为效率提升。 */
 function formatDeviation(actual: number, planned: number): string {
-  if (planned === 0) return '暂无预计时长';
   const difference = actual - planned;
   return difference === 0
     ? '与预计一致'
@@ -34,16 +33,22 @@ export function ReportDocument({ report }: { report: ReportData }) {
           <dd>{formatMinutes(report.totalActualMinutes)}</dd>
         </div>
         <div>
-          <dt>预计时长</dt>
+          <dt>已填写预计合计</dt>
           <dd>{formatMinutes(report.totalPlannedMinutes)}</dd>
         </div>
         <div>
           <dt>估时偏差</dt>
           <dd>
-            {formatDeviation(report.totalActualMinutes, report.totalPlannedMinutes)}
+            {report.estimateComparison?.pairedCount
+              ? formatDeviation(
+                  report.estimateComparison.actual,
+                  report.estimateComparison.planned,
+                )
+              : '暂无足够数据'}
           </dd>
         </div>
       </dl>
+      <p>估时偏差仅比较同时记录预计和实际的普通任务；未填写预计不视为零。</p>
       <section>
         <h2>项目投入</h2>
         <table>

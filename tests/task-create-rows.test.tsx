@@ -141,7 +141,7 @@ it('does not preview a zero-minute duration that the save layer rejects', () => 
     />,
   );
 
-  expect(screen.getAllByLabelText('预计时长').at(-1)).toHaveTextContent('自动计算');
+  expect(screen.getAllByLabelText('预计时长（分钟）').at(-1)).toHaveValue('');
 });
 
 it('ensures timed create row groups project select and task title in the same primary row container', () => {

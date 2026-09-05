@@ -7,11 +7,21 @@ import { addLocalDateDays, getLocalDateKey } from '@/lib/local-date';
 import type { Project, Task } from '@/types/domain';
 
 const project: Project = {
-  id: 'project-1', name: '工作', color: '#4f8cff', status: 'active', createdAt: '2026-09-04',
+  id: 'project-1',
+  name: '工作',
+  color: '#4f8cff',
+  status: 'active',
+  createdAt: '2026-09-04',
 };
 const task: Task = {
-  id: 'waiting-1', projectId: project.id, title: '安排研究', completed: false,
-  status: 'waiting', importance: 'normal', createdAt: '2026-09-04', updatedAt: '2026-09-04',
+  id: 'waiting-1',
+  projectId: project.id,
+  title: '安排研究',
+  completed: false,
+  status: 'waiting',
+  importance: 'normal',
+  createdAt: '2026-09-04',
+  updatedAt: '2026-09-04',
 };
 
 describe('WaitingTaskRow', () => {
@@ -34,7 +44,7 @@ describe('WaitingTaskRow', () => {
     expect(screen.getByRole('menuitem', { name: '安排到其他日期…' })).toBeVisible();
     expect(screen.getByRole('menuitem', { name: '删除' })).toBeVisible();
     expect(screen.queryByRole('menuitem', { name: /编辑/ })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: '【工作】安排研究' }));
+    fireEvent.click(screen.getByRole('button', { name: /【工作】安排研究.*待定/ }));
     expect(edit).toHaveBeenCalledOnce();
   });
 

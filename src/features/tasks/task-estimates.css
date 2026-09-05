@@ -1,0 +1,88 @@
+/** @fileoverview 独立预计分钟表单的共享样式，兼容新建行、详情和迷你今日。 */
+.estimate-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: end;
+  min-width: 0;
+  width: 100%;
+}
+.estimate-field label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.estimate-field input {
+  display: block;
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+}
+.estimate-field .estimate-preview {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.estimate-field button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 4px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.timed-create-planned-cell .estimate-field {
+  grid-area: planned;
+}
+.compact-add-row > .estimate-field {
+  grid-column: 1 / -1;
+}
+.compact-task-label .compact-estimate {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.quick-task-create-row > .estimate-field {
+  flex-basis: 100%;
+}
+@media (min-width: 761px) {
+  .timed-create-planned-cell .estimate-field {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .timed-create-planned-cell .estimate-field label > span,
+  .timed-create-planned-cell .estimate-preview {
+    display: none;
+  }
+  .timed-create-planned-cell .estimate-field input {
+    min-height: 28px;
+    padding: 2px 4px;
+    font-size: 13px;
+  }
+  .timed-create-planned-cell .estimate-field button {
+    min-height: 24px;
+    padding: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .timeline-row-adding,
+  .quick-task-row-adding {
+    animation: none;
+  }
+}

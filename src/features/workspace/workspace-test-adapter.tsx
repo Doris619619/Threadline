@@ -197,10 +197,7 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
           transition === 'scheduled' || transition === 'waiting'
             ? undefined
             : current.plannedEndTime,
-        plannedDurationMinutes:
-          transition === 'scheduled' || transition === 'waiting'
-            ? undefined
-            : current.plannedDurationMinutes,
+        plannedDurationMinutes: current.plannedDurationMinutes,
         importance:
           transition === 'waiting'
             ? (current.importance ?? 'normal')
@@ -268,7 +265,6 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
         schedulePendingTime: false,
         plannedStartTime: undefined,
         plannedEndTime: undefined,
-        plannedDurationMinutes: undefined,
         completed: true,
         completedAt,
         updatedAt: completedAt,
@@ -361,8 +357,7 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
               action.action === 'waiting' ? undefined : task.plannedStartTime,
             plannedEndTime:
               action.action === 'waiting' ? undefined : task.plannedEndTime,
-            plannedDurationMinutes:
-              action.action === 'waiting' ? undefined : task.plannedDurationMinutes,
+            plannedDurationMinutes: task.plannedDurationMinutes,
             importance:
               action.action === 'waiting'
                 ? (task.importance ?? 'normal')

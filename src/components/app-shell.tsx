@@ -52,7 +52,7 @@ const navigation = [
     id: 'rhythm',
     label: '节律',
     icon: Orbit,
-    description: '私密日期标记随账号同步，不进入 analytics 与报告',
+    description: '记录生理期开始与结束，随账号同步，不进入洞察与报告',
   },
   {
     id: 'settings',
@@ -316,37 +316,39 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <p>{activeItem.description}</p>
               </div>
               <div className="tl-header-actions">
-                <div className="tl-date">
-                  <button aria-label="前一天" onClick={() => shiftDate(-1)}>
-                    ‹
-                  </button>
-                  <time dateTime={selectedDate}>
-                    {selectedDate}　{weekday}
-                  </time>
-                  <button aria-label="后一天" onClick={() => shiftDate(1)}>
-                    ›
-                  </button>
-                  <button
-                    aria-label="选择日期"
-                    onClick={() =>
-                      (
-                        document.getElementById(
-                          'workspace-date-picker',
-                        ) as HTMLInputElement | null
-                      )?.showPicker()
-                    }
-                  >
-                    <CalendarDays size={20} />
-                  </button>
-                  <input
-                    id="workspace-date-picker"
-                    aria-label="工作区日期"
-                    className="sr-only"
-                    type="date"
-                    value={selectedDate}
-                    onChange={(event) => setSelectedDate(event.target.value)}
-                  />
-                </div>
+                {active !== 'settings' && active !== 'rhythm' && (
+                  <div className="tl-date">
+                    <button aria-label="前一天" onClick={() => shiftDate(-1)}>
+                      ‹
+                    </button>
+                    <time dateTime={selectedDate}>
+                      {selectedDate}　{weekday}
+                    </time>
+                    <button aria-label="后一天" onClick={() => shiftDate(1)}>
+                      ›
+                    </button>
+                    <button
+                      aria-label="选择日期"
+                      onClick={() =>
+                        (
+                          document.getElementById(
+                            'workspace-date-picker',
+                          ) as HTMLInputElement | null
+                        )?.showPicker()
+                      }
+                    >
+                      <CalendarDays size={20} />
+                    </button>
+                    <input
+                      id="workspace-date-picker"
+                      aria-label="工作区日期"
+                      className="sr-only"
+                      type="date"
+                      value={selectedDate}
+                      onChange={(event) => setSelectedDate(event.target.value)}
+                    />
+                  </div>
+                )}
               </div>
             </header>
           )}

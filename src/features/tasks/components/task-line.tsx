@@ -11,6 +11,8 @@ import { ProjectTag } from '@/components/ui/project-tag';
 import { TaskRowActions } from '@/features/tasks/components/task-row-actions';
 import {
   formatMinutes,
+  formatEstimate,
+  parseEstimateMinutes,
   parseDurationInput,
   parseTimeInput,
 } from '@/features/tasks/task-time';
@@ -19,7 +21,7 @@ import { cn } from '@/lib/cn';
 import type { Project, Task, TaskStatus } from '@/types/domain';
 
 /**
- * 渲染日程或无时间待办的一行。桌面用七列网格（contents 展开），手机用自适应卡片（标题+紧凑元数据）。
+ * 渲染日程或无时间待办的一行。桌面用七列网格（contents 展开），手机用分组内连续双行（项目与标题 + 时间与耗时）。
  */
 export function TaskLine({
   task,
@@ -120,7 +122,7 @@ export function TaskLine({
    * 保存时间输入；非法值绝不写库，主动清空也保留在日程的待填时间状态。
    */
   const saveTime = (input: string) => {
-    const { start, end, duration } = parseTimeInput(input);
+    const { start, end } = parseTimeInput(input);
     if (input.trim() && (!start || (input.match(/[-–~至到\s]+/) && !end))) {
       setTimeError('请输入有效时间，如 08:30 或 08:30-10:00');
       return;
@@ -134,7 +136,6 @@ export function TaskLine({
       ...task,
       plannedStartTime: start,
       plannedEndTime: end,
-      plannedDurationMinutes: duration ?? task.plannedDurationMinutes,
       schedulePendingTime: start ? false : true,
       updatedAt: new Date().toISOString(),
     });
@@ -156,7 +157,14 @@ export function TaskLine({
 
   /** 解析并写入预计时长。 */
   const savePlanned = (input: string) => {
-    const duration = parseDurationInput(input);
+    let duration: number | undefined;
+    try {
+      duration = parseEstimateMinutes(input);
+    } catch (error) {
+      setTimeError((error as Error).message);
+      return;
+    }
+    setTimeError(undefined);
     onUpdate({
       ...task,
       plannedDurationMinutes: duration,
@@ -228,10 +236,12 @@ export function TaskLine({
         className="tl-inline-input task-duration-input task-duration task-duration-planned"
         defaultValue={
           task.plannedDurationMinutes !== undefined
-            ? `${task.plannedDurationMinutes}min`
+            ? String(task.plannedDurationMinutes)
             : ''
         }
-        placeholder="45min"
+        placeholder="待定"
+        aria-label="预计时长（分钟）"
+        inputMode="numeric"
         autoFocus
         onKeyDown={(e) => {
           if (e.key === 'Enter') savePlanned(e.currentTarget.value);
@@ -242,17 +252,25 @@ export function TaskLine({
     ) : (
       <span
         className="task-duration task-duration-planned tl-clickable-cell"
-        onClick={() => setEditingField('planned')}
-        title="点击直接修改预计时长（如 45min 或 1h）"
+        onClick={() => !interactionLocked && setEditingField('planned')}
+        title="输入整数分钟，留空为待定"
+        role="button"
+        aria-disabled={interactionLocked}
+        tabIndex={interactionLocked ? -1 : 0}
+        onKeyDown={(event) => {
+          if (interactionLocked) return;
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            setEditingField('planned');
+          }
+        }}
       >
         <span className="task-duration-prefix">预计 </span>
         <span className="duration-desktop">
-          {formatMinutes(task.plannedDurationMinutes)}
+          {formatEstimate(task.plannedDurationMinutes)}
         </span>
         <span className="duration-mobile">
-          {task.plannedDurationMinutes === undefined
-            ? '—'
-            : task.plannedDurationMinutes + '分'}
+          {formatEstimate(task.plannedDurationMinutes)}
         </span>
       </span>
     ));
@@ -292,7 +310,9 @@ export function TaskLine({
             <span className="duration-desktop">
               {formatMinutes(task.actualDurationMinutes)}
             </span>
-            <span className="duration-mobile">{task.actualDurationMinutes + '分'}</span>
+            <span className="duration-mobile">
+              {formatMinutes(task.actualDurationMinutes)}
+            </span>
           </>
         )}
       </button>
@@ -453,6 +473,11 @@ export function TaskLine({
             <div className="task-time-details">
               {timeNode}
               {plannedNode}
+              {editingField === 'planned' && timeError && (
+                <span role="alert" className="timeline-inline-error">
+                  {timeError}
+                </span>
+              )}
               {actualNode}
             </div>
           )}

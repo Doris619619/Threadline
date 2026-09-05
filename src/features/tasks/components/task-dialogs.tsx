@@ -3,6 +3,8 @@
  */
 'use client';
 
+import { PlannedMinutesField } from './planned-minutes-field';
+
 import { useId, useState } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -375,14 +377,6 @@ export function TaskDialog({
                 />
               </label>
               <label>
-                预计时长（分钟）
-                <Input
-                  name="planned"
-                  type="number"
-                  defaultValue={editing?.plannedDurationMinutes}
-                />
-              </label>
-              <label>
                 实际时长（分钟）
                 <Input
                   name="actual"
@@ -393,7 +387,8 @@ export function TaskDialog({
             </div>
           )}
 
-          {!isWaiting && <p>开始和结束同时填写时自动计算预计时长；不支持跨午夜。</p>}
+          <PlannedMinutesField defaultValue={editing?.plannedDurationMinutes} />
+          {!isWaiting && <p>预计与起止时间均可不填，分别保存；时段不支持跨午夜。</p>}
 
           {error && (
             <p className="form-error" role="alert">

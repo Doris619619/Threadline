@@ -1,17 +1,17 @@
-<!-- 文件用途：定义当前 Threadline 七项工作台信息架构、统一 analytics 口径、历史质量边界与报告导出职责。 -->
+<!-- 文件用途：定义当前 Threadline 工作台信息架构、统一 analytics 口径、历史质量边界与报告导出职责。 -->
 
 # 工作台信息架构与分析口径
 
 ## 导航与范围
 
-完整工作台使用：首页、日历、项目、洞察、记录、节律、设置。桌面端显示侧栏；移动端固定显示首页、日历、项目、洞察，并通过“更多”进入记录、节律和设置。
+完整工作台使用：首页、日历、项目、洞察、节律、设置。桌面端显示侧栏；移动端固定显示首页、日历、项目、洞察，并通过“更多”进入节律和设置。
 
 - **首页**保留今日日程、Daily、待安排和每日收尾。
 - **日历**展示“项目投入热力”：某日热力数等于 `actualMinutes > 0` 的去重项目数，映射为 `0 / 1 / 2 / 3 / 4+`。它不使用完成任务数量；周一开头，选择日期、跨月补齐格与“今天”会同步当前可见月份。
-- **洞察**提供日、周、月和自定义范围的项目投入、预计与实际、投入趋势、项目重心与浏览器/Electron 报告导出。
-- **记录**只搜索当前可靠可得的 Task、HistoryEvent、DailyHistory 与 CloseRecord；它不是 Event Sourcing。
-- **节律**是账号级同步的日期标记，默认不进入 analytics、PDF 或记录搜索。
-- **设置**提供只读账户摘要、Cloud 与本地边界、隐私、回收站和关于信息；“桌面窗口”与重置位置只在 Electron bridge 存在时可见。它不伪造主题、密度、默认项目、同步进度等偏好。
+- **洞察**默认本周，通过当天、本周、本月、自定义分段选择范围；首屏展示实际投入、范围内 active 普通任务完成数/总数和主要投入项目，待安排、放弃和回收站不计入完成统计。下方按实际分钟展示每日趋势与项目占比；无数据收起空图形。预计与实际仅比较同时具有两种记录的任务，缺少预计不视为零，报告采用同一比较口径。
+- **记录（保留模块，当前未接入导航）**只搜索当前可靠可得的 Task、HistoryEvent、DailyHistory 与 CloseRecord；它不是 Event Sourcing。
+- **节律**记录生理期开始、结束和历史补录。独立的 `period_records` 按账号隔离并实时同步；旧 `rhythm_marks` 保留为旧日期标记，不推断完整经期或参与统计。两者均不进入 analytics、PDF 或记录搜索。字段、约束与失败行为见 [预计时长与生理期记录](task-estimates-and-periods.md)。
+- **设置**采用紧凑分组列表且不显示顶部日期切换器，提供只读账户摘要、Cloud 与本地边界、隐私、回收站和关于信息；“桌面窗口”与重置位置只在 Electron bridge 存在时可见。它不伪造主题、密度、默认项目、同步进度等偏好。
 
 ## 统一 analytics
 
@@ -37,7 +37,7 @@ Task 的 `abandoned` 是永久保留的业务历史状态；`purged` 不是 Task
 
 ## 报告导出
 
-报告固定由 `AnalyticsResult → ReportData → ReportDocument` 构建；`report-builder.ts` 是中间的纯数据映射层，专用报告 DOM 不复用交互式 Insights UI。
+报告由 `AnalyticsResult → ReportData → ReportDocument` 构建，额外传入 `buildInsightSummary` 的有效估时比较样本；实际总量与 Daily 去重仍完全来自原 analytics；`report-builder.ts` 是中间的纯数据映射层，专用报告 DOM 不复用交互式 Insights UI。
 
 - Web/PWA 使用浏览器 `window.print()`。
 - Electron 仅给 Main Renderer 暴露 `exportReportPdf` bridge；Main 校验可信 sender 与 `main` role，弹出保存对话框，再对当前 document 的打印专用报告 DOM 调用 `webContents.printToPDF`。

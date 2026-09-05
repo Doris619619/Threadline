@@ -2,6 +2,8 @@
 
 'use client';
 
+import { PlannedMinutesField } from './components/planned-minutes-field';
+import { formatEstimate } from './task-time';
 import { GripVertical, Plus, X } from 'lucide-react';
 import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -13,7 +15,10 @@ import type {
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import type { Project, Task } from '@/types/domain';
 
-export type { CompactQuickTaskDraft, CompactTimedTaskDraft } from '@/features/tasks/task-drafts';
+export type {
+  CompactQuickTaskDraft,
+  CompactTimedTaskDraft,
+} from '@/features/tasks/task-drafts';
 
 type CompactWorkspaceProps = {
   timed: Task[];
@@ -58,6 +63,9 @@ function CompactTaskLabel({
     <span className="compact-task-label">
       <ProjectTag name={project.name} color={project.color} />
       <strong title={task.title}>{task.title}</strong>
+      <small className="compact-estimate">
+        {formatEstimate(task.plannedDurationMinutes)}
+      </small>
     </span>
   );
 }
@@ -74,7 +82,7 @@ function MiniScheduleRow({
   inWorkstation: boolean;
 }) {
   return (
-    <li className={`mini-task-row${task.completed ? ' completed' : ''}`}>
+    <li className={`mini-task-row${task.completed ? 'completed' : ''}`}>
       <time>{formatCompactTime(task)}</time>
       <Checkbox
         aria-label={`完成${task.title}`}
@@ -109,12 +117,15 @@ function MiniWaitingRow({
   inWorkstation,
   onToggleWorkstation,
   onCompleteWaitingTask,
-}: Pick<CompactWorkspaceProps, 'projects' | 'onToggleWorkstation' | 'onCompleteWaitingTask'> & {
+}: Pick<
+  CompactWorkspaceProps,
+  'projects' | 'onToggleWorkstation' | 'onCompleteWaitingTask'
+> & {
   task: Task;
   inWorkstation: boolean;
 }) {
   return (
-    <li className={`mini-quick-row${task.completed ? ' completed' : ''}`}>
+    <li className={`mini-quick-row${task.completed ? 'completed' : ''}`}>
       <Checkbox
         aria-label={`完成${task.title}`}
         checked={task.completed}
@@ -144,6 +155,7 @@ function CompactTimedAddRow({
 }) {
   const [projectId, setProjectId] = useState(() => projects[0]?.id ?? '');
   const [title, setTitle] = useState('');
+  const [planned, setPlanned] = useState('');
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [error, setError] = useState<string>();
@@ -158,6 +170,7 @@ function CompactTimedAddRow({
       await onCreate({
         projectId,
         title: title.trim(),
+        planned,
         start: start || undefined,
         end: end || undefined,
       });
@@ -216,6 +229,7 @@ function CompactTimedAddRow({
           if (event.key === 'Enter') submit();
         }}
       />
+      <PlannedMinutesField value={planned} onChange={setPlanned} />
       <button
         type="button"
         className="compact-add-confirm"
@@ -240,6 +254,7 @@ function CompactQuickAddRow({
 }) {
   const [projectId, setProjectId] = useState(() => projects[0]?.id ?? '');
   const [title, setTitle] = useState('');
+  const [planned, setPlanned] = useState('');
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
   /** 阻止空标题写入，并将有效的轻量草稿交由 Dashboard 创建。 */
@@ -248,7 +263,7 @@ function CompactQuickAddRow({
     if (!title.trim()) return setError('请输入任务名称');
     setSaving(true);
     try {
-      await onCreate({ projectId, title: title.trim() });
+      await onCreate({ projectId, title: title.trim(), planned });
       setTitle('');
     } catch (error) {
       setError(error instanceof Error ? error.message : '保存失败，请重试。');
@@ -283,6 +298,7 @@ function CompactQuickAddRow({
           if (event.key === 'Enter') submit();
         }}
       />
+      <PlannedMinutesField value={planned} onChange={setPlanned} />
       <button
         type="button"
         className="compact-add-confirm"
@@ -357,7 +373,9 @@ export function MiniTodayPanel(props: CompactWorkspaceProps) {
         </header>
         <ul>
           {(['important', 'normal'] as const).map((importance) => {
-            const items = props.waiting.filter((task) => (task.importance ?? 'normal') === importance);
+            const items = props.waiting.filter(
+              (task) => (task.importance ?? 'normal') === importance,
+            );
             return items.length ? (
               <li className="mini-waiting-group" key={importance}>
                 <h3>{importance === 'important' ? '重要' : '普通'}</h3>

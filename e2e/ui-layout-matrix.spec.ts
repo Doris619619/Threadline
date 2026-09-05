@@ -246,7 +246,7 @@ test.describe('compact viewport layout matrix', () => {
     const titleInput = timedRow.locator('.timed-create-title-input');
     const startTimeInput = timedRow.getByLabel('开始时间');
     const endTimeInput = timedRow.getByLabel('结束时间');
-    const plannedDisplay = timedRow.locator('.timed-create-mobile-duration-display');
+    const plannedDisplay = timedRow.getByLabel('预计时长（分钟）');
     const actualInput = timedRow.getByLabel('实际耗时');
     const cancelBtn = timedRow.locator('.timed-create-cancel-btn');
     const confirmBtn = timedRow.locator('.timed-create-confirm-btn');
@@ -302,10 +302,14 @@ test.describe('compact viewport layout matrix', () => {
       ).toBeGreaterThanOrEqual(44);
     }
 
-    // 验证预计时长自动计算
+    // 验证预计是独立可编辑分钟；修改起止时间不自动填写它。
     await startTimeInput.fill('08:30');
     await endTimeInput.fill('10:00');
-    await expect(plannedDisplay).toContainText('1h30min');
+    await expect(plannedDisplay).toHaveValue('');
+    await plannedDisplay.fill('90');
+    await expect(timedRow.locator('.estimate-preview')).toHaveText('1h30min');
+    await endTimeInput.fill('11:00');
+    await expect(plannedDisplay).toHaveValue('90');
 
     // 2. 测试无时间待办移动端新增态紧凑单行结构
     const waitingPanel = page.locator('.waiting-panel');
@@ -315,7 +319,6 @@ test.describe('compact viewport layout matrix', () => {
     const quickRow = waitingPanel.locator('.quick-task-create-row');
     await expect(quickRow).toBeVisible();
 
-    const quickCheckbox = quickRow.locator('.quick-create-check-cell');
     const quickProject = quickRow.locator('.quick-create-project');
     const quickTitle = quickRow.locator('.quick-create-title');
     const quickCancel = quickRow.locator('.quick-create-cancel-btn');
@@ -323,11 +326,9 @@ test.describe('compact viewport layout matrix', () => {
 
     await expectElementWithinHorizontalViewport(page, quickRow, '无时间待办新增态卡片');
     await expectElementWithinHorizontalViewport(page, quickTitle, '待办内容输入框');
-    await expectElementsNotToOverlap(
-      quickCheckbox,
-      quickProject,
-      '待办 Checkbox 与项目',
-    );
+    const quickEstimate = quickRow.getByLabel('预计时长（分钟）');
+    await expectElementWithinHorizontalViewport(page, quickEstimate, '待安排预计');
+    await expectElementsNotToOverlap(quickTitle, quickEstimate, '任务内容与预计分钟');
     await expectElementsNotToOverlap(quickProject, quickTitle, '待办项目与待办内容');
     await expectElementsNotToOverlap(quickTitle, quickCancel, '待办内容与取消按钮');
     await expectElementsNotToOverlap(quickCancel, quickConfirm, '待办取消与保存按钮');

@@ -22,6 +22,8 @@ const localStorageKeys = [
   'threadline.workstation.v1',
   'threadline.workspace.v1',
   'threadline.rhythm.v1',
+  'threadline.test.rhythm.v1',
+  'threadline.test.periods.v1',
   'threadline.desktop-mode.v2',
   'threadline.desktop-mode-before-floating.v2',
   'threadline.desktop-mode.v3',

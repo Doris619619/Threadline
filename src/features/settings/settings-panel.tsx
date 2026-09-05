@@ -31,19 +31,23 @@ function SettingsRow({
   title,
   description,
   onClick,
+  value,
 }: {
   icon: typeof Cloud;
   title: string;
   description: string;
+  value?: string;
   onClick: () => void;
 }) {
   return (
     <button type="button" className="settings-row" onClick={onClick}>
-      <Icon aria-hidden="true" size={20} />
-      <span>
-        <b>{title}</b>
-        <small>{description}</small>
+      <span className="settings-icon">
+        <Icon aria-hidden="true" size={18} />
       </span>
+      <span title={description}>
+        <b>{title}</b>
+      </span>
+      <small className="settings-value">{value}</small>
       <ChevronRight aria-hidden="true" size={18} />
     </button>
   );
@@ -118,7 +122,9 @@ export function SettingsPanel({
       <SettingsDetail title="隐私" onBack={() => setSection('overview')}>
         <Surface className="settings-copy">
           <ShieldCheck aria-hidden="true" size={24} />
-          <p>业务数据按账号隔离；节律随账号同步，但不进入洞察、报告或记录搜索。</p>
+          <p>
+            业务数据按账号隔离；生理期起止记录随账号同步，仅当前账号可见，不进入洞察、报告或记录搜索。
+          </p>
           {identity && <p>当前登录账号：{identity.email}</p>}
           {cloudRuntime && (
             <button
@@ -257,6 +263,7 @@ export function SettingsPanel({
             icon={Info}
             title="关于 Threadline"
             description={`版本 ${threadlineAppVersion}`}
+            value={threadlineAppVersion}
             onClick={() => setSection('about')}
           />
         </Surface>

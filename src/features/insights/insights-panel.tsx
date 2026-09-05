@@ -8,8 +8,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -18,11 +16,11 @@ import {
 import { Surface } from '@/components/ui/surface';
 import { getMainDesktopBridge } from '@/lib/desktop-bridge';
 import { type AnalyticsInput, createAnalyticsResult } from '@/lib/analytics';
+import { buildInsightSummary } from './insight-summary';
 import { ReportDocument } from './report-document';
 import { buildReportData } from './report-builder';
 import {
   createLocalDateRange,
-  getPreviousEqualLengthRange,
   getPresetDateRange,
   type DateRangePreset,
 } from '@/lib/date-range';
@@ -36,7 +34,6 @@ function formatMinutes(minutes: number): string {
 
 /** 将范围内总偏差转为描述性文本，不把少用时间误称为效率提升。 */
 function formatDeviation(actual: number, planned: number): string {
-  if (planned === 0) return '暂无预计时长';
   const difference = actual - planned;
   return difference === 0
     ? '与预计一致'
@@ -71,10 +68,14 @@ export function InsightsPanel({
     () => new Map(analyticsInput.projects.map((project) => [project.id, project.name])),
     [analyticsInput.projects],
   );
+  const summary = useMemo(
+    () => buildInsightSummary({ ...analyticsInput, range }),
+    [analyticsInput, range],
+  );
   const title = `${range.start} 至 ${range.end}`;
   const report = useMemo(
-    () => buildReportData({ title, result, projectNames }),
-    [projectNames, result, title],
+    () => buildReportData({ title, result, projectNames, estimateComparison: summary }),
+    [projectNames, result, title, summary],
   );
   const trendData = result.days.map((day) => ({
     date: day.date.slice(5),
@@ -85,12 +86,8 @@ export function InsightsPanel({
     name: projectNames.get(project.projectId) ?? '已删除项目',
     minutes: project.actualMinutes,
   }));
-  const previous = createAnalyticsResult({
-    ...analyticsInput,
-    range: getPreviousEqualLengthRange(range),
-  });
-  const focusChanged =
-    result.projects[0]?.projectId !== previous.projects[0]?.projectId;
+  const projectTotal = distributionData.reduce((sum, item) => sum + item.minutes, 0);
+  const mainProject = result.projects.find((project) => project.actualMinutes > 0);
   /** Electron 由 Main 输出当前报告 DOM；Web/PWA 保留浏览器原生打印流程。 */
   const exportReport = async () => {
     const bridge = getMainDesktopBridge();
@@ -109,6 +106,7 @@ export function InsightsPanel({
             <button
               key={value}
               type="button"
+              aria-pressed={preset === value}
               className={preset === value ? 'is-active' : ''}
               onClick={() => setPreset(value)}
             >
@@ -121,16 +119,22 @@ export function InsightsPanel({
                 开始
                 <input
                   type="date"
+                  required
                   value={customStart}
-                  onChange={(event) => setCustomStart(event.target.value)}
+                  onChange={(event) =>
+                    event.target.value && setCustomStart(event.target.value)
+                  }
                 />
               </label>
               <label>
                 结束
                 <input
                   type="date"
+                  required
                   value={customEnd}
-                  onChange={(event) => setCustomEnd(event.target.value)}
+                  onChange={(event) =>
+                    event.target.value && setCustomEnd(event.target.value)
+                  }
                 />
               </label>
             </>
@@ -146,87 +150,139 @@ export function InsightsPanel({
           </button>
         </div>
       </header>
+      <p className="insights-range-label">{title}</p>
       <div className="insights-summary">
-        <Surface>
+        <Surface className="insight-primary">
           <span>实际投入</span>
           <strong>{formatMinutes(result.totalActualMinutes)}</strong>
-          <small>任务与 Daily 的已记录实际时长</small>
+          <small>任务与 Daily 已记录的时间</small>
         </Surface>
         <Surface>
-          <span>预计 vs 实际</span>
+          <span>普通任务完成</span>
           <strong>
-            {formatDeviation(result.totalActualMinutes, result.totalPlannedMinutes)}
+            {summary.total ? `${summary.completed} / ${summary.total}` : '暂无任务'}
           </strong>
-          <small>不将差异解释为效率</small>
+          <small>当前范围内的日程任务</small>
         </Surface>
         <Surface>
-          <span>项目重心</span>
+          <span>主要投入项目</span>
           <strong>
-            {projectNames.get(result.projects[0]?.projectId ?? '') ?? '暂无数据'}
+            {mainProject
+              ? (projectNames.get(mainProject.projectId) ?? '已删除项目')
+              : '暂无记录'}
           </strong>
           <small>
-            {focusChanged ? '较比较周期发生变化' : '与比较周期一致或暂无对照'}
+            {mainProject
+              ? formatMinutes(mainProject.actualMinutes)
+              : '记录实际耗时后显示'}
           </small>
         </Surface>
       </div>
       <div className="insights-charts">
         <Surface className="insight-chart">
           <header>
-            <h3>工作投入趋势</h3>
-            <span>{title}</span>
+            <h3>每日投入</h3>
+            <span>实际时间</span>
           </header>
-          {trendData.some((item) => item.actual || item.planned) ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis unit="m" />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="actual"
-                  name="实际"
-                  stroke="var(--accent)"
-                  strokeWidth={2}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="planned"
-                  name="预计"
-                  stroke="var(--text-tertiary)"
-                  strokeDasharray="4 4"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+          {trendData.some((item) => item.actual) ? (
+            <>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={trendData} margin={{ left: 0, right: 8 }}>
+                  <CartesianGrid vertical={false} stroke="var(--border-subtle)" />
+                  <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    axisLine={false}
+                    minTickGap={24}
+                    tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
+                  />
+                  <YAxis
+                    width={42}
+                    unit="m"
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
+                  />
+                  <Tooltip
+                    formatter={(value) => formatMinutes(Number(value))}
+                    contentStyle={{
+                      background: 'var(--surface)',
+                      color: 'var(--text-primary)',
+                      borderColor: 'var(--border)',
+                    }}
+                  />
+                  <Bar
+                    dataKey="actual"
+                    name="实际投入"
+                    fill="var(--accent)"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={28}
+                    isAnimationActive={false}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+              <details className="insight-values">
+                <summary>查看每日数值</summary>
+                <dl>
+                  {result.days.map((day) => (
+                    <div key={day.date}>
+                      <dt>{day.date}</dt>
+                      <dd>{formatMinutes(day.actualMinutes)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </details>
+            </>
           ) : (
-            <p className="empty-copy">填写实际或预计时长后，这里会显示趋势。</p>
+            <p className="empty-copy">
+              还没有记录实际耗时。完成任务后，记下投入的分钟数。
+            </p>
           )}
         </Surface>
         <Surface className="insight-chart">
           <header>
-            <h3>项目时间分布</h3>
-            <span>实际投入</span>
+            <h3>时间去了哪里</h3>
+            <span>普通任务项目</span>
           </header>
-          {distributionData.length ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={distributionData} layout="vertical" margin={{ left: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" unit="m" />
-                <YAxis dataKey="name" type="category" width={72} />
-                <Tooltip />
-                <Bar
-                  dataKey="minutes"
-                  name="实际投入"
-                  fill="var(--success)"
-                  radius={[4, 4, 4, 4]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+          {projectTotal > 0 ? (
+            <ul className="insight-projects">
+              {distributionData
+                .filter((item) => item.minutes > 0)
+                .map((item, index) => (
+                  <li key={`${index}-${item.name}`}>
+                    <div>
+                      <b>{item.name}</b>
+                      <span>
+                        {formatMinutes(item.minutes)}
+                        <small>
+                          {Math.round((item.minutes / projectTotal) * 100)}%
+                        </small>
+                      </span>
+                    </div>
+                    <div className="insight-project-track" aria-hidden="true">
+                      <i style={{ width: `${(item.minutes / projectTotal) * 100}%` }} />
+                    </div>
+                  </li>
+                ))}
+            </ul>
           ) : (
-            <p className="empty-copy">本范围尚无可可靠汇总的项目投入。</p>
+            <p className="empty-copy">为任务记录实际耗时后，这里会展示项目分布。</p>
           )}
         </Surface>
       </div>
+      <Surface className="insight-estimates">
+        <h3>预计与实际</h3>
+        <strong>
+          {summary.pairedCount
+            ? formatDeviation(summary.actual, summary.planned)
+            : '暂无足够数据'}
+        </strong>
+        <p>
+          {summary.pairedCount
+            ? `基于 ${summary.pairedCount} 项同时记录预计和实际的任务；预计 ${formatMinutes(summary.planned)}，实际 ${formatMinutes(summary.actual)}。`
+            : '同时填写预计与实际耗时后，再比较估时差异。'}
+        </p>
+      </Surface>
       <ReportDocument report={report} />
     </div>
   );
