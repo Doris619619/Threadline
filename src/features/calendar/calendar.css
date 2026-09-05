@@ -15,7 +15,7 @@
   margin: 0;
   font-size: var(--text-section-size);
   font-weight: var(--text-section-weight);
-  letter-spacing: -0.02em;
+  letter-spacing: normal;
 }
 
 .calendar-intro p {
@@ -48,7 +48,7 @@
   font-size: var(--text-page-size);
   font-weight: var(--text-page-weight);
   line-height: var(--text-page-leading);
-  letter-spacing: -0.03em;
+  letter-spacing: normal;
   text-align: center;
 }
 
@@ -96,7 +96,7 @@
 }
 
 .calendar-weekdays {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: var(--text-caption-size);
   font-weight: 600;
   text-align: center;
@@ -145,8 +145,8 @@
 .calendar-day small {
   display: block;
   margin-top: 3px;
-  color: var(--text-tertiary);
-  font-size: 0.68rem;
+  color: inherit;
+  font-size: 0.75rem;
   line-height: 1.2;
 }
 
@@ -177,12 +177,12 @@
 
 .calendar-day.is-outside,
 .rhythm-grid button.is-outside {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   background: var(--surface-secondary);
 }
 
 .calendar-day.is-outside > span {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 @media (max-width: 760px) {

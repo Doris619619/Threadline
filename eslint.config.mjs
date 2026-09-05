@@ -15,5 +15,7 @@ export default defineConfig([
     'node_modules/**',
     'coverage/**',
     'playwright-report/**',
+    'test-results/**',
+    '.tmp/**',
   ]),
 ]);

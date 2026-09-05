@@ -216,17 +216,20 @@ export function TaskLine({
         )}
       </>
     ) : (
-      <time
+      <button
+        type="button"
         className={cn(
           'timeline-time',
           'tl-clickable-cell',
           !task.plannedStartTime && 'is-pending-time',
         )}
         onClick={() => !interactionLocked && setEditingField('time')}
+        aria-label={`${task.title}具体时间`}
+        disabled={interactionLocked}
         title="点击直接修改时间（支持 08:30 或 08:30-10:00）"
       >
-        {timeDisplay || '—'}
-      </time>
+        <time>{timeDisplay || '—'}</time>
+      </button>
     ));
 
   const plannedNode =

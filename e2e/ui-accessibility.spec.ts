@@ -23,14 +23,10 @@ type AxeViolationBaseline = Readonly<Record<string, number>>;
  */
 const knownBlockingAxeBaseline: Readonly<Record<string, AxeViolationBaseline>> = {
   Workspace: {},
-  Calendar: {
-    'aria-required-children': 1,
-    'aria-required-parent': 42,
-    'color-contrast': 13,
-  },
+  Calendar: {},
   Projects: {},
   Settings: {},
-  '编辑任务 Dialog': { 'color-contrast': 1 },
+  '编辑任务 Dialog': {},
 };
 
 /** 将 axe 结果压缩为 rule id 到受影响节点数的映射，供稳定的 baseline 回归比较使用。 */
@@ -51,6 +47,10 @@ async function expectNoNewBlockingAxeViolations(page: Page, surface: string) {
     blockingImpacts.has(violation.impact ?? ''),
   );
   const actual = countAxeViolationNodes(blocking);
+  await test.info().attach(`axe-${surface}`, {
+    body: JSON.stringify(blocking),
+    contentType: 'application/json',
+  });
   const baseline = knownBlockingAxeBaseline[surface] ?? {};
   const regressed = Object.entries(actual).filter(
     ([rule, nodes]) => nodes > (baseline[rule] ?? 0),
@@ -68,7 +68,7 @@ async function expectNoNewBlockingAxeViolations(page: Page, surface: string) {
   ).toEqual([]);
   expect(
     resolved,
-    `${surface} 的已记录 axe 债务已减少，请下调 knownBlockingAxeBaseline：${resolved
+    `${surface} 的已记录 axe 债务已减少（${summary}），请下调 knownBlockingAxeBaseline：${resolved
       .map(([rule]) => rule)
       .join(', ')}`,
   ).toEqual([]);

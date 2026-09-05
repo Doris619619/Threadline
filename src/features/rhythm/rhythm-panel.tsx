@@ -192,7 +192,9 @@ export function RhythmPanel({ selectedDate }: { selectedDate: string }) {
         <div className="period-statistics">
           <div>
             <span>平均经期</span>
-            <strong>
+            <strong
+              className={summary.averageLength === undefined ? 'is-empty' : undefined}
+            >
               {summary.averageLength === undefined
                 ? '暂无足够记录'
                 : `${summary.averageLength} 天`}
@@ -201,7 +203,9 @@ export function RhythmPanel({ selectedDate }: { selectedDate: string }) {
           </div>
           <div>
             <span>平均开始间隔</span>
-            <strong>
+            <strong
+              className={summary.averageInterval === undefined ? 'is-empty' : undefined}
+            >
               {summary.averageInterval === undefined
                 ? '暂无足够记录'
                 : `${summary.averageInterval} 天`}

@@ -24,7 +24,7 @@
   color: var(--text-secondary);
   background: transparent;
   font: inherit;
-  font-size: 14px;
+  font-size: 0.875rem;
   cursor: pointer;
 }
 .insights-filters button.is-active {
@@ -39,7 +39,7 @@
   padding: 4px;
   min-width: 0;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .insights-filters input {
   min-width: 0;
@@ -61,7 +61,7 @@
 .insights-range-label {
   margin: -4px 0 0;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .insights-summary {
   display: grid;
@@ -78,22 +78,23 @@
 }
 .insights-summary span {
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .insights-summary strong {
-  font-size: 24px;
+  font-size: 1.5rem;
+  font-weight: 600;
   line-height: 1.2;
-  letter-spacing: -0.03em;
+  letter-spacing: normal;
   overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
 }
 .insights-summary small {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .insight-primary strong {
   color: var(--accent-text);
-  font-size: 32px;
+  font-size: 2rem;
 }
 .insights-charts {
   display: grid;
@@ -113,14 +114,15 @@
   gap: 8px;
   margin-bottom: 16px;
 }
-.insight-chart h3,
-.insight-estimates h3 {
-  font-size: 16px;
+.insight-chart h2,
+.insight-estimates h2 {
+  font-size: var(--text-section-size);
+  font-weight: 600;
   margin: 0;
 }
 .insight-chart header span {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .insight-projects {
   list-style: none;
@@ -135,7 +137,8 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 8px;
-  font-size: 14px;
+  font-size: var(--text-body-size);
+  flex-wrap: wrap;
 }
 .insight-projects b {
   font-weight: 500;
@@ -166,7 +169,7 @@
 }
 .insight-values {
   margin-top: 8px;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .insight-values summary {
   min-height: 44px;
@@ -194,19 +197,19 @@
   box-shadow: none;
 }
 .insight-estimates strong {
-  font-size: 17px;
+  font-size: 1.0625rem;
   font-weight: 500;
 }
 .insight-estimates p {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--text-secondary);
   line-height: 1.5;
 }
 .insights-panel .empty-copy {
   margin: 8px 0;
   line-height: 1.5;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 @media (max-width: 760px) {
   .insights-toolbar {
@@ -237,13 +240,13 @@
     padding: 16px;
   }
   .insights-summary strong {
-    font-size: 21px;
+    font-size: 1.3125rem;
   }
   .insights-summary .insight-primary {
     grid-column: 1 / -1;
   }
   .insight-primary strong {
-    font-size: 32px;
+    font-size: 2rem;
   }
   .insight-chart {
     padding: 16px;

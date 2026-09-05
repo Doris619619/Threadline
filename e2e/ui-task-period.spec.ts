@@ -1,5 +1,6 @@
 /** @fileoverview 跨手机与桌面验收独立预计、生理期完整记录流程，并保留可审阅页面截图。 */
 import { expect, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import {
   bootstrapLocalAdapterWorkspace,
   openWorkspaceSection,
@@ -9,6 +10,71 @@ import { expectNoUnexpectedHorizontalOverflow } from './support/layout';
 test.beforeEach(async ({ page }, info) => {
   await bootstrapLocalAdapterWorkspace(page, `period-ui-${info.testId}`);
 });
+
+/** 用实际计算样式和 200% 根字号验证可读性；模拟文字放大不能替代真机 Dynamic Type 验收。 */
+for (const [label, selector, image] of [
+  ['首页', '.dashboard', 'home'],
+  ['洞察', '.insights-panel', 'insights'],
+  ['设置', '.settings-panel', 'settings'],
+  ['节律', '.rhythm-panel', 'rhythm'],
+]) {
+  test(`system typography: ${image} remains readable at twice the text size`, async ({
+    page,
+  }, info) => {
+    const mobile = (page.viewportSize()?.width ?? 1440) <= 760;
+    const font = await page.locator('body').evaluate((el) => ({
+      family: getComputedStyle(el).fontFamily,
+      size: parseFloat(getComputedStyle(el).fontSize),
+      weight: getComputedStyle(el).fontWeight,
+    }));
+    expect(font.family).toContain('-apple-system');
+    expect(font.size).toBeGreaterThanOrEqual(mobile ? 17 : 15);
+    expect(font.weight).toBe('400');
+    await openWorkspaceSection(page, label);
+    await expect(page.locator(selector)).toBeVisible();
+    await expectNoUnexpectedHorizontalOverflow(page);
+    expect(
+      (await new AxeBuilder({ page }).include(selector).analyze()).violations,
+    ).toEqual([]);
+    await page.screenshot({
+      path: info.outputPath(`${image}-typography.png`),
+      fullPage: true,
+    });
+    await page.emulateMedia({ colorScheme: 'dark' });
+    expect(
+      (await new AxeBuilder({ page }).include(selector).analyze()).violations,
+    ).toEqual([]);
+    await page.screenshot({
+      path: info.outputPath(`${image}-dark.png`),
+      fullPage: true,
+    });
+    if (image === 'insights') {
+      await page.emulateMedia({ media: 'print', colorScheme: 'dark' });
+      await expect(page.locator('.report-document')).toBeVisible();
+      await expect(page.locator('body')).toHaveCSS(
+        'background-color',
+        'rgb(255, 255, 255)',
+      );
+      await expect(page.locator('.report-document')).toHaveCSS(
+        'color',
+        'rgb(17, 17, 17)',
+      );
+      await page.emulateMedia({ media: 'screen' });
+    }
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%';
+    });
+    await expectNoUnexpectedHorizontalOverflow(page);
+    await page.screenshot({
+      path: info.outputPath(`${image}-large-text.png`),
+      fullPage: true,
+    });
+    await page.evaluate(() => {
+      document.documentElement.style.removeProperty('font-size');
+    });
+  });
+}
 
 test('independent estimates persist through schedule and waiting; compact pages stay readable', async ({
   page,
@@ -95,6 +161,12 @@ test('period start, end, backfill, edit, delete and offline retry use real form 
   expect(dateTarget!.width).toBeGreaterThanOrEqual(44);
   expect(dateTarget!.height).toBeGreaterThanOrEqual(44);
   await page.screenshot({ path: info.outputPath('rhythm.png'), fullPage: true });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  expect(
+    (await new AxeBuilder({ page }).include('.rhythm-panel').analyze()).violations,
+  ).toEqual([]);
+  await page.screenshot({ path: info.outputPath('rhythm-dark.png'), fullPage: true });
+  await page.emulateMedia({ colorScheme: 'light' });
   await page
     .locator('.period-history li')
     .filter({ hasText: '2026-07-29' })

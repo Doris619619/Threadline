@@ -41,7 +41,7 @@ export function WaitingTaskRow({
       <button type="button" className="waiting-task-main" onClick={onEdit}>
         {project && <ProjectTag name={project.name} color={project.color} />}
         <span className="waiting-task-title">
-          {task.title}
+          <span>{task.title}</span>
           <small className="waiting-estimate">
             {' '}
             · {formatEstimate(task.plannedDurationMinutes)}

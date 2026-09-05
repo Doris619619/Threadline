@@ -181,7 +181,7 @@ export function InsightsPanel({
       <div className="insights-charts">
         <Surface className="insight-chart">
           <header>
-            <h3>每日投入</h3>
+            <h2>每日投入</h2>
             <span>实际时间</span>
           </header>
           {trendData.some((item) => item.actual) ? (
@@ -241,7 +241,7 @@ export function InsightsPanel({
         </Surface>
         <Surface className="insight-chart">
           <header>
-            <h3>时间去了哪里</h3>
+            <h2>时间去了哪里</h2>
             <span>普通任务项目</span>
           </header>
           {projectTotal > 0 ? (
@@ -271,7 +271,7 @@ export function InsightsPanel({
         </Surface>
       </div>
       <Surface className="insight-estimates">
-        <h3>预计与实际</h3>
+        <h2>预计与实际</h2>
         <strong>
           {summary.pairedCount
             ? formatDeviation(summary.actual, summary.planned)

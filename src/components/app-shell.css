@@ -242,7 +242,7 @@
   font-size: var(--text-page-size);
   font-weight: var(--text-page-weight);
   line-height: var(--text-page-leading);
-  letter-spacing: -0.03em;
+  letter-spacing: normal;
 }
 
 .tl-header p {

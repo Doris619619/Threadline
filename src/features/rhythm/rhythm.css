@@ -1,6 +1,7 @@
 /** @fileoverview 生理期记录的状态、连续月历、历史列表与短表单，使用语义色适配现有主题。 */
 .rhythm-panel {
   --period-color: #b53c52;
+  --period-fill: #b53c52;
   --period-soft: #fff0f2;
   max-width: 720px;
   align-content: start;
@@ -14,25 +15,27 @@
   align-items: center;
   gap: 8px;
   color: var(--period-color);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .period-status-label time {
   margin-left: auto;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;
 }
 .period-status h2 {
-  font-size: 28px;
+  font-size: 1.5rem;
+  font-weight: 600;
   margin: 16px 0 8px;
   line-height: 1.3;
 }
 .period-status p {
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .period-status-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   margin-top: 20px;
 }
@@ -49,7 +52,7 @@
   background: var(--surface);
   color: var(--accent-text);
   font: inherit;
-  font-size: 15px;
+  font-size: 0.9375rem;
   cursor: pointer;
 }
 button.period-save {
@@ -80,7 +83,7 @@ button.period-save {
 .rhythm-weekdays {
   margin-bottom: 8px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
   text-align: center;
 }
 .rhythm-grid button {
@@ -93,7 +96,7 @@ button.period-save {
   background: transparent;
   color: var(--text-primary);
   font: inherit;
-  font-size: 15px;
+  font-size: var(--text-body-size);
   cursor: pointer;
 }
 .rhythm-calendar header .rhythm-today {
@@ -101,7 +104,7 @@ button.period-save {
   min-width: 44px;
   color: var(--accent-text);
   font: inherit;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .rhythm-grid button > span {
   display: inline-grid;
@@ -113,13 +116,13 @@ button.period-save {
 .rhythm-grid button.is-start > span,
 .rhythm-grid button.is-end > span {
   color: white;
-  background: var(--period-color);
+  background: var(--period-fill);
 }
 .rhythm-grid button small {
   display: block;
-  min-height: 14px;
-  font-size: 10px;
-  line-height: 14px;
+  min-height: 1.25em;
+  font-size: 0.75rem;
+  line-height: 1.25;
 }
 .rhythm-grid button.is-period {
   background: var(--period-soft);
@@ -152,7 +155,7 @@ button.period-save {
 .period-legend,
 .period-privacy {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.5;
   margin: 12px 0 0;
 }
@@ -186,7 +189,8 @@ button.period-save {
   margin-top: 0;
 }
 .period-history h2 {
-  font-size: 17px;
+  font-size: var(--text-section-size);
+  font-weight: 600;
   margin: 0 0 16px;
 }
 .period-statistics {
@@ -203,11 +207,16 @@ button.period-save {
 .period-statistics span,
 .period-statistics small {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .period-statistics strong {
   font-weight: 600;
-  font-size: 19px;
+  font-size: 1.1875rem;
+}
+.period-statistics strong.is-empty {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-secondary);
 }
 .period-history ul {
   padding: 0;
@@ -229,7 +238,8 @@ button.period-save {
   color: var(--text-primary);
   text-align: left;
   font: inherit;
-  font-size: 15px;
+  font-size: var(--text-body-size);
+  flex-wrap: wrap;
   cursor: pointer;
 }
 .period-history li button > span {
@@ -239,11 +249,11 @@ button.period-save {
   display: block;
   margin-top: 4px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .period-history li b {
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 500;
 }
 .period-form {
@@ -255,7 +265,7 @@ button.period-save {
   gap: 8px;
   min-width: 0;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .period-form input {
   width: 100%;
@@ -267,7 +277,7 @@ button.period-save {
   background: var(--surface);
   color: var(--text-primary);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--mobile-form-control-font-size);
 }
 .period-form footer {
   display: flex;
@@ -283,11 +293,18 @@ button.period-save {
   border: 0;
   padding: 0;
   justify-content: flex-start;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .period-error {
   color: var(--danger) !important;
   overflow-wrap: anywhere;
+}
+@media (prefers-color-scheme: dark) {
+  .rhythm-panel {
+    --period-color: #f19daf;
+    --period-fill: #a7324b;
+    --period-soft: #38222a;
+  }
 }
 @media (max-width: 760px) {
   .rhythm-panel .tl-surface {

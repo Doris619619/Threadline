@@ -716,6 +716,9 @@
 
 .timeline-time {
   display: block;
+  border: 0;
+  background: transparent;
+  text-align: left;
   grid-area: time;
   font-size: var(--text-secondary-size);
   color: var(--text-secondary);
@@ -1061,9 +1064,9 @@
     display: block;
     width: 100%;
     min-width: 0;
-    font-size: 0.9375rem;
-    font-weight: 550;
-    line-height: 1.35;
+    font-size: var(--text-body-size);
+    font-weight: var(--text-body-weight);
+    line-height: 1.4;
     color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1616,7 +1619,7 @@
     grid-row: 1;
   }
   .timeline-row .task-time-details {
-    grid-column: 2 / -1;
+    grid-column: 1 / -1;
     grid-row: 2;
     display: flex;
     align-items: center;
@@ -1628,13 +1631,16 @@
     padding: 0;
     background: transparent;
     white-space: nowrap;
-    font-size: 12px;
+    font-size: var(--text-caption-size);
+    font-weight: 400;
     min-height: 44px;
+    min-width: 44px;
   }
   .timeline-row .task-duration {
     white-space: nowrap;
-    font-size: 12px;
+    font-size: var(--text-caption-size);
     min-height: 44px;
+    min-width: 44px;
   }
   .timeline-row .duration-desktop {
     display: none;

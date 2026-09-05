@@ -221,7 +221,7 @@ export function SettingsPanel({
         </Surface>
       )}
       <section className="settings-group" aria-labelledby="settings-general">
-        <h3 id="settings-general">通用</h3>
+        <h2 id="settings-general">通用</h2>
         <Surface>
           {isNativeDesktop && (
             <SettingsRow
@@ -240,7 +240,7 @@ export function SettingsPanel({
         </Surface>
       </section>
       <section className="settings-group" aria-labelledby="settings-privacy">
-        <h3 id="settings-privacy">隐私与数据</h3>
+        <h2 id="settings-privacy">隐私与数据</h2>
         <Surface>
           <SettingsRow
             icon={ShieldCheck}
@@ -257,7 +257,7 @@ export function SettingsPanel({
         </Surface>
       </section>
       <section className="settings-group" aria-labelledby="settings-about">
-        <h3 id="settings-about">关于</h3>
+        <h2 id="settings-about">关于</h2>
         <Surface>
           <SettingsRow
             icon={Info}

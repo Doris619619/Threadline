@@ -8,6 +8,7 @@
 
 - **Web / PWA**：Next.js App Router 应用，成功在线打开后预缓存应用壳与当前 Next 静态资源，支持断网重开。
 - **Windows 桌面版**：Electron 打包同一套前端；不维护第二套 UI 或业务逻辑。
+- **字体与外观**：优先使用设备系统字体（iOS 的 SF 与中文系统回退），手机正文 17px、页面标题 28px；字体可随浏览器文字设置放大，浅色/深色外观跟随系统。没有打包或下载 Apple 字体文件，真机 Dynamic Type 与捏合缩放仍单独验收。
 - **数据层**：Supabase 是任务、项目、Daily、历史、工作站与 Rhythm 的唯一业务真源；未配置时显示明确门禁，不回退本地业务数据。Annotation 笔迹、高亮颜色和窗口 UI 状态仍仅保存在设备上。
 - **启动状态**：登录恢复、`initialize_workspace`、工作区 queries/本机 hydration 与 Supabase Realtime 分别映射为四个真实阶段；数据完成后工作台可用，Realtime 连接失败只给出非阻塞提示，不伪造订阅成功。
 

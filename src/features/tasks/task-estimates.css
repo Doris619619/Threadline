@@ -11,7 +11,7 @@
   display: grid;
   gap: 6px;
   min-width: 0;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--text-secondary);
 }
 .estimate-field input {
@@ -21,7 +21,7 @@
   min-height: 44px;
   padding: 6px 10px;
   font: inherit;
-  font-size: 16px;
+  font-size: 1rem;
   color: var(--text-primary);
   background: var(--surface);
   border: 1px solid var(--border-strong);
@@ -32,7 +32,7 @@
   min-height: 44px;
   align-items: center;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
   white-space: nowrap;
 }
 .estimate-field button {
@@ -44,7 +44,7 @@
   color: var(--accent-text);
   background: var(--accent-soft);
   font: inherit;
-  font-size: 13px;
+  font-size: 0.8125rem;
   cursor: pointer;
 }
 .timed-create-planned-cell .estimate-field {
@@ -56,7 +56,7 @@
 .compact-task-label .compact-estimate {
   flex-shrink: 0;
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: 0.75rem;
 }
 .quick-task-create-row > .estimate-field {
   flex-basis: 100%;
@@ -73,7 +73,7 @@
   .timed-create-planned-cell .estimate-field input {
     min-height: 28px;
     padding: 2px 4px;
-    font-size: 13px;
+    font-size: 0.8125rem;
   }
   .timed-create-planned-cell .estimate-field button {
     min-height: 24px;

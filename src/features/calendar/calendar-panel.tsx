@@ -88,7 +88,7 @@ export function CalendarPanel({
         </div>
         <div
           className="calendar-grid"
-          role="grid"
+          role="group"
           aria-label={`${monthLabel}项目投入热力`}
         >
           {grid.map((date) => {
@@ -100,7 +100,7 @@ export function CalendarPanel({
               <button
                 type="button"
                 key={date}
-                role="gridcell"
+                aria-pressed={date === selectedDate}
                 aria-label={label}
                 title={label}
                 data-heat={getHeatLevel(heatCount)}

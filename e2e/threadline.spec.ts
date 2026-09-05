@@ -77,7 +77,7 @@ test('gives every workspace destination a distinct working page', async ({ page 
 
   await openWorkspaceSection(page, '洞察');
   await expect(page.getByTestId('insights-panel')).toBeVisible();
-  await expect(page.getByText('工作投入趋势')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '每日投入' })).toBeVisible();
 
   await openWorkspaceSection(page, '节律');
   await expect(page.getByTestId('rhythm-panel')).toBeVisible();
@@ -126,7 +126,7 @@ test('keeps the calendar anchor synchronized with selected dates and today', asy
   await page.getByRole('button', { name: '上个月' }).click();
   await expect(page.getByRole('heading', { name: '2026年7月' })).toBeVisible();
 
-  await page.getByRole('gridcell', { name: /^2026-08-01：/ }).click();
+  await page.getByRole('button', { name: /^2026-08-01：/ }).click();
   await expect(page.getByRole('heading', { name: '2026年8月' })).toBeVisible();
 
   await page.getByRole('button', { name: '今天' }).click();
@@ -219,6 +219,7 @@ test.describe('desktop task drag scheduling', () => {
   });
 });
 
+/** 只填时段不推算预计；随后显式预计可独立编辑并持久化。 */
 test('creates a timed task from explicit start and end time inputs', async ({
   page,
 }) => {
@@ -228,9 +229,15 @@ test('creates a timed task from explicit start and end time inputs', async ({
   await schedule.getByLabel('结束时间').fill('15:30');
   await schedule.getByPlaceholder('任务名称（按 Enter 保存）').fill('整理研究笔记');
   await schedule.getByTitle('保存任务').click();
-  await expect(
-    page.locator('.timeline-row').filter({ hasText: '整理研究笔记' }),
-  ).toContainText('1h10min');
+  const row = page.locator('.timeline-row').filter({ hasText: '整理研究笔记' });
+  await expect(row.locator('.timeline-time')).toHaveText('14:20–15:30');
+  await expect(row.locator('.task-duration-planned')).toContainText('待定');
+  await row.locator('.task-duration-planned').click();
+  await row.getByLabel('预计时长（分钟）').fill('45');
+  await row.getByLabel('预计时长（分钟）').press('Enter');
+  await page.reload();
+  await expect(row.locator('.task-duration-planned')).toContainText('45min');
+  await expect(row.locator('.timeline-time')).toHaveText('14:20–15:30');
 });
 
 test('creates a waiting task from the inline waiting row', async ({ page }) => {
@@ -247,6 +254,7 @@ test('formats actual minutes on a timed task', async ({ page }) => {
   await schedule.getByRole('button', { name: '添加', exact: true }).click();
   await schedule.getByLabel('开始时间').fill('12:00');
   await schedule.getByLabel('结束时间').fill('13:30');
+  await schedule.getByLabel('预计时长（分钟）').fill('90');
   await schedule.getByPlaceholder('任务名称（按 Enter 保存）').fill('标注访谈记录');
   await schedule.getByPlaceholder('实际耗时').fill('90');
   await schedule.getByTitle('保存任务').click();
@@ -432,7 +440,7 @@ test('keeps all timed task creation controls visible in a compact desktop schedu
   await schedule.getByRole('button', { name: '添加', exact: true }).click();
   const taskInput = schedule.getByPlaceholder('任务名称（按 Enter 保存）');
   const projectSelect = schedule.locator('.project-inline-select');
-  const plannedInput = schedule.getByPlaceholder('45min');
+  const plannedInput = schedule.getByLabel('预计时长（分钟）');
   const actualInput = schedule.getByPlaceholder('实际耗时');
   const plannedHeading = schedule.locator('.timeline-col-planned');
   const actualHeading = schedule.locator('.timeline-col-actual');
@@ -750,8 +758,8 @@ test('keeps postponed work in the original date task denominator', async ({ page
 
 test('shows task and daily data in unified insight periods', async ({ page }) => {
   await openWorkspaceSection(page, '洞察');
-  await expect(page.getByText('工作投入趋势')).toBeVisible();
-  await expect(page.getByText('项目时间分布')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '每日投入' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '时间去了哪里' })).toBeVisible();
   await page.getByRole('button', { name: '本月', exact: true }).click();
   await expect(page.getByText('实际投入', { exact: true }).first()).toBeVisible();
 });

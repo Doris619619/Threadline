@@ -3,13 +3,21 @@
  */
 
 @media print {
+  html,
+  body {
+    background: #fff !important;
+    color: #111;
+    color-scheme: light;
+  }
   .tl-sidebar,
   .tl-header,
   .full-window-chrome,
   .insights-toolbar,
   .insights-filters,
   .insights-summary,
-  .insights-charts {
+  .insights-charts,
+  .insights-range-label,
+  .insight-estimates {
     display: none !important;
   }
   .tl-main {
@@ -46,4 +54,3 @@
     text-align: left;
   }
 }
-
