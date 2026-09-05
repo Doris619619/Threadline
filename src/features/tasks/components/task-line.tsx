@@ -276,21 +276,26 @@ export function TaskLine({
         onBlur={(e) => saveActual(e.currentTarget.value)}
       />
     ) : (
-      <span
+      <button
+        type="button"
         className="task-duration task-duration-actual tl-clickable-cell"
+        aria-label={task.title + '实际耗时'}
+        disabled={interactionLocked}
         onClick={() => setEditingField('actual')}
         title="点击直接输入实际时长（如 30min 或 1h20min）"
       >
-        <span className="task-duration-prefix">实际 </span>
-        <span className="duration-desktop">
-          {formatMinutes(task.actualDurationMinutes)}
-        </span>
-        <span className="duration-mobile">
-          {task.actualDurationMinutes === undefined
-            ? '—'
-            : task.actualDurationMinutes + '分'}
-        </span>
-      </span>
+        {task.actualDurationMinutes === undefined ? (
+          <span className="duration-empty">记耗时</span>
+        ) : (
+          <>
+            <span className="task-duration-prefix">实际 </span>
+            <span className="duration-desktop">
+              {formatMinutes(task.actualDurationMinutes)}
+            </span>
+            <span className="duration-mobile">{task.actualDurationMinutes + '分'}</span>
+          </>
+        )}
+      </button>
     ));
 
   const projectNode = (

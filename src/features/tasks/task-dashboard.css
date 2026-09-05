@@ -1703,3 +1703,19 @@
     min-height: 44px;
   }
 }
+
+/* 未填写实际分钟时提供真实的编辑入口，不用破折号占位。 */
+button.task-duration-actual {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+}
+.duration-empty {
+  color: var(--accent-text);
+}
+button.task-duration-actual:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}

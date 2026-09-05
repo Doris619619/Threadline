@@ -40,7 +40,7 @@ function ActualMinutes({
         min="0"
         step="1"
         value={value}
-        placeholder="—"
+        placeholder="填写"
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}
       />
@@ -60,6 +60,8 @@ export function DailyExecutionRow({
 }) {
   const { draft, edit, save, saving, error } = useDailyExecution(daily, date, onSave);
   const hasChildren = draft.daily.children.length > 0;
+  const hasActual =
+    draft.actual !== '' || draft.childrenActual.some((value) => value !== '');
   const total =
     (Number(draft.actual) || 0) +
     draft.childrenActual.reduce((sum, value) => sum + (Number(value) || 0), 0);
@@ -87,10 +89,12 @@ export function DailyExecutionRow({
           </div>
         </div>
         {hasChildren ? (
-          <span className="daily-actual-total">
-            <span>实际 · 分钟</span>
-            <strong>{total || '—'}</strong>
-          </span>
+          hasActual && (
+            <span className="daily-actual-total">
+              <span>实际 · 分钟</span>
+              <strong>{total}</strong>
+            </span>
+          )
         ) : (
           <ActualMinutes
             label={daily.title + '实际耗时'}
