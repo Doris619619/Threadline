@@ -1,3 +1,5 @@
+/** @fileoverview 提供本地工作区与键值存储仓储，并隔离 Preview 演示数据。 */
+import { workspaceStorageKey } from '@/lib/workspace-runtime';
 import type {
   CloseRecord,
   DailyDefinition,
@@ -62,7 +64,9 @@ export class LocalStorageWorkspaceRepository implements WorkspaceRepository {
 }
 
 export class LocalStorageStateRepository implements PersistentStateRepository {
+  /** 读取当前运行模式的键；无效 JSON 只清理该命名空间下的记录。 */
   async read<T>(key: string): Promise<T | undefined> {
+    key = workspaceStorageKey(key);
     const raw = window.localStorage.getItem(key);
     if (!raw) return undefined;
     try {
@@ -73,12 +77,14 @@ export class LocalStorageStateRepository implements PersistentStateRepository {
     }
   }
 
+  /** 演示数据只写入演示命名空间，不覆盖旧本地记录。 */
   async write<T>(key: string, value: T) {
-    window.localStorage.setItem(key, JSON.stringify(value));
+    window.localStorage.setItem(workspaceStorageKey(key), JSON.stringify(value));
   }
 
+  /** 只删除当前运行模式下指定的键。 */
   async remove(key: string) {
-    window.localStorage.removeItem(key);
+    window.localStorage.removeItem(workspaceStorageKey(key));
   }
 }
 

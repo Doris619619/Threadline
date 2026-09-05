@@ -22,6 +22,7 @@ export type TimedTaskCreateDraft = {
 
 /** 无时间待办新增行的全部可恢复输入字段。 */
 export type QuickTaskCreateDraft = {
+  importance: 'important' | 'normal';
   completed: boolean;
   isAddingProject: boolean;
   projectId: string;
@@ -40,7 +41,9 @@ const initialTimedDraft = (projectId: string): TimedTaskCreateDraft => ({
   startTime: '',
   title: '',
 });
+/** 新草稿以普通分类初始化，具体添加入口会指定本次所属分组。 */
 const initialQuickDraft = (projectId: string): QuickTaskCreateDraft => ({
+  importance: 'normal',
   completed: false,
   isAddingProject: false,
   projectId,
@@ -69,8 +72,12 @@ export function useTaskCreateDrafts() {
     updateTimedDraft({ projectId });
     setTimedOpen(true);
   };
-  const openQuick = (projectId: string) => {
-    updateQuickDraft({ projectId });
+  /** 从对应分类打开新增行，保留标题草稿并切换明确的分类归属。 */
+  const openQuick = (
+    projectId: string,
+    importance: 'important' | 'normal' = 'normal',
+  ) => {
+    updateQuickDraft({ projectId, importance });
     setQuickOpen(true);
   };
 

@@ -47,6 +47,89 @@ test.describe('compact viewport layout matrix', () => {
     );
   });
 
+  test('shows every Daily field with full names and iOS touch targets', async ({
+    page,
+  }, info) => {
+    const longName = '完成一道动态规划题并完整记录状态转移方程和解题思路';
+    await page.evaluate((title) => {
+      const daily = {
+        id: 'layout-daily',
+        title: '算法训练',
+        actual: 0,
+        completed: false,
+        result: '',
+        children: [
+          {
+            id: 'layout-one',
+            title,
+            plannedDurationMinutes: 30,
+            completed: false,
+            actual: 0,
+          },
+          {
+            id: 'layout-two',
+            title: '复盘昨天的错题',
+            plannedDurationMinutes: 20,
+            completed: false,
+            actual: 0,
+          },
+        ],
+      };
+      localStorage.setItem(
+        'threadline.daily-by-date.v1',
+        JSON.stringify({ '2026-08-23': [daily] }),
+      );
+      localStorage.setItem('threadline.daily-templates.v1', JSON.stringify([daily]));
+    }, longName);
+    await page.reload();
+    const daily = page.getByRole('region', { name: 'Daily 算法训练', exact: true });
+    await expect(daily.getByText(longName, { exact: true })).toBeVisible();
+    await expect(daily.getByText('预计 30 分钟', { exact: true })).toBeVisible();
+    await expect(daily.getByText('预计 50 分钟', { exact: true })).toBeVisible();
+    await expect(daily.locator('textarea')).toHaveCount(0);
+    await expect(daily.getByRole('spinbutton')).toHaveCount(2);
+    await expect(daily.locator('details, [aria-expanded]')).toHaveCount(0);
+    for (const name of await daily
+      .locator('.daily-parent-title, .daily-child-name')
+      .all()) {
+      const dimensions = await name.evaluate((element) => ({
+        scrollWidth: element.scrollWidth,
+        clientWidth: element.clientWidth,
+        scrollHeight: element.scrollHeight,
+        clientHeight: element.clientHeight,
+      }));
+      expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth + 1);
+      expect(dimensions.scrollHeight).toBeLessThanOrEqual(dimensions.clientHeight + 1);
+    }
+    for (const circle of await daily.locator('.daily-check').all()) {
+      const box = (await circle.boundingBox())!;
+      expect(box.width).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+    }
+    for (const input of await daily.locator('input[type=number], textarea').all()) {
+      await expectElementWithinHorizontalViewport(page, input, 'Daily 输入');
+      expect(
+        await input.evaluate((element) =>
+          parseFloat(getComputedStyle(element).fontSize),
+        ),
+      ).toBeGreaterThanOrEqual(16);
+    }
+    const firstInput = daily.getByLabel('算法训练 ' + longName + '实际耗时');
+    await firstInput.fill('18');
+    await daily.getByRole('checkbox', { name: '完成 ' + longName }).check();
+    await expect(
+      daily.getByRole('checkbox', { name: '完成 Daily 算法训练' }),
+    ).toBeChecked();
+    await expect(daily.locator('.daily-actual-total strong')).toHaveText('18');
+    await expectNoUnexpectedHorizontalOverflow(page);
+    await page.screenshot({ path: info.outputPath('daily-home.png'), fullPage: true });
+    await page.reload();
+    await expect(firstInput).toHaveValue('18');
+    await expect(
+      daily.getByRole('checkbox', { name: '完成 Daily 算法训练' }),
+    ).toBeChecked();
+  });
+
   test('keeps the home shell, title, and seeded task usable', async ({
     page,
   }, testInfo) => {
@@ -226,7 +309,9 @@ test.describe('compact viewport layout matrix', () => {
 
     // 2. 测试无时间待办移动端新增态紧凑单行结构
     const waitingPanel = page.locator('.waiting-panel');
-    await waitingPanel.getByRole('button', { name: '添加', exact: true }).click();
+    await waitingPanel
+      .getByRole('button', { name: '添加普通事项', exact: true })
+      .click();
     const quickRow = waitingPanel.locator('.quick-task-create-row');
     await expect(quickRow).toBeVisible();
 
@@ -273,18 +358,15 @@ test.describe('compact viewport layout matrix', () => {
     await expect(seededTimelineRow.locator('.task-workstation-action')).toBeHidden();
 
     const checkWrap = seededTimelineRow.locator('.task-check-wrap');
-    const contentWrap = seededTimelineRow.locator('.task-content-wrap');
     const actionsCell = seededTimelineRow.locator('.task-actions-cell');
-    await expectElementsNotToOverlap(
-      checkWrap,
-      contentWrap,
-      'Checkbox 触控区与任务内容',
-    );
-    await expectElementsNotToOverlap(
-      contentWrap,
-      actionsCell,
-      '任务内容与更多操作按钮',
-    );
+    // display:contents 不生成盒子；逐一检查真正渲染的内容，保留不重叠的原约束。
+    for (const content of await seededTimelineRow
+      .locator('.task-title, .task-project-cell, .timeline-time, .task-duration')
+      .all()) {
+      await expectElementsNotToOverlap(checkWrap, content, 'Checkbox 触控区与任务内容');
+      await expectElementsNotToOverlap(content, actionsCell, '任务内容与更多操作按钮');
+      await expectElementWithinHorizontalViewport(page, content, '日程内容');
+    }
 
     const checkWrapBox = (await checkWrap.boundingBox())!;
     expect(checkWrapBox.width).toBeGreaterThanOrEqual(44);

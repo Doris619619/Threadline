@@ -25,7 +25,9 @@ export function WaitingTaskCreateRow({
   onCreate: (
     draft: QuickTaskDraft,
   ) => Promise<
-    { cancelled: boolean; task?: undefined } | { task: unknown; cancelled?: undefined }
+    | { cancelled: boolean; task?: undefined }
+    | { task: unknown; cancelled?: undefined }
+    | { error: string }
   >;
   onCreateProject: (name: string) => Promise<Project>;
   onChange: (patch: Partial<QuickTaskCreateDraft>) => void;
@@ -47,9 +49,11 @@ export function WaitingTaskCreateRow({
     try {
       const result = await onCreate({
         projectId: draft.projectId,
+        importance: draft.importance,
         title: draft.title,
       });
       if ('cancelled' in result) return onClose();
+      if ('error' in result) throw new Error(result.error);
       onReset();
       onClose();
     } catch (error) {
@@ -62,7 +66,10 @@ export function WaitingTaskCreateRow({
   return (
     <div className="quick-task-row quick-task-row-adding quick-task-create-row">
       <div className="task-check-wrap quick-create-check-cell" aria-hidden="true" />
-      <div className="task-project-cell quick-create-project" style={{ position: 'relative' }}>
+      <div
+        className="task-project-cell quick-create-project"
+        style={{ position: 'relative' }}
+      >
         <select
           className="tl-inline-select project-inline-select"
           value={draft.projectId}
@@ -117,7 +124,8 @@ export function WaitingTaskCreateRow({
       </div>
       <input
         className="tl-inline-input task-title-input quick-create-title"
-        placeholder="待办内容（按 Enter 保存）"
+        aria-label={draft.importance === 'important' ? '重要事项内容' : '普通事项内容'}
+        placeholder="事项内容"
         value={draft.title}
         autoFocus
         onChange={(event) => onChange({ title: event.target.value })}
@@ -145,7 +153,11 @@ export function WaitingTaskCreateRow({
           <Check size={15} />
         </button>
       </div>
-      {saveError && <span className="timeline-inline-error" role="alert">{saveError}</span>}
+      {saveError && (
+        <span className="timeline-inline-error" role="alert">
+          {saveError}
+        </span>
+      )}
     </div>
   );
 }

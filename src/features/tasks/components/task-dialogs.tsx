@@ -1,15 +1,54 @@
 /**
  * @fileoverview 渲染任务编辑、移期与每日收尾对话框，保持既有 FormData 和可访问性契约。
  */
-
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
+import { X, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { formatMinutes } from '@/features/tasks/task-time';
 import { resolveActiveProject } from '@/lib/project-rules';
 import type { Project, Task } from '@/types/domain';
-/** 渲染每日收尾表单，并在原子命令成功前保留对话框与可见错误。 */
+
+/** 仅选择指定日期时展示日期控件，避免窄屏上的原生日期输入撑开表单。 */
+function CloseTaskRow({ task, tomorrow }: { task: Task; tomorrow: string }) {
+  const [action, setAction] = useState('tomorrow');
+  return (
+    <div className="close-task">
+      <label>
+        <span>{task.title}</span>
+        <span className="close-select-field">
+          <select
+            aria-label={task.title + '处理方式'}
+            name={'action-' + task.id}
+            value={action}
+            onChange={(event) => setAction(event.target.value)}
+          >
+            <option value="tomorrow">移到明天</option>
+            <option value="date">指定日期</option>
+            <option value="waiting">放回待安排</option>
+            <option value="abandoned">放弃</option>
+          </select>
+          <ChevronDown size={16} aria-hidden="true" />
+        </span>
+      </label>
+      {action === 'date' && (
+        <label className="close-target-date">
+          目标日期
+          <Input
+            aria-label={task.title + '目标日期'}
+            name={'date-' + task.id}
+            type="date"
+            defaultValue={tomorrow}
+            required
+          />
+        </label>
+      )}
+    </div>
+  );
+}
+
+/** 收尾对话框固定居中并独立滚动，确认成功后才关闭；取消始终不提交表单。 */
 export function CloseDialog({
   dialog,
   tasks,
@@ -30,10 +69,18 @@ export function CloseDialog({
   onCloseDay: (data: FormData) => Promise<void>;
 }) {
   const unfinished = tasks.filter((task) => !task.completed);
+  const titleId = useId();
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
   return (
-    <dialog className="task-dialog close-dialog" ref={dialog}>
+    <dialog
+      className="task-dialog close-dialog"
+      ref={dialog}
+      aria-labelledby={titleId}
+      onCancel={(event) => {
+        if (saving) event.preventDefault();
+      }}
+    >
       <form
         action={async (data) => {
           if (saving) return;
@@ -44,7 +91,9 @@ export function CloseDialog({
             dialog.current?.close();
           } catch (submitError) {
             setError(
-              submitError instanceof Error ? submitError.message : '收尾保存失败，请重试。',
+              submitError instanceof Error
+                ? submitError.message
+                : '收尾保存失败，请重试。',
             );
           } finally {
             setSaving(false);
@@ -54,56 +103,66 @@ export function CloseDialog({
         <header>
           <div>
             <p>每日收尾</p>
-            <h2>结束今天</h2>
+            <h2 id={titleId}>结束今天</h2>
           </div>
-          <button formMethod="dialog" aria-label="关闭">
-            ×
+          <button
+            type="button"
+            aria-label="关闭"
+            disabled={saving}
+            onClick={() => dialog.current?.close()}
+          >
+            <X size={20} aria-hidden="true" />
           </button>
         </header>
-        <div className="close-metrics">
-          <span>
-            普通任务{' '}
-            <b>
-              {tasks.filter((task) => task.completed).length}/{tasks.length}
-            </b>
-          </span>
-          <span>
-            Daily{' '}
-            <b>
-              {dailyDone}/{dailyCount}
-            </b>
-          </span>
-          <span>
-            普通实际 <b>{formatMinutes(actual)}</b>
-          </span>
-          <span>
-            Daily 实际 <b>{formatMinutes(dailyActual)}</b>
-          </span>
-          <span>
-            今日总实际 <b>{formatMinutes(actual + dailyActual)}</b>
-          </span>
-        </div>
-        <h3>未完成普通任务</h3>
-        {unfinished.length === 0 ? (
-          <p>所有普通任务均已完成。</p>
-        ) : (
-          unfinished.map((task) => (
-            <div className="close-task" key={task.id}>
-              <b>{task.title}</b>
-              <select name={`action-${task.id}`} defaultValue="tomorrow">
-                <option value="tomorrow">移到明天</option>
-                <option value="date">选择日期</option>
-                <option value="waiting">待安排</option>
-                <option value="abandoned">放弃</option>
-              </select>
-              <Input name={`date-${task.id}`} type="date" defaultValue={tomorrow} />
+        <div className="close-content">
+          <div className="close-summary">
+            <span>今日实际投入</span>
+            <strong>{formatMinutes(actual + dailyActual)}</strong>
+            <p>
+              任务 {formatMinutes(actual)} · Daily {formatMinutes(dailyActual)}
+            </p>
+            <div className="close-metrics">
+              <span>
+                任务完成{' '}
+                <b>
+                  {tasks.filter((task) => task.completed).length} / {tasks.length}
+                </b>
+              </span>
+              <span>
+                Daily 完成{' '}
+                <b>
+                  {dailyDone} / {dailyCount}
+                </b>
+              </span>
             </div>
-          ))
-        )}
-        <p>未完成 Daily 只记录为今日未完成，不会顺延。</p>
-        {error && <p className="form-error">{error}</p>}
+          </div>
+          <section className="close-unfinished" aria-label="未完成任务安排">
+            <h3>
+              未完成任务 <span>{unfinished.length}</span>
+            </h3>
+            {unfinished.length === 0 ? (
+              <p>今天的任务都完成了。</p>
+            ) : (
+              unfinished.map((task) => (
+                <CloseTaskRow key={task.id} task={task} tomorrow={tomorrow} />
+              ))
+            )}
+          </section>
+          <p className="close-note">未完成的 Daily 留在今天，不会顺延。</p>
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+        </div>
         <footer>
-          <button formMethod="dialog">稍后处理</button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => dialog.current?.close()}
+          >
+            稍后处理
+          </button>
           <button type="submit" disabled={saving}>
             {saving ? '保存中…' : '确认结束今天'}
           </button>
@@ -272,7 +331,10 @@ export function TaskDialog({
               </label>
               <label>
                 重要性
-                <select name="importance" defaultValue={editing?.importance ?? 'normal'}>
+                <select
+                  name="importance"
+                  defaultValue={editing?.importance ?? 'normal'}
+                >
                   <option value="normal">普通</option>
                   <option value="important">重要</option>
                 </select>
@@ -331,9 +393,7 @@ export function TaskDialog({
             </div>
           )}
 
-          {!isWaiting && (
-            <p>开始和结束同时填写时自动计算预计时长；不支持跨午夜。</p>
-          )}
+          {!isWaiting && <p>开始和结束同时填写时自动计算预计时长；不支持跨午夜。</p>}
 
           {error && (
             <p className="form-error" role="alert">

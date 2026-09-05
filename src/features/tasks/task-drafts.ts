@@ -15,6 +15,8 @@ export type TimedTaskDraft = {
 
 /** 完整工作台无时间待办新增行提交给动作层的字段。 */
 export type QuickTaskDraft = {
+  /** 分组添加入口指定重要性；旧调用默认普通。 */
+  importance?: 'important' | 'normal';
   projectId: string;
   title: string;
 };

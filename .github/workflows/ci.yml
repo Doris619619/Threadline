@@ -1,4 +1,4 @@
-# 文件用途：在 pull request 和 main 推送时执行 Web/PWA 与 Windows Electron 的回归门禁。
+# 文件用途：在 pull request 和 main 推送时执行云端、Web/PWA、无云 Preview 演示和 Windows Electron 回归门禁。
 name: CI
 
 on:
@@ -47,6 +47,26 @@ jobs:
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm test:e2e
+
+  preview-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - run: pnpm test:preview
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preview-demo-results
+          path: test-results/
 
   windows-electron:
     runs-on: windows-latest

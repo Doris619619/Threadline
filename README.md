@@ -32,7 +32,13 @@ Copy-Item .env.example .env.local
 pnpm dev
 ```
 
-访问 `http://localhost:3000`。未提供 Supabase 环境变量时只显示“尚未配置云工作区”，不会读取旧业务 localStorage。首次登录会原子创建“工作 / 课程 / AI研究 / 生活 / 其他”五个 UUID 项目，不创建 demo task、Daily 或 history。Playwright/Electron 的本地 seed 仅由测试脚本显式构建 `NEXT_PUBLIC_THREADLINE_TEST_ADAPTER=true`，Vercel 会拒绝该标记。
+访问 `http://localhost:3000`。普通本地/云运行时未提供 Supabase 环境变量时显示“尚未配置云工作区”，不会读取旧业务 localStorage。首次登录会原子创建“工作 / 课程 / AI研究 / 生活 / 其他”五个 UUID 项目，不创建 demo task、Daily 或 history。
+
+**PR 在线预览**：Vercel Preview 没有配置 Supabase URL/key 时自动进入演示模式，手机或电脑打开 PR 的 Preview 链接即可操作今日任务、重要/普通待安排和 Daily，无需登录或新增 Supabase 项目。演示数据为虚构样例，使用独立浏览器存储；刷新保留操作，换设备、浏览器或部署域名不会同步。优先使用 PR 的固定分支预览链接，单次部署链接仍指向旧版本。配置了 staging/test Supabase 的 Preview 继续走真实云登录；Production 必须使用正式云配置。Playwright/Electron 仍使用显式 `NEXT_PUBLIC_THREADLINE_TEST_ADAPTER=true`，该测试标记禁止部署到 Vercel。
+
+执行 `pnpm test:preview` 可构建与 Vercel 相同的无云演示并验证桌面、320px 手机和 iPhone WebKit 的真实交互，不需要 Docker。演示模式不是跨设备同步或数据库验收。
+
+如果手机打开预览后显示“Log in to Vercel”，这是 Vercel 项目的 Deployment Protection，与 Threadline 登录无关。需要免登录分享时，在项目 Settings → Deployment Protection → Vercel Authentication 关闭 Require Log In 并保存；这是项目级访问设置，应由项目所有者确认。详细范围见[部署说明](docs/supabase-deployment.md#vercel-环境变量)。
 
 常用质量检查：
 
@@ -133,10 +139,12 @@ docs/                    PRD、目标、工程协作规范、桌面交互与 PR 
 
 前端结构约定见 [前端样式与模块归属](docs/frontend-style-ownership.md)：`src/app/globals.css` 只保留 Tailwind 和有序 CSS 入口，任务首页由展示组件及 data/create/workflow/drag/resize 等职责 Hook 组成。桌面今日日程为七列网格，手机为同一数据源下的纵向任务列表。新增样式和任务交互前应先按该文档定位 owner，避免跨功能改动。
 
-- 待安排是跨日期持续的任务池，按“重要 / 普通”轻量分组；安排到具体日期前不计入任何日期统计。
+- 待安排是跨日期持续的任务池，“重要 / 普通”两组常显，各有添加入口；从哪个入口添加就归入哪组，编辑重要性后同一任务移动到另一组。安排到具体日期前不计入任何日期统计。
 - 删除进入回收站，恢复后回到当天；放弃、待安排、移期保留为可复盘历史。
-- Daily 完全不绑定 Project。日期实例独立保存 title/children/completed/actual/result snapshot；模板名称、0～N 个清单项和每项计划分钟以单个 RPC 原子保存，只影响未来实例，既有 entry/history 保持冻结快照。首页只记录当天实际与结果；Records 只使用正式 `daily_history_entries`，而 Calendar/Insights/PDF 会把正式记录与尚未记录的日期实例按模板和日期去重合并。Daily 实际进入全局总量，不进入项目占比或热力。
+- Daily 完全不绑定 Project。日期实例独立保存 title/children/completed/actual/result snapshot；模板名称、0～N 个清单项和每项计划分钟以单个 RPC 原子保存，只影响未来实例，既有 entry/history 保持冻结快照。首页只编辑当天完成状态与实际耗时，历史结果字段保留；Records 只使用正式 `daily_history_entries`，而 Calendar/Insights/PDF 会把正式记录与尚未记录的日期实例按模板和日期去重合并。Daily 实际进入全局总量，不进入项目占比或热力。
 - 日历、洞察与 PDF 共用纯函数 analytics 口径；旧收尾数据只能作为项目级 aggregate，绝不反推任务级历史。详细规则见 [工作台信息架构与分析口径](docs/workspace-information-architecture.md)。
+- 首页 Daily 沿用项目页的父级与浅底内嵌清单样式：子项常显，预计分钟位于名称下方，实际分钟在右侧独立列编辑，空输入提示“填写”，填写后父级显示合计。移除“记录／已记录”和“今日结果”操作；输入失焦、勾选自动保存，失败保留草稿并可重试；“结束今天”先等待全部 Daily 最新输入保存成功，再打开收尾并生成正式历史；校验或保存失败会阻止收尾。完成任一子项也算当天完成；取消父级清除当天全部勾选，但保留耗时和已有结果。无子项时直接填写父级实际，旧父级额外耗时保留并计入合计。
+- 手机日程将项目放在任务名称前、同排展示，第二排显示时间、预计分钟和实际分钟，未填写实际时显示可点击的“记耗时”；收尾入口与列表对齐。收尾对话框固定居中、内容独立滚动、操作按钮常驻；仅选“指定日期”时展示日期控件，取消不提交。
 - 开始与结束时间支持 `1420` / `14:20` 输入；同日填写会自动计算预计分钟，不支持跨午夜。
 - **今日日程 → 待安排**支持同一任务记录的拖拽移动（不复制）；拖出会清除日期、待填时间和全部排程字段。待安排通过 `···` 安排到今天或其他日期，安排后作为待填时间任务进入日程。
 - **荧光笔 / 橡皮擦**可在今日日程区域批注，坐标按相对比例持久化；按 Esc 或再次点击工具退出。

@@ -4,6 +4,8 @@
 
 'use client';
 
+import type { DailyBundle } from '@/lib/supabase/workspace-repository';
+
 import {
   useCallback,
   useEffect,
@@ -25,6 +27,7 @@ import {
 } from '@/features/workspace/workspace-data-context';
 export { useWorkspaceData } from '@/features/workspace/workspace-data-context';
 import { LocalWorkspaceTestAdapter } from '@/features/workspace/workspace-test-adapter';
+import { usesLocalWorkspace } from '@/lib/workspace-runtime';
 import { useAnnotationStrokes } from '@/hooks/use-annotation-strokes';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import { reconcileTaskAnnotations } from '@/lib/annotation-reconciliation';
@@ -310,6 +313,32 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     [ownerKey, projects, queryClient, repository, runMutation],
   );
 
+  /** 首页单个实例的可等待保存；失败由执行行展示并保留草稿。 */
+  const saveDailyEntry = useCallback(
+    async (daily: Daily, date: string) => {
+      if (!navigator.onLine)
+        throw new Error('当前离线，无法保存 Daily，请联网后重试。');
+      await repository.saveDailyEntry(daily);
+      await queryClient.cancelQueries({ queryKey: ['workspace', ownerKey, 'daily'] });
+      queryClient.setQueryData<DailyBundle>(
+        ['workspace', ownerKey, 'daily'],
+        (bundle) =>
+          bundle
+            ? {
+                ...bundle,
+                dailyByDate: {
+                  ...bundle.dailyByDate,
+                  [date]: (bundle.dailyByDate[date] ?? []).map((item) =>
+                    item.id === daily.id ? daily : item,
+                  ),
+                },
+              }
+            : bundle,
+      );
+    },
+    [ownerKey, queryClient, repository],
+  );
+
   const updateDailyByDate: Dispatch<SetStateAction<Record<string, Daily[]>>> =
     useCallback(
       (action) => {
@@ -505,7 +534,9 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
         ['workspace', ownerKey, 'tasks'],
         (current = []) => current.map((item) => (item.id === task.id ? task : item)),
       );
-      await queryClient.invalidateQueries({ queryKey: ['workspace', ownerKey, 'history'] });
+      await queryClient.invalidateQueries({
+        queryKey: ['workspace', ownerKey, 'history'],
+      });
       return task;
     },
     [ownerKey, queryClient, repository],
@@ -749,6 +780,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       createTask,
       createDailyTemplate,
       saveDailyTemplate,
+      saveDailyEntry,
       setDailyTemplateStatus,
       setDailyTemplateItemStatus,
       transitionTask,
@@ -764,6 +796,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       createDailyTemplate,
       recordDaily,
       saveDailyTemplate,
+      saveDailyEntry,
       setDailyTemplateItemStatus,
       setDailyTemplateStatus,
       setProjectArchived,
@@ -807,9 +840,9 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/** 按显式构建标记选择测试适配器；缺少 Supabase 时绝不自动切换。 */
+/** 仅 Preview 演示或显式测试使用本地数据；普通云运行时不会自动回退。 */
 export function WorkspaceDataProvider({ children }: { children: ReactNode }) {
-  return process.env.NEXT_PUBLIC_THREADLINE_TEST_ADAPTER === 'true' ? (
+  return usesLocalWorkspace() ? (
     <LocalWorkspaceTestAdapter>{children}</LocalWorkspaceTestAdapter>
   ) : (
     <CloudWorkspaceDataProvider>{children}</CloudWorkspaceDataProvider>

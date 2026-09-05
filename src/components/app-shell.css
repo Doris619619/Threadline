@@ -2,6 +2,25 @@
  * @fileoverview 定义 Web/PWA 应用壳、导航和日期栏样式。
  */
 
+.preview-demo-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.preview-demo-notice strong {
+  color: var(--text-primary);
+}
+
 .tl-sidebar {
   display: flex;
   flex-direction: column;
@@ -364,16 +383,23 @@
 
   .tl-header {
     align-items: flex-start;
+    flex-wrap: wrap;
+    gap: var(--space-2);
     padding: 4px 0 12px;
   }
 
   .tl-header > div:first-child {
-    flex: 0 1 auto;
+    flex: 0 0 auto;
     min-width: 0;
   }
 
   .tl-header h1 {
     white-space: nowrap;
+  }
+
+  /* 窄屏日期工具栏换行，标题不再因 flex 收缩与日期重叠。 */
+  .tl-header-actions {
+    margin-left: auto;
   }
 
   .tl-header p {

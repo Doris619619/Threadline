@@ -5,10 +5,11 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
+import { Moon, ChevronRight } from 'lucide-react';
 import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
 import { StatItem } from '@/components/ui/stat-item';
 import { Surface } from '@/components/ui/surface';
-import { DailyPanel } from '@/features/daily/daily-panel';
+import { DailyPanel, type DailyPanelHandle } from '@/features/daily/daily-panel';
 import { CalendarPanel } from '@/features/calendar/calendar-panel';
 import { InsightsPanel } from '@/features/insights/insights-panel';
 import { ProjectManagementPage } from '@/features/projects/project-management-page';
@@ -27,7 +28,10 @@ import { TaskLine } from '@/features/tasks/components/task-line';
 import { TimedTaskCreateRow } from '@/features/tasks/components/timed-task-create-row';
 import { WaitingTaskCreateRow } from '@/features/tasks/components/waiting-task-create-row';
 import { SchedulePanel } from '@/features/tasks/components/schedule-panel';
-import { WaitingTaskPanel } from '@/features/tasks/components/waiting-task-panel';
+import {
+  WaitingTaskPanel,
+  WaitingTaskGroup,
+} from '@/features/tasks/components/waiting-task-panel';
 import { WaitingTaskRow } from '@/features/tasks/components/waiting-task-row';
 import {
   CloseDialog,
@@ -56,7 +60,7 @@ export function TaskDashboard() {
     projects: workspaceProjects,
     dailyByDate,
     dailyTemplates,
-    updateDailyByDate,
+    saveDailyEntry,
     dailyHistory,
     closeRecords,
     annotationStrokes,
@@ -75,7 +79,6 @@ export function TaskDashboard() {
     setDailyTemplateItemStatus,
     saveDailyTemplate,
     transitionTask,
-    recordDaily,
     closeDay: commitCloseDay,
     completeWaitingTask,
     hydrated,
@@ -86,11 +89,25 @@ export function TaskDashboard() {
 
   const [editing, setEditing] = useState<Task | undefined>();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
-  const [taskDialogMode, setTaskDialogMode] = useState<'normal' | 'waiting'>(
-    'normal',
-  );
+  const [taskDialogMode, setTaskDialogMode] = useState<'normal' | 'waiting'>('normal');
   const [rescheduling, setRescheduling] = useState<Task | undefined>();
   const closeDialog = useRef<HTMLDialogElement>(null);
+  const dailyPanel = useRef<DailyPanelHandle>(null);
+  const [preparingClose, setPreparingClose] = useState(false);
+
+  /** 收尾前等待失焦保存和最新草稿，失败由 Daily 行显示并阻止旧快照关账。 */
+  const openCloseDialog = async () => {
+    if (preparingClose) return;
+    setPreparingClose(true);
+    try {
+      await dailyPanel.current?.flush();
+      closeDialog.current?.showModal();
+    } catch {
+      // Daily 行已显示具体错误；不打开收尾弹窗，也不清空输入。
+    } finally {
+      setPreparingClose(false);
+    }
+  };
 
   useEffect(() => {
     if (annotationTool === 'none') return;
@@ -400,42 +417,68 @@ export function TaskDashboard() {
         {!isMiniToday && (
           <div className="side-column">
             <WaitingTaskPanel
-              isAdding={createDrafts.quickOpen}
               isDropTarget={dropTarget === 'waiting'}
-              onAdd={() => createDrafts.openQuick(defaultProjectId)}
               onDragLeave={() => setDropTarget(null)}
               onDragOver={handleWaitingDragOver}
               onDrop={handleWaitingDrop}
-              waiting={waiting}
             >
               <div className="waiting-tasks">
-                  {(['important', 'normal'] as const).map((importance) => {
-                    const items = waiting.filter((task) => (task.importance ?? 'normal') === importance);
-                    if (!items.length) return null;
-                    return <section className="waiting-group" key={importance}><h3>{importance === 'important' ? '重要' : '普通'}</h3>{items.map((task) => <WaitingTaskRow key={task.id} task={task} projects={workspaceProjects} onEdit={() => open(task, 'waiting')} onDelete={(id) => move(id, 'trashed')} onSchedule={(id, date) => { void transitionTask(id, 'scheduled', date).then(() => { if (date === getLocalDateKey()) setAutoFocusTimeTaskId(id); }).catch(() => undefined); }} onComplete={(id) => { void completeWaitingTask(id, getLocalDateKey()).catch(() => undefined); }} />)}</section>;
-                  })}
-                  <WaitingTaskCreateRow
-                    open={createDrafts.quickOpen}
-                    draft={createDrafts.quickDraft}
-                    projects={workspaceProjects}
-                    onCreate={createWaitingTask}
-                    onCreateProject={createProjectDirectly}
-                    onChange={createDrafts.updateQuickDraft}
-                    onReset={() => createDrafts.resetQuick(defaultProjectId)}
-                    onClose={createDrafts.closeQuick}
-                  />
+                {(['important', 'normal'] as const).map((importance) => {
+                  const items = waiting.filter(
+                    (task) => (task.importance ?? 'normal') === importance,
+                  );
+                  return (
+                    <WaitingTaskGroup
+                      key={importance}
+                      importance={importance}
+                      count={items.length}
+                      onAdd={() => createDrafts.openQuick(defaultProjectId, importance)}
+                    >
+                      {items.map((task) => (
+                        <WaitingTaskRow
+                          key={task.id}
+                          task={task}
+                          projects={workspaceProjects}
+                          onEdit={() => open(task, 'waiting')}
+                          onDelete={(id) => move(id, 'trashed')}
+                          onSchedule={(id, date) => {
+                            void transitionTask(id, 'scheduled', date)
+                              .then(() => {
+                                if (date === getLocalDateKey())
+                                  setAutoFocusTimeTaskId(id);
+                              })
+                              .catch(() => undefined);
+                          }}
+                          onComplete={(id) => {
+                            void completeWaitingTask(id, getLocalDateKey()).catch(
+                              () => undefined,
+                            );
+                          }}
+                        />
+                      ))}
+                      <WaitingTaskCreateRow
+                        open={
+                          createDrafts.quickOpen &&
+                          createDrafts.quickDraft.importance === importance
+                        }
+                        draft={createDrafts.quickDraft}
+                        projects={workspaceProjects}
+                        onCreate={createWaitingTask}
+                        onCreateProject={createProjectDirectly}
+                        onChange={createDrafts.updateQuickDraft}
+                        onReset={() => createDrafts.resetQuick(defaultProjectId)}
+                        onClose={createDrafts.closeQuick}
+                      />
+                    </WaitingTaskGroup>
+                  );
+                })}
               </div>
             </WaitingTaskPanel>
             <DailyPanel
+              ref={dailyPanel}
               items={daily}
-              history={dailyHistory}
               date={selectedDate}
-              onChange={(items) =>
-                updateDailyByDate((current) => ({ ...current, [selectedDate]: items }))
-              }
-              onRecord={(entry) =>
-                void recordDaily(entry.dailyId, entry.date).catch(() => undefined)
-              }
+              onSave={saveDailyEntry}
             />
           </div>
         )}
@@ -443,10 +486,14 @@ export function TaskDashboard() {
       {!isMiniToday && (
         <button
           className="finish-day"
-          disabled={isDayClosed}
-          onClick={() => closeDialog.current?.showModal()}
+          disabled={isDayClosed || preparingClose}
+          onClick={() => void openCloseDialog()}
         >
-          {isDayClosed ? '今日已结束' : '结束今天'}
+          <Moon size={18} aria-hidden="true" />
+          <span>
+            {isDayClosed ? '今日已结束' : preparingClose ? '正在保存…' : '结束今天'}
+          </span>
+          <ChevronRight size={18} aria-hidden="true" />
         </button>
       )}
       <AnnotationLayer

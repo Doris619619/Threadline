@@ -1,10 +1,10 @@
 /**
- * @fileoverview 仅为 Playwright/Electron 显式测试构建提供隔离的 localStorage 工作区适配器。
+ * @fileoverview 为 Preview 演示与 Playwright/Electron 显式测试提供本地工作区适配器。
  */
 
 'use client';
 
-import { useCallback, useMemo, type ReactNode } from 'react';
+import { useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { useWorkspaceView } from '@/components/app-shell';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 import { getDailyActualMinutes, isDailyCompleted } from '@/features/daily/daily-rules';
@@ -21,6 +21,9 @@ import {
 } from '@/features/workspace/workspace-seed';
 import { useAnnotationStrokes } from '@/hooks/use-annotation-strokes';
 import { usePersistentState } from '@/hooks/use-persistent-state';
+import { isPreviewDemo } from '@/lib/workspace-runtime';
+import { createDemoDailies, createDemoTasks } from './demo-seed';
+import { PreviewDemoNotice } from './preview-demo-notice';
 import { getLocalDateKey } from '@/lib/local-date';
 import type { CloseRecord, HistoryEvent, Project, Task } from '@/types/domain';
 
@@ -79,13 +82,14 @@ export function mergeLocalDailyTemplate(current: Daily, next: Daily) {
 }
 
 /**
- * 仅供 Playwright/Electron 显式测试构建使用的本地适配器；生产构建不会挂载。
+ * Preview 演示与显式测试共用业务交互；演示 seed 与存储命名空间独立，生产不会挂载。
  */
 export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode }) {
   const { selectedDate } = useWorkspaceView();
   const [tasks, updateTasks, tasksHydrated] = usePersistentState(
     'threadline.tasks.v1',
-    () => withoutExpiredTasks(createInitialTasks()),
+    () =>
+      withoutExpiredTasks(isPreviewDemo() ? createDemoTasks() : createInitialTasks()),
     withoutExpiredTasks,
   );
   const [projects, updateProjects, projectsHydrated] = usePersistentState(
@@ -95,11 +99,15 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
   const [dailyByDate, updateDailyByDate, dailyHydrated] = usePersistentState<
     Record<string, Daily[]>
   >('threadline.daily-by-date.v1', () => ({
-    [getLocalDateKey()]: createDailyInstance(getLocalDateKey()),
+    [getLocalDateKey()]: isPreviewDemo()
+      ? createDemoDailies()
+      : createDailyInstance(getLocalDateKey()),
   }));
   const [dailyTemplates, updateDailyTemplates, templatesHydrated] = usePersistentState<
     Daily[]
-  >('threadline.daily-templates.v1', () => createDailyInstance(getLocalDateKey()));
+  >('threadline.daily-templates.v1', () =>
+    isPreviewDemo() ? createDemoDailies() : createDailyInstance(getLocalDateKey()),
+  );
   const [dailyHistory, updateDailyHistory, dailyHistoryHydrated] = usePersistentState<
     DailyHistoryEntry[]
   >('threadline.daily-history.v1', []);
@@ -176,14 +184,27 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
               ? undefined
               : current.date,
         schedulePendingTime:
-          transition === 'scheduled' ? true : transition === 'waiting' ? false : current.schedulePendingTime,
+          transition === 'scheduled'
+            ? true
+            : transition === 'waiting'
+              ? false
+              : current.schedulePendingTime,
         plannedStartTime:
-          transition === 'scheduled' || transition === 'waiting' ? undefined : current.plannedStartTime,
+          transition === 'scheduled' || transition === 'waiting'
+            ? undefined
+            : current.plannedStartTime,
         plannedEndTime:
-          transition === 'scheduled' || transition === 'waiting' ? undefined : current.plannedEndTime,
+          transition === 'scheduled' || transition === 'waiting'
+            ? undefined
+            : current.plannedEndTime,
         plannedDurationMinutes:
-          transition === 'scheduled' || transition === 'waiting' ? undefined : current.plannedDurationMinutes,
-        importance: transition === 'waiting' ? current.importance ?? 'normal' : current.importance,
+          transition === 'scheduled' || transition === 'waiting'
+            ? undefined
+            : current.plannedDurationMinutes,
+        importance:
+          transition === 'waiting'
+            ? (current.importance ?? 'normal')
+            : current.importance,
         postponedFrom:
           transition !== 'scheduled'
             ? (current.date ?? current.postponedFrom)
@@ -235,7 +256,9 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
   /** 在测试环境中模拟 waiting 完成的数据库原子状态形状与完成历史。 */
   const completeWaitingTask = useCallback(
     async (taskId: string, completedDate: string) => {
-      const current = tasks.find((task) => task.id === taskId && task.status === 'waiting');
+      const current = tasks.find(
+        (task) => task.id === taskId && task.status === 'waiting',
+      );
       if (!current) throw new Error('TEST_WAITING_TASK_NOT_FOUND');
       const completedAt = new Date().toISOString();
       const next: Task = {
@@ -252,7 +275,13 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
       };
       updateTasks((items) => items.map((task) => (task.id === taskId ? next : task)));
       updateHistory((items) => [
-        { id: crypto.randomUUID(), taskId, type: 'completed', occurredAt: completedAt, payload: { completed: 'true' } },
+        {
+          id: crypto.randomUUID(),
+          taskId,
+          type: 'completed',
+          occurredAt: completedAt,
+          payload: { completed: 'true' },
+        },
         ...items,
       ]);
       return next;
@@ -260,9 +289,28 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
     [tasks, updateHistory, updateTasks],
   );
 
+  const savedDailyEntries = useRef(new Map<string, Daily>());
+  /** 测试适配器模拟原子写入，并让紧接着的记录读取刚保存的快照。 */
+  const saveDailyEntry = useCallback(
+    async (daily: Daily, date: string) => {
+      const next = { ...daily, completed: isDailyCompleted(daily) };
+      savedDailyEntries.current.set(`${date}:${daily.id}`, next);
+      updateDailyByDate((current) => ({
+        ...current,
+        [date]: (current[date] ?? createDailyInstance(date, dailyTemplates)).map(
+          (item) => (item.id === next.id ? next : item),
+        ),
+      }));
+    },
+    [dailyTemplates, updateDailyByDate],
+  );
+
+  /** 正式记录读取该日期最新已保存值，不依赖上一次渲染的闭包。 */
   const recordDaily = useCallback(
     async (templateId: string, date: string) => {
-      const daily = dailyByDate[date]?.find((item) => item.id === templateId);
+      const daily =
+        savedDailyEntries.current.get(`${date}:${templateId}`) ??
+        dailyByDate[date]?.find((item) => item.id === templateId);
       if (!daily) throw new Error('TEST_DAILY_NOT_FOUND');
       updateDailyHistory((current) =>
         current.some((entry) => entry.dailyId === templateId && entry.date === date)
@@ -307,12 +355,18 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
                 : action.action === 'abandoned'
                   ? task.date
                   : undefined,
-            schedulePendingTime: action.action === 'waiting' ? false : task.schedulePendingTime,
-            plannedStartTime: action.action === 'waiting' ? undefined : task.plannedStartTime,
-            plannedEndTime: action.action === 'waiting' ? undefined : task.plannedEndTime,
+            schedulePendingTime:
+              action.action === 'waiting' ? false : task.schedulePendingTime,
+            plannedStartTime:
+              action.action === 'waiting' ? undefined : task.plannedStartTime,
+            plannedEndTime:
+              action.action === 'waiting' ? undefined : task.plannedEndTime,
             plannedDurationMinutes:
               action.action === 'waiting' ? undefined : task.plannedDurationMinutes,
-            importance: action.action === 'waiting' ? task.importance ?? 'normal' : task.importance,
+            importance:
+              action.action === 'waiting'
+                ? (task.importance ?? 'normal')
+                : task.importance,
             postponedFrom:
               action.action === 'tomorrow' || action.action === 'date'
                 ? task.date
@@ -547,6 +601,7 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
       deleteProject,
       createDailyTemplate,
       saveDailyTemplate,
+      saveDailyEntry,
       setDailyTemplateStatus,
       setDailyTemplateItemStatus,
       transitionTask,
@@ -562,6 +617,7 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
       deleteProject,
       recordDaily,
       saveDailyTemplate,
+      saveDailyEntry,
       setDailyTemplateItemStatus,
       setDailyTemplateStatus,
       setProjectArchived,
@@ -573,6 +629,7 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
 
   return (
     <WorkspaceContextProviders
+      notice={isPreviewDemo() ? <PreviewDemoNotice /> : undefined}
       values={{
         hydrated,
         taskState,

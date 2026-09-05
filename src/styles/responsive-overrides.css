@@ -37,14 +37,6 @@
     flex-direction: column;
   }
 
-  .close-task {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .close-task b {
-    grid-column: span 2;
-  }
-
   .stats-bar-row {
     grid-template-columns: 72px minmax(0, 1fr) 68px;
   }

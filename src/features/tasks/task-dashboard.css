@@ -43,26 +43,153 @@
 }
 
 /* 待安排池在一个 Surface 内使用轻量分组，移动端菜单避免横向拥挤。 */
-.waiting-panel { min-width: 0; }
-.waiting-panel > header { display: flex; align-items: center; justify-content: space-between; }
-.waiting-tasks { display: grid; gap: 14px; }
-.waiting-group { display: grid; gap: 6px; }
-.waiting-group h3 { margin: 0; color: var(--text-secondary); font-size: var(--text-caption-size); }
-.waiting-task-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 42px; }
-.waiting-task-main { display: flex; min-width: 0; align-items: center; gap: 8px; border: 0; background: transparent; color: var(--text-primary); text-align: left; cursor: pointer; }
-.waiting-task-main > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.waiting-task-actions { position: relative; }
-.waiting-task-actions > button { display: grid; width: 40px; height: 40px; place-items: center; border: 0; background: transparent; color: var(--text-secondary); }
-.waiting-task-menu { position: absolute; z-index: 10; right: 0; top: 42px; display: grid; min-width: 172px; padding: 6px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); box-shadow: 0 8px 24px rgb(0 0 0 / 0.14); }
-.waiting-task-menu button { display: flex; gap: 8px; align-items: center; min-height: 40px; padding: 0 8px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-primary); text-align: left; }
-.waiting-task-menu hr { width: 100%; border: 0; border-top: 1px solid var(--border); }
-.waiting-task-menu .is-danger { color: var(--danger); }
-.waiting-date-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; align-items: end; background: rgb(0 0 0 / 0.28); }
-.waiting-date-sheet { display: grid; gap: 14px; padding: 20px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--surface); }
-.waiting-date-sheet h3 { margin: 0; }
-.waiting-date-sheet input { min-height: 44px; font-size: 16px; }
-.waiting-date-sheet footer { display: flex; justify-content: flex-end; gap: 8px; }
-@media (min-width: 700px) { .waiting-date-backdrop { align-items: center; justify-items: center; } .waiting-date-sheet { width: min(360px, calc(100vw - 32px)); border-radius: var(--radius-lg); } }
+.waiting-panel {
+  min-width: 0;
+}
+.waiting-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.waiting-tasks {
+  display: grid;
+  gap: 14px;
+}
+.waiting-group {
+  display: grid;
+  gap: 6px;
+}
+.waiting-group h3 {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+}
+.waiting-group > header {
+  margin-bottom: 0;
+  min-height: 44px;
+  gap: 12px;
+}
+.waiting-group > header .add-link {
+  min-height: 44px;
+  color: var(--accent-text);
+}
+.waiting-group-count {
+  margin-left: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.waiting-group + .waiting-group {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 10px;
+}
+.waiting-group .empty-copy {
+  margin: 0 0 8px;
+  font-size: var(--text-caption-size);
+}
+.waiting-task-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+}
+.waiting-task-main {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.waiting-task-main > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.waiting-task-actions {
+  position: relative;
+}
+.waiting-task-actions > button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+}
+.waiting-task-menu {
+  position: absolute;
+  z-index: 10;
+  right: 0;
+  top: 42px;
+  display: grid;
+  min-width: 172px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+}
+.waiting-task-menu button {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+}
+.waiting-task-menu hr {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+.waiting-task-menu .is-danger {
+  color: var(--danger);
+}
+.waiting-date-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  align-items: end;
+  background: rgb(0 0 0 / 0.28);
+}
+.waiting-date-sheet {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--surface);
+}
+.waiting-date-sheet h3 {
+  margin: 0;
+}
+.waiting-date-sheet input {
+  min-height: 44px;
+  font-size: 16px;
+}
+.waiting-date-sheet footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (min-width: 700px) {
+  .waiting-date-backdrop {
+    align-items: center;
+    justify-items: center;
+  }
+  .waiting-date-sheet {
+    width: min(360px, calc(100vw - 32px));
+    border-radius: var(--radius-lg);
+  }
+}
 
 .waiting-panel header,
 .schedule-panel > header,
@@ -1453,4 +1580,142 @@
     min-height: var(--touch-target);
     padding: 0 4px;
   }
+}
+
+/* 收尾入口与分组列表对齐，避免裸文字游离在底部导航上方。 */
+.finish-day {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 20px;
+  padding: 12px 20px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+.finish-day span {
+  flex: 1;
+  color: var(--text-primary);
+}
+.finish-day:disabled {
+  cursor: default;
+}
+.finish-day:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.task-time-details {
+  display: contents;
+}
+.duration-mobile {
+  display: none;
+}
+/* 手机日程：项目在任务名称前，第二排独立占满剩余宽度展示时间与耗时。 */
+@media (max-width: 760px) {
+  .timeline-row {
+    display: grid;
+    grid-template-columns: 44px auto minmax(0, 1fr) 44px;
+    column-gap: 4px;
+    row-gap: 0;
+    padding: 8px;
+  }
+  .timeline-row .task-content-wrap,
+  .timeline-row .timeline-meta {
+    display: contents;
+  }
+  .timeline-row .task-check-wrap {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .timeline-row .task-title {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: center;
+  }
+  .timeline-row .task-project-cell {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    max-width: 88px;
+    font-size: 12px;
+  }
+  .timeline-row .task-actions-cell {
+    grid-column: 4;
+    grid-row: 1;
+  }
+  .timeline-row .task-time-details {
+    grid-column: 2 / -1;
+    grid-row: 2;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0 8px;
+    min-width: 0;
+  }
+  .timeline-row .timeline-time {
+    padding: 0;
+    background: transparent;
+    white-space: nowrap;
+    font-size: 12px;
+    min-height: 32px;
+  }
+  .timeline-row .task-duration {
+    white-space: nowrap;
+    font-size: 12px;
+    min-height: 32px;
+  }
+  .timeline-row .duration-desktop {
+    display: none;
+  }
+  .timeline-row .duration-mobile {
+    display: inline;
+  }
+  .timeline-row .task-duration-prefix {
+    margin-right: 2px;
+  }
+  .timeline-row .task-time-details .tl-inline-input {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/* 完成态以勾选和删除线表达，文字保持可读对比度。 */
+.timeline-row.completed,
+.timeline-row.completed .task-title,
+.timeline-row.completed .timeline-time,
+.timeline-row.completed .task-duration,
+.timeline-row.completed .tl-project-tag {
+  opacity: 1;
+}
+.timeline-row.completed .task-title {
+  color: var(--text-secondary);
+}
+@media (max-width: 760px) {
+  .timeline-row .timeline-time,
+  .timeline-row .task-duration {
+    min-height: 44px;
+  }
+}
+
+/* 未填写实际分钟时提供真实的编辑入口，不用破折号占位。 */
+button.task-duration-actual {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+}
+.duration-empty {
+  color: var(--accent-text);
+}
+button.task-duration-actual:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }

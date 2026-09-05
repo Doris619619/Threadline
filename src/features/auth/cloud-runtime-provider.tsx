@@ -58,7 +58,7 @@ export function useOptionalCloudRuntime(): CloudRuntime | null {
   return useContext(CloudRuntimeContext);
 }
 
-/** 展示明确的云配置缺失状态；Preview 不会回退本地业务数据。 */
+/** 普通云运行时缺配置时阻断业务树；自动 Preview 演示不挂载此门禁。 */
 function CloudConfigurationRequired({ reason }: { reason: string }) {
   return (
     <main className="auth-gate">
@@ -67,8 +67,7 @@ function CloudConfigurationRequired({ reason }: { reason: string }) {
         <h1>尚未配置云工作区</h1>
         <p>{reason}</p>
         <p>
-          Vercel Preview 必须使用 staging/test
-          Supabase；没有独立项目时，此页面就是预期结果。
+          当前云工作区缺少连接配置，请完成配置后重新部署。在线演示请使用 PR 的预览链接。
         </p>
       </section>
     </main>

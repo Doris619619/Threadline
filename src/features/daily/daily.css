@@ -1,126 +1,168 @@
-/**
- * @fileoverview 定义 Daily 面板样式。
- */
-
-/* ================= Daily 任务面板 ================= */
-
+/** @fileoverview Daily 与项目页共用轻量父级、浅底内嵌清单的视觉层级，右列编辑实际分钟。 */
 .daily-group {
-  padding: 10px 4px 6px;
+  padding: 16px 0;
   border-top: 1px solid var(--border-subtle);
 }
-
 .daily-group:first-of-type {
   border-top: 0;
-  padding-top: 4px;
+  padding-top: 0;
 }
-
-.daily-parent {
+.daily-group:last-child {
+  padding-bottom: 0;
+}
+.daily-parent,
+.daily-child-row {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
-  align-items: center;
+  grid-template-columns: 44px minmax(0, 1fr) 64px;
   gap: 8px;
-  min-height: 32px;
-}
-
-.daily-parent-title-group {
-  display: flex;
   align-items: center;
-  gap: 6px;
+}
+.daily-parent {
+  min-height: 72px;
+}
+.daily-parent-title,
+.daily-child-name {
+  display: block;
+  margin: 0;
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: var(--text-body-size);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.daily-parent-title {
+  font-weight: 600;
+}
+.daily-parent-copy,
+.daily-child-copy {
+  display: grid;
+  gap: 4px;
   min-width: 0;
 }
-
-.daily-parent-title {
-  font-size: var(--text-body-size);
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.daily-check.tl-checkbox {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  touch-action: manipulation;
 }
-
-.daily-parent-meta {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;
+.daily-check input:disabled + span {
+  opacity: 0.6;
 }
-
-.daily-tag-badge {
-  color: var(--text-tertiary);
-  font-size: 0.75rem;
+.daily-total {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 10px;
 }
-
+.daily-total,
+.daily-planned {
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+  line-height: 1.5;
+}
 .daily-children {
-  position: relative;
-  display: grid;
-  gap: 3px;
-  margin: 4px 0 4px 11px;
-  padding-left: 17px;
+  list-style: none;
+  margin: 12px 0 0 16px;
+  padding: 0 8px;
+  background: color-mix(in srgb, var(--surface-secondary) 72%, var(--surface));
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
 }
-
-.daily-children::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: -4px;
-  bottom: 14px;
-  width: 1.5px;
-  background: color-mix(in srgb, var(--border) 80%, var(--text-tertiary) 20%);
-  border-radius: 1px;
-}
-
 .daily-child-row {
-  position: relative;
-  display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-  min-height: 28px;
-}
-
-.daily-child-row::before {
-  content: '';
-  position: absolute;
-  left: -17px;
-  top: 50%;
-  width: 12px;
-  height: 1.5px;
-  background: color-mix(in srgb, var(--border) 80%, var(--text-tertiary) 20%);
-  border-radius: 1px;
-}
-
-.daily-child-name {
-  font-size: var(--text-body-size);
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.daily-entry {
-  display: grid;
-  grid-template-columns: 92px minmax(0, 1fr) auto;
+  padding: 12px 0;
+  min-height: 80px;
   gap: 6px;
-  padding: 9px 0;
 }
-
-.daily-entry .tl-input {
-  min-height: 30px;
-  font-size: 0.75rem;
+.daily-child-row + .daily-child-row {
+  border-top: 1px solid var(--border-subtle);
 }
-
-.daily-entry button {
+.daily-child-name {
+  font-weight: 400;
+}
+.daily-actual-field,
+.daily-actual-total {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 2px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.daily-actual-field .tl-input {
+  width: 56px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 4px;
+  font-size: max(1rem, var(--mobile-form-control-font-size));
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: none;
+  color: var(--text-primary);
+  appearance: textfield;
+}
+.daily-actual-total strong {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.daily-actual-field .tl-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.daily-actual-field input::-webkit-inner-spin-button,
+.daily-actual-field input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+.daily-save-error button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px;
   border: 0;
-  border-radius: 6px;
-  padding: 0 10px;
-  color: var(--accent);
-  background: var(--accent-muted);
-  font-size: 0.75rem;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--accent-text);
+  font: inherit;
   cursor: pointer;
 }
-
-@media (max-width: 760px) {
-  .daily-entry .tl-input {
-    min-height: 36px;
+.daily-save-status {
+  display: block;
+  padding-left: 52px;
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+}
+.daily-save-status:empty {
+  display: none;
+}
+.daily-save-error {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--danger);
+  font-size: var(--text-caption-size);
+  overflow-wrap: anywhere;
+}
+.daily-legacy-minutes {
+  margin: 8px 0 0 52px;
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+}
+@media (max-width: 360px) {
+  .daily-children {
+    margin-left: 16px;
+    padding: 0 4px;
+  }
+  .daily-child-row {
+    grid-template-columns: 44px minmax(0, 1fr) 56px;
+    gap: 2px;
   }
 }

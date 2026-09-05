@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'r
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCloudRuntime } from '@/features/auth/cloud-runtime-provider';
 import { usePersistentState } from '@/hooks/use-persistent-state';
+import { usesLocalWorkspace } from '@/lib/workspace-runtime';
 
 type RhythmState = { marks: Record<string, boolean> };
 type RhythmActions = { toggleMark: (date: string) => void };
@@ -80,7 +81,7 @@ function CloudRhythmStateProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/** 仅供显式端到端测试构建使用的本地 Rhythm adapter。 */
+/** 为 Preview 演示和显式测试提供本地节律标记。 */
 function LocalRhythmTestAdapter({ children }: { children: ReactNode }) {
   const [marks, setMarks] = usePersistentState<Record<string, boolean>>(
     'threadline.test.rhythm.v1',
@@ -103,9 +104,9 @@ function LocalRhythmTestAdapter({ children }: { children: ReactNode }) {
   );
 }
 
-/** 显式测试构建才使用本地 adapter，生产缺配置时由 Auth gate 阻断。 */
+/** Preview 演示和显式测试使用本地标记，生产缺配置时由 Auth gate 阻断。 */
 export function RhythmStateProvider({ children }: { children: ReactNode }) {
-  return process.env.NEXT_PUBLIC_THREADLINE_TEST_ADAPTER === 'true' ? (
+  return usesLocalWorkspace() ? (
     <LocalRhythmTestAdapter>{children}</LocalRhythmTestAdapter>
   ) : (
     <CloudRhythmStateProvider>{children}</CloudRhythmStateProvider>

@@ -4,7 +4,7 @@
 
 ## 需要在 Supabase 完成的操作
 
-1. 创建 **Production Supabase** 项目；如需安全使用 Vercel Preview，再创建独立 staging/test 项目。记录各自 Project URL 和 `sb_publishable_...` key，绝不复制 `service_role`、`sb_secret_` 或数据库密码到前端环境变量。
+1. 创建 **Production Supabase** 项目；Vercel Preview 默认可使用无数据库演示，仅在需要验证真实云同步时创建独立 staging/test 项目。记录云项目各自的 Project URL 和 `sb_publishable_...` key，绝不复制 `service_role`、`sb_secret_` 或数据库密码到前端环境变量。
 2. 在 Authentication 中启用 Email/password。Threadline 客户端提供 iOS 风格欢迎页与登录输入表单，没有公开注册表单；测试/正式账号由项目管理员创建。配置 Production 的 Site URL 和允许的 Vercel Production HTTPS redirect URL。
 3. 在 Database Extensions / Cron 中先启用 `pg_cron`。迁移只会在检测到扩展时创建 `threadline-purge-expired-tasks` job；若扩展在迁移后才启用，需重新执行迁移中的 `cron.schedule(...)` 块。
 4. 在本机登录并关联项目，然后推送迁移：
@@ -85,9 +85,15 @@ NEXT_PUBLIC_THREADLINE_CLOUD_ENV=production
 Preview 有两种允许状态：
 
 - 有 staging/test Supabase：配置其 URL/key，并设置 `NEXT_PUBLIC_THREADLINE_CLOUD_ENV=staging` 或 `test`。
-- 没有第二个项目：不设置 URL/key，Preview 显示明确的“尚未配置云工作区”页面。
+- 没有第二个项目：不设置 URL/key，Preview 自动展示可交互的演示工作台，无需登录、不占 Supabase 项目名额。首页常驻“演示模式”说明；示例包含今日任务、重要/普通待安排、带固定计划的 Daily 子项和无子项 Daily。
 
-Preview 若声明 `production`、只缺一半配置，或启用 test adapter，构建会失败。Preview 不会连接 Production Supabase，也不会回退旧 localStorage。
+配置了云连接的 Preview 若声明 `production`、只缺一半配置，或启用 test adapter，构建会失败。演示标记由 `next.config.ts` 根据 `VERCEL_ENV=preview`、空 URL/key 且非 Electron 构建推导，不是用户可开启的 Production 开关。演示不会发起 Supabase 读写，数据存于 `threadline.preview-demo.v1:` 独立命名空间，不读取旧本地业务记录。
+
+演示访问者可以创建/编辑/完成任务、填写 Daily 实际耗时与打卡、切换日期并刷新保留操作。数据只属于当前浏览器与域名，不会同步到正式账号或其他设备。清除该站点数据可重置示例。推荐分享 Vercel 的分支 Preview URL（随分支推送更新）；单次 deployment URL 保持对应旧提交。此能力随代码合并后供后续 PR 自动使用。
+
+**Vercel 访问保护另行配置**：如果未登录浏览器被转到“Log in to Vercel”，应用代码尚未得到执行，不代表演示构建失败。要让手机拿到链接直接打开，需由项目所有者确认，在 Settings → Deployment Protection → Vercel Authentication 关闭 Require Log In 并保存。该设置是项目级的；当前 Standard Protection 同时覆盖预览和自动生成的生产部署 URL，关闭会让这些入口公开，Threadline 自身的登录和 Supabase RLS 仍保留。若保留保护，访问者必须先登录获准的 Vercel 账号，或使用单独授权的 Shareable Link。参见 [Vercel Deployment Protection](https://vercel.com/docs/deployment-protection)。
+
+`pnpm test:preview` 在无数据库的 production build 上验证桌面、窄手机和 iPhone WebKit 的交互、存储隔离与无 Supabase 请求；CI 的独立 `preview-demo` job 会执行该门禁。已部署页面可用 `THREADLINE_PREVIEW_URL=<https-url> pnpm exec playwright test --config playwright.preview.config.ts` 验收。真实 iPhone Safari/PWA 手工验收与云同步验收仍需分别记录。
 
 ## Electron Production
 
