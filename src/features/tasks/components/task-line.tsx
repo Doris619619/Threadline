@@ -246,7 +246,14 @@ export function TaskLine({
         title="点击直接修改预计时长（如 45min 或 1h）"
       >
         <span className="task-duration-prefix">预计 </span>
-        {formatMinutes(task.plannedDurationMinutes)}
+        <span className="duration-desktop">
+          {formatMinutes(task.plannedDurationMinutes)}
+        </span>
+        <span className="duration-mobile">
+          {task.plannedDurationMinutes === undefined
+            ? '—'
+            : task.plannedDurationMinutes + '分'}
+        </span>
       </span>
     ));
 
@@ -275,7 +282,14 @@ export function TaskLine({
         title="点击直接输入实际时长（如 30min 或 1h20min）"
       >
         <span className="task-duration-prefix">实际 </span>
-        {formatMinutes(task.actualDurationMinutes)}
+        <span className="duration-desktop">
+          {formatMinutes(task.actualDurationMinutes)}
+        </span>
+        <span className="duration-mobile">
+          {task.actualDurationMinutes === undefined
+            ? '—'
+            : task.actualDurationMinutes + '分'}
+        </span>
       </span>
     ));
 
@@ -430,12 +444,12 @@ export function TaskLine({
 
         <div className="timeline-meta">
           {projectNode}
-          {timed && timeNode}
           {timed && (
-            <>
+            <div className="task-time-details">
+              {timeNode}
               {plannedNode}
               {actualNode}
-            </>
+            </div>
           )}
         </div>
       </div>

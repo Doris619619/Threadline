@@ -46,8 +46,10 @@ test('records child minutes without a result form and keeps next date fresh', as
   await expect(
     group.getByRole('checkbox', { name: '完成 Daily 背单词' }),
   ).toBeChecked();
-  await group.getByRole('button', { name: '记录', exact: true }).click();
-  await expect(group.getByRole('button', { name: '已记录' })).toBeDisabled();
+  await expect(page.locator('.daily-save-status:not(:empty)')).toHaveCount(0);
+  await expect(
+    page.locator('.daily-panel').getByRole('button', { name: /记录/ }),
+  ).toHaveCount(0);
   await page.reload();
   await expect(group.getByLabel('背单词 新词实际耗时')).toHaveValue('18');
   await expect(group.locator('textarea')).toHaveCount(0);

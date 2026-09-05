@@ -41,17 +41,8 @@ afterEach(cleanup);
 
 /** 使用可控制的真实异步边界渲染执行面板，保留所有用户可见控件。 */
 function setup(onSave = vi.fn().mockResolvedValue(undefined), item = daily) {
-  const onRecord = vi.fn().mockResolvedValue(undefined);
-  const view = render(
-    <DailyPanel
-      items={[item]}
-      history={[]}
-      date="2026-09-05"
-      onSave={onSave}
-      onRecord={onRecord}
-    />,
-  );
-  return { ...view, onSave, onRecord };
+  const view = render(<DailyPanel items={[item]} date="2026-09-05" onSave={onSave} />);
+  return { ...view, onSave };
 }
 
 describe('Daily home execution', () => {
@@ -62,6 +53,7 @@ describe('Daily home execution', () => {
     expect(screen.getByText('预计 50 分钟')).toBeVisible();
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(screen.queryByText('今日结果')).toBeNull();
+    expect(screen.queryByRole('button', { name: /记录/ })).toBeNull();
     expect(screen.getAllByRole('spinbutton')).toHaveLength(2);
     expect(screen.queryByLabelText('算法训练实际耗时')).toBeNull();
     expect(screen.queryByRole('button', { name: /展开|详情|收起/ })).toBeNull();
@@ -104,7 +96,7 @@ describe('Daily home execution', () => {
     );
   });
 
-  it('preserves new typing during an in-flight save and records only the latest saved snapshot', async () => {
+  it('preserves new typing during an in-flight save and saves the latest draft while preserving existing results', async () => {
     let release!: () => void;
     const onSave = vi
       .fn()
@@ -115,21 +107,24 @@ describe('Daily home execution', () => {
           }),
       )
       .mockResolvedValue(undefined);
-    const { onRecord } = setup(onSave, { ...daily, result: '已有历史结果' });
+    setup(onSave, { ...daily, result: '已有历史结果' });
     const input = screen.getByLabelText(
       '算法训练 ' + daily.children[0].title + '实际耗时',
     );
     fireEvent.change(input, { target: { value: '1' } });
     fireEvent.blur(input);
     fireEvent.change(input, { target: { value: '15' } });
-    fireEvent.click(screen.getByRole('button', { name: '记录', exact: true }));
-    expect(onRecord).not.toHaveBeenCalled();
+    fireEvent.blur(input);
     await act(async () => {
       release();
     });
     await waitFor(() =>
-      expect(onRecord).toHaveBeenCalledWith(
-        expect.objectContaining({ actual: 15, result: '已有历史结果' }),
+      expect(onSave).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          result: '已有历史结果',
+          children: expect.arrayContaining([expect.objectContaining({ actual: 15 })]),
+        }),
+        '2026-09-05',
       ),
     );
     expect(onSave).toHaveBeenCalledTimes(2);
@@ -148,15 +143,7 @@ describe('Daily home execution', () => {
     fireEvent.change(input, { target: { value: '25' } });
     fireEvent.blur(input);
     await screen.findByRole('alert');
-    rerender(
-      <DailyPanel
-        items={[{ ...daily }]}
-        history={[]}
-        date="2026-09-05"
-        onSave={onSave}
-        onRecord={vi.fn()}
-      />,
-    );
+    rerender(<DailyPanel items={[{ ...daily }]} date="2026-09-05" onSave={onSave} />);
     expect(input).toHaveValue(25);
     fireEvent.click(screen.getByRole('button', { name: '重试保存' }));
     await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());

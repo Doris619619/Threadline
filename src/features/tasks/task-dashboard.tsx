@@ -5,6 +5,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
+import { Moon, ChevronRight } from 'lucide-react';
 import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
 import { StatItem } from '@/components/ui/stat-item';
 import { Surface } from '@/components/ui/surface';
@@ -78,7 +79,6 @@ export function TaskDashboard() {
     setDailyTemplateItemStatus,
     saveDailyTemplate,
     transitionTask,
-    recordDaily,
     closeDay: commitCloseDay,
     completeWaitingTask,
     hydrated,
@@ -458,13 +458,7 @@ export function TaskDashboard() {
                 })}
               </div>
             </WaitingTaskPanel>
-            <DailyPanel
-              items={daily}
-              history={dailyHistory}
-              date={selectedDate}
-              onSave={saveDailyEntry}
-              onRecord={(entry) => recordDaily(entry.dailyId, entry.date)}
-            />
+            <DailyPanel items={daily} date={selectedDate} onSave={saveDailyEntry} />
           </div>
         )}
       </div>
@@ -474,7 +468,9 @@ export function TaskDashboard() {
           disabled={isDayClosed}
           onClick={() => closeDialog.current?.showModal()}
         >
-          {isDayClosed ? '今日已结束' : '结束今天'}
+          <Moon size={18} aria-hidden="true" />
+          <span>{isDayClosed ? '今日已结束' : '结束今天'}</span>
+          <ChevronRight size={18} aria-hidden="true" />
         </button>
       )}
       <AnnotationLayer

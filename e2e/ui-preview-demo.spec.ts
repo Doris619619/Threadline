@@ -28,8 +28,10 @@ test('opens an interactive isolated demo and persists Daily and newly created ta
   await expect(
     daily.getByRole('checkbox', { name: '完成 Daily 算法训练' }),
   ).toBeChecked();
-  await daily.getByRole('button', { name: '记录', exact: true }).click();
-  await expect(daily.getByRole('button', { name: '已记录' })).toBeDisabled();
+  await expect(page.locator('.daily-save-status:not(:empty)')).toHaveCount(0);
+  await expect(
+    page.locator('.daily-panel').getByRole('button', { name: /记录/ }),
+  ).toHaveCount(0);
 
   const important = page.getByRole('region', { name: '重要待安排', exact: true });
   const normal = page.getByRole('region', { name: '普通待安排', exact: true });
@@ -122,4 +124,88 @@ test('opens an interactive isolated demo and persists Daily and newly created ta
     .locator('.daily-panel')
     .screenshot({ path: info.outputPath('daily-panel.png') });
   await page.screenshot({ path: info.outputPath('preview-demo.png'), fullPage: true });
+});
+
+/** 覆盖用户截图中的整页日程和收尾弹窗，检查原生日期输入在 iPhone 上的边界。 */
+test('keeps scheduled metadata compact and close-day controls inside the viewport', async ({
+  page,
+}, info) => {
+  await page.goto('/');
+  await expect(page.locator('.dashboard')).toBeVisible();
+  const row = page.locator('.timeline-row').filter({ hasText: '领域论文' });
+  if (info.project.name !== 'preview-desktop') {
+    const parts = await row
+      .locator('.timeline-time, .task-duration-planned, .task-duration-actual')
+      .evaluateAll((elements) =>
+        elements.map((el) => ({
+          y: el.getBoundingClientRect().y,
+          width: el.getBoundingClientRect().width,
+        })),
+      );
+    expect(parts).toHaveLength(3);
+    expect(
+      Math.max(...parts.map((p) => p.y)) - Math.min(...parts.map((p) => p.y)),
+    ).toBeLessThanOrEqual(2);
+  }
+  await page
+    .locator('.schedule-panel')
+    .screenshot({ path: info.outputPath('schedule.png') });
+  await row.getByRole('checkbox').uncheck();
+  const finish = page.getByRole('button', { name: '结束今天', exact: true });
+  await finish.scrollIntoViewIfNeeded();
+  await expect(finish).toBeVisible();
+  await page.screenshot({ path: info.outputPath('home-bottom.png') });
+  await finish.click();
+  const dialog = page.getByRole('dialog', { name: '结束今天', exact: true });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator('input[type=date]')).toHaveCount(0);
+  const select = dialog.getByRole('combobox').first();
+  await select.selectOption('date');
+  const date = dialog.locator('input[type=date]');
+  await expect(date).toBeVisible();
+  const bounds = await dialog.evaluate((el) => {
+    const box = el.getBoundingClientRect();
+    return {
+      x: box.x,
+      y: box.y,
+      width: box.width,
+      height: box.height,
+      vw: innerWidth,
+      vh: innerHeight,
+      overflow: el.scrollWidth > el.clientWidth + 1,
+    };
+  });
+  expect(bounds.x).toBeGreaterThanOrEqual(15);
+  expect(Math.abs(bounds.x * 2 + bounds.width - bounds.vw)).toBeLessThanOrEqual(2);
+  expect(bounds.y).toBeGreaterThanOrEqual(0);
+  expect(bounds.y + bounds.height).toBeLessThanOrEqual(bounds.vh + 1);
+  expect(bounds.overflow).toBe(false);
+  for (const control of await dialog.locator('input,select,button').all()) {
+    const box = (await control.boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    expect(box.x).toBeGreaterThanOrEqual(bounds.x);
+    expect(box.x + box.width).toBeLessThanOrEqual(bounds.x + bounds.width);
+    const font = await control.evaluate((el) =>
+      parseFloat(getComputedStyle(el).fontSize),
+    );
+    if (await control.evaluate((el) => el.matches('input,select')))
+      expect(font).toBeGreaterThanOrEqual(16);
+  }
+  const footer = (await dialog.locator('footer').boundingBox())!;
+  expect(footer.y + footer.height).toBeLessThanOrEqual(bounds.vh);
+  expect(
+    (await new AxeBuilder({ page }).include('.close-dialog').analyze()).violations,
+  ).toEqual([]);
+  await page.screenshot({ path: info.outputPath('close-day.png') });
+  await dialog.getByRole('button', { name: '稍后处理', exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(finish).toBeEnabled();
+  await finish.click();
+  await select.selectOption('tomorrow');
+  await dialog.getByRole('button', { name: '确认结束今天', exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(
+    page.getByRole('button', { name: '今日已结束', exact: true }),
+  ).toBeDisabled();
 });

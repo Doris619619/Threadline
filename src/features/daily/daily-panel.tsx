@@ -1,26 +1,22 @@
-/** @fileoverview 首页以与待安排一致的分组列表展示 Daily 父子任务和耗时，不显示结果表单。 */
+/** @fileoverview 首页以项目页的内嵌清单风格展示 Daily，完成和耗时自动保存，不设记录表单。 */
 
 'use client';
 
 import { Surface } from '@/components/ui/surface';
 import { DailyExecutionRow } from '@/features/daily/daily-execution-row';
-import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
+import type { Daily } from '@/features/daily/types';
 
 export type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 
 /** 每个日期实例独立管理输入和保存状态，切换日期不会串用上一天草稿。 */
 export function DailyPanel({
   items,
-  history,
   date,
   onSave,
-  onRecord,
 }: {
   items: Daily[];
-  history: DailyHistoryEntry[];
   date: string;
   onSave: (daily: Daily, date: string) => Promise<void>;
-  onRecord: (entry: DailyHistoryEntry) => Promise<void>;
 }) {
   return (
     <Surface className="daily-panel">
@@ -33,11 +29,7 @@ export function DailyPanel({
           key={date + ':' + daily.id}
           daily={daily}
           date={date}
-          recorded={history.some(
-            (entry) => entry.dailyId === daily.id && entry.date === date,
-          )}
           onSave={onSave}
-          onRecord={onRecord}
         />
       ))}
     </Surface>
