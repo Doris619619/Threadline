@@ -35,13 +35,13 @@ test('creates in both waiting groups and moves the same task by editing importan
   await expect(normal.getByText('提交科研材料', { exact: true })).toBeVisible();
 });
 
-test('records child actual minutes and result without hiding fields and keeps next date fresh', async ({
+test('records child minutes without a result form and keeps next date fresh', async ({
   page,
 }) => {
   const group = page.getByRole('region', { name: 'Daily 背单词', exact: true });
   await expect(group.getByText('新词', { exact: true })).toBeVisible();
   await group.getByLabel('背单词 新词实际耗时').fill('18');
-  await group.getByLabel('背单词今日结果').fill('完成新词并整理笔记');
+  await expect(group.locator('textarea')).toHaveCount(0);
   await group.getByRole('checkbox', { name: '完成 新词' }).check();
   await expect(
     group.getByRole('checkbox', { name: '完成 Daily 背单词' }),
@@ -50,7 +50,7 @@ test('records child actual minutes and result without hiding fields and keeps ne
   await expect(group.getByRole('button', { name: '已记录' })).toBeDisabled();
   await page.reload();
   await expect(group.getByLabel('背单词 新词实际耗时')).toHaveValue('18');
-  await expect(group.getByLabel('背单词今日结果')).toHaveValue('完成新词并整理笔记');
+  await expect(group.locator('textarea')).toHaveCount(0);
   await page.getByRole('button', { name: '后一天' }).click();
   await expect(
     group.getByRole('checkbox', { name: '完成 Daily 背单词' }),

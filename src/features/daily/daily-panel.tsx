@@ -1,4 +1,4 @@
-/** @fileoverview 首页完整展示 Daily 父子任务、预计/实际耗时和结果，不使用折叠或详情页。 */
+/** @fileoverview 首页以与待安排一致的分组列表展示 Daily 父子任务和耗时，不显示结果表单。 */
 
 'use client';
 

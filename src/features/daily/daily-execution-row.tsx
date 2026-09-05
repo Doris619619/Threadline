@@ -49,7 +49,7 @@ function ActualMinutes({
   );
 }
 
-/** 所有子项和记录字段直接显示；提交时禁用完成动作，仍允许编辑输入草稿。 */
+/** 展示任务和耗时；记录入口位于标题右侧，已有结果随快照保留但不再提供输入。 */
 export function DailyExecutionRow({
   daily,
   date,
@@ -99,7 +99,7 @@ export function DailyExecutionRow({
     <section className="daily-group" aria-label={'Daily ' + daily.title}>
       <div className="daily-parent">
         <Checkbox
-          className="daily-circle"
+          className="daily-check"
           aria-label={'完成 Daily ' + daily.title}
           checked={complete}
           disabled={saving || recording}
@@ -112,9 +112,14 @@ export function DailyExecutionRow({
           }}
         />
         <h3 className="daily-parent-title">{daily.title}</h3>
-        <span className="daily-completion-state">
-          {complete ? '今日已完成' : '待完成'}
-        </span>
+        <button
+          className="daily-record-action"
+          type="button"
+          disabled={recorded || recording}
+          onClick={() => void record()}
+        >
+          {recorded ? '已记录' : recording ? '正在记录…' : '记录'}
+        </button>
       </div>
       <div className="daily-total">
         <span>{plannedLabel(getDailyPlannedMinutes(draft.daily))}</span>
@@ -132,15 +137,15 @@ export function DailyExecutionRow({
         )}
       </div>
       {hasChildren && (
-        <div className="daily-children">
+        <ul className="daily-children" aria-label={daily.title + '子任务'}>
           {draft.daily.children.map((child, index) => (
-            <div
+            <li
               className="daily-child-row"
               key={child.id ?? child.templateItemId ?? index}
             >
               <div className="daily-child-heading">
                 <Checkbox
-                  className="daily-circle"
+                  className="daily-check"
                   aria-label={'完成 ' + child.title}
                   checked={child.completed}
                   disabled={saving || recording}
@@ -174,43 +179,18 @@ export function DailyExecutionRow({
                   onBlur={save}
                 />
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
       {hasChildren && daily.actual > 0 && (
         <p className="daily-legacy-minutes">
           原有额外耗时 {daily.actual} 分钟，已计入合计
         </p>
       )}
-      <div className="daily-entry">
-        <label className="daily-result-field">
-          <span>今日结果</span>
-          <textarea
-            aria-label={daily.title + '今日结果'}
-            rows={2}
-            value={draft.daily.result}
-            placeholder="记录今天的收获"
-            onChange={(event) =>
-              edit((value) => ({
-                ...value,
-                daily: { ...value.daily, result: event.target.value },
-              }))
-            }
-            onBlur={save}
-          />
-        </label>
-        <div className="daily-entry-actions">
-          <span role="status">{saving ? '正在保存…' : ''}</span>
-          <button
-            type="button"
-            disabled={recorded || recording}
-            onClick={() => void record()}
-          >
-            {recorded ? '已记录' : recording ? '正在记录…' : '记录'}
-          </button>
-        </div>
-      </div>
+      <span className="daily-save-status" role="status">
+        {saving ? '正在保存…' : ''}
+      </span>
       {error && (
         <div className="daily-save-error" role="alert">
           <span>{error}</span>

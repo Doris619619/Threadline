@@ -1,5 +1,6 @@
 /** @fileoverview 从无登录的真实 Preview 入口验证演示交互、刷新持久化与云端隔离。 */
 import { expect, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 test('opens an interactive isolated demo and persists Daily and newly created tasks', async ({
   page,
@@ -19,7 +20,8 @@ test('opens an interactive isolated demo and persists Daily and newly created ta
     daily.getByText('完成一道动态规划题并整理思路', { exact: true }),
   ).toBeVisible();
   await daily.getByLabel('算法训练 完成一道动态规划题并整理思路实际耗时').fill('18');
-  await daily.getByLabel('算法训练今日结果').fill('完成练习并整理思路');
+  await expect(daily.locator('textarea')).toHaveCount(0);
+  await expect(daily.getByText('今日结果', { exact: true })).toHaveCount(0);
   await daily
     .getByRole('checkbox', { name: '完成 完成一道动态规划题并整理思路', exact: true })
     .check();
@@ -52,7 +54,7 @@ test('opens an interactive isolated demo and persists Daily and newly created ta
   await schedule.getByTitle('保存任务').click();
   await expect(schedule.getByText('演示：整理今日笔记', { exact: true })).toBeVisible();
   await page.reload();
-  await expect(daily.getByLabel('算法训练今日结果')).toHaveValue('完成练习并整理思路');
+  await expect(daily.locator('textarea')).toHaveCount(0);
   await expect(
     daily.getByLabel('算法训练 完成一道动态规划题并整理思路实际耗时'),
   ).toHaveValue('18');
@@ -86,5 +88,38 @@ test('opens an interactive isolated demo and persists Daily and newly created ta
   expect(storage.overflow).toBe(false);
   expect(cloudRequests).toEqual([]);
   expect(errors).toEqual([]);
+  for (const control of await daily
+    .locator('.daily-check, input[type=number], button')
+    .all()) {
+    const box = (await control.boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
+  }
+  const parentCheck = (await daily
+    .locator('.daily-parent .daily-check')
+    .boundingBox())!;
+  const childCheck = (await daily
+    .locator('.daily-child-row .daily-check')
+    .first()
+    .boundingBox())!;
+  expect(childCheck.x - parentCheck.x).toBeGreaterThanOrEqual(16);
+  for (const name of await daily
+    .locator('.daily-parent-title, .daily-child-name')
+    .all()) {
+    const overflow = await name.evaluate(
+      (element) =>
+        element.scrollWidth > element.clientWidth + 1 ||
+        element.scrollHeight > element.clientHeight + 1,
+    );
+    expect(overflow).toBe(false);
+  }
+  const accessibility = await new AxeBuilder({ page })
+    .include('.daily-panel')
+    .analyze();
+  expect(accessibility.violations).toEqual([]);
+  await daily.screenshot({ path: info.outputPath('daily-group.png') });
+  await page
+    .locator('.daily-panel')
+    .screenshot({ path: info.outputPath('daily-panel.png') });
   await page.screenshot({ path: info.outputPath('preview-demo.png'), fullPage: true });
 });

@@ -55,12 +55,13 @@ function setup(onSave = vi.fn().mockResolvedValue(undefined), item = daily) {
 }
 
 describe('Daily home execution', () => {
-  it('shows every child, fixed planned minutes, actual fields and result without disclosure', () => {
+  it('shows every child and actual field without a result form or disclosure', () => {
     setup();
     expect(screen.getByText(daily.children[0].title)).toBeVisible();
     expect(screen.getByText('预计 30 分钟')).toBeVisible();
     expect(screen.getByText('预计 50 分钟')).toBeVisible();
-    expect(screen.getByLabelText('算法训练今日结果')).toBeVisible();
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(screen.queryByText('今日结果')).toBeNull();
     expect(screen.getAllByRole('spinbutton')).toHaveLength(2);
     expect(screen.queryByLabelText('算法训练实际耗时')).toBeNull();
     expect(screen.queryByRole('button', { name: /展开|详情|收起/ })).toBeNull();
@@ -114,16 +115,13 @@ describe('Daily home execution', () => {
           }),
       )
       .mockResolvedValue(undefined);
-    const { onRecord } = setup(onSave);
+    const { onRecord } = setup(onSave, { ...daily, result: '已有历史结果' });
     const input = screen.getByLabelText(
       '算法训练 ' + daily.children[0].title + '实际耗时',
     );
     fireEvent.change(input, { target: { value: '1' } });
     fireEvent.blur(input);
     fireEvent.change(input, { target: { value: '15' } });
-    fireEvent.change(screen.getByLabelText('算法训练今日结果'), {
-      target: { value: '已理解转移方程' },
-    });
     fireEvent.click(screen.getByRole('button', { name: '记录', exact: true }));
     expect(onRecord).not.toHaveBeenCalled();
     await act(async () => {
@@ -131,7 +129,7 @@ describe('Daily home execution', () => {
     });
     await waitFor(() =>
       expect(onRecord).toHaveBeenCalledWith(
-        expect.objectContaining({ actual: 15, result: '已理解转移方程' }),
+        expect.objectContaining({ actual: 15, result: '已有历史结果' }),
       ),
     );
     expect(onSave).toHaveBeenCalledTimes(2);

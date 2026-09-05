@@ -86,7 +86,7 @@ test.describe('compact viewport layout matrix', () => {
     await expect(daily.getByText(longName, { exact: true })).toBeVisible();
     await expect(daily.getByText('预计 30 分钟', { exact: true })).toBeVisible();
     await expect(daily.getByText('预计 50 分钟', { exact: true })).toBeVisible();
-    await expect(daily.getByLabel('算法训练今日结果')).toBeVisible();
+    await expect(daily.locator('textarea')).toHaveCount(0);
     await expect(daily.getByRole('spinbutton')).toHaveCount(2);
     await expect(daily.locator('details, [aria-expanded]')).toHaveCount(0);
     for (const name of await daily
@@ -101,7 +101,7 @@ test.describe('compact viewport layout matrix', () => {
       expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth + 1);
       expect(dimensions.scrollHeight).toBeLessThanOrEqual(dimensions.clientHeight + 1);
     }
-    for (const circle of await daily.locator('.daily-circle').all()) {
+    for (const circle of await daily.locator('.daily-check').all()) {
       const box = (await circle.boundingBox())!;
       expect(box.width).toBeGreaterThanOrEqual(44);
       expect(box.height).toBeGreaterThanOrEqual(44);
