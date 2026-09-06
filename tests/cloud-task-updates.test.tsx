@@ -1,0 +1,285 @@
+/** @fileoverview 用延迟云端响应验证首次勾选、Realtime 旧读、连续操作及失败恢复。 */
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { TaskLine } from '@/features/tasks/components/task-line';
+import { useCloudTaskUpdates } from '@/features/workspace/use-cloud-task-updates';
+import type { Task, TaskTimeEntry } from '@/types/domain';
+
+/** 以显式 resolve/reject 控制真实异步顺序，不依赖固定延时。 */
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: Error) => void;
+  const promise = new Promise<T>((yes, no) => {
+    resolve = yes;
+    reject = no;
+  });
+  return { promise, resolve, reject };
+}
+
+/** 完整任务保留预计与实际字段，检测保存过程是否误丢元数据。 */
+function task(id = 'one'): Task {
+  return {
+    id,
+    title: id,
+    projectId: 'project',
+    date: '2026-09-06',
+    status: 'active',
+    importance: 'normal',
+    completed: false,
+    plannedDurationMinutes: 40,
+    actualDurationMinutes: 12,
+    createdAt: '2026-09-06T00:00:00Z',
+  };
+}
+
+/** 每个测试独立缓存和仓储；saveTask 默认挂起，模拟手机上的请求延迟。 */
+function setup(rows = [task()]) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
+  client.setQueryData(['workspace', 'owner', 'tasks'], rows);
+  const writes: ReturnType<typeof deferred<Task>>[] = [];
+  const repository = {
+    listTasks: vi.fn(async () => rows),
+    saveTask: vi.fn((_row: Task) => {
+      void _row;
+      const request = deferred<Task>();
+      writes.push(request);
+      return request.promise;
+    }),
+    listTaskTimeEntries: vi.fn(async (): Promise<TaskTimeEntry[]> => []),
+  };
+  const onError = vi.fn();
+  /** 共享真实 QueryClient，让测试能模拟 Realtime 触发的后台 refetch。 */
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  return { client, repository, onError, writes, wrapper };
+}
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
+
+describe('cloud task save feedback', () => {
+  it('keeps the actual TaskLine checked on the first click while saving and refreshing stale rows', async () => {
+    const ctx = setup();
+    /** 用正式任务行而非简化 checkbox 验证受控输入的事件结束状态。 */
+    function Schedule() {
+      const { tasks, updateTasks } = useCloudTaskUpdates(
+        'owner',
+        ctx.repository,
+        ctx.onError,
+      );
+      return (
+        <TaskLine
+          task={tasks[0]}
+          projects={[]}
+          inSchedulePanel
+          onEdit={() => {}}
+          onMove={() => {}}
+          onReschedule={() => {}}
+          onUpdate={(next) =>
+            updateTasks((rows) => rows.map((row) => (row.id === next.id ? next : row)))
+          }
+        />
+      );
+    }
+    render(<Schedule />, { wrapper: ctx.wrapper });
+    const checkbox = screen.getByRole('checkbox');
+    fireEvent.click(checkbox);
+    expect(checkbox).toBeChecked();
+    await waitFor(() => expect(ctx.writes).toHaveLength(1));
+    await act(() =>
+      ctx.client.invalidateQueries({ queryKey: ['workspace', 'owner', 'tasks'] }),
+    );
+    expect(checkbox).toBeChecked();
+    await act(async () =>
+      ctx.writes[0].resolve({
+        ...ctx.repository.saveTask.mock.calls[0][0],
+        updatedAt: 'server',
+      }),
+    );
+    expect(checkbox).toBeChecked();
+    expect(
+      ctx.client.getQueryData<Task[]>(['workspace', 'owner', 'tasks'])?.[0],
+    ).toMatchObject({
+      completed: true,
+      plannedDurationMinutes: 40,
+      actualDurationMinutes: 12,
+      updatedAt: 'server',
+    });
+  });
+
+  it('serializes check/uncheck and keeps the latest intent until its own response', async () => {
+    const ctx = setup();
+    const { result } = renderHook(
+      () => useCloudTaskUpdates('owner', ctx.repository, ctx.onError),
+      { wrapper: ctx.wrapper },
+    );
+    act(() =>
+      result.current.updateTasks((rows) =>
+        rows.map((row) => ({ ...row, completed: true })),
+      ),
+    );
+    await waitFor(() => expect(ctx.writes).toHaveLength(1));
+    act(() =>
+      result.current.updateTasks((rows) =>
+        rows.map((row) => ({ ...row, completed: false })),
+      ),
+    );
+    expect(result.current.tasks[0].completed).toBe(false);
+    expect(ctx.writes).toHaveLength(1);
+    await act(async () => ctx.writes[0].resolve({ ...task(), completed: true }));
+    await waitFor(() => expect(ctx.writes).toHaveLength(2));
+    expect(result.current.tasks[0].completed).toBe(false);
+    await act(async () => ctx.writes[1].resolve(task()));
+    expect(result.current.tasks[0].completed).toBe(false);
+    expect(ctx.repository.saveTask.mock.calls.map(([row]) => row.completed)).toEqual([
+      true,
+      false,
+    ]);
+  });
+
+  it('does not restore another task when concurrent saves finish out of order', async () => {
+    const ctx = setup([task(), task('two')]);
+    const { result } = renderHook(
+      () => useCloudTaskUpdates('owner', ctx.repository, ctx.onError),
+      { wrapper: ctx.wrapper },
+    );
+    act(() =>
+      result.current.updateTasks((rows) =>
+        rows.map((row) => ({ ...row, completed: true })),
+      ),
+    );
+    await waitFor(() => expect(ctx.writes).toHaveLength(2));
+    await act(async () => ctx.writes[1].resolve({ ...task('two'), completed: true }));
+    await act(async () => ctx.writes[0].resolve({ ...task(), completed: true }));
+    expect(result.current.tasks.map((row) => row.completed)).toEqual([true, true]);
+  });
+
+  it('rolls back only the failed task, shows an error, and accepts one-click retry', async () => {
+    const ctx = setup([task(), task('two')]);
+    const { result } = renderHook(
+      () => useCloudTaskUpdates('owner', ctx.repository, ctx.onError),
+      { wrapper: ctx.wrapper },
+    );
+    act(() =>
+      result.current.updateTasks((rows) =>
+        rows.map((row) => ({ ...row, completed: true })),
+      ),
+    );
+    await waitFor(() => expect(ctx.writes).toHaveLength(2));
+    await act(async () => ctx.writes[1].resolve({ ...task('two'), completed: true }));
+    await act(async () => ctx.writes[0].reject(new Error('network')));
+    expect(result.current.tasks.map((row) => row.completed)).toEqual([false, true]);
+    expect(ctx.onError).toHaveBeenCalledWith(expect.stringContaining('任务保存失败'));
+    act(() =>
+      result.current.updateTasks((rows) =>
+        rows.map((row) => ({ ...row, completed: true })),
+      ),
+    );
+    await waitFor(() => expect(ctx.writes).toHaveLength(3));
+    await act(async () => ctx.writes[2].resolve({ ...task(), completed: true }));
+    expect(result.current.tasks.every((row) => row.completed)).toBe(true);
+  });
+
+  it('restores the last committed click when a later queued click fails', async () => {
+    const ctx = setup();
+    const { result } = renderHook(
+      () => useCloudTaskUpdates('owner', ctx.repository, ctx.onError),
+      { wrapper: ctx.wrapper },
+    );
+    act(() => result.current.updateTasks([{ ...task(), completed: true }]));
+    act(() => result.current.updateTasks([task()]));
+    await waitFor(() => expect(ctx.writes).toHaveLength(1));
+    await act(async () => ctx.writes[0].resolve({ ...task(), completed: true }));
+    await waitFor(() => expect(ctx.writes).toHaveLength(2));
+    await act(async () => ctx.writes[1].reject(new Error('network')));
+    expect(result.current.tasks[0].completed).toBe(true);
+  });
+
+  it('keeps committed completion when the separate ledger refresh fails', async () => {
+    const ctx = setup();
+    ctx.repository.listTaskTimeEntries.mockRejectedValue(
+      new Error('ledger unavailable'),
+    );
+    const { result } = renderHook(
+      () => useCloudTaskUpdates('owner', ctx.repository, ctx.onError),
+      { wrapper: ctx.wrapper },
+    );
+    act(() => result.current.updateTasks([{ ...task(), completed: true }]));
+    await waitFor(() => expect(ctx.writes).toHaveLength(1));
+    await act(async () => ctx.writes[0].resolve({ ...task(), completed: true }));
+    await waitFor(() =>
+      expect(ctx.onError).toHaveBeenCalledWith(expect.stringContaining('任务已保存')),
+    );
+    expect(result.current.tasks[0].completed).toBe(true);
+  });
+
+  it('rejects offline edits without changing the checkbox or writing', () => {
+    const ctx = setup();
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    const { result } = renderHook(
+      () => useCloudTaskUpdates('owner', ctx.repository, ctx.onError),
+      { wrapper: ctx.wrapper },
+    );
+    act(() => result.current.updateTasks([{ ...task(), completed: true }]));
+    expect(result.current.tasks[0].completed).toBe(false);
+    expect(ctx.repository.saveTask).not.toHaveBeenCalled();
+    expect(ctx.onError).toHaveBeenCalledWith(expect.stringContaining('离线'));
+  });
+
+  it('does not expose a previous account pending edit after changing accounts', async () => {
+    const ctx = setup();
+    ctx.client.setQueryData(['workspace', 'other', 'tasks'], [task()]);
+    const { result, rerender } = renderHook(
+      ({ owner }) => useCloudTaskUpdates(owner, ctx.repository, ctx.onError),
+      { wrapper: ctx.wrapper, initialProps: { owner: 'owner' } },
+    );
+    act(() => result.current.updateTasks([{ ...task(), completed: true }]));
+    await waitFor(() => expect(ctx.writes).toHaveLength(1));
+    rerender({ owner: 'other' });
+    expect(result.current.tasks.some((row) => row.completed)).toBe(false);
+    await waitFor(() => expect(result.current.tasks[0]?.completed).toBe(false));
+    await act(async () => ctx.writes[0].resolve({ ...task(), completed: true }));
+    expect(result.current.tasks[0].completed).toBe(false);
+    expect(
+      ctx.client.getQueryData<Task[]>(['workspace', 'other', 'tasks'])?.[0].completed,
+    ).toBe(false);
+  });
+
+  it('cancels a stale in-flight task read when the save is confirmed', async () => {
+    const ctx = setup();
+    const { result } = renderHook(
+      () => useCloudTaskUpdates('owner', ctx.repository, ctx.onError),
+      { wrapper: ctx.wrapper },
+    );
+    await waitFor(() => expect(result.current.query.isFetching).toBe(false));
+    act(() => result.current.updateTasks([{ ...task(), completed: true }]));
+    await waitFor(() => expect(ctx.writes).toHaveLength(1));
+    const oldRead = deferred<Task[]>();
+    ctx.repository.listTasks.mockReturnValueOnce(oldRead.promise);
+    act(() => {
+      void ctx.client.invalidateQueries({ queryKey: ['workspace', 'owner', 'tasks'] });
+    });
+    await waitFor(() => expect(result.current.query.isFetching).toBe(true));
+    await act(async () => ctx.writes[0].resolve({ ...task(), completed: true }));
+    await act(async () => oldRead.resolve([task()]));
+    expect(result.current.tasks[0].completed).toBe(true);
+    expect(
+      ctx.client.getQueryData<Task[]>(['workspace', 'owner', 'tasks'])?.[0].completed,
+    ).toBe(true);
+  });
+});

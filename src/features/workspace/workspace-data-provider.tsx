@@ -27,17 +27,12 @@ import {
 } from '@/features/workspace/workspace-data-context';
 export { useWorkspaceData } from '@/features/workspace/workspace-data-context';
 import { LocalWorkspaceTestAdapter } from '@/features/workspace/workspace-test-adapter';
+import { useCloudTaskUpdates } from '@/features/workspace/use-cloud-task-updates';
 import { usesLocalWorkspace } from '@/lib/workspace-runtime';
 import { useAnnotationStrokes } from '@/hooks/use-annotation-strokes';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import { reconcileTaskAnnotations } from '@/lib/annotation-reconciliation';
-import type {
-  CloseRecord,
-  HistoryEvent,
-  Project,
-  Task,
-  TaskTimeEntry,
-} from '@/types/domain';
+import type { CloseRecord, HistoryEvent, Project, Task } from '@/types/domain';
 
 /** 解析 React setter，并保证异步写入读取 Query cache 中的最新集合。 */
 function resolveState<T>(current: T, action: SetStateAction<T>): T {
@@ -93,10 +88,11 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     queryKey: ['workspace', ownerKey, 'projects'],
     queryFn: () => repository.listProjects(),
   });
-  const tasksQuery = useQuery({
-    queryKey: ['workspace', ownerKey, 'tasks'],
-    queryFn: () => repository.listTasks(),
-  });
+  const {
+    query: tasksQuery,
+    tasks,
+    updateTasks,
+  } = useCloudTaskUpdates(ownerKey, repository, setMutationError);
   const taskTimeEntriesQuery = useQuery({
     queryKey: ['workspace', ownerKey, 'task-time-entries'],
     queryFn: () => repository.listTaskTimeEntries(),
@@ -122,7 +118,6 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     queryFn: () => repository.listWorkstationTaskIds(),
   });
 
-  const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data]);
   const taskTimeEntries = useMemo(
     () => taskTimeEntriesQuery.data ?? [],
     [taskTimeEntriesQuery.data],
@@ -259,37 +254,6 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       void client.removeChannel(channel);
     };
   }, [client, invalidateWorkspace, ownerKey, setRealtimeStatus]);
-
-  /** 保存任务后同步读取触发器生成的耗时账本，让两个 Query cache 只暴露同一提交后的状态。 */
-  const updateTasks: Dispatch<SetStateAction<Task[]>> = useCallback(
-    (action) => {
-      void runMutation(async () => {
-        const current =
-          queryClient.getQueryData<Task[]>(['workspace', ownerKey, 'tasks']) ?? tasks;
-        const next = resolveState(current, action);
-        const currentById = new Map(current.map((task) => [task.id, task]));
-        const changedTasks = next.filter((task) =>
-          changed(currentById.get(task.id), task),
-        );
-        const saved = await Promise.all(
-          changedTasks.map((task) => repository.saveTask(task)),
-        );
-        const refreshedTaskTimeEntries =
-          changedTasks.length > 0 ? await repository.listTaskTimeEntries() : undefined;
-        queryClient.setQueryData<Task[]>(
-          ['workspace', ownerKey, 'tasks'],
-          next.map((task) => saved.find((row) => row.id === task.id) ?? task),
-        );
-        if (refreshedTaskTimeEntries) {
-          queryClient.setQueryData<TaskTimeEntry[]>(
-            ['workspace', ownerKey, 'task-time-entries'],
-            refreshedTaskTimeEntries,
-          );
-        }
-      });
-    },
-    [ownerKey, queryClient, repository, runMutation, tasks],
-  );
 
   const updateProjects: Dispatch<SetStateAction<Project[]>> = useCallback(
     (action) => {
