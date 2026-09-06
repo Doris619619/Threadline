@@ -1,4 +1,4 @@
-/** @fileoverview 跨手机与桌面验收独立预计、生理期完整记录流程，并保留可审阅页面截图。 */
+/** @fileoverview 跨手机与桌面验收独立预计、生理期流程和稳定外观的可读性，并保留页面截图。 */
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import {
@@ -41,6 +41,13 @@ for (const [label, selector, image] of [
       fullPage: true,
     });
     await page.emulateMedia({ colorScheme: 'dark' });
+    // 等待真实外观过渡结束，再检查最终配色；不关闭动画、不豁免对比度规则。
+    await page.evaluate(async () => {
+      void document.documentElement.offsetWidth;
+      await Promise.allSettled(
+        document.getAnimations().map((animation) => animation.finished),
+      );
+    });
     expect(
       (await new AxeBuilder({ page }).include(selector).analyze()).violations,
     ).toEqual([]);
