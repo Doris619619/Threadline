@@ -30,11 +30,14 @@ const primaryWorkspaceViews: WorkspaceViewContract[] = [
     keyControl: (page) => page.getByRole('heading', { name: '今日日程', exact: true }),
   },
   {
-    label: '日历',
-    heading: '日历',
+    label: '规划',
+    heading: '规划',
     panelTestId: 'calendar-panel',
     keyControl: (page) =>
-      page.getByRole('group', { name: /项目投入热力$/ }).getByRole('button').first(),
+      page
+        .getByRole('group', { name: /任务分布$/ })
+        .getByRole('button')
+        .first(),
   },
   {
     label: '项目',

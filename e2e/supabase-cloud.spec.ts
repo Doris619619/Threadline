@@ -1,5 +1,5 @@
 /**
- * @fileoverview 通过真实本地 Supabase 验证登录、慢网勾选、双页面同步、持久化与退出登录。
+ * @fileoverview 通过真实本地 Supabase 验证登录、编辑失败重试、慢网勾选、双页面同步与持久化。
  */
 
 import { expect, test } from '@playwright/test';
@@ -52,6 +52,34 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
   await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();
   await expect(
     page.locator('.waiting-panel').getByText(taskTitle, { exact: true }),
+  ).toBeVisible();
+
+  // 真实首页编辑遇到服务端写入失败时保留草稿，重试成功后才关闭并持久化。
+  await page.locator('.waiting-task-main').filter({ hasText: taskTitle }).click();
+  const editor = page.getByRole('dialog', { name: '修改待安排事项' });
+  await editor.getByRole('textbox', { name: '任务名称' }).fill(`${taskTitle} edited`);
+  await page.route('**/rest/v1/tasks*', async (route) => {
+    if (route.request().method() === 'POST') {
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: '编辑保存回归：服务暂时不可用' }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+  await editor.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(editor.getByRole('alert')).toContainText('服务暂时不可用');
+  await expect(editor.getByRole('textbox', { name: '任务名称' })).toHaveValue(
+    `${taskTitle} edited`,
+  );
+  await page.unroute('**/rest/v1/tasks*');
+  await editor.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(editor).toBeHidden();
+  await page.reload();
+  await expect(
+    page.locator('.waiting-panel').getByText(`${taskTitle} edited`, { exact: true }),
   ).toBeVisible();
 
   // 实际 REST 请求暂缓发往数据库，确保首次勾选在响应前就稳定，而不是重试三次才显示。

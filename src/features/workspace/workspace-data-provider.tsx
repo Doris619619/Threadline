@@ -453,6 +453,29 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     [ownerKey, projects, queryClient, repository],
   );
 
+  /** 确认保存后再发布字段；失败保留原任务，账本刷新失败不伪装成写入失败。 */
+  const saveTaskConfirmed = useCallback(
+    async (task: Task) => {
+      if (!navigator.onLine) throw new Error('当前离线，任务未保存。');
+      await queryClient.cancelQueries({
+        queryKey: ['workspace', ownerKey, 'tasks'],
+        exact: true,
+      });
+      const saved = await repository.saveTask(task);
+      queryClient.setQueryData<Task[]>(
+        ['workspace', ownerKey, 'tasks'],
+        (current = []) => current.map((item) => (item.id === saved.id ? saved : item)),
+      );
+      void Promise.all(
+        ['task-time-entries', 'history'].map((key) =>
+          queryClient.invalidateQueries({ queryKey: ['workspace', ownerKey, key] }),
+        ),
+      ).catch(() => setMutationError('任务已保存，但记录刷新失败，请重新加载。'));
+      return saved;
+    },
+    [ownerKey, queryClient, repository],
+  );
+
   const transitionTask = useCallback(
     async (taskId: string, transition: TaskTransition, targetDate?: string) => {
       try {
@@ -742,6 +765,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       setProjectArchived,
       deleteProject,
       createTask,
+      saveTaskConfirmed,
       createDailyTemplate,
       saveDailyTemplate,
       saveDailyEntry,
@@ -757,6 +781,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       createProject,
       deleteProject,
       createTask,
+      saveTaskConfirmed,
       createDailyTemplate,
       recordDaily,
       saveDailyTemplate,

@@ -117,12 +117,13 @@ describe('SupabaseWorkspaceRepository task boundary', () => {
     } as unknown as SupabaseClient);
 
     await expect(
-      repository.transitionTask('task-1', 'rescheduled', '2026-08-24'),
+      repository.transitionTask('task-1', 'rescheduled', '2099-08-24'),
     ).resolves.toMatchObject({ id: 'task-1', status: 'active' });
     expect(rpc).toHaveBeenCalledWith('transition_task', {
       p_task_id: 'task-1',
       p_transition: 'rescheduled',
-      p_target_date: '2026-08-24',
+      p_target_date: '2099-08-24',
+      p_time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
   });
 });

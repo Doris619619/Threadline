@@ -4,6 +4,8 @@
 
 'use client';
 
+import { validatePlanningDate } from '@/lib/task-rules';
+
 import { useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { useWorkspaceView } from '@/components/app-shell';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
@@ -166,10 +168,32 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
     [updateProjects],
   );
 
+  /** 测试与演示确认字段保存，复用已有本地账本更新流程。 */
+  const saveTaskConfirmed = useCallback(
+    async (task: Task) => {
+      updateTasks((current) =>
+        current.map((item) => (item.id === task.id ? task : item)),
+      );
+      return task;
+    },
+    [updateTasks],
+  );
+
   const transitionTask = useCallback(
     async (taskId: string, transition: TaskTransition, targetDate?: string) => {
       const current = tasks.find((task) => task.id === taskId);
       if (!current) throw new Error('TEST_TASK_NOT_FOUND');
+      if (current.completed && transition !== 'trashed')
+        throw new Error('请先取消完成');
+      if (transition === 'scheduled' || transition === 'rescheduled') {
+        const message = validatePlanningDate(
+          targetDate,
+          transition === 'rescheduled' ? current.date : undefined,
+        );
+        if (message) throw new Error(message);
+        if (current.status !== (transition === 'scheduled' ? 'waiting' : 'active'))
+          throw new Error('任务状态不允许此操作');
+      }
       const now = new Date().toISOString();
       const next: Task = {
         ...current,
@@ -590,6 +614,7 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
   const commands = useMemo(
     () => ({
       createTask,
+      saveTaskConfirmed,
       createProject,
       updateProject,
       setProjectArchived,
@@ -608,6 +633,7 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
       closeDay,
       createProject,
       createTask,
+      saveTaskConfirmed,
       createDailyTemplate,
       deleteProject,
       recordDaily,

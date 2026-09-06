@@ -33,7 +33,7 @@ export function useTaskCreateAndEdit({
   editing: Task | undefined;
   projects: Project[];
   selectedDate: string;
-  updateTask: (task: Task) => void;
+  updateTask: (task: Task) => void | Promise<unknown>;
 }) {
   /** 等待项目持久化确认后返回它，后续 task 写入不再与项目 FK 竞争。 */
   const createProjectDirectly = async (name: string): Promise<Project> => {
@@ -179,7 +179,7 @@ export function useTaskCreateAndEdit({
         : numberOrUndefined(form.get('actual')),
       updatedAt: new Date().toISOString(),
     };
-    if (editing) updateTask(nextTask);
+    if (editing) await updateTask(nextTask);
     else await createTask(nextTask);
     return undefined;
   };

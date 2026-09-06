@@ -2,7 +2,7 @@
 
 import { act, renderHook } from '@testing-library/react';
 import type { Dispatch, SetStateAction } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useTaskWorkflow } from '@/features/tasks/hooks/use-task-workflow';
 import type { AnnotationStroke, Task } from '@/types/domain';
 
@@ -33,6 +33,11 @@ function stateContainer<Value>(initial: Value) {
 }
 
 describe('useTaskWorkflow', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-21T12:00:00'));
+  });
+  afterEach(() => vi.useRealTimers());
   it('removes only the trashed task visual bindings before requesting the transactional transition', () => {
     const currentTask = taskFixture();
     const tasks = stateContainer([currentTask]);
@@ -78,7 +83,7 @@ describe('useTaskWorkflow', () => {
     expect(transitionTask).toHaveBeenCalledWith(currentTask.id, 'trashed');
   });
 
-  it('requires a later date for rescheduling and restores a non-completed trashed task locally', () => {
+  it('rejects past dates and restores a non-completed trashed task locally', async () => {
     const currentTask = taskFixture({
       status: 'trashed',
       completedAt: undefined,
@@ -99,14 +104,21 @@ describe('useTaskWorkflow', () => {
       }),
     );
 
-    expect(result.current.rescheduleTask(undefined, '2026-08-22')).toBeUndefined();
     expect(
-      result.current.rescheduleTask(taskFixture({ completed: true }), '2026-08-22'),
+      await result.current.rescheduleTask(undefined, '2026-08-22'),
+    ).toBeUndefined();
+    expect(
+      await result.current.rescheduleTask(
+        taskFixture({ completed: true }),
+        '2026-08-22',
+      ),
     ).toBe('请先取消完成再移期');
-    expect(result.current.rescheduleTask(currentTask, '2026-08-20')).toBe(
-      '请选择晚于原计划日期的未来日期',
+    expect(await result.current.rescheduleTask(currentTask, '2026-08-20')).toBe(
+      '请选择今天或未来日期',
     );
-    expect(result.current.rescheduleTask(currentTask, '2026-08-22')).toBeUndefined();
+    expect(
+      await result.current.rescheduleTask(currentTask, '2026-08-22'),
+    ).toBeUndefined();
     expect(transitionTask).toHaveBeenCalledWith(
       currentTask.id,
       'rescheduled',

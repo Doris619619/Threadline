@@ -111,7 +111,7 @@ test.describe('accessibility smoke', () => {
   test('does not add critical or serious axe violations on Calendar', async ({
     page,
   }) => {
-    await openWorkspaceSection(page, '日历');
+    await openWorkspaceSection(page, '规划');
     await expectNoNewBlockingAxeViolations(page, 'Calendar');
   });
 
@@ -144,11 +144,11 @@ test.describe('accessibility smoke', () => {
       page.getByRole('link', { name: 'Threadline', exact: true }),
       2,
     );
-    const calendar = page.getByRole('button', { name: '日历', exact: true });
+    const calendar = page.getByRole('button', { name: '规划', exact: true });
     await calendar.focus();
     await expect(calendar).toBeFocused();
     await page.keyboard.press('Enter');
-    await expect(page.getByRole('heading', { level: 1, name: '日历' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: '规划' })).toBeVisible();
 
     await openWorkspaceSection(page, '首页');
     const finishDay = page.getByRole('button', { name: '结束今天', exact: true });
