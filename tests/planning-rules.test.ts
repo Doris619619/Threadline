@@ -25,6 +25,11 @@ function task(id: string, overrides: Partial<Task> = {}): Task {
   };
 }
 describe('planning', () => {
+  it('uses bounded heat levels without capping the actual task count', () => {
+    expect([0, 1, 2, 3, 4, 5, 7, 8, 12, 100].map(planningHeat)).toEqual([
+      0, 1, 1, 2, 2, 3, 3, 4, 4, 4,
+    ]);
+  });
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-09-06T12:00:00'));
@@ -53,7 +58,6 @@ describe('planning', () => {
     expect(day.unestimated).toBe(1);
     expect(day.completed).toHaveLength(1);
     expect(day.untimed).toHaveLength(1);
-    expect([0, 1, 2, 3, 4, 5, 100].map(planningHeat)).toEqual([0, 1, 1, 2, 2, 3, 3]);
   });
   it('allows bringing future tasks forward to today and rejects past, same and invalid dates', () => {
     expect(validatePlanningDate('2026-09-06', '2026-09-11')).toBeUndefined();

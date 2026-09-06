@@ -119,24 +119,18 @@ test('keeps Web and PWA in the full workspace even when stale desktop preference
   await expect(page.getByRole('button', { name: '关闭窗口' })).toHaveCount(0);
 });
 
-test('keeps the calendar anchor synchronized with selected dates and today', async ({
+test('keeps the source calendar month when returning from a cross-month day', async ({
   page,
 }) => {
   await openWorkspaceSection(page, '规划');
-  await page.getByRole('button', { name: '2026 年 8 月' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: '上个月' }).click();
-  await expect(
-    page.getByRole('dialog').getByRole('heading', { name: '2026年7月' }),
-  ).toBeVisible();
-
-  await page
-    .getByRole('dialog')
-    .getByRole('button', { name: /^2026-08-01，/ })
-    .click();
-  await expect(page.getByRole('button', { name: '2026 年 8 月' })).toBeVisible();
-
+  await page.getByRole('button', { name: '上个月' }).click();
+  await expect(page.getByRole('heading', { name: '2026年7月' })).toBeVisible();
+  await page.getByRole('button', { name: /^2026-08-01，/ }).click();
+  await expect(page.locator('.planning-week-label')).toHaveText('2026 年 8 月');
+  await page.getByRole('button', { name: '返回月历' }).click();
+  await expect(page.getByRole('heading', { name: '2026年7月' })).toBeVisible();
   await page.getByRole('button', { name: '今天', exact: true }).click();
-  await expect(page.getByRole('button', { name: '2026 年 8 月' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '2026年8月' })).toBeVisible();
 });
 
 test.describe('desktop task drag scheduling', () => {

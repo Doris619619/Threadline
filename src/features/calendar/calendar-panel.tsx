@@ -1,16 +1,15 @@
 /** @fileoverview 规划工作台：独立浏览日期、周/月选日及可持久化的普通任务安排。 */
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { ManagementDialog } from '@/components/ui/management-dialog';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, Plus } from 'lucide-react';
 import { useWorkspaceData } from '@/features/workspace/workspace-data-provider';
 import { useTaskCreateAndEdit } from '@/features/tasks/hooks/use-task-create-and-edit';
 import { TaskDialog, RescheduleDialog } from '@/features/tasks/components/task-dialogs';
-import { addLocalDateDays, getLocalDateKey, parseLocalDateKey } from '@/lib/local-date';
-import { getWeekRange, iterateLocalDateRange } from '@/lib/date-range';
-import { groupPlanningTasks, planningDay } from './planning-rules';
+import { getLocalDateKey } from '@/lib/local-date';
+import { groupPlanningTasks } from './planning-rules';
 import { PlanningMonth } from './planning-month';
+import { PlanningDay } from './planning-day';
 import { PlanningTaskRow } from './planning-task-row';
 import type { Task } from '@/types/domain';
 
@@ -25,7 +24,12 @@ export function CalendarPanel() {
     transitionTask,
   } = useWorkspaceData();
   const [date, setDate] = useState<string>(() => getLocalDateKey());
-  const [monthOpen, setMonthOpen] = useState(false);
+  const [month, setMonth] = useState(() => getLocalDateKey().slice(0, 7));
+  const [view, setView] = useState<'month' | 'day'>('month');
+  const panelRef = useRef<HTMLDivElement>(null);
+  const returnDate = useRef<string | undefined>(undefined);
+  const returnToInbox = useRef(false);
+  const previousView = useRef(view);
   const [waitingOpen, setWaitingOpen] = useState(false);
   const [editor, setEditor] = useState<{ task?: Task; date: string }>();
   const [rescheduling, setRescheduling] = useState<Task>();
@@ -35,9 +39,7 @@ export function CalendarPanel() {
   const waitingRef = useRef<HTMLDetailsElement>(null);
   const today = getLocalDateKey();
   const days = useMemo(() => groupPlanningTasks(tasks), [tasks]);
-  const day = planningDay(days.get(date) ?? []);
   const waiting = tasks.filter((task) => task.status === 'waiting' && !task.completed);
-  const week = getWeekRange(date);
   const { saveTask } = useTaskCreateAndEdit({
     createTask,
     createProject,
@@ -46,6 +48,28 @@ export function CalendarPanel() {
     selectedDate: editor?.date ?? date,
     updateTask: saveTaskConfirmed,
   });
+
+  /** 页面切换后把焦点交给标题或原入口；周条切日不打断键盘操作。 */
+  useEffect(() => {
+    if (previousView.current === view) return;
+    previousView.current = view;
+    if (view === 'day') {
+      const target = returnToInbox.current ? '.planning-waiting > summary' : 'h1';
+      panelRef.current?.querySelector<HTMLElement>(target)?.focus();
+    } else {
+      const selector = returnToInbox.current
+        ? '.planning-inbox'
+        : `[data-date="${returnDate.current}"]`;
+      panelRef.current?.querySelector<HTMLElement>(selector)?.focus();
+    }
+  }, [view]);
+  /** 点击日期进入独立日详情，记住来源月份内的格子供返回定位。 */
+  const openDay = (next: string) => {
+    returnDate.current = next;
+    returnToInbox.current = false;
+    setDate(next);
+    setView('day');
+  };
 
   /** 串行提交页面动作并保留失败；ref 阻止同一事件循环的重复请求。 */
   const run = async (action: () => Promise<unknown>): Promise<boolean> => {
@@ -75,7 +99,7 @@ export function CalendarPanel() {
   /** 从空态进入同一待安排池，避免创建重复任务入口。 */
   const showWaiting = () => {
     setWaitingOpen(true);
-    waitingRef.current?.scrollIntoView({ block: 'nearest' });
+    waitingRef.current?.querySelector('summary')?.focus();
   };
   /** 所有行共用确定性动作，完成和编辑都等待服务器确认。 */
   const row = (task: Task) => (
@@ -103,36 +127,69 @@ export function CalendarPanel() {
   );
 
   return (
-    <div className="planning-panel" data-testid="calendar-panel" aria-busy={busy}>
+    <div
+      ref={panelRef}
+      className="planning-panel"
+      data-view={view}
+      data-testid="calendar-panel"
+      aria-busy={busy}
+    >
       <header className="planning-heading">
-        <div>
-          <h1>规划</h1>
-          <p>给接下来要做的事，留好位置。</p>
+        <div className="planning-page-title">
+          {view === 'day' && (
+            <button
+              className="planning-back"
+              aria-label="返回月历"
+              onClick={() => setView('month')}
+            >
+              <ChevronLeft size={20} aria-hidden="true" />
+              月历
+            </button>
+          )}
+          <h1 tabIndex={-1}>{view === 'month' ? '规划' : '当天安排'}</h1>
         </div>
-        <button
-          className="planning-add"
-          disabled={busy || date < today}
-          onClick={() => setEditor({ date })}
-        >
-          <Plus size={18} aria-hidden="true" />
-          添加任务
-        </button>
+        {view === 'day' && (
+          <button
+            className="planning-add"
+            disabled={busy || date < today}
+            onClick={() => setEditor({ date })}
+          >
+            <Plus size={18} aria-hidden="true" />
+            添加任务
+          </button>
+        )}
       </header>
       {error && (
         <p className="form-error" role="alert">
           {error}
         </p>
       )}
-      <div className="planning-layout">
-        <aside className="planning-sidebar">
-          <div className="planning-desktop-month">
-            <PlanningMonth
-              key={date.slice(0, 7)}
-              date={date}
-              days={days}
-              onSelect={setDate}
-            />
-          </div>
+      {view === 'month' ? (
+        <PlanningMonth
+          date={date}
+          month={month}
+          days={days}
+          waitingCount={waiting.length}
+          onMonth={setMonth}
+          onSelect={openDay}
+          onWaiting={() => {
+            returnToInbox.current = true;
+            setDate(today);
+            setWaitingOpen(true);
+            setView('day');
+          }}
+        />
+      ) : (
+        <div className="planning-detail">
+          <PlanningDay
+            date={date}
+            days={days}
+            busy={busy}
+            row={row}
+            onDate={setDate}
+            onCreate={() => setEditor({ date })}
+            onWaiting={showWaiting}
+          />
           <details
             className="planning-waiting"
             ref={waitingRef}
@@ -157,124 +214,6 @@ export function CalendarPanel() {
               );
             })}
           </details>
-        </aside>
-        <section className="planning-agenda" aria-label="当天任务">
-          <nav className="planning-week-nav" aria-label="规划日期导航">
-            <button
-              aria-label="上一周"
-              onClick={() => setDate(addLocalDateDays(date, -7))}
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <button
-              className="planning-month-trigger"
-              onClick={(event) => {
-                event.currentTarget.focus();
-                setMonthOpen(true);
-              }}
-              aria-haspopup="dialog"
-            >
-              <CalendarDays size={17} aria-hidden="true" />
-              {date.slice(0, 4)} 年 {Number(date.slice(5, 7))} 月
-            </button>
-            <button
-              aria-label="下一周"
-              onClick={() => setDate(addLocalDateDays(date, 7))}
-            >
-              <ChevronRight size={18} />
-            </button>
-            <button onClick={() => setDate(getLocalDateKey())}>今天</button>
-          </nav>
-          <div
-            className="planning-week"
-            role="group"
-            aria-label={`${week.start} 至 ${week.end}`}
-          >
-            {iterateLocalDateRange(week).map((item, index) => (
-              <button
-                key={item}
-                aria-pressed={item === date}
-                aria-current={item === today ? 'date' : undefined}
-                aria-label={`${item}，${days.get(item)?.length ?? 0} 项任务`}
-                onClick={() => setDate(item)}
-              >
-                <small>{['一', '二', '三', '四', '五', '六', '日'][index]}</small>
-                <strong>{Number(item.slice(-2))}</strong>
-                <small>{days.get(item)?.length ?? 0}</small>
-              </button>
-            ))}
-          </div>
-          <header className="planning-day-heading">
-            <h3>
-              {new Intl.DateTimeFormat('zh-CN', {
-                month: 'long',
-                day: 'numeric',
-                weekday: 'long',
-              }).format(parseLocalDateKey(date))}
-            </h3>
-            <p>
-              {day.pending.length} 项待完成 ·{' '}
-              {day.unestimated === day.pending.length && day.pending.length > 0
-                ? '预计待补充'
-                : `预计 ${day.estimated} 分钟`}
-              {day.unestimated > 0 && ` · ${day.unestimated} 项未估时`}
-            </p>
-          </header>
-          {(days.get(date)?.length ?? 0) === 0 && (
-            <div className="planning-empty">
-              <CalendarDays size={30} aria-hidden="true" />
-              <h3>这一天还没有安排</h3>
-              <p>
-                {date < today
-                  ? '可以切换日期查看其他安排。'
-                  : '添加一件事，或把待安排任务放到这一天。'}
-              </p>
-              {date >= today && (
-                <div>
-                  <button disabled={busy} onClick={() => setEditor({ date })}>
-                    添加任务
-                  </button>
-                  <button onClick={showWaiting}>从待安排中选择</button>
-                </div>
-              )}
-            </div>
-          )}
-          {day.timed.length > 0 && (
-            <section className="planning-group">
-              <h4>有时间 · {day.timed.length}</h4>
-              {day.timed.map(row)}
-            </section>
-          )}
-          {day.untimed.length > 0 && (
-            <section className="planning-group">
-              <h4>未定时间 · {day.untimed.length}</h4>
-              {day.untimed.map(row)}
-            </section>
-          )}
-          {day.completed.length > 0 && (
-            <details key={date} className="planning-completed">
-              <summary>已完成 · {day.completed.length}</summary>
-              {day.completed.map(row)}
-            </details>
-          )}
-        </section>
-      </div>
-      {monthOpen && (
-        <div className="planning-month-modal">
-          <ManagementDialog
-            title="选择日期"
-            initialFocusSelector='button[aria-pressed="true"]'
-            onClose={() => setMonthOpen(false)}
-          >
-            <PlanningMonth
-              date={date}
-              days={days}
-              onSelect={(next) => {
-                setDate(next);
-                setMonthOpen(false);
-              }}
-            />
-          </ManagementDialog>
         </div>
       )}
       {editor && (

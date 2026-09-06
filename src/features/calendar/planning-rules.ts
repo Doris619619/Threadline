@@ -1,4 +1,4 @@
-/** @fileoverview 从普通任务派生规划日期分组、任务密度和未完成预计，不读取 Daily 或投入账本。 */
+/** @fileoverview 从普通任务派生规划日期分组和未完成预计，不读取 Daily 或投入账本。 */
 import type { Task } from '@/types/domain';
 
 /** 仅按当前安排日期归组；已完成任务仍保留位置，移期来源不重复计数。 */
@@ -11,9 +11,9 @@ export function groupPlanningTasks(tasks: Task[]): Map<string, Task[]> {
   return days;
 }
 
-/** 四档任务数量仅表示安排密度，不代表预计或实际工作量。 */
+/** 同一雾蓝色相的四档安排密度；完成项保留数量，不把任务数等同于工作时长。 */
 export function planningHeat(count: number): number {
-  return count === 0 ? 0 : count <= 2 ? 1 : count <= 4 ? 2 : 3;
+  return count === 0 ? 0 : count <= 2 ? 1 : count <= 4 ? 2 : count <= 7 ? 3 : 4;
 }
 
 /** 按完成与时间分组，未估时不能当成零分钟混入预计文案。 */
