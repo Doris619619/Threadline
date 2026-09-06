@@ -2,13 +2,12 @@
 
 'use client';
 
-import { Check, Clock, Info, X } from 'lucide-react';
+import { Check, Clock, X } from 'lucide-react';
 import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { TimedTaskCreateDraft } from '@/features/tasks/hooks/use-task-create-drafts';
 import type { TimedTaskDraft } from '@/features/tasks/task-drafts';
-import { formatMinutes, normalizeTime } from '@/features/tasks/task-time';
-import { calculateDuration } from '@/lib/task-rules';
+import { PlannedMinutesField } from './planned-minutes-field';
 import type { Project } from '@/types/domain';
 
 /** 保持日程新增行 DOM、键盘和空标题取消契约；移动端提供符合 iOS 触控规范的四行表单。 */
@@ -63,7 +62,9 @@ export function TimedTaskCreateRow({
       onReset();
       onClose();
     } catch (error) {
-      onChange({ timeError: error instanceof Error ? error.message : '保存失败，请重试。' });
+      onChange({
+        timeError: error instanceof Error ? error.message : '保存失败，请重试。',
+      });
     } finally {
       setSaving(false);
     }
@@ -74,13 +75,6 @@ export function TimedTaskCreateRow({
   };
   if (!open) return null;
 
-  const normStart = normalizeTime(draft.startTime);
-  const normEnd = normalizeTime(draft.endTime);
-  const autoDurationMinutes =
-    normStart && normEnd && normEnd > normStart
-      ? calculateDuration(normStart, normEnd)
-      : undefined;
-
   return (
     <div className="timeline-row timeline-row-adding timed-task-create-row">
       <div className="timed-create-primary">
@@ -90,7 +84,10 @@ export function TimedTaskCreateRow({
             onChange={(event) => onChange({ completed: event.target.checked })}
           />
         </div>
-        <div className="task-project-cell timed-create-project-cell" style={{ position: 'relative' }}>
+        <div
+          className="task-project-cell timed-create-project-cell"
+          style={{ position: 'relative' }}
+        >
           <select
             className="tl-inline-select project-inline-select"
             value={draft.projectId}
@@ -167,7 +164,9 @@ export function TimedTaskCreateRow({
             />
             <Clock size={15} className="timed-create-field-icon" aria-hidden="true" />
           </div>
-          <span className="timed-create-time-arrow" aria-hidden="true">→</span>
+          <span className="timed-create-time-arrow" aria-hidden="true">
+            →
+          </span>
           <div className="timed-create-time-field">
             <input
               className="tl-inline-input timeline-time-input"
@@ -189,24 +188,10 @@ export function TimedTaskCreateRow({
 
       <div className="timed-create-duration">
         <div className="timed-create-duration-cell timed-create-planned-cell">
-          <input
-            className="tl-inline-input task-duration-input task-duration task-duration-planned timed-create-desktop-input"
-            placeholder="45min"
+          <PlannedMinutesField
             value={draft.planned}
-            onChange={(event) => onChange({ planned: event.target.value })}
-            onKeyDown={onKeyDown}
+            onChange={(planned) => onChange({ planned })}
           />
-          <div className="timed-create-mobile-duration-display" aria-label="预计时长">
-            <div className="timed-create-duration-labels">
-              <span className="timed-create-duration-title">预计时长</span>
-              <span className="timed-create-duration-value">
-                {autoDurationMinutes !== undefined
-                  ? formatMinutes(autoDurationMinutes)
-                  : '自动计算'}
-              </span>
-            </div>
-            <Info size={15} className="timed-create-field-icon" aria-hidden="true" />
-          </div>
         </div>
 
         <div className="timed-create-duration-cell timed-create-actual-cell">
@@ -218,7 +203,11 @@ export function TimedTaskCreateRow({
             onChange={(event) => onChange({ actual: event.target.value })}
             onKeyDown={onKeyDown}
           />
-          <Clock size={15} className="timed-create-field-icon timed-create-actual-icon" aria-hidden="true" />
+          <Clock
+            size={15}
+            className="timed-create-field-icon timed-create-actual-icon"
+            aria-hidden="true"
+          />
         </div>
       </div>
 

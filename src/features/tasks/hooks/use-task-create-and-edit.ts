@@ -2,7 +2,6 @@
  * @fileoverview 封装任务和项目创建、编辑保存；不持有面板草稿或弹窗开关状态。
  */
 
-import { calculateDuration } from '@/lib/task-rules';
 import { taskFormSchema } from '@/lib/schemas';
 import { getLocalDateKey } from '@/lib/local-date';
 import { resolveActiveProject } from '@/lib/project-rules';
@@ -13,7 +12,11 @@ import type {
   QuickTaskDraft,
   TimedTaskDraft,
 } from '@/features/tasks/task-drafts';
-import { normalizeTime, parseDurationInput } from '@/features/tasks/task-time';
+import {
+  normalizeTime,
+  parseDurationInput,
+  parseEstimateMinutes,
+} from '@/features/tasks/task-time';
 import type { Project, Task } from '@/types/domain';
 
 /** 统一返回新增面板可显示的输入错误，空标题沿用既有的静默取消行为。 */
@@ -59,8 +62,12 @@ export function useTaskCreateAndEdit({
     if (draft.endTime.trim() && (!start || !end || end <= start)) {
       return { error: '结束时间需晚于有效的开始时间' };
     }
-    const duration =
-      start && end && end > start ? calculateDuration(start, end) : undefined;
+    let planned: number | undefined;
+    try {
+      planned = parseEstimateMinutes(draft.planned);
+    } catch (error) {
+      return { error: (error as Error).message };
+    }
     const task: Task = {
       id: crypto.randomUUID(),
       projectId,
@@ -69,7 +76,7 @@ export function useTaskCreateAndEdit({
       plannedStartTime: start,
       schedulePendingTime: !start,
       plannedEndTime: end,
-      plannedDurationMinutes: duration ?? parseDurationInput(draft.planned),
+      plannedDurationMinutes: planned,
       actualDurationMinutes: parseDurationInput(draft.actual),
       completed: draft.completed,
       completedAt: draft.completed ? new Date().toISOString() : undefined,
@@ -92,6 +99,7 @@ export function useTaskCreateAndEdit({
       title: draft.title.trim(),
       completed: false,
       status: 'waiting',
+      plannedDurationMinutes: parseEstimateMinutes(draft.planned ?? ''),
       importance: draft.importance ?? 'normal',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -99,46 +107,23 @@ export function useTaskCreateAndEdit({
     return { task: await createTask(task) };
   };
 
-  /** 从迷你今日写入有可选起止时间的任务，并复用完整工作台的持久化字段。 */
+  /** 迷你今日复用完整工作台的校验与字段构造，输入错误交给紧凑表单保留草稿。 */
   const createCompactTimedTask = async (draft: CompactTimedTaskDraft) => {
-    const projectId = resolveActiveProject(projects, draft.projectId)?.id;
-    if (!projectId) throw new Error('请先创建一个可用项目');
-    const task: Task = {
-      id: crypto.randomUUID(),
-      projectId,
-      title: draft.title,
-      date: selectedDate,
-      plannedStartTime: draft.start,
-      plannedEndTime: draft.end,
-      plannedDurationMinutes:
-        draft.start && draft.end
-          ? calculateDuration(draft.start, draft.end)
-          : undefined,
-      schedulePendingTime: !draft.start,
+    const result = await createTimedTask({
+      ...draft,
+      planned: draft.planned ?? '',
+      startTime: draft.start ?? '',
+      endTime: draft.end ?? '',
+      actual: '',
       completed: false,
-      status: 'active',
-      importance: 'normal',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    await createTask(task);
+    });
+    if ('error' in result) throw new Error(result.error);
   };
 
-  /** 从迷你今日写入持续待安排任务，不产生日期绑定。 */
+  /** 迷你今日与完整工作台共享待安排写入规则，不产生日期绑定。 */
   const createCompactWaitingTask = async (draft: CompactQuickTaskDraft) => {
-    const projectId = resolveActiveProject(projects, draft.projectId)?.id;
-    if (!projectId) throw new Error('请先创建一个可用项目');
-    const task: Task = {
-      id: crypto.randomUUID(),
-      projectId,
-      title: draft.title,
-      completed: false,
-      status: 'waiting',
-      importance: 'normal',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    await createTask(task);
+    const result = await createWaitingTask(draft);
+    if ('error' in result) throw new Error(result.error);
   };
 
   /** 验证 Dialog FormData 并保留现有跨午夜拒绝和新建双写流程。 */
@@ -148,10 +133,16 @@ export function useTaskCreateAndEdit({
     const endRaw = String(form.get('end') ?? '');
     const start = startRaw ? normalizeTime(startRaw) : undefined;
     const end = endRaw ? normalizeTime(endRaw) : undefined;
+    let planned: number | undefined;
+    try {
+      planned = parseEstimateMinutes(String(form.get('planned') ?? ''));
+    } catch (error) {
+      return (error as Error).message;
+    }
     const parsed = taskFormSchema.safeParse({
       title,
       projectId: String(form.get('project') ?? ''),
-      plannedMinutes: numberOrUndefined(form.get('planned')),
+      plannedMinutes: planned,
       actualMinutes: numberOrUndefined(form.get('actual')),
     });
     if (!parsed.success) return parsed.error.issues[0]?.message ?? '请检查任务信息';
@@ -160,8 +151,6 @@ export function useTaskCreateAndEdit({
     if (end && !start) return '填写结束时间前，请先填写开始时间';
     if (end && start && end < start) return '暂不支持跨午夜任务，请选择同一天内的时间';
     if (end && start && end === start) return '结束时间需晚于开始时间';
-    const planned =
-      calculateDuration(start, end) ?? numberOrUndefined(form.get('planned'));
     const isWaiting = editing?.status === 'waiting';
     const base =
       editing ??
@@ -180,7 +169,7 @@ export function useTaskCreateAndEdit({
       schedulePendingTime: isWaiting ? false : !start,
       plannedStartTime: isWaiting ? undefined : start,
       plannedEndTime: isWaiting ? undefined : end,
-      plannedDurationMinutes: isWaiting ? undefined : planned,
+      plannedDurationMinutes: planned,
       importance: isWaiting
         ? (String(form.get('importance') ?? 'normal') as Task['importance'])
         : (editing?.importance ?? 'normal'),

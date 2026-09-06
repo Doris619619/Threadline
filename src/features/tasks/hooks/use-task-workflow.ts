@@ -52,7 +52,6 @@ export function useTaskWorkflow({
         schedulePendingTime: true,
         plannedStartTime: undefined,
         plannedEndTime: undefined,
-        plannedDurationMinutes: undefined,
         completed: false,
         completedAt: undefined,
         deletedAt: undefined,

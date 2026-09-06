@@ -1,104 +1,254 @@
-/** @fileoverview Insights 页面样式；保留与 Records 输入框的原始相邻级联顺序。 */
-
-.insights-actions,
+/** @fileoverview 洞察分段筛选、投入摘要与可读项目列表，所有数据图形绑定真实分钟数。 */
+.insights-panel {
+  align-content: start;
+  gap: 16px;
+}
+.insights-toolbar {
+  flex-wrap: wrap;
+  gap: 12px;
+}
 .insights-filters {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-}
-
-.insights-filters button {
-  min-height: var(--control-height);
-  padding: 6px 12px;
-  color: var(--text-secondary);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
   background: var(--surface-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
 }
-
-.insights-filters button.is-active {
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
-}
-
-.insights-filters label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.insights-filters button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
   color: var(--text-secondary);
-  font-size: 0.75rem;
+  background: transparent;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
 }
-
-.insights-filters input {
-  min-height: 36px;
-  padding: 6px 8px;
+.insights-filters button.is-active {
   color: var(--text-primary);
   background: var(--surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
+  font-weight: 600;
+}
+.insights-filters label {
+  display: grid;
+  gap: 4px;
+  padding: 4px;
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+.insights-filters input {
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
   border: 1px solid var(--border);
   border-radius: 8px;
+  padding: 6px;
+  background: var(--surface);
+  color: var(--text-primary);
 }
-
+.insights-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  min-height: 44px;
+}
+.insights-range-label {
+  margin: -4px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
 .insights-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-4);
+  gap: 12px;
 }
-
-.insights-charts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
-}
-
 .insights-summary .tl-surface {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-  min-height: 110px;
-  padding: var(--space-4) var(--space-5);
+  gap: 8px;
+  padding: 20px;
+  box-shadow: none;
+  min-width: 0;
 }
-
 .insights-summary span {
-  color: var(--text-tertiary);
-  font-size: var(--text-caption-size);
-  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
 }
-
 .insights-summary strong {
-  color: var(--text-primary);
-  font-size: var(--text-page-size);
-  font-weight: 700;
-  line-height: 1.15;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: normal;
+  overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
 }
-
 .insights-summary small {
   color: var(--text-secondary);
-  font-size: var(--text-caption-size);
+  font-size: 0.75rem;
 }
-
-.insight-chart header span {
-  color: var(--text-tertiary);
-  font-size: var(--text-caption-size);
+.insight-primary strong {
+  color: var(--accent-text);
+  font-size: 2rem;
 }
-
+.insights-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
 .insight-chart {
-  min-height: 320px;
-  padding: var(--space-5);
+  padding: 20px;
+  min-width: 0;
+  box-shadow: none;
 }
-
 .insight-chart header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-4);
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 16px;
 }
-
-.insight-chart h3 {
+.insight-chart h2,
+.insight-estimates h2 {
+  font-size: var(--text-section-size);
+  font-weight: 600;
   margin: 0;
-  font-size: var(--text-card-size);
-  font-weight: var(--text-card-weight);
+}
+.insight-chart header span {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+.insight-projects {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 20px;
+}
+.insight-projects li > div:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: var(--text-body-size);
+  flex-wrap: wrap;
+}
+.insight-projects b {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.insight-projects span {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.insight-projects small {
+  display: inline-block;
+  min-width: 36px;
+  margin-left: 8px;
+  color: var(--text-secondary);
+  text-align: right;
+}
+.insight-project-track {
+  height: 5px;
+  background: var(--surface-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.insight-project-track i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+}
+.insight-values {
+  margin-top: 8px;
+  font-size: 0.8125rem;
+}
+.insight-values summary {
+  min-height: 44px;
+  align-content: center;
+  color: var(--accent-text);
+  cursor: pointer;
+}
+.insight-values dl {
+  margin: 0;
+}
+.insight-values dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.insight-values dd {
+  margin: 0;
+}
+.insight-estimates {
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+  box-shadow: none;
+}
+.insight-estimates strong {
+  font-size: 1.0625rem;
+  font-weight: 500;
+}
+.insight-estimates p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.insights-panel .empty-copy {
+  margin: 8px 0;
+  line-height: 1.5;
+  font-size: 0.875rem;
+}
+@media (max-width: 760px) {
+  .insights-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .insights-filters {
+    width: 100%;
+  }
+  .insights-filters button {
+    flex: 1;
+    min-width: 0;
+    padding: 0 8px;
+  }
+  .insights-filters label {
+    flex: 1 1 40%;
+  }
+  .insights-actions {
+    align-self: flex-end;
+  }
+  .insights-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .insights-charts {
+    grid-template-columns: 1fr;
+  }
+  .insights-summary .tl-surface {
+    padding: 16px;
+  }
+  .insights-summary strong {
+    font-size: 1.3125rem;
+  }
+  .insights-summary .insight-primary {
+    grid-column: 1 / -1;
+  }
+  .insight-primary strong {
+    font-size: 2rem;
+  }
+  .insight-chart {
+    padding: 16px;
+  }
 }

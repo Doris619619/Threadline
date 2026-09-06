@@ -22,6 +22,7 @@ export type TimedTaskCreateDraft = {
 
 /** 无时间待办新增行的全部可恢复输入字段。 */
 export type QuickTaskCreateDraft = {
+  planned?: string;
   importance: 'important' | 'normal';
   completed: boolean;
   isAddingProject: boolean;
@@ -44,6 +45,7 @@ const initialTimedDraft = (projectId: string): TimedTaskCreateDraft => ({
 /** 新草稿以普通分类初始化，具体添加入口会指定本次所属分组。 */
 const initialQuickDraft = (projectId: string): QuickTaskCreateDraft => ({
   importance: 'normal',
+  planned: '',
   completed: false,
   isAddingProject: false,
   projectId,

@@ -27,14 +27,4 @@
   html[data-theme='blue'] body [contenteditable='true'] {
     font-size: var(--mobile-form-control-font-size);
   }
-
-  .insights-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .insights-summary,
-  .insights-charts {
-    grid-template-columns: 1fr;
-  }
 }

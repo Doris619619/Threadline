@@ -18,6 +18,7 @@ export type ReportData = {
   totalPlannedMinutes: number;
   projects: readonly ReportProjectRow[];
   incompleteCount: number;
+  estimateComparison?: { pairedCount: number; planned: number; actual: number };
 };
 
 /** 从同一份 analytics 结果构建打印数据，使 Calendar、Insights 与 PDF 口径一致。 */
@@ -25,13 +26,16 @@ export function buildReportData({
   title,
   result,
   projectNames,
+  estimateComparison,
 }: {
   title: string;
   result: AnalyticsResult;
   projectNames: ReadonlyMap<string, string>;
+  estimateComparison?: ReportData['estimateComparison'];
 }): ReportData {
   return {
     title,
+    estimateComparison,
     totalActualMinutes: result.totalActualMinutes,
     totalPlannedMinutes: result.totalPlannedMinutes,
     incompleteCount: result.incompleteCount,

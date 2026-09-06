@@ -25,11 +25,22 @@ function readLocalSupabaseStatus() {
     process.platform === 'win32'
       ? 'node_modules\\.bin\\supabase.cmd'
       : 'node_modules/.bin/supabase';
-  const result = spawnSync(command, ['status', '-o', 'json'], {
-    cwd: process.cwd(),
-    encoding: 'utf8',
-    shell: process.platform === 'win32',
-  });
+  const result = spawnSync(
+    command,
+    [
+      'status',
+      '-o',
+      'json',
+      ...(process.env.THREADLINE_SUPABASE_WORKDIR
+        ? ['--workdir', process.env.THREADLINE_SUPABASE_WORKDIR]
+        : []),
+    ],
+    {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+      shell: process.platform === 'win32',
+    },
+  );
   if (result.status !== 0)
     throw new Error(`Supabase status failed: ${result.stderr || result.stdout}`);
   const jsonStart = result.stdout.indexOf('{');

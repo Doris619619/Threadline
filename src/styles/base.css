@@ -18,6 +18,8 @@ body {
   background: var(--background);
   font-family: var(--font-sans);
   font-size: var(--text-body-size);
+  font-weight: var(--text-body-weight);
+  font-optical-sizing: auto;
   line-height: var(--text-body-leading);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

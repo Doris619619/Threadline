@@ -2,6 +2,7 @@
 
 'use client';
 
+import { PlannedMinutesField } from './planned-minutes-field';
 import { Check, X } from 'lucide-react';
 import { useState } from 'react';
 import type { QuickTaskCreateDraft } from '@/features/tasks/hooks/use-task-create-drafts';
@@ -50,6 +51,7 @@ export function WaitingTaskCreateRow({
       const result = await onCreate({
         projectId: draft.projectId,
         importance: draft.importance,
+        planned: draft.planned,
         title: draft.title,
       });
       if ('cancelled' in result) return onClose();
@@ -133,6 +135,10 @@ export function WaitingTaskCreateRow({
           if (event.key === 'Enter') confirm();
           if (event.key === 'Escape') onClose();
         }}
+      />
+      <PlannedMinutesField
+        value={draft.planned ?? ''}
+        onChange={(planned) => onChange({ planned })}
       />
       <div className="tl-inline-actions-cell quick-create-actions">
         <button

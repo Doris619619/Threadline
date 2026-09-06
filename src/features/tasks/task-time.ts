@@ -1,5 +1,5 @@
 /**
- * @fileoverview 冻结任务时间与时长输入的既有解析和展示行为，供任务视图复用。
+ * @fileoverview 统一起止时间、独立预计分钟及实际耗时的解析和展示，供任务视图复用。
  */
 
 import { calculateDuration } from '@/lib/task-rules';
@@ -64,4 +64,18 @@ export function parseTimeInput(value: string): {
     return { start, end };
   }
   return {};
+}
+
+/** 预计只接受非负整数分钟；空值为待定，非法输入不能静默清空旧值。 */
+export function parseEstimateMinutes(value: string): number | undefined {
+  const text = value.trim();
+  if (!text) return undefined;
+  const minutes = Number(text);
+  if (!/^\d+$/.test(text) || !Number.isSafeInteger(minutes) || minutes > 2147483647)
+    throw new Error('预计请输入非负整数分钟，或留空为待定');
+  return minutes;
+}
+/** 预计空值有明确含义，实际耗时继续使用原有缺省展示。 */
+export function formatEstimate(value?: number): string {
+  return value === undefined ? '待定' : formatMinutes(value);
 }

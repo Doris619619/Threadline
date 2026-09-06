@@ -3,7 +3,7 @@
  */
 
 html[data-theme='blue'] {
-  --background: #fbfaf7;
+  --background: #f2f2f7;
   --surface: #ffffff;
   --surface-secondary: #f6f7f9;
   --border: #e6e8ee;
@@ -13,8 +13,8 @@ html[data-theme='blue'] {
   --text-secondary: #6e6e73;
   --text-tertiary: #86868b;
   --text-on-accent: #ffffff;
-  --accent: #007aff;
-  --accent-hover: #0066d6;
+  --accent: #0066d6;
+  --accent-hover: #005bbf;
   --accent-soft: #e8f1ff;
   --accent-border: #b6d4ff;
   --accent-text: #0066d6;
@@ -52,22 +52,22 @@ html[data-theme='blue'] {
   --text-page-weight: 700;
   --text-section-size: 1.0625rem;
   --text-section-leading: 1.3;
-  --text-section-weight: 650;
+  --text-section-weight: 600;
   --text-card-size: 1rem;
   --text-card-leading: 1.35;
   --text-card-weight: 600;
   --text-body-size: 0.9375rem;
   --text-body-leading: 1.45;
-  --text-body-weight: 500;
+  --text-body-weight: 400;
   --text-secondary-size: 0.8125rem;
   --text-secondary-leading: 1.4;
-  --text-secondary-weight: 500;
+  --text-secondary-weight: 400;
   --text-label-size: 0.8125rem;
   --text-label-leading: 1.3;
   --text-label-weight: 500;
   --text-caption-size: 0.75rem;
   --text-caption-leading: 1.35;
-  --text-caption-weight: 500;
+  --text-caption-weight: 400;
   --mobile-form-control-font-size: 1rem;
   --control-height: 36px;
   --control-height-compact: 32px;
@@ -76,13 +76,42 @@ html[data-theme='blue'] {
   --bottom-nav-height: 64px;
   --motion-fast: 140ms;
   --font-sans:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI',
-    'Microsoft YaHei UI', 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', sans-serif;
+    -apple-system, BlinkMacSystemFont, system-ui, 'PingFang SC', 'Segoe UI Variable',
+    'Segoe UI', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+}
+
+/* 跟随系统外观，仅重映射语义颜色；文字和交互层级在两种外观中保持一致。 */
+@media (prefers-color-scheme: dark) {
+  html[data-theme='blue'] {
+    color-scheme: dark;
+    --background: #000000;
+    --surface: #1c1c1e;
+    --surface-secondary: #2c2c2e;
+    --border: #48484a;
+    --border-subtle: #38383a;
+    --border-strong: #636366;
+    --text-primary: #f2f2f7;
+    --text-secondary: #b1b1b8;
+    --text-tertiary: #a0a0a8;
+    --accent-hover: #005bbf;
+    --accent-text: #78b9ff;
+    --accent-soft: #182c46;
+    --accent-border: #365f8c;
+    --daily-accent: #b8a5ff;
+    --success: #75d59a;
+    --warning: #f3bd64;
+    --danger: #ff8a80;
+    --calendar-heat-text-1: #9dcdff;
+    --calendar-heat-text-2: #b5d9ff;
+    --calendar-heat-text-3: #d2e7ff;
+    --calendar-heat-text-4: #ffffff;
+    --shadow-card: none;
+  }
 }
 
 @media (max-width: 760px) {
   html[data-theme='blue'] {
-    --text-page-size: 1.5rem;
+    --text-page-size: 1.75rem;
     --text-body-size: 1.0625rem;
     --text-secondary-size: 0.875rem;
     --text-caption-size: 0.8125rem;

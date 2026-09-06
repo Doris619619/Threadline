@@ -65,7 +65,6 @@ export function WaitingTaskGroup({
           添加{title}
         </button>
       </header>
-      {count === 0 && <p className="empty-copy">暂无{title}事项</p>}
       {children}
     </section>
   );
