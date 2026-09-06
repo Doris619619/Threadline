@@ -31,13 +31,15 @@
 
 ## 增量迁移与上线顺序
 
-生产本次尚未执行迁移，也尚未发布客户端。执行前应读取实际已部署 migration 清单并说明完整 pending 范围，先确认备份，禁止 reset/bootstrap 或重写历史。
+2026-09-06 已修复客户端先上线、生产缺少下列两条迁移导致的 `public.period_records` schema cache 错误。执行前读取 linked migration 清单并 dry-run，确认仅缺这两条，保存 public/private 结构备份并说明影响后增量部署；没有 reset/bootstrap、历史回填或业务记录改写。后续部署仍须先核对数据库，再发布客户端。
 
 1. `202609050002_independent_task_estimates.sql` 放宽 waiting 状态对预计的限制，替换 `transition_task`、`complete_waiting_task`、`close_day`，仅移除清空预计的赋值。重新校验约束时会扫描 tasks 并短暂阻塞并发写入。没有数据 UPDATE、账本重建或历史回填。
 2. `202609050003_period_records.sql` 安装/复用 `btree_gist`，创建独立表、索引、日期触发器、RLS/权限和 Realtime publication。新表初始为空，不触碰旧标记和任务数据。
 3. 数据库成功后核对约束、RPC 和权限，再发布 Web/PWA 与 Electron 客户端；用隔离验收账号确认读写和双客户端刷新。旧客户端在编辑任务时仍可能带入旧预计逻辑，因此应及时刷新/升级客户端。
 
-本次真实数据库验证使用额外的 `threadline-period-validation` 本地 Supabase 实例，API 55431、数据库 55432；原有本地 54321/54322 实例与生产均未迁移。新实例从全量 migration 顺序创建，集成测试只创建并清理自己生成的临时账号。
+部署后核对 linked 清单 12 条全部一致，重新导出生产结构确认新表、排他约束、日期触发器、owner RLS 和角色权限已存在。REST 零行查询返回匿名角色无表权限（42501），不再返回找不到表（PGRST205）；没有读取或创建真实用户生理期记录。结构备份不等于业务数据全量备份；用户登录后的实际记录操作仍需真机复验。
+
+功能开发时的真实数据库验证使用额外的 `threadline-period-validation` 本地 Supabase 实例，API 55431、数据库 55432；原有本地 54321/54322 实例未迁移。新实例从全量 migration 顺序创建，集成测试只创建并清理自己生成的临时账号。
 
 ## 验证命令与边界
 
