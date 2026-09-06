@@ -166,3 +166,18 @@
     gap: 2px;
   }
 }
+
+/* 手机复选框对齐标题第一行，不跟着副标题或长标题的整体高度下移。 */
+@media (max-width: 760px) {
+  .daily-parent,
+  .daily-child-row {
+    align-items: start;
+  }
+  .daily-check.tl-checkbox {
+    height: max(44px, calc(var(--text-body-size) * 1.5));
+  }
+  .daily-parent-copy,
+  .daily-child-copy {
+    padding-top: max(0px, calc((44px - var(--text-body-size) * 1.5) / 2));
+  }
+}

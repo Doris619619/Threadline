@@ -1575,9 +1575,11 @@
 .duration-mobile {
   display: none;
 }
-/* 手机日程：项目在任务名称前，第二排独立占满剩余宽度展示时间与耗时。 */
+/* 手机日程：文字贴近两排点击区的交界，收紧可见间距但不重叠 44px 点击区。 */
 @media (max-width: 760px) {
   .timeline-row {
+    --task-first-line-height: max(44px, calc(var(--text-body-size) * 1.4));
+    --task-title-inset: max(0px, calc(44px - var(--text-body-size) * 1.4));
     min-width: 0;
     display: grid;
     grid-template-columns: 44px auto minmax(0, 1fr) 44px;
@@ -1598,6 +1600,12 @@
   .timeline-row .task-check-wrap {
     grid-column: 1;
     grid-row: 1;
+    align-self: start;
+    height: var(--task-first-line-height);
+  }
+  .timeline-row .task-check-wrap .tl-checkbox {
+    height: var(--task-first-line-height);
+    padding-top: var(--task-title-inset);
   }
   .timeline-row .task-title {
     display: block;
@@ -1605,30 +1613,47 @@
     overflow-wrap: anywhere;
     grid-column: 3;
     grid-row: 1;
-    align-self: center;
+    align-self: start;
+    min-height: 44px;
+    padding: var(--task-title-inset) 0 0;
+  }
+  .timeline-row input.task-title {
+    padding: 0 4px;
   }
   .timeline-row .task-project-cell {
     grid-column: 2;
     grid-row: 1;
-    align-self: center;
+    align-self: start;
+    height: var(--task-first-line-height);
+    padding-top: var(--task-title-inset);
     max-width: 88px;
     font-size: 12px;
   }
   .timeline-row .task-actions-cell {
     grid-column: 4;
     grid-row: 1;
+    align-self: start;
+    height: var(--task-first-line-height);
+  }
+  .timeline-row .task-actions-cell > .task-actions {
+    height: var(--task-first-line-height);
+  }
+  .timeline-row .task-actions-cell .task-actions > button {
+    height: var(--task-first-line-height);
+    padding-top: var(--task-title-inset);
   }
   .timeline-row .task-time-details {
-    grid-column: 1 / -1;
+    grid-column: 2 / -1;
     grid-row: 2;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     flex-wrap: wrap;
     gap: 0 8px;
     min-width: 0;
   }
   .timeline-row .timeline-time {
-    padding: 0;
+    align-items: flex-start;
+    padding: 4px 0 0;
     background: transparent;
     white-space: nowrap;
     font-size: var(--text-caption-size);
@@ -1637,6 +1662,8 @@
     min-width: 44px;
   }
   .timeline-row .task-duration {
+    align-items: flex-start;
+    padding-top: 4px;
     white-space: nowrap;
     font-size: var(--text-caption-size);
     min-height: 44px;
@@ -1723,7 +1750,7 @@ button.task-duration-actual:focus-visible {
     padding-block: 4px;
   }
   .waiting-task-main {
-    align-items: baseline;
+    align-items: center;
     gap: 4px;
   }
   .waiting-task-main > .tl-project-tag {
@@ -1762,5 +1789,12 @@ button.task-duration-actual:focus-visible {
   }
   .timed-task-create-row .timed-create-duration {
     grid-template-columns: 1fr;
+  }
+}
+
+/* 最窄手机给元数据整行空间，保留时间、预计和实际入口；放大文字时允许自然换行。 */
+@media (max-width: 360px) {
+  .timeline-row .task-time-details {
+    grid-column: 1 / -1;
   }
 }

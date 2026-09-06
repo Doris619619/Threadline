@@ -86,3 +86,17 @@ node scripts/test-period-integration.mjs
 - [洞察深色](screenshots/task-estimates-periods/insights-390-dark.png)
 - [设置深色](screenshots/task-estimates-periods/settings-390-dark.png)
 - [生理期深色](screenshots/task-estimates-periods/rhythm-390-dark.png)
+
+## 手机任务行间距与对齐修正
+
+根据 iPhone 截图反馈，手机日程将标题与时间文字靠近各自 44px 点击区的交界，行间留 4px 布局间距；实际字形间距受系统字体影响。时间行从项目/任务文字列起始处对齐，360px 以下仍使用整行宽度，长标题与放大文字自然换行。两排点击区互不覆盖，字号与字重保持原有层级。
+
+待安排主体改为垂直居中，消除文字靠上、方框居中的偏差。Daily 的父项和子项按标题第一行对齐复选框，不随预计、副标题或标题换行向下偏移；计算使用正文行高，适配文字放大。修改限定在手机断点，桌面样式与任务数据规则不变。
+
+本轮验证：正式 Web 构建的手机/WebKit 首页、独立预计回归 4 项通过；任务编辑、勾选、Daily 保存等交互 7 项通过；Preview 桌面、320px 和 WebKit 6 项通过。另用正式构建检查 320/375/390/430px、1440px 桌面和 WebKit，在普通/双倍文字下均无横向溢出；手机复选框对齐误差小于 1px，普通文字的日程字形间距约 6px，点击区域仍至少 44px。长标题在文字放大后保持首行对齐。Lint、类型检查、Web/Preview 构建与 Electron 静态前端构建通过。
+
+局部截图使用 390px 的本地适配器固定测试数据与模拟 WebKit；截图时仅隐藏固定底栏，避免底栏遮住完整卡片，不改变任务布局。不代表已经在用户的真实 iPhone 上复验：
+
+- [日程两行间距](screenshots/task-estimates-periods/schedule-alignment-390.png)
+- [待安排复选框对齐](screenshots/task-estimates-periods/waiting-alignment-390.png)
+- [Daily 首行对齐](screenshots/task-estimates-periods/daily-alignment-390.png)
