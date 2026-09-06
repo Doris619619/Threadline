@@ -70,6 +70,7 @@ export function TaskDashboard() {
     highlightColor,
     updateHighlightColor,
     createTask,
+    saveTaskConfirmed,
     createDailyTemplate,
     createProject,
     updateProject,
@@ -189,7 +190,7 @@ export function TaskDashboard() {
     editing,
     projects: workspaceProjects,
     selectedDate,
-    updateTask: update,
+    updateTask: saveTaskConfirmed,
   });
 
   const closeDay = useCloseDay({

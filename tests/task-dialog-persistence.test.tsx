@@ -3,6 +3,19 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import { TaskDialog } from '@/features/tasks/components/task-dialogs';
 
+it('returns focus to the opening control after the editor closes', () => {
+  const trigger = document.createElement('button');
+  document.body.append(trigger);
+  trigger.focus();
+  const { unmount } = render(
+    <TaskDialog open projects={[]} onSave={vi.fn()} onClose={vi.fn()} />,
+  );
+  expect(screen.getByRole('textbox', { name: '任务名称' })).toHaveFocus();
+  unmount();
+  expect(trigger).toHaveFocus();
+  trigger.remove();
+});
+
 it('preserves typed values and allows retry after a failed save', async () => {
   let reject!: (error: Error) => void;
   const save = vi.fn(

@@ -310,7 +310,6 @@ export function TaskDialog({
             defaultValue={editing?.title}
             placeholder="准备要做的事情"
             required
-            autoFocus
           />
         </label>
 

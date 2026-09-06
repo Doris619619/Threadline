@@ -152,7 +152,11 @@ export function CalendarPanel() {
           <button
             className="planning-add"
             disabled={busy || date < today}
-            onClick={() => setEditor({ date })}
+            onClick={(event) => {
+              // Safari 点击按钮不会自动聚焦，先记录可供弹窗关闭后返回的入口。
+              event.currentTarget.focus();
+              setEditor({ date });
+            }}
           >
             <Plus size={18} aria-hidden="true" />
             添加任务

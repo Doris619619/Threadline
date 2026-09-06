@@ -91,7 +91,14 @@ export function PlanningDay({
           </p>
           {date >= today && (
             <div>
-              <button disabled={busy} onClick={() => onCreate()}>
+              <button
+                disabled={busy}
+                onClick={(event) => {
+                  // 与月历添加入口一致，关闭编辑器后将焦点交还给触发按钮。
+                  event.currentTarget.focus();
+                  onCreate();
+                }}
+              >
                 添加任务
               </button>
               <button onClick={onWaiting}>从待安排中选择</button>
