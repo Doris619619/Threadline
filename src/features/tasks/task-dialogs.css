@@ -317,3 +317,22 @@
     padding: 0 16px 16px;
   }
 }
+
+/* 规划与首页共用管理模态的任务表单布局。 */
+.manager-dialog .task-editor-form > label,
+.manager-dialog .task-editor-form .task-form-grid {
+  margin-bottom: var(--space-4);
+}
+.manager-dialog .task-editor-form > footer button {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  color: var(--accent-text);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--accent-soft);
+  cursor: pointer;
+}
+.manager-dialog .task-editor-form > footer button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

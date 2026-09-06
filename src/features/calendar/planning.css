@@ -1,0 +1,404 @@
+/** @fileoverview 规划页的响应式布局与交互样式，所有色彩使用共享主题 token。 */
+.planning-panel {
+  max-width: 1200px;
+  color: var(--text-primary);
+}
+.planning-panel button {
+  min-height: 44px;
+  min-width: 44px;
+  cursor: pointer;
+  border: 0;
+  border-radius: var(--radius-control);
+  color: inherit;
+  background: transparent;
+}
+.planning-panel button:hover {
+  background: var(--surface-secondary);
+}
+.planning-panel button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.planning-panel button:focus-visible,
+.planning-panel summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.planning-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.planning-heading h1 {
+  font-size: var(--text-page-size);
+  margin: 0;
+}
+.planning-heading p,
+.planning-day-heading p {
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+  margin: var(--space-2) 0 0;
+}
+.planning-panel .planning-add {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
+  color: var(--text-on-accent);
+  background: var(--accent);
+  white-space: nowrap;
+}
+.planning-panel .planning-add:hover {
+  background: var(--accent-hover);
+}
+.planning-layout {
+  display: grid;
+  grid-template-columns: minmax(340px, 0.85fr) minmax(0, 1.65fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+.planning-sidebar {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+.planning-month,
+.planning-waiting,
+.planning-agenda {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-surface);
+  padding: var(--space-4);
+  min-width: 0;
+}
+.planning-month header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+.planning-month h3 {
+  font-size: var(--text-section-size);
+  margin: 0;
+}
+.planning-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  text-align: center;
+}
+.planning-month-grid > small {
+  padding: var(--space-2) 0;
+  color: var(--text-secondary);
+}
+.planning-panel .planning-date,
+.planning-month-modal .planning-date {
+  min-width: 0;
+  min-height: 52px;
+  display: grid;
+  place-content: center;
+  gap: 3px;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+}
+.planning-date small {
+  font-size: var(--text-caption-size);
+}
+.planning-date[data-heat='1'],
+.planning-legend i[data-heat='1'] {
+  background: var(--calendar-heat-1);
+  color: var(--calendar-heat-text-1);
+}
+.planning-date[data-heat='2'],
+.planning-legend i[data-heat='2'] {
+  background: var(--calendar-heat-2);
+  color: var(--calendar-heat-text-2);
+}
+.planning-date[data-heat='3'],
+.planning-legend i[data-heat='3'] {
+  background: var(--calendar-heat-3);
+  color: var(--calendar-heat-text-3);
+}
+.planning-panel .planning-date[aria-pressed='true'],
+.planning-month-modal .planning-date[aria-pressed='true'] {
+  border-color: var(--accent);
+}
+.planning-date[aria-current='date'] > span,
+.planning-week [aria-current='date'] strong {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+.planning-date[data-outside='true'] > span {
+  color: var(--text-secondary);
+}
+.planning-legend {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+  margin: var(--space-4) 0 0;
+}
+.planning-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.planning-legend i {
+  height: 10px;
+  width: 10px;
+  background: var(--surface-secondary);
+  border-radius: 3px;
+}
+.planning-week-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.planning-month-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex: 1;
+  font-weight: 600;
+}
+.planning-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin: var(--space-3) 0 var(--space-6);
+}
+.planning-panel .planning-week button {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  padding: var(--space-2) 0;
+  min-width: 0;
+}
+.planning-week small {
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+}
+.planning-week strong {
+  display: grid;
+  place-items: center;
+  height: 32px;
+  width: 32px;
+  border-radius: var(--radius-control);
+  font-size: 1rem;
+}
+.planning-week [aria-pressed='true'] strong {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+.planning-day-heading {
+  padding: 0 var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.planning-day-heading h3 {
+  margin: 0;
+  font-size: var(--text-section-size);
+}
+.planning-group h4,
+.planning-waiting h3 {
+  font-size: var(--text-secondary-size);
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin: var(--space-5) var(--space-2) var(--space-2);
+}
+.planning-task {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--space-2) 0;
+  position: relative;
+}
+.planning-check {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  height: 44px;
+  cursor: pointer;
+}
+.planning-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+.planning-panel .planning-task-main {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: var(--space-2) 0;
+}
+.planning-task-title {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-3);
+  row-gap: 4px;
+  font-size: 1rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.planning-task-title time {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-secondary-size);
+  padding-top: 3px;
+}
+.planning-task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: 5px;
+  font-size: var(--text-caption-size);
+  color: var(--text-secondary);
+}
+.planning-task[data-completed='true'] .planning-task-title > span {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+.planning-actions {
+  align-self: flex-start;
+}
+.planning-actions summary {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  list-style: none;
+  cursor: pointer;
+}
+.planning-actions summary::-webkit-details-marker {
+  display: none;
+}
+.planning-actions > div {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  z-index: 10;
+  background: var(--surface);
+  box-shadow: var(--shadow-popover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-1);
+  display: grid;
+}
+.planning-actions > div button {
+  padding: 0 var(--space-4);
+  text-align: left;
+}
+.planning-panel .planning-schedule {
+  font-size: var(--text-caption-size);
+  color: var(--accent-text);
+  white-space: nowrap;
+  padding: 0 var(--space-2);
+}
+.planning-waiting > summary,
+.planning-completed > summary {
+  min-height: 44px;
+  align-content: center;
+  font-size: var(--text-section-size);
+  font-weight: 600;
+  cursor: pointer;
+}
+.planning-waiting > summary span {
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+  margin-left: var(--space-2);
+}
+.planning-waiting > p {
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+}
+.planning-completed {
+  margin-top: var(--space-4);
+  padding: var(--space-2);
+}
+.planning-completed > summary {
+  font-size: var(--text-secondary-size);
+  color: var(--text-secondary);
+}
+.planning-empty {
+  padding: var(--space-8) var(--space-3);
+  text-align: center;
+  color: var(--text-secondary);
+}
+.planning-empty svg {
+  margin: auto;
+}
+.planning-empty h3 {
+  color: var(--text-primary);
+  font-size: var(--text-section-size);
+}
+.planning-empty p {
+  font-size: var(--text-secondary-size);
+  line-height: 1.6;
+}
+.planning-empty button {
+  color: var(--accent-text);
+  padding: 0 var(--space-3);
+}
+.planning-month-modal .planning-month {
+  padding: 0;
+  border: 0;
+}
+@media (max-width: 1023px) {
+  .planning-layout {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .planning-agenda {
+    order: 0;
+    width: 100%;
+  }
+  .planning-sidebar {
+    order: 1;
+    width: 100%;
+  }
+  .planning-desktop-month {
+    display: none;
+  }
+  .planning-heading {
+    margin-bottom: var(--space-4);
+  }
+}
+@media (max-width: 760px) {
+  .planning-heading p {
+    display: none;
+  }
+  .planning-agenda {
+    padding: var(--space-3);
+  }
+  .planning-task {
+    gap: 0;
+  }
+  .planning-check {
+    min-width: 44px;
+  }
+  .planning-week {
+    margin-bottom: var(--space-5);
+  }
+  .planning-month-modal .manager-dialog-backdrop {
+    align-items: end;
+    padding: 0;
+  }
+  .planning-month-modal .manager-dialog {
+    width: 100%;
+    max-width: none;
+    border-radius: var(--radius-surface) var(--radius-surface) 0 0;
+    padding-bottom: max(var(--space-6), env(safe-area-inset-bottom));
+  }
+}
+
+/* 月份面板在低高度横屏仍可滚动，不遮挡关闭入口。 */
+.planning-month-modal .manager-dialog {
+  overscroll-behavior: contain;
+}

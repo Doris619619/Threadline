@@ -2,6 +2,7 @@
  * @fileoverview 提供 Threadline 细粒度 Supabase 查询、CRUD 与原子 RPC，不执行整工作区 upsert。
  */
 
+import { validatePlanningDate } from '@/lib/task-rules';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 import { isDailyCompleted } from '@/features/daily/daily-rules';
@@ -277,10 +278,15 @@ export class SupabaseWorkspaceRepository {
     transition: 'scheduled' | 'rescheduled' | 'waiting' | 'abandoned' | 'trashed',
     targetDate?: string,
   ): Promise<Task> {
+    if (transition === 'scheduled' || transition === 'rescheduled') {
+      const message = validatePlanningDate(targetDate);
+      if (message) throw new Error(message);
+    }
     const response = await this.client.rpc('transition_task', {
       p_task_id: taskId,
       p_transition: transition,
       p_target_date: targetDate ?? null,
+      p_time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
     return mapTask(assertResponse('transition task', response) as JsonRecord);
   }

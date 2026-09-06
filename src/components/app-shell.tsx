@@ -32,9 +32,9 @@ const navigation = [
   { id: 'home', label: '首页', icon: Home, description: '安排、执行、记录今天' },
   {
     id: 'calendar',
-    label: '日历',
+    label: '规划',
     icon: CalendarDays,
-    description: '查看每日项目投入与历史日期',
+    description: '查看未来任务与跨日安排',
   },
   {
     id: 'projects',
@@ -309,7 +309,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </aside>
         )}
         <main id="main-content" className="tl-main">
-          {!isCompact && !usesDedicatedProjectHeader && (
+          {!isCompact && !usesDedicatedProjectHeader && active !== 'calendar' && (
             <header className="tl-header">
               <div>
                 <h1>{activeItem.label === '首页' ? '我的工作台' : activeItem.label}</h1>

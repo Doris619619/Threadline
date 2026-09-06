@@ -49,7 +49,7 @@ import type { Task } from '@/types/domain';
  * 按当前工作台视图渲染首页、功能页或 Electron 紧凑窗口。
  */
 export function TaskDashboard() {
-  const { active, selectedDate, setSelectedDate } = useWorkspaceView();
+  const { active, selectedDate } = useWorkspaceView();
   const { isMiniToday, isWorkstation } = useDesktopWindow();
   const startupProgress = useOptionalStartupProgress();
   const {
@@ -225,8 +225,8 @@ export function TaskDashboard() {
     }
   };
   /** 将当前移期弹窗的任务交给 workflow，并只在成功后关闭弹窗。 */
-  const reschedule = (targetDate: string) => {
-    const message = rescheduleTask(rescheduling, targetDate);
+  const reschedule = async (targetDate: string) => {
+    const message = await rescheduleTask(rescheduling, targetDate);
     if (!message && rescheduling) setRescheduling(undefined);
     return message;
   };
@@ -279,15 +279,7 @@ export function TaskDashboard() {
         onSetDailyItemStatus={setDailyTemplateItemStatus}
       />
     );
-  if (active === 'calendar')
-    return (
-      <CalendarPanel
-        key={selectedDate}
-        analyticsInput={analyticsInput}
-        selectedDate={selectedDate}
-        onSelectDate={setSelectedDate}
-      />
-    );
+  if (active === 'calendar') return <CalendarPanel />;
   if (active === 'insights')
     return (
       <InsightsPanel analyticsInput={analyticsInput} selectedDate={selectedDate} />

@@ -3,7 +3,7 @@
  */
 
 import type { Dispatch, SetStateAction } from 'react';
-import { canTransitionTask } from '@/lib/task-rules';
+import { canTransitionTask, validatePlanningDate } from '@/lib/task-rules';
 import type { AnnotationStroke, Task, TaskStatus } from '@/types/domain';
 
 /**
@@ -63,14 +63,18 @@ export function useTaskWorkflow({
   };
 
   /**
-   * 将未完成任务移期到未来日期；跨状态校验和历史字段保持原有语义。
+   * 将未完成任务改到今天或未来日期，等待提交后返回；跨状态校验和历史字段保持原有语义。
    */
-  const rescheduleTask = (task: Task | undefined, targetDate: string) => {
+  const rescheduleTask = async (task: Task | undefined, targetDate: string) => {
     if (!task) return undefined;
     if (!canTransitionTask(task, 'rescheduled')) return '请先取消完成再移期';
-    const sourceDate = task.date ?? selectedDate;
-    if (targetDate <= sourceDate) return '请选择晚于原计划日期的未来日期';
-    void transitionTask(task.id, 'rescheduled', targetDate).catch(() => undefined);
+    const message = validatePlanningDate(targetDate, task.date);
+    if (message) return message;
+    try {
+      await transitionTask(task.id, 'rescheduled', targetDate);
+    } catch (error) {
+      return error instanceof Error ? error.message : '改期失败，请重试。';
+    }
     return undefined;
   };
 

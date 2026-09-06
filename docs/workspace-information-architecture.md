@@ -4,10 +4,10 @@
 
 ## 导航与范围
 
-完整工作台使用：首页、日历、项目、洞察、节律、设置。桌面端显示侧栏；移动端固定显示首页、日历、项目、洞察，并通过“更多”进入节律和设置。
+完整工作台使用：首页、规划、项目、洞察、节律、设置。桌面端显示侧栏；移动端固定显示首页、规划、项目、洞察，并通过“更多”进入节律和设置。
 
 - **首页**保留今日日程、Daily、待安排和每日收尾。
-- **日历**展示“项目投入热力”：某日热力数等于 `actualMinutes > 0` 的去重项目数，映射为 `0 / 1 / 2 / 3 / 4+`。它不使用完成任务数量；周一开头，选择日期、跨月补齐格与“今天”会同步当前可见月份。
+- **规划**以独立日期浏览普通任务：周条与当天清单、月份任务密度、待安排池；支持今天起的安排和双向改期。完成项保留日计数，Daily 不进入规划。详见 [任务规划](task-planning.md)。
 - **洞察**默认本周，通过当天、本周、本月、自定义分段选择范围；首屏展示实际投入、范围内 active 普通任务完成数/总数和主要投入项目，待安排、放弃和回收站不计入完成统计。下方按实际分钟展示每日趋势与项目占比；无数据收起空图形。预计与实际仅比较同时具有两种记录的任务，缺少预计不视为零，报告采用同一比较口径。
 - **记录（保留模块，当前未接入导航）**只搜索当前可靠可得的 Task、HistoryEvent、DailyHistory 与 CloseRecord；它不是 Event Sourcing。
 - **节律**记录生理期开始、结束和历史补录。独立的 `period_records` 按账号隔离并实时同步；旧 `rhythm_marks` 保留为旧日期标记，不推断完整经期或参与统计。两者均不进入 analytics、PDF 或记录搜索。字段、约束与失败行为见 [预计时长与生理期记录](task-estimates-and-periods.md)。
@@ -15,7 +15,7 @@
 
 ## 统一 analytics
 
-`src/lib/analytics.ts` 是 Calendar、Insights 和报告数据的唯一计算入口，使用 `LocalDateKey` 与 `src/lib/date-range.ts` 的周一范围规则。
+`src/lib/analytics.ts` 是 Insights 和报告数据的唯一计算入口，使用 `LocalDateKey` 与 `src/lib/date-range.ts` 的周一范围规则。
 
 数据质量严格区分：
 
@@ -25,7 +25,7 @@
 | `legacy-aggregate` | 旧 CloseRecord 只有某日项目总分钟    | 仅保留为项目级汇总，不拆分为任务 |
 | `incomplete`       | 缺少明确业务日期或无法确认归属       | 不伪造历史，洞察与报告显示提示   |
 
-History / Records 的正式 Daily 历史只来自 `daily_history_entries`。Calendar、Insights 与 PDF 同时读取正式 Daily history 和尚未正式记录的 `daily_entries`，按 `(template_id, entry_date)` 去重；因此未点击“记录”的当日实际耗时仍会立即进入洞察。同日同项目已有精确来源时，adapter 完全跳过 CloseRecord；不会用 CloseRecord 减去 Daily、更新时间、当前状态或移期字段推断历史。
+History / Records 的正式 Daily 历史只来自 `daily_history_entries`。Insights 与 PDF 同时读取正式 Daily history 和尚未正式记录的 `daily_entries`，按 `(template_id, entry_date)` 去重；因此未点击“记录”的当日实际耗时仍会立即进入洞察。同日同项目已有精确来源时，adapter 完全跳过 CloseRecord；不会用 CloseRecord 减去 Daily、更新时间、当前状态或移期字段推断历史。
 
 ## 状态边界
 

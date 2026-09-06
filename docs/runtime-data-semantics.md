@@ -6,7 +6,7 @@
 
 任务日期、Daily、收尾、历史目标日期和回收站恢复使用 `src/lib/local-date.ts`。
 
-Calendar、Insights 与报告不分别计算统计，而是通过 `src/lib/analytics.ts` 的纯函数结果读取；日期范围、周一周起点和月历网格由 `src/lib/date-range.ts` 负责。旧 CloseRecord 只能作为项目级 `legacy-aggregate`，不得由当前任务状态、更新时间或移期字段反推任务级历史。完整质量规则见 [工作台信息架构与分析口径](workspace-information-architecture.md)。
+Insights 与报告不分别计算统计，而是通过 `src/lib/analytics.ts` 的纯函数结果读取；日期范围、周一周起点和月历网格由 `src/lib/date-range.ts` 负责。旧 CloseRecord 只能作为项目级 `legacy-aggregate`，不得由当前任务状态、更新时间或移期字段反推任务级历史。完整质量规则见 [工作台信息架构与分析口径](workspace-information-architecture.md)。
 
 - `getLocalDateKey()` 读取用户本地的年、月、日，不能用 `toISOString().slice(0, 10)` 生成业务日期。
 - 相邻日期必须经 `addLocalDateDays()` 计算，避免 UTC 和本地午夜边界混用。
@@ -49,3 +49,5 @@ Daily 完全不属于 Project，旧 `legacy_project_id` 只用于历史兼容，
 首次升级只在 v2 不存在时读取 v1：旧 `today` 笔迹迁移到升级当天的本地日期，旧 `global` 笔迹保持全局。v1 key 不删除，且迁移不会把笔迹复制到其他日期。
 
 任务进入 `trashed` 时立即清除本设备关联 stroke。设备重连后用 owner 的 authoritative all-task identity set 对账：task 已是 trashed 或已被 30 天物理 purge 时删除 stroke；绝不能用单日或单状态局部查询判断“不存在”。
+
+规划使用普通任务的当前日期与完成状态，不使用投入热力口径；改期以客户端 IANA 时区校验今天及未来目标，三参数旧入口按 UTC 兼容。历史与投入账本保持原归属。

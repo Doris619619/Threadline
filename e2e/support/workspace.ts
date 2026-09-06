@@ -65,7 +65,7 @@ export async function openWorkspaceSection(page: Page, label: string) {
     return;
   }
   const mobileNavigation = page.getByLabel('移动端主导航', { exact: true });
-  if (['首页', '日历', '项目', '洞察'].includes(label)) {
+  if (['首页', '规划', '项目', '洞察'].includes(label)) {
     await mobileNavigation.getByRole('button', { name: label, exact: true }).click();
     return;
   }

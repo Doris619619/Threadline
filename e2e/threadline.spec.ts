@@ -69,7 +69,7 @@ async function openSettingsData(page: Page) {
 }
 
 test('gives every workspace destination a distinct working page', async ({ page }) => {
-  await openWorkspaceSection(page, '日历');
+  await openWorkspaceSection(page, '规划');
   await expect(page.getByTestId('calendar-panel')).toBeVisible();
 
   await openWorkspaceSection(page, '项目');
@@ -122,15 +122,21 @@ test('keeps Web and PWA in the full workspace even when stale desktop preference
 test('keeps the calendar anchor synchronized with selected dates and today', async ({
   page,
 }) => {
-  await openWorkspaceSection(page, '日历');
-  await page.getByRole('button', { name: '上个月' }).click();
-  await expect(page.getByRole('heading', { name: '2026年7月' })).toBeVisible();
+  await openWorkspaceSection(page, '规划');
+  await page.getByRole('button', { name: '2026 年 8 月' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: '上个月' }).click();
+  await expect(
+    page.getByRole('dialog').getByRole('heading', { name: '2026年7月' }),
+  ).toBeVisible();
 
-  await page.getByRole('button', { name: /^2026-08-01：/ }).click();
-  await expect(page.getByRole('heading', { name: '2026年8月' })).toBeVisible();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /^2026-08-01，/ })
+    .click();
+  await expect(page.getByRole('button', { name: '2026 年 8 月' })).toBeVisible();
 
-  await page.getByRole('button', { name: '今天' }).click();
-  await expect(page.getByRole('heading', { name: '2026年8月' })).toBeVisible();
+  await page.getByRole('button', { name: '今天', exact: true }).click();
+  await expect(page.getByRole('button', { name: '2026 年 8 月' })).toBeVisible();
 });
 
 test.describe('desktop task drag scheduling', () => {
@@ -672,8 +678,8 @@ test('records rescheduling and waiting deletion in history', async ({ page }) =>
   const email = page.locator('.timeline-row').filter({ hasText: '邮件处理' });
   await email.getByRole('button', { name: '邮件处理更多操作' }).click();
   await email.getByRole('button', { name: '移期', exact: true }).click();
-  const reschedule = page.getByRole('dialog', { name: '移期任务' });
-  await reschedule.getByRole('button', { name: '确认移期' }).click();
+  const reschedule = page.getByRole('dialog', { name: '改期任务' });
+  await reschedule.getByRole('button', { name: '确认改期' }).click();
   await expect(email).not.toBeVisible();
 });
 
@@ -681,9 +687,9 @@ test('can choose a future date when rescheduling', async ({ page }) => {
   const email = page.locator('.timeline-row').filter({ hasText: '邮件处理' });
   await email.getByRole('button', { name: '邮件处理更多操作' }).click();
   await email.getByRole('button', { name: '移期', exact: true }).click();
-  const reschedule = page.getByRole('dialog', { name: '移期任务' });
+  const reschedule = page.getByRole('dialog', { name: '改期任务' });
   await reschedule.getByLabel('移期日期').fill('2026-08-26');
-  await reschedule.getByRole('button', { name: '确认移期' }).click();
+  await reschedule.getByRole('button', { name: '确认改期' }).click();
   await page.getByRole('button', { name: '后一天', exact: true }).click();
   await page.getByRole('button', { name: '后一天', exact: true }).click();
   await page.getByRole('button', { name: '后一天', exact: true }).click();

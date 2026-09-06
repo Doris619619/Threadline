@@ -3,6 +3,8 @@
  */
 'use client';
 
+import { ManagementDialog } from '@/components/ui/management-dialog';
+import { getLocalDateKey } from '@/lib/local-date';
 import { PlannedMinutesField } from './planned-minutes-field';
 
 import { useId, useState } from 'react';
@@ -84,6 +86,7 @@ export function CloseDialog({
       }}
     >
       <form
+        className="task-editor-form"
         action={async (data) => {
           if (saving) return;
           setSaving(true);
@@ -174,6 +177,7 @@ export function CloseDialog({
   );
 }
 
+/** 等待改期提交，保留失败输入，并支持今天起的任意日期。 */
 export function RescheduleDialog({
   task,
   defaultDate,
@@ -182,58 +186,69 @@ export function RescheduleDialog({
 }: {
   task?: Task;
   defaultDate: string;
-  onSave: (date: string) => string | undefined;
+  onSave: (date: string) => string | undefined | Promise<string | undefined>;
   onClose: () => void;
 }) {
   const [error, setError] = useState<string>();
+  const [saving, setSaving] = useState(false);
   if (!task) return null;
   return (
-    <div className="task-dialog-backdrop" role="presentation">
+    <ManagementDialog
+      title="改期任务"
+      onClose={() => {
+        if (!saving) onClose();
+      }}
+    >
       <form
-        className="task-dialog reschedule-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-label="移期任务"
-        onSubmit={(event) => {
+        onSubmit={async (event) => {
           event.preventDefault();
+          if (saving) return;
           const date = String(new FormData(event.currentTarget).get('date') ?? '');
-          const message = onSave(date);
-          setError(message);
+          setSaving(true);
+          try {
+            setError(await onSave(date));
+          } catch (error) {
+            setError(error instanceof Error ? error.message : '改期失败，请重试。');
+          } finally {
+            setSaving(false);
+          }
         }}
       >
-        <header>
-          <div>
-            <h2>移期</h2>
-            <p>{task.title}</p>
-          </div>
-          <button type="button" aria-label="关闭移期" onClick={onClose}>
-            ×
-          </button>
-        </header>
+        <p>{task.title}</p>
         <label>
           新日期
           <Input
+            data-management-initial-focus
             aria-label="移期日期"
             name="date"
             type="date"
-            defaultValue={defaultDate}
+            min={getLocalDateKey()}
+            defaultValue={
+              defaultDate < getLocalDateKey() ? getLocalDateKey() : defaultDate
+            }
+            required
           />
         </label>
-        <p className="dialog-hint">
-          默认明天；也可选择任意未来日期。原日期历史会保留。
-        </p>
-        {error && <p className="form-error">{error}</p>}
+        <p>可提前或推后到今天及未来日期，原日期历史与实际投入保留。</p>
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        )}
         <footer>
-          <button type="button" onClick={onClose}>
+          <button type="button" disabled={saving} onClick={onClose}>
             取消
           </button>
-          <button type="submit">确认移期</button>
+          <button type="submit" disabled={saving}>
+            {saving ? '保存中…' : '确认改期'}
+          </button>
         </footer>
       </form>
-    </div>
+    </ManagementDialog>
   );
 }
 
+/** 复用任务字段表单并限制重复提交；持久化失败时保留输入与焦点。 */
 export function TaskDialog({
   open,
   mode = 'normal',
@@ -250,159 +265,141 @@ export function TaskDialog({
   onClose: () => void;
 }) {
   const [error, setError] = useState<string>();
+  const [saving, setSaving] = useState(false);
   if (!open) return null;
   const isWaiting = mode === 'waiting';
   const defaultProjectId =
     editing?.projectId ?? resolveActiveProject(projects)?.id ?? '';
 
   return (
-    <div className="task-dialog-backdrop" role="presentation">
-      <section
-        className="task-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-label={
-          editing
-            ? isWaiting
-              ? '修改待安排事项'
-              : '编辑任务'
-            : isWaiting
-              ? '添加待安排事项'
-              : '添加任务'
-        }
+    <ManagementDialog
+      title={
+        isWaiting
+          ? editing
+            ? '修改待安排事项'
+            : '添加待安排事项'
+          : editing
+            ? '编辑任务'
+            : '添加任务'
+      }
+      onClose={() => {
+        if (!saving) onClose();
+      }}
+      initialFocusSelector='input[name="title"]'
+    >
+      <form
+        className="task-editor-form"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          const data = new FormData(event.currentTarget);
+          if (saving) return;
+          setSaving(true);
+          try {
+            setError(await onSave(data));
+          } catch (error) {
+            setError(error instanceof Error ? error.message : '保存失败，请重试。');
+          } finally {
+            setSaving(false);
+          }
+        }}
       >
-        <form
-          action={async (data) => {
-            const message = await onSave(data);
-            setError(message);
-          }}
-        >
-          <header>
-            <div>
-              <p>
-                {editing
-                  ? isWaiting
-                    ? '编辑待安排事项'
-                    : '编辑任务'
-                  : isWaiting
-                    ? '待安排'
-                    : '快速新建'}
-              </p>
-              <h2>
-                {editing
-                  ? isWaiting
-                    ? '修改待办事项'
-                    : '修改任务'
-                  : isWaiting
-                    ? '添加待安排事项'
-                    : '添加任务'}
-              </h2>
-            </div>
-            <button type="button" onClick={onClose} aria-label="关闭">
-              ×
-            </button>
-          </header>
-          <label>
-            任务名称
-            <Input
-              name="title"
-              defaultValue={editing?.title}
-              placeholder="准备要做的事情"
-              required
-              autoFocus
-            />
-          </label>
+        <label>
+          任务名称
+          <Input
+            name="title"
+            defaultValue={editing?.title}
+            placeholder="准备要做的事情"
+            required
+            autoFocus
+          />
+        </label>
 
-          {isWaiting ? (
-            <div className="task-form-grid" style={{ gridTemplateColumns: '1fr' }}>
-              <label>
-                项目
-                <select name="project" defaultValue={defaultProjectId}>
-                  {projects
-                    .filter(
-                      (project) =>
-                        project.status === 'active' ||
-                        project.id === editing?.projectId,
-                    )
-                    .map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label>
-                重要性
-                <select
-                  name="importance"
-                  defaultValue={editing?.importance ?? 'normal'}
-                >
-                  <option value="normal">普通</option>
-                  <option value="important">重要</option>
-                </select>
-              </label>
-            </div>
-          ) : (
-            <div className="task-form-grid">
-              <label>
-                项目
-                <select name="project" defaultValue={defaultProjectId}>
-                  {projects
-                    .filter(
-                      (project) =>
-                        project.status === 'active' ||
-                        project.id === editing?.projectId,
-                    )
-                    .map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label>
-                开始时间
-                <Input
-                  name="start"
-                  defaultValue={editing?.plannedStartTime}
-                  placeholder="1420 或 14:20"
-                />
-              </label>
-              <label>
-                结束时间
-                <Input
-                  name="end"
-                  defaultValue={editing?.plannedEndTime}
-                  placeholder="可选"
-                />
-              </label>
-              <label>
-                实际时长（分钟）
-                <Input
-                  name="actual"
-                  type="number"
-                  defaultValue={editing?.actualDurationMinutes}
-                />
-              </label>
-            </div>
-          )}
+        {isWaiting ? (
+          <div className="task-form-grid" style={{ gridTemplateColumns: '1fr' }}>
+            <label>
+              项目
+              <select name="project" defaultValue={defaultProjectId}>
+                {projects
+                  .filter(
+                    (project) =>
+                      project.status === 'active' || project.id === editing?.projectId,
+                  )
+                  .map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label>
+              重要性
+              <select name="importance" defaultValue={editing?.importance ?? 'normal'}>
+                <option value="normal">普通</option>
+                <option value="important">重要</option>
+              </select>
+            </label>
+          </div>
+        ) : (
+          <div className="task-form-grid">
+            <label>
+              项目
+              <select name="project" defaultValue={defaultProjectId}>
+                {projects
+                  .filter(
+                    (project) =>
+                      project.status === 'active' || project.id === editing?.projectId,
+                  )
+                  .map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label>
+              开始时间
+              <Input
+                name="start"
+                defaultValue={editing?.plannedStartTime}
+                placeholder="1420 或 14:20"
+              />
+            </label>
+            <label>
+              结束时间
+              <Input
+                name="end"
+                defaultValue={editing?.plannedEndTime}
+                placeholder="可选"
+              />
+            </label>
+            <label>
+              实际时长（分钟）
+              <Input
+                name="actual"
+                type="number"
+                defaultValue={editing?.actualDurationMinutes}
+              />
+            </label>
+          </div>
+        )}
 
-          <PlannedMinutesField defaultValue={editing?.plannedDurationMinutes} />
-          {!isWaiting && <p>预计与起止时间均可不填，分别保存；时段不支持跨午夜。</p>}
+        <PlannedMinutesField defaultValue={editing?.plannedDurationMinutes} />
+        {!isWaiting && <p>预计与起止时间均可不填，分别保存；时段不支持跨午夜。</p>}
 
-          {error && (
-            <p className="form-error" role="alert">
-              {error}
-            </p>
-          )}
-          <footer>
-            <button type="button" onClick={onClose}>
-              取消
-            </button>
-            <button type="submit">保存</button>
-          </footer>
-        </form>
-      </section>
-    </div>
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        )}
+        <footer>
+          <button type="button" disabled={saving} onClick={onClose}>
+            取消
+          </button>
+          <button type="submit" disabled={saving}>
+            {saving ? '保存中…' : '保存'}
+          </button>
+        </footer>
+      </form>
+    </ManagementDialog>
   );
 }

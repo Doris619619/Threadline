@@ -70,6 +70,11 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'planning-webkit',
+      testMatch: '**/planning.spec.ts',
+      use: { ...devices['iPhone 13'], browserName: 'webkit' },
+    },
+    {
       name: 'desktop',
       testIgnore: defaultWebTestIgnore,
       use: { ...devices['Desktop Chrome'], channel: 'chrome' },
