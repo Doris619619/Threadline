@@ -126,9 +126,15 @@ test('keeps the source calendar month when returning from a cross-month day', as
   await page.getByRole('button', { name: '上个月' }).click();
   await expect(page.getByRole('heading', { name: '2026年7月' })).toBeVisible();
   await page.getByRole('button', { name: /^2026-08-01，/ }).click();
-  await expect(page.locator('.planning-week-label')).toHaveText('2026 年 8 月');
+  // 单日工具栏显示简短月份，完整年月由标题的可访问名称表达。
+  await expect(page.getByRole('heading', { name: '2026年8月日程' })).toHaveText('8月');
+  await expect(page.locator('.planning-week [aria-pressed="true"]')).toHaveAttribute(
+    'aria-label',
+    /^2026-08-01，/,
+  );
   await page.getByRole('button', { name: '返回月历' }).click();
   await expect(page.getByRole('heading', { name: '2026年7月' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^2026-08-01，/ })).toBeFocused();
   await page.getByRole('button', { name: '今天', exact: true }).click();
   await expect(page.getByRole('heading', { name: '2026年8月' })).toBeVisible();
 });
