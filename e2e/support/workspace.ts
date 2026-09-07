@@ -54,17 +54,20 @@ export async function bootstrapLocalAdapterWorkspace(page: Page, seedKey: string
 }
 
 /**
- * 在当前断点选择可见的桌面侧栏或移动底栏入口，并展开移动端“更多”菜单后再访问次级页。
+ * 等待刷新后的导航就绪，再按可见断点选择入口；移动端次级页先展开“更多”。
  */
 export async function openWorkspaceSection(page: Page, label: string) {
   const desktopTarget = page
     .getByLabel('主导航', { exact: true })
     .getByRole('button', { name: label, exact: true });
+  const mobileNavigation = page.getByLabel('移动端主导航', { exact: true });
+  await expect(
+    desktopTarget.or(mobileNavigation).filter({ visible: true }).first(),
+  ).toBeVisible();
   if (await desktopTarget.isVisible()) {
     await desktopTarget.click();
     return;
   }
-  const mobileNavigation = page.getByLabel('移动端主导航', { exact: true });
   if (['首页', '规划', '项目', '洞察'].includes(label)) {
     await mobileNavigation.getByRole('button', { name: label, exact: true }).click();
     return;
