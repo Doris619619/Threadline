@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, Plus } from 'lucide-react';
+import { ManagementDialog } from '@/components/ui/management-dialog';
 import { useWorkspaceData } from '@/features/workspace/workspace-data-provider';
 import { useTaskCreateAndEdit } from '@/features/tasks/hooks/use-task-create-and-edit';
 import { TaskDialog, RescheduleDialog } from '@/features/tasks/components/task-dialogs';
@@ -11,6 +11,7 @@ import { groupPlanningTasks } from './planning-rules';
 import { PlanningMonth } from './planning-month';
 import { PlanningDay } from './planning-day';
 import { PlanningTaskRow } from './planning-task-row';
+import { PlanningWaitingPool } from './planning-waiting-pool';
 import type { Task } from '@/types/domain';
 
 /** 以明确日期显示计划，不读写首页的 selectedDate 或未来 Daily 实例。 */
@@ -30,12 +31,21 @@ export function CalendarPanel() {
   const returnDate = useRef<string | undefined>(undefined);
   const returnToInbox = useRef(false);
   const previousView = useRef(view);
-  const [waitingOpen, setWaitingOpen] = useState(false);
-  const [editor, setEditor] = useState<{ task?: Task; date: string }>();
+  const [waitingOpen, setWaitingOpen] = useState<boolean>();
+  const [notice, setNotice] = useState<string>();
+  const [editor, setEditor] = useState<{
+    task?: Task;
+    date: string;
+    focus?: 'start';
+  }>();
   const [rescheduling, setRescheduling] = useState<Task>();
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
   const [error, setError] = useState<string>();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const selectionTrigger = useRef<HTMLElement | null>(null);
+  const timeFocusTask = useRef<string | undefined>(undefined);
+  const selectedTasks = tasks.filter((task) => selectedIds.includes(task.id));
   const waitingRef = useRef<HTMLDetailsElement>(null);
   const today = getLocalDateKey();
   const days = useMemo(() => groupPlanningTasks(tasks), [tasks]);
@@ -63,11 +73,22 @@ export function CalendarPanel() {
       panelRef.current?.querySelector<HTMLElement>(selector)?.focus();
     }
   }, [view]);
+  /** 补时间后原入口可能移出时间待定区，等 DOM 更新后把焦点交给时间块或仍存在的入口。 */
+  useEffect(() => {
+    if (editor || !timeFocusTask.current) return;
+    const taskId = timeFocusTask.current;
+    timeFocusTask.current = undefined;
+    const target = panelRef.current?.querySelector<HTMLElement>(
+      `.planning-time-event[data-task-id="${CSS.escape(taskId)}"], .planning-undated-task[data-task-id="${CSS.escape(taskId)}"] button`,
+    );
+    (target ?? panelRef.current?.querySelector<HTMLElement>('h1'))?.focus();
+  }, [editor]);
   /** 点击日期进入独立日详情，记住来源月份内的格子供返回定位。 */
   const openDay = (next: string) => {
     returnDate.current = next;
     returnToInbox.current = false;
     setDate(next);
+    setNotice(undefined);
     setView('day');
   };
 
@@ -93,13 +114,43 @@ export function CalendarPanel() {
     if (!editor?.task && (editor?.date ?? date) < getLocalDateKey())
       return '请选择今天或未来日期';
     const message = await saveTask(form);
-    if (!message) setEditor(undefined);
+    if (!message) {
+      if (editor?.focus === 'start') timeFocusTask.current = editor.task?.id;
+      setEditor(undefined);
+    }
     return message;
   };
   /** 从空态进入同一待安排池，避免创建重复任务入口。 */
   const showWaiting = () => {
     setWaitingOpen(true);
     waitingRef.current?.querySelector('summary')?.focus();
+  };
+  /** 记住实际点击的时间块；密集组展开后的每一项仍绑定原任务。 */
+  const showSelection = (items: Task[]) => {
+    selectionTrigger.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setSelectedIds(items.map((task) => task.id));
+  };
+  /** 完成或流转可移除原块、改变重叠组结构；入口消失时返回仍可聚焦的页标题。 */
+  const closeSelection = () => {
+    setSelectedIds([]);
+    if (!selectionTrigger.current?.isConnected) {
+      panelRef.current?.querySelector<HTMLElement>('h1')?.focus();
+    }
+  };
+  /** 确认写入后显示真实安排结果；保留任务池以继续分配，移除入口后恢复可用焦点。 */
+  const schedule = async (task: Task) => {
+    const target = date;
+    if (await run(() => transitionTask(task.id, 'scheduled', target))) {
+      setNotice('已将“' + task.title + '”安排到 ' + target);
+      if (selectedIds.length > 0) {
+        closeSelection();
+      } else {
+        waitingRef.current
+          ?.querySelector<HTMLInputElement>('input')
+          ?.focus({ preventScroll: true });
+      }
+    }
   };
   /** 所有行共用确定性动作，完成和编辑都等待服务器确认。 */
   const row = (task: Task) => (
@@ -109,7 +160,10 @@ export function CalendarPanel() {
       projects={projects}
       disabled={busy}
       targetDate={date}
-      onEdit={() => setEditor({ task, date })}
+      onEdit={() => {
+        setSelectedIds([]);
+        setEditor({ task, date });
+      }}
       onComplete={() =>
         void run(() =>
           saveTaskConfirmed({
@@ -120,9 +174,12 @@ export function CalendarPanel() {
           }),
         )
       }
-      onReschedule={() => setRescheduling(task)}
+      onReschedule={() => {
+        setSelectedIds([]);
+        setRescheduling(task);
+      }}
       onWaiting={() => void run(() => transitionTask(task.id, 'waiting'))}
-      onSchedule={() => void run(() => transitionTask(task.id, 'scheduled', date))}
+      onSchedule={() => void schedule(task)}
     />
   );
 
@@ -131,100 +188,98 @@ export function CalendarPanel() {
       ref={panelRef}
       className="planning-panel"
       data-view={view}
+      data-waiting-open={waitingOpen ?? false}
       data-testid="calendar-panel"
       aria-busy={busy}
     >
-      <header className="planning-heading">
-        <div className="planning-page-title">
-          {view === 'day' && (
-            <button
-              className="planning-back"
-              aria-label="返回月历"
-              onClick={() => setView('month')}
-            >
-              <ChevronLeft size={20} aria-hidden="true" />
-              月历
-            </button>
-          )}
-          <h1 tabIndex={-1}>{view === 'month' ? '规划' : '当天安排'}</h1>
-        </div>
-        {view === 'day' && (
-          <button
-            className="planning-add"
-            disabled={busy || date < today}
-            onClick={(event) => {
-              // Safari 点击按钮不会自动聚焦，先记录可供弹窗关闭后返回的入口。
-              event.currentTarget.focus();
-              setEditor({ date });
-            }}
-          >
-            <Plus size={18} aria-hidden="true" />
-            添加任务
-          </button>
-        )}
-      </header>
-      {error && (
+      {view === 'month' && (
+        <header className="planning-heading">
+          <h1 tabIndex={-1}>规划</h1>
+        </header>
+      )}
+      {error && selectedTasks.length === 0 && !waitingOpen && (
         <p className="form-error" role="alert">
           {error}
         </p>
       )}
-      {view === 'month' ? (
-        <PlanningMonth
-          date={date}
-          month={month}
-          days={days}
-          waitingCount={waiting.length}
-          onMonth={setMonth}
-          onSelect={openDay}
-          onWaiting={() => {
-            returnToInbox.current = true;
-            setDate(today);
-            setWaitingOpen(true);
-            setView('day');
-          }}
-        />
-      ) : (
-        <div className="planning-detail">
-          <PlanningDay
+      <div className="planning-workspace">
+        {view === 'month' ? (
+          <PlanningMonth
             date={date}
+            month={month}
             days={days}
-            busy={busy}
-            row={row}
-            onDate={setDate}
-            onCreate={() => setEditor({ date })}
-            onWaiting={showWaiting}
+            waitingCount={waiting.length}
+            onMonth={setMonth}
+            onSelect={openDay}
+            onWaiting={() => {
+              returnToInbox.current = true;
+              setDate(today);
+              showWaiting();
+              setView('day');
+            }}
           />
-          <details
-            className="planning-waiting"
-            ref={waitingRef}
-            open={waitingOpen}
-            onToggle={(event) => setWaitingOpen(event.currentTarget.open)}
-          >
-            <summary>
-              待安排 <span>{waiting.length}</span>
-            </summary>
-            {waiting.length === 0 && <p>暂时没有待安排任务。</p>}
-            {(['important', 'normal'] as const).map((importance) => {
-              const items = waiting.filter((task) => task.importance === importance);
-              return (
-                items.length > 0 && (
-                  <section key={importance}>
-                    <h3>
-                      {importance === 'important' ? '重要' : '普通'} · {items.length}
-                    </h3>
-                    {items.map(row)}
-                  </section>
-                )
-              );
-            })}
-          </details>
-        </div>
+        ) : (
+          <div className="planning-detail">
+            <PlanningDay
+              date={date}
+              days={days}
+              busy={busy}
+              row={row}
+              projects={projects}
+              onSelect={showSelection}
+              onBack={() => setView('month')}
+              onAdd={() => setEditor({ date })}
+              onDate={(next) => {
+                setDate(next);
+                setNotice(undefined);
+              }}
+              onSetTime={(task) => setEditor({ task, date, focus: 'start' })}
+            />
+          </div>
+        )}
+        <PlanningWaitingPool
+          date={date}
+          tasks={waiting}
+          busy={busy}
+          open={waitingOpen}
+          notice={notice}
+          error={selectedTasks.length === 0 ? error : undefined}
+          detailsRef={waitingRef}
+          onOpen={setWaitingOpen}
+          onDate={(next) => {
+            // 日详情内选日保留原月历入口；月历中跨月选日则同步返回月份。
+            if (view === 'month') {
+              setMonth(next.slice(0, 7));
+              openDay(next);
+            } else {
+              setDate(next);
+              setNotice(undefined);
+            }
+          }}
+          row={row}
+        />
+      </div>
+      {selectedTasks.length > 0 && (
+        <ManagementDialog
+          title={selectedTasks.length === 1 ? '安排详情' : '重叠安排'}
+          onClose={closeSelection}
+        >
+          <div className="planning-panel planning-event-detail" aria-busy={busy}>
+            {selectedTasks.map(row)}
+            {error && (
+              <p className="form-error" role="alert">
+                {error}
+              </p>
+            )}
+          </div>
+        </ManagementDialog>
       )}
       {editor && (
         <TaskDialog
           key={editor.task?.id ?? editor.date}
           open
           editing={editor.task}
+          initialFocus={editor.focus}
           mode={editor.task?.status === 'waiting' ? 'waiting' : 'normal'}
           projects={projects}
           onSave={save}

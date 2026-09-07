@@ -112,6 +112,8 @@ packaged runner 不启动 Next server，并主动清除继承的 `THREADLINE_ELE
 
 脚本同时监控 builder 输出和目标目录。两者连续 180 秒无变化时返回 `PACKAGING_STALL`，记录 builder PID、命令、当前阶段、目录快照、子进程树、CPU/I/O 计数、第二个 builder 和目标 EXE 状态；随后只结束本轮拥有的 builder 进程树，不并行重试。
 
+NSIS 收尾会删除临时 `.nsis.7z`，目录枚举与文件属性读取之间可能发生删除。快照监控仅跳过这类 `ENOENT`，继续统计剩余产物；权限等其他错误仍使构建失败。该行为由真实 Node 子进程中的删除竞态回归验证，避免将已正常生成安装器的构建误判为失败。此修复不改变打包命令和产物内容，README 使用方式保持不变。
+
 优先检查 Windows Defender 或其他文件系统安全扫描。脚本只读取当前 exclusion，不会执行 `Add-MpPreference`、关闭 Defender 或永久排除整个仓库。
 
 如需临时排除，使用管理员 PowerShell，范围限制为 Electron runtime 和当前输出目录：

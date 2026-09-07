@@ -1,0 +1,314 @@
+/** @fileoverview 日历旁的待安排任务池、当日时间待定条与规划字体层级，适配桌面侧栏和手机托盘。 */
+.planning-panel {
+  font-family: var(--font-sans);
+  font-synthesis: none;
+}
+.planning-panel,
+.planning-panel[data-view='day'] {
+  max-width: 1280px;
+}
+.planning-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+  align-items: start;
+}
+.planning-workspace > * {
+  min-width: 0;
+}
+.planning-panel[data-view='day'] h1 {
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.planning-month-heading h2 {
+  font-weight: 500;
+}
+.planning-week-label,
+.planning-week strong {
+  font-weight: 400;
+}
+.planning-week strong {
+  font-size: 1.0625rem;
+}
+.planning-week [aria-pressed='true'] strong {
+  font-weight: 500;
+}
+.planning-time-event > strong {
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+}
+.planning-event-time,
+.planning-event-project {
+  font-size: 0.78125rem;
+  line-height: 1.5;
+  font-weight: 400;
+}
+.planning-hour > span,
+.planning-now > span {
+  font-size: 0.75rem;
+}
+.planning-now > span {
+  font-weight: 500;
+}
+/* 未定时间沿用日历左侧刻度栏；整条任务可查看详情，时钟入口直接补时间。 */
+.planning-untimed {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.planning-untimed-heading {
+  padding-top: 12px;
+  text-align: right;
+}
+.planning-untimed-heading h3 {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.planning-untimed-heading button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: var(--planning-accent);
+}
+.planning-untimed-items {
+  display: grid;
+  gap: 0;
+}
+.planning-undated-task {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.planning-panel .planning-undated-main {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 0 8px;
+}
+.planning-undated-main > span {
+  display: block;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.planning-panel .planning-set-time {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  color: var(--planning-accent);
+}
+.planning-waiting-dock {
+  position: sticky;
+  top: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.planning-waiting-dock .planning-waiting {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.planning-waiting-dock summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+.planning-waiting-dock summary::-webkit-details-marker {
+  display: none;
+}
+.planning-waiting-dock .planning-waiting > summary span {
+  color: var(--text-primary);
+  font-size: inherit;
+  margin: 0;
+}
+.planning-waiting-dock .planning-waiting > summary .planning-waiting-count {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+.planning-pool-chevron {
+  margin-left: auto;
+  color: var(--text-secondary);
+  transition: transform 150ms ease;
+}
+.planning-waiting[open] .planning-pool-chevron {
+  transform: rotate(180deg);
+}
+.planning-pool-body {
+  padding: 0 12px 8px;
+}
+.planning-pool-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 8px;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+.planning-pool-date input {
+  min-height: 44px;
+  min-width: 0;
+  width: 174px;
+  max-width: 75%;
+  padding: 6px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.planning-pool-list {
+  max-height: calc(100dvh - 260px);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.planning-pool-list h3 {
+  margin: 12px 0 4px;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+.planning-pool-list h3 span {
+  margin-left: 8px;
+}
+.planning-pool-list .planning-task {
+  gap: 8px;
+  align-items: center;
+}
+.planning-pool-list .planning-task-title {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  font-weight: 400;
+}
+.planning-pool-list .planning-task-meta {
+  font-size: 0.75rem;
+  gap: 4px;
+}
+.planning-pool-list .planning-schedule {
+  padding: 0 8px;
+  background: var(--planning-heat-1);
+  color: var(--planning-ink);
+  font-size: 0.75rem;
+}
+.planning-pool-empty,
+.planning-pool-notice {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.planning-pool-notice:empty {
+  margin: 0;
+}
+@media (max-width: 1023px) {
+  .planning-workspace {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - 148px - env(safe-area-inset-bottom));
+    min-height: 220px;
+    gap: 8px;
+  }
+  .planning-workspace > .planning-detail,
+  .planning-workspace > .planning-month {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scroll-padding-top: 140px;
+  }
+  .planning-panel[data-view] {
+    padding-bottom: 0;
+  }
+  .tl-main:has(.planning-panel[data-view='day']) {
+    padding: env(safe-area-inset-top) 0
+      calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+    background: var(--surface);
+  }
+  .planning-panel[data-view='day'] {
+    margin: 0;
+  }
+  .planning-panel[data-view='day'] .planning-workspace {
+    height: calc(
+      100dvh - var(--bottom-nav-height) - env(safe-area-inset-top) -
+        env(safe-area-inset-bottom)
+    );
+    gap: 0;
+  }
+  .planning-panel[data-view='day'] .planning-waiting-dock {
+    border-inline: 0;
+    border-bottom: 0;
+    border-radius: 0;
+  }
+  .planning-waiting-dock {
+    position: static;
+    flex-shrink: 0;
+    width: 100%;
+  }
+  .planning-pool-body {
+    padding-inline: 12px;
+  }
+  .planning-pool-list {
+    max-height: max(76px, min(calc(42dvh - 170px), 12rem));
+  }
+  .planning-pool-list h3 {
+    margin-top: 8px;
+  }
+  .planning-pool-notice {
+    max-height: 3em;
+    overflow: auto;
+  }
+  .planning-pool-list .planning-task {
+    padding-block: 4px;
+  }
+  .planning-untimed-items {
+    max-height: 12rem;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+}
+@media (min-width: 800px) and (max-width: 1023px) and (max-height: 500px) {
+  .planning-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 200px;
+    height: calc(100dvh - 128px);
+    align-items: stretch;
+  }
+  .planning-month {
+    padding-inline: 8px;
+  }
+  .planning-month-grid[role='group'] {
+    column-gap: 3px;
+  }
+  .planning-pool-list {
+    max-height: max(60px, calc(100dvh - 300px));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .planning-pool-chevron {
+    transition: none;
+  }
+}
