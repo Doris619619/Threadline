@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, Plus } from 'lucide-react';
+import { ManagementDialog } from '@/components/ui/management-dialog';
 import { useWorkspaceData } from '@/features/workspace/workspace-data-provider';
 import { useTaskCreateAndEdit } from '@/features/tasks/hooks/use-task-create-and-edit';
 import { TaskDialog, RescheduleDialog } from '@/features/tasks/components/task-dialogs';
@@ -36,6 +37,9 @@ export function CalendarPanel() {
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
   const [error, setError] = useState<string>();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const selectionTrigger = useRef<HTMLElement | null>(null);
+  const selectedTasks = tasks.filter((task) => selectedIds.includes(task.id));
   const waitingRef = useRef<HTMLDetailsElement>(null);
   const today = getLocalDateKey();
   const days = useMemo(() => groupPlanningTasks(tasks), [tasks]);
@@ -101,6 +105,19 @@ export function CalendarPanel() {
     setWaitingOpen(true);
     waitingRef.current?.querySelector('summary')?.focus();
   };
+  /** 记住实际点击的时间块；密集组展开后的每一项仍绑定原任务。 */
+  const showSelection = (items: Task[]) => {
+    selectionTrigger.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setSelectedIds(items.map((task) => task.id));
+  };
+  /** 完成或流转可移除原块、改变重叠组结构；入口消失时返回仍可聚焦的页标题。 */
+  const closeSelection = () => {
+    setSelectedIds([]);
+    if (!selectionTrigger.current?.isConnected) {
+      panelRef.current?.querySelector<HTMLElement>('h1')?.focus();
+    }
+  };
   /** 所有行共用确定性动作，完成和编辑都等待服务器确认。 */
   const row = (task: Task) => (
     <PlanningTaskRow
@@ -109,7 +126,10 @@ export function CalendarPanel() {
       projects={projects}
       disabled={busy}
       targetDate={date}
-      onEdit={() => setEditor({ task, date })}
+      onEdit={() => {
+        setSelectedIds([]);
+        setEditor({ task, date });
+      }}
       onComplete={() =>
         void run(() =>
           saveTaskConfirmed({
@@ -120,7 +140,10 @@ export function CalendarPanel() {
           }),
         )
       }
-      onReschedule={() => setRescheduling(task)}
+      onReschedule={() => {
+        setSelectedIds([]);
+        setRescheduling(task);
+      }}
       onWaiting={() => void run(() => transitionTask(task.id, 'waiting'))}
       onSchedule={() => void run(() => transitionTask(task.id, 'scheduled', date))}
     />
@@ -163,7 +186,7 @@ export function CalendarPanel() {
           </button>
         )}
       </header>
-      {error && (
+      {error && selectedTasks.length === 0 && (
         <p className="form-error" role="alert">
           {error}
         </p>
@@ -190,35 +213,56 @@ export function CalendarPanel() {
             days={days}
             busy={busy}
             row={row}
+            projects={projects}
+            onSelect={showSelection}
             onDate={setDate}
-            onCreate={() => setEditor({ date })}
             onWaiting={showWaiting}
+            waiting={
+              <details
+                className="planning-waiting"
+                ref={waitingRef}
+                open={waitingOpen}
+                onToggle={(event) => setWaitingOpen(event.currentTarget.open)}
+              >
+                <summary>
+                  待安排 <span>{waiting.length}</span>
+                </summary>
+                {waiting.length === 0 && <p>暂时没有待安排任务。</p>}
+                {(['important', 'normal'] as const).map((importance) => {
+                  const items = waiting.filter(
+                    (task) => task.importance === importance,
+                  );
+                  return (
+                    items.length > 0 && (
+                      <section key={importance}>
+                        <h3>
+                          {importance === 'important' ? '重要' : '普通'} ·{' '}
+                          {items.length}
+                        </h3>
+                        {items.map(row)}
+                      </section>
+                    )
+                  );
+                })}
+              </details>
+            }
           />
-          <details
-            className="planning-waiting"
-            ref={waitingRef}
-            open={waitingOpen}
-            onToggle={(event) => setWaitingOpen(event.currentTarget.open)}
-          >
-            <summary>
-              待安排 <span>{waiting.length}</span>
-            </summary>
-            {waiting.length === 0 && <p>暂时没有待安排任务。</p>}
-            {(['important', 'normal'] as const).map((importance) => {
-              const items = waiting.filter((task) => task.importance === importance);
-              return (
-                items.length > 0 && (
-                  <section key={importance}>
-                    <h3>
-                      {importance === 'important' ? '重要' : '普通'} · {items.length}
-                    </h3>
-                    {items.map(row)}
-                  </section>
-                )
-              );
-            })}
-          </details>
         </div>
+      )}
+      {selectedTasks.length > 0 && (
+        <ManagementDialog
+          title={selectedTasks.length === 1 ? '安排详情' : '重叠安排'}
+          onClose={closeSelection}
+        >
+          <div className="planning-panel planning-event-detail" aria-busy={busy}>
+            {selectedTasks.map(row)}
+            {error && (
+              <p className="form-error" role="alert">
+                {error}
+              </p>
+            )}
+          </div>
+        </ManagementDialog>
       )}
       {editor && (
         <TaskDialog
