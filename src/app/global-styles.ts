@@ -29,3 +29,4 @@ import '../features/auth/auth.css';
 import '../features/startup/threadline-startup.css';
 import '../features/calendar/planning.css';
 import '../features/calendar/planning-timeline.css';
+import '../features/calendar/planning-pools.css';

@@ -1,157 +1,47 @@
-/** @fileoverview 单日规划的时间画布与轻量页头；配色继承规划主题，坐标随 rem 缩放。 */
-/* 保留窗口裁切，但不让无滚动的壳层截获 sticky 的滚动容器。只作用于日规划。 */
-.tl-window.mode-full:has(.planning-panel[data-view='day']) {
+/** @fileoverview 单日规划的平面日历、合并工具栏与时间画布；时间坐标随 rem 缩放。 */
+/* 让周条以实际滚动区域吸顶，而不是被外层无滚动窗口截获。 */
+.tl-window.mode-full:has(.planning-panel[data-view]) {
   overflow: clip;
 }
-.planning-panel[data-view='day'] {
-  max-width: 960px;
-}
-.planning-panel[data-view='day'] .planning-heading {
-  align-items: center;
-  margin-bottom: 8px;
-}
-.planning-panel[data-view='day'] .planning-page-title {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.planning-panel[data-view='day'] h1 {
-  font-size: 1.125rem;
-  font-weight: 600;
-}
-.planning-panel[data-view='day'] .planning-add {
-  background: var(--planning-heat-2);
-  color: var(--planning-ink);
-  border-radius: 22px;
-}
 .planning-detail {
-  padding: 8px 24px 16px;
-  border-radius: 16px;
-}
-.planning-week-nav {
-  padding-bottom: 4px;
+  padding: 0 12px 16px;
+  border-radius: 0;
 }
 .planning-day-navigation {
   position: sticky;
   top: 0;
   z-index: 5;
   background: var(--surface);
-  padding-top: 4px;
   border-bottom: 1px solid var(--border-subtle);
-  margin-bottom: 12px;
 }
-.planning-week-nav > button:last-child {
+.planning-week-nav {
+  gap: 0;
+  min-height: 56px;
+}
+.planning-week-nav h1 {
+  flex: 1;
+  margin: 0;
+  outline: none;
+  white-space: nowrap;
+}
+.planning-week-nav button {
   color: var(--planning-accent);
+  padding: 0;
+  font-size: 0.875rem;
 }
 .planning-week {
   margin: 0 0 8px;
 }
 .planning-panel .planning-week button {
-  gap: 4px;
+  gap: 3px;
   padding: 4px 0;
 }
 .planning-week [aria-pressed='true'] strong {
   background: var(--planning-accent);
   color: var(--planning-on-accent);
 }
-.planning-day-heading {
-  padding: 0 4px 12px;
-}
-.planning-day-heading h2 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  letter-spacing: -0.025em;
-}
-.planning-day-heading p {
-  font-size: 0.75rem;
-  margin-top: 4px;
-}
-.planning-untimed {
-  padding: 0 4px;
-}
-.planning-pools {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border-bottom: 1px solid var(--border-subtle);
-}
-.planning-pools:has(> details[open]) {
-  grid-template-columns: 1fr;
-}
-.planning-pools > details > summary {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  list-style: none;
-}
-.planning-pools > details > summary::-webkit-details-marker {
-  display: none;
-}
-.planning-pools > details > summary::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  margin-inline: 2px 8px;
-  border-right: 1.5px solid var(--text-secondary);
-  border-bottom: 1.5px solid var(--text-secondary);
-  transform: rotate(-45deg);
-  transition: transform 150ms ease;
-}
-.planning-pools > details[open] > summary::before {
-  transform: rotate(45deg);
-}
-.planning-untimed > summary {
-  min-height: 44px;
-  align-content: center;
-  font-size: 0.8125rem;
-  cursor: pointer;
-  font-weight: 500;
-}
-.planning-untimed > summary span {
-  margin-left: 8px;
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-.planning-untimed .planning-task:last-of-type {
-  border-bottom: 0;
-}
-.planning-untimed .planning-task {
-  padding-block: 0;
-}
-.planning-untimed > p {
-  color: var(--text-secondary);
-  font-size: 0.8125rem;
-}
-.planning-detail .planning-waiting {
-  margin: 0;
-  padding: 0 4px;
-  border-top: 0;
-  border-bottom: 0;
-}
-.planning-detail .planning-waiting > summary {
-  font-size: 0.8125rem;
-  font-weight: 500;
-}
-.planning-panel .planning-pick-waiting {
-  color: var(--planning-accent);
-  font-size: 0.8125rem;
-}
-.planning-timeline-caption {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 12px 4px 16px;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-}
-.planning-timeline-caption > span:first-child {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-.planning-timeline-caption > span:first-child > span {
-  margin-left: 8px;
-  color: var(--text-secondary);
+.planning-timeline {
+  padding-top: 16px;
 }
 .planning-time-canvas {
   position: relative;
@@ -194,7 +84,7 @@
   gap: 2px;
   min-width: 44px;
   min-height: 44px;
-  padding: 8px 10px 6px 14px;
+  padding: 6px 10px 4px 12px;
   border: 0;
   border-radius: 6px;
   background: var(--planning-heat-1);
@@ -224,9 +114,9 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: anywhere;
-  font-size: 1rem;
+  font-size: 0.9375rem;
   line-height: 1.35;
-  font-weight: 550;
+  font-weight: 400;
 }
 .planning-event-time,
 .planning-event-project {
@@ -238,8 +128,21 @@
   text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
 }
+.planning-event-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.planning-event-time {
+  flex-shrink: 0;
+}
 .planning-event-project {
-  margin-top: 4px;
+  min-width: 0;
+}
+.planning-event-project::before {
+  content: '·';
+  margin-right: 8px;
 }
 .planning-panel .planning-time-event[data-short='true'] {
   padding-block: 3px;
@@ -310,33 +213,13 @@
 }
 @media (max-width: 760px) {
   .planning-detail {
-    padding: 4px 8px 12px;
-    border-radius: 12px;
-  }
-  .planning-panel[data-view='day'] .planning-page-title {
-    gap: 8px;
-  }
-  .planning-panel[data-view='day'] .planning-add {
-    gap: 4px;
-    padding-inline: 10px;
-    font-size: 0.8125rem;
-  }
-  .planning-week {
-    margin-bottom: 8px;
+    padding: 0 6px 12px;
   }
   .planning-time-event[data-columns='3'] {
     padding-inline: 9px 4px;
   }
   .planning-time-event[data-columns='3'] > strong {
     font-size: 0.875rem;
-  }
-}
-@media (max-width: 359px) {
-  .planning-panel[data-view='day'] .planning-page-title {
-    gap: 4px;
-  }
-  .planning-panel[data-view='day'] h1 {
-    font-size: 1rem;
   }
 }
 @media (prefers-reduced-motion: reduce) {

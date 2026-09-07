@@ -27,7 +27,7 @@ export function planningTimeLabel(minutes: number): string {
 }
 
 /**
- * 按真实开始时间排位；短任务与无结束时间任务预留 30 分钟显示空间，实际时长另用色条表达。
+ * 按真实开始时间排位；短任务与无结束时间任务预留 40 分钟显示空间，实际时长另用色条表达。
  * 碰撞按显示空间分栏，连续任务不会被最小点击高度遮挡；四列以上由 UI 聚合入口展开。
  */
 export function layoutPlanningTimeline(tasks: Task[]) {
@@ -38,7 +38,7 @@ export function layoutPlanningTimeline(tasks: Task[]) {
       const candidate = planningMinutes(task.plannedEndTime);
       const end = candidate !== undefined && candidate >= start ? candidate : undefined;
       return [
-        { task, start, end, displayEnd: Math.max(start + 30, end ?? start), column: 0 },
+        { task, start, end, displayEnd: Math.max(start + 40, end ?? start), column: 0 },
       ];
     })
     .sort(
@@ -64,8 +64,8 @@ export function layoutPlanningTimeline(tasks: Task[]) {
     group.end = Math.max(group.end, event.displayEnd);
     group.events.push(event);
   }
-  // 默认呈现 08–20 点，早晚任务自动扩展；末尾显示空间可越过 24 点但不生成次日任务。
-  const start = Math.min(8 * 60, events[0]?.start ?? 8 * 60);
+  // 默认呈现 09–20 点，早晚任务自动扩展；末尾显示空间可越过 24 点但不生成次日任务。
+  const start = Math.min(9 * 60, events[0]?.start ?? 9 * 60);
   const end = Math.max(20 * 60, ...events.map((event) => event.displayEnd));
   return { start: Math.floor(start / 60) * 60, end: Math.ceil(end / 60) * 60, groups };
 }

@@ -4,9 +4,9 @@ import { getLocalDateKey } from '@/lib/local-date';
 import type { Project, Task } from '@/types/domain';
 import { layoutPlanningTimeline, planningTimeLabel } from './planning-timeline-layout';
 
-/** 将分钟映射到可随文字一起放大的 rem 坐标，每小时 6rem。 */
+/** 将分钟映射到可随文字一起放大的 rem 坐标，每小时 4.5rem。 */
 function offset(minutes: number): string {
-  return `${minutes / 10}rem`;
+  return `${minutes * 0.075}rem`;
 }
 
 /** 当前时间来自真实时钟，每分钟及页面重新可见时校准；其他日期不显示现在指示。 */
@@ -49,12 +49,6 @@ export function PlanningTimeline({
   );
   return (
     <section className="planning-timeline" aria-label="当天时间轴">
-      <div className="planning-timeline-caption">
-        <span>
-          时间安排 <span>{tasks.length}</span>
-        </span>
-        <span>点击时间块查看详情</span>
-      </div>
       <div
         className="planning-time-canvas"
         style={{ height: offset(layout.end - layout.start) }}
@@ -128,15 +122,17 @@ export function PlanningTimeline({
                       }}
                     />
                     <strong>{item.task.title}</strong>
-                    <span className="planning-event-time">
-                      {item.task.plannedStartTime}
-                      {item.end !== undefined
-                        ? `–${item.task.plannedEndTime}`
-                        : ' · 结束未定'}
+                    <span className="planning-event-meta">
+                      <span className="planning-event-time">
+                        {item.task.plannedStartTime}
+                        {item.end !== undefined
+                          ? `–${item.task.plannedEndTime}`
+                          : ' · 结束未定'}
+                      </span>
+                      {project && (
+                        <span className="planning-event-project">{project.name}</span>
+                      )}
                     </span>
-                    {project && (
-                      <span className="planning-event-project">{project.name}</span>
-                    )}
                   </button>
                 );
               })

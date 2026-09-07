@@ -37,7 +37,7 @@ describe('planning timeline', () => {
     expect(layout.groups[1].events[0]).toMatchObject({
       start: 660,
       end: undefined,
-      displayEnd: 690,
+      displayEnd: 700,
     });
   });
   it('keeps short adjacent click targets apart and reuses lanes within a connected group', () => {

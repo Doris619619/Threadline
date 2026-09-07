@@ -256,6 +256,7 @@ export function TaskDialog({
   projects,
   onSave,
   onClose,
+  initialFocus = 'title',
 }: {
   open: boolean;
   mode?: 'normal' | 'waiting';
@@ -263,6 +264,8 @@ export function TaskDialog({
   projects: Project[];
   onSave: (data: FormData) => Promise<string | undefined>;
   onClose: () => void;
+  /** 规划的“定时间”入口直接聚焦开始时间；待安排表单始终聚焦标题。 */
+  initialFocus?: 'title' | 'start';
 }) {
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
@@ -285,7 +288,7 @@ export function TaskDialog({
       onClose={() => {
         if (!saving) onClose();
       }}
-      initialFocusSelector='input[name="title"]'
+      initialFocusSelector={`input[name="${isWaiting ? 'title' : initialFocus}"]`}
     >
       <form
         className="task-editor-form"

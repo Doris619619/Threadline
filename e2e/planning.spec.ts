@@ -11,6 +11,23 @@ test.beforeEach(async ({ page }, info) => {
   await openWorkspaceSection(page, '规划');
 });
 
+/** 桌面默认展开、手机按需展开；不因断点差异把已经打开的任务池关闭。 */
+async function openWaitingPool(page: Page) {
+  const pool = page.locator('.planning-waiting');
+  if ((await pool.getAttribute('open')) === null) {
+    await pool.locator('summary').click();
+  }
+}
+
+/** 时间待定条直接展示任务，完整完成/改期操作在统一详情中。 */
+async function openUntimedTask(page: Page, title: string) {
+  await page
+    .locator('.planning-untimed')
+    .getByRole('button', { name: `${title}，查看详情`, exact: true })
+    .click();
+  return page.getByRole('dialog', { name: '安排详情' });
+}
+
 test('creates next week work, brings it forward, completes it and keeps home on today', async ({
   page,
 }) => {
@@ -21,7 +38,7 @@ test('creates next week work, brings it forward, completes it and keeps home on 
   await editor.getByRole('textbox', { name: '任务名称' }).fill('下周研究安排');
   await editor.getByRole('button', { name: '保存', exact: true }).click();
   await expect(editor).toHaveCount(0);
-  await page.locator('.planning-untimed > summary').click();
+  await openUntimedTask(page, '下周研究安排');
   let row = page.locator('.planning-task').filter({ hasText: '下周研究安排' });
   await expect(row).toBeVisible();
   await row.getByLabel('下周研究安排更多操作').click();
@@ -34,9 +51,13 @@ test('creates next week work, brings it forward, completes it and keeps home on 
     .locator('.planning-week')
     .getByRole('button', { name: /^2026-08-24，/ })
     .click();
-  await page.locator('.planning-untimed > summary').click();
+  await openUntimedTask(page, '下周研究安排');
   row = page.locator('.planning-task').filter({ hasText: '下周研究安排' });
   await row.getByRole('checkbox').click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: '关闭', exact: true })
+    .click();
   await page.locator('.planning-completed > summary').click();
   await expect(row.getByRole('checkbox')).toBeChecked();
   await openWorkspaceSection(page, '首页');
@@ -55,15 +76,14 @@ test('selects a month date, schedules waiting work and preserves task counts on 
   const month = page.getByRole('region', { name: '月份选日' });
   await month.getByRole('button', { name: /^2026-08-25，/ }).click();
   await expect(month).toHaveCount(0);
-  await page.locator('.planning-waiting > summary').click();
+  await openWaitingPool(page);
   const row = page
     .locator('.planning-waiting .planning-task')
     .filter({ hasText: '取快递' });
   await row.getByRole('button', { name: '安排到 8/25' }).click();
   await expect(row).toHaveCount(0);
-  await page.locator('.planning-untimed > summary').click();
   await expect(
-    page.locator('.planning-agenda .planning-task').filter({ hasText: '取快递' }),
+    page.locator('.planning-undated-task').filter({ hasText: '取快递' }),
   ).toBeVisible();
   expect(
     await page.evaluate(
@@ -77,10 +97,9 @@ test('selects a month date, schedules waiting work and preserves task counts on 
     ),
   ).toEqual([]);
   await page.screenshot({ path: info.outputPath('planning.png'), fullPage: true });
-  const scheduled = page
-    .locator('.planning-agenda .planning-task')
-    .filter({ hasText: '取快递' });
+  const scheduled = await openUntimedTask(page, '取快递');
   await scheduled.getByRole('checkbox').click();
+  await scheduled.getByRole('button', { name: '关闭', exact: true }).click();
   await page.getByRole('button', { name: '返回月历' }).click();
   await expect(
     page.getByRole('button', { name: /^2026-08-25，1 项任务/ }),
@@ -160,9 +179,7 @@ test('keeps month-first navigation, source month and keyboard focus', async ({
   await page.screenshot({ path: info.outputPath('month-sparse.png'), fullPage: true });
   await page.getByRole('button', { name: '上个月', exact: true }).click();
   await page.getByRole('button', { name: /^2026-08-01，/ }).click();
-  await expect(
-    page.getByRole('heading', { name: '当天安排', exact: true }),
-  ).toBeFocused();
+  await expect(page.getByRole('heading', { name: /年.*月日程/ })).toBeFocused();
   await page
     .getByRole('button', { name: '添加任务', exact: true })
     .first()
@@ -174,11 +191,11 @@ test('keeps month-first navigation, source month and keyboard focus', async ({
   await expect(page.getByRole('button', { name: /^2026-08-01，/ })).toBeFocused();
   await page.getByRole('button', { name: '今天', exact: true }).click();
   await expect(page.getByRole('heading', { name: '2026年8月' })).toBeVisible();
-  await page.getByRole('button', { name: /待安排/ }).click();
+  await page.locator('.planning-inbox').click();
   await expect(page.locator('.planning-waiting > summary')).toBeFocused();
   await expect(page.locator('.planning-waiting')).toHaveAttribute('open', '');
   await page.getByRole('button', { name: '返回月历' }).click();
-  await expect(page.getByRole('button', { name: /待安排/ })).toBeFocused();
+  await expect(page.locator('.planning-inbox')).toBeFocused();
 });
 
 test('keeps dense heat readable in light and dark and displays the exact day tasks', async ({
@@ -211,7 +228,10 @@ test('keeps dense heat readable in light and dark and displays the exact day tas
     await page.setViewportSize({ width: 390, height: 664 });
   }
   await page.getByRole('button', { name: /^2026-08-23，8 项任务/ }).click();
-  await expect(page.locator('.planning-day-heading')).toContainText('7 项待完成');
+  await expect(page.locator('.planning-week [aria-pressed="true"]')).toHaveAttribute(
+    'aria-label',
+    '2026-08-23，8 项任务',
+  );
   await page.screenshot({ path: info.outputPath('day-dense.png'), fullPage: true });
   if (info.project.name === 'planning-webkit') {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -256,9 +276,7 @@ test('keeps the calendar usable with enlarged text and a narrow or landscape vie
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
     ).toBe(true);
     await page.getByRole('button', { name: /^2026-08-30，3 项任务/ }).click();
-    await expect(
-      page.getByRole('heading', { name: '当天安排', exact: true }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: /年.*月日程/ })).toBeVisible();
     await page.getByRole('button', { name: '返回月历' }).click();
     await page.screenshot({
       path: info.outputPath('month-' + viewport.width + '.png'),
@@ -317,8 +335,8 @@ test('renders proportional time blocks and preserves detail, editing, completion
   const firstBox = await first.boundingBox();
   const secondBox = await second.boundingBox();
   expect(firstBox!.height / secondBox!.height).toBeCloseTo(1.5, 1);
-  expect(firstBox!.y).toBeLessThan(560);
-  await expect(page.locator('.planning-untimed')).not.toHaveAttribute('open');
+  expect(firstBox!.y).toBeLessThan(280);
+  await expect(page.locator('.planning-untimed .planning-undated-task')).toHaveCount(2);
   await expect(page.locator('[data-task-id="timeline-5"]')).toContainText('结束未定');
   await checkAccessible(page);
   await page.screenshot({
@@ -328,8 +346,10 @@ test('renders proportional time blocks and preserves detail, editing, completion
   await page.screenshot({ path: info.outputPath('timeline-first-screen.png') });
   await page.locator('[data-task-id="timeline-3"]').scrollIntoViewIfNeeded();
   const navigation = await page.locator('.planning-day-navigation').boundingBox();
-  expect(navigation!.y).toBeGreaterThanOrEqual(0);
-  expect(navigation!.y).toBeLessThan(5);
+  const surface = await page.locator('.planning-detail').boundingBox();
+  const stickyTop = page.viewportSize()!.width < 1024 ? surface!.y : 0;
+  expect(navigation!.y).toBeGreaterThanOrEqual(stickyTop);
+  expect(navigation!.y).toBeLessThan(stickyTop + 5);
   await page.screenshot({ path: info.outputPath('timeline-afternoon.png') });
   await first.click();
   let detail = page.getByRole('dialog', { name: '安排详情' });
@@ -349,9 +369,7 @@ test('renders proportional time blocks and preserves detail, editing, completion
   await detail.getByRole('checkbox').click();
   await detail.getByRole('button', { name: '关闭', exact: true }).click();
   await expect(first).toHaveCount(0);
-  await expect(
-    page.getByRole('heading', { name: '当天安排', exact: true }),
-  ).toBeFocused();
+  await expect(page.getByRole('heading', { name: /年.*月日程/ })).toBeFocused();
   await page.locator('.planning-completed > summary').click();
   await expect(page.locator('.planning-completed').getByRole('checkbox')).toBeChecked();
   await page.reload();
@@ -449,4 +467,88 @@ test('expands dense overlaps without hiding tasks and keeps empty days as a time
   await expect(page.locator('.planning-now')).toHaveCount(0);
   await page.getByRole('button', { name: '添加任务', exact: true }).click();
   await expect(page.getByRole('dialog', { name: '添加任务' })).toBeVisible();
+});
+
+test('keeps waiting tasks beside the calendar while assigning multiple dates and setting a day task time', async ({
+  page,
+}, info) => {
+  await fillTimeline(page);
+  if (info.project.name === 'planning-webkit')
+    await page.setViewportSize({ width: 390, height: 844 });
+  await openWaitingPool(page);
+  const pool = page.locator('.planning-waiting');
+  await expect(page.locator('.planning-untimed .planning-undated-task')).toHaveCount(2);
+  await expect(page.locator('.planning-time-event').first()).toHaveCSS(
+    'font-weight',
+    '400',
+  );
+  await checkAccessible(page);
+  await page.screenshot({ path: info.outputPath('planning-pool-first-screen.png') });
+  await page.locator('[data-task-id="timeline-2"]').scrollIntoViewIfNeeded();
+  await expect(page.getByRole('button', { name: '下一周', exact: true })).toBeVisible();
+  await page.screenshot({ path: info.outputPath('planning-pool-alongside.png') });
+  await page.getByRole('button', { name: '下一周', exact: true }).click();
+  await page
+    .locator('.planning-week')
+    .getByRole('button', { name: /^2026-08-24，/ })
+    .click();
+  await expect(pool).toHaveAttribute('open', '');
+  await expect(pool.getByLabel('安排目标日期')).toHaveValue('2026-08-24');
+  const waitingRows = pool.locator('.planning-task');
+  const before = await waitingRows.count();
+  const title = (await waitingRows
+    .first()
+    .locator('.planning-task-title > span')
+    .textContent())!;
+  await waitingRows.first().getByRole('button', { name: '安排到 8/24' }).click();
+  await expect(waitingRows).toHaveCount(before - 1);
+  await expect(pool.getByRole('status')).toContainText(
+    `已将“${title}”安排到 2026-08-24`,
+  );
+  await expect(
+    page.locator('.planning-undated-task').filter({ hasText: title }),
+  ).toBeVisible();
+  await pool.getByLabel('安排目标日期').fill('2026-09-02');
+  await expect(pool).toHaveAttribute('open', '');
+  await expect(page.locator('.planning-week [aria-pressed="true"]')).toHaveAttribute(
+    'aria-label',
+    /^2026-09-02，/,
+  );
+  await waitingRows.first().getByRole('button', { name: '安排到 9/2' }).click();
+  await expect(waitingRows).toHaveCount(before - 2);
+  await pool.getByLabel('安排目标日期').fill('2026-08-24');
+  await page.getByRole('button', { name: `为${title}设置时间`, exact: true }).click();
+  const editor = page.getByRole('dialog', { name: '编辑任务' });
+  await expect(editor.getByLabel('开始时间', { exact: true })).toBeFocused();
+  await editor.getByLabel('开始时间', { exact: true }).fill('09:30');
+  await editor.getByLabel('结束时间', { exact: true }).fill('10:15');
+  await editor.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(editor).toHaveCount(0);
+  await expect(
+    page.locator('.planning-undated-task').filter({ hasText: title }),
+  ).toHaveCount(0);
+  await expect(
+    page.locator('.planning-time-event').filter({ hasText: title }),
+  ).toBeVisible();
+  await expect(
+    page.locator('.planning-time-event').filter({ hasText: title }),
+  ).toBeFocused();
+  await expect(pool).toHaveAttribute('open', '');
+  const saved = await page.evaluate(
+    (taskTitle) =>
+      JSON.parse(localStorage.getItem('threadline.tasks.v1') ?? '[]').filter(
+        (task: { title: string }) => task.title === taskTitle,
+      ),
+    title,
+  );
+  expect(saved).toHaveLength(1);
+  await pool.getByLabel('安排目标日期').fill('2026-10-02');
+  await page.getByRole('button', { name: '返回月历' }).click();
+  await expect(page.getByRole('button', { name: /^2026-08-23，/ })).toBeFocused();
+  expect(saved[0]).toMatchObject({
+    date: '2026-08-24',
+    status: 'active',
+    plannedStartTime: '09:30',
+    plannedEndTime: '10:15',
+  });
 });

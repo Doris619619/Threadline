@@ -70,7 +70,10 @@ export function PlanningTaskRow({
         <button
           className="planning-schedule"
           disabled={disabled || targetDate < getLocalDateKey()}
-          onClick={onSchedule}
+          onClick={(event) => {
+            event.currentTarget.focus();
+            onSchedule();
+          }}
         >
           安排到 {Number(targetDate.slice(5, 7))}/{Number(targetDate.slice(8))}
         </button>
