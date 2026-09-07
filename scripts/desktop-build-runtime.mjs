@@ -332,7 +332,7 @@ export function inspectDefenderExclusions(relevantPaths) {
   }
 }
 
-/** 计算输出树的文件数、总大小与最新时间，作为 builder 是否仍有实质进展的第二信号。 */
+/** 计算输出树进展；builder 可在枚举后删除临时文件，仅忽略这种 ENOENT 竞态。 */
 export async function snapshotDirectoryTree(rootPath) {
   let files = 0;
   let bytes = 0;
@@ -349,7 +349,13 @@ export async function snapshotDirectoryTree(rootPath) {
       const child = resolve(currentPath, entry.name);
       if (entry.isDirectory()) await visit(child);
       else if (entry.isFile()) {
-        const details = await stat(child);
+        let details;
+        try {
+          details = await stat(child);
+        } catch (error) {
+          if (error?.code === 'ENOENT') continue;
+          throw error;
+        }
         files += 1;
         bytes += details.size;
         latestMtimeMs = Math.max(latestMtimeMs, details.mtimeMs);
