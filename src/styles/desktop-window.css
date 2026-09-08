@@ -33,7 +33,7 @@
 .tl-window.mode-compact {
   display: block;
   min-height: 100dvh;
-  background: #fffdf8;
+  background: var(--surface);
 }
 
 .mode-compact .tl-window-body {
@@ -76,7 +76,7 @@
   justify-content: space-between;
   padding: 0 22px 0 28px;
   color: var(--text-primary);
-  background: #fffdf8;
+  background: var(--surface);
   user-select: none;
   -webkit-app-region: drag;
 }
@@ -102,7 +102,7 @@
   width: 270px;
 }
 .compact-window-header.is-workstation .compact-window-actions button:nth-child(2) {
-  color: #df746d;
+  color: var(--daily-accent);
 }
 .compact-window-actions button {
   display: inline-flex;
@@ -136,7 +136,7 @@
 }
 .desktop-close-button:hover {
   color: var(--danger) !important;
-  background: #fff0f0 !important;
+  background: var(--accent-soft) !important;
 }
 .edge-tab {
   display: grid;
@@ -144,9 +144,9 @@
   height: 100vh;
   place-content: center;
   gap: 8px;
-  color: #5a4727;
-  background: #fffaf0;
-  border: 1px solid #eadab6;
+  color: var(--text-primary);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
   border-radius: 12px 0 0 12px;
   cursor: pointer;
   box-shadow: -3px 4px 18px rgb(75 54 12 / 16%);
@@ -158,7 +158,7 @@
   letter-spacing: 0.16em;
 }
 .edge-tab small {
-  color: #98712e;
+  color: var(--warning);
   font-size: var(--text-caption-size);
 }
 .tl-header {
@@ -180,8 +180,8 @@
   justify-content: center;
   padding: 0 9px;
   color: var(--accent);
-  background: #fff;
-  border: 1px solid #b9d3ff;
+  background: var(--surface);
+  border: 1px solid var(--accent-border);
   border-radius: 7px;
   font-size: var(--text-caption-size);
   font-weight: 600;

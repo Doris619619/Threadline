@@ -128,7 +128,6 @@ export function ProjectManagementPage({
       <header className="project-page-heading">
         <div>
           <h1>项目</h1>
-          <p>管理长期事项与 Daily 模板</p>
         </div>
         <ProjectCreateMenu onChoose={requestCreate} />
       </header>

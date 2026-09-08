@@ -28,6 +28,39 @@
   font-size: var(--text-secondary-size);
 }
 
+/* Trash also lives directly in Settings; it must not rely on the legacy History wrapper. */
+.trash-panel {
+  padding: var(--space-4);
+}
+.trash-panel > header {
+  margin-bottom: 12px;
+}
+.trash-panel > header p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+  line-height: 1.6;
+}
+.trash-row-copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.trash-row-copy b {
+  font-weight: 500;
+  line-height: 1.5;
+}
+.trash-empty {
+  min-height: 180px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 16px;
+}
+.trash-empty .theme-illustration {
+  width: 104px;
+  height: 104px;
+}
+
 .history-panel table {
   width: 100%;
   border-collapse: collapse;
@@ -48,12 +81,13 @@
 
 .trash-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  min-height: 42px;
+  min-height: 68px;
+  padding-block: 10px;
   border-top: 1px solid var(--border-subtle);
-  font-size: 0.8125rem;
+  font-size: var(--text-body-size);
 }
 
 .trash-row small {
@@ -66,10 +100,13 @@
   gap: 4px;
   border: 0;
   border-radius: 6px;
-  padding: 5px 8px;
-  color: var(--accent);
+  min-height: 44px;
+  padding: 8px 12px;
+  justify-self: end;
+  white-space: nowrap;
+  color: var(--accent-text);
   background: var(--accent-muted);
-  font-size: 0.75rem;
+  font-size: var(--text-secondary-size);
   cursor: pointer;
 }
 

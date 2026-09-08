@@ -3,6 +3,8 @@
  */
 
 import type { Metadata } from 'next';
+import { appearanceBootstrap } from '@/features/appearance/appearance-preferences';
+import { AppearanceRuntime } from '@/features/appearance/appearance-runtime';
 
 export const threadlineMetadata: Metadata = {
   title: 'Threadline · 我的工作台',
@@ -17,10 +19,20 @@ export const threadlineMetadata: Metadata = {
 /** 渲染两条 Next 构建链共用的根 HTML；调用方决定动态或静态渲染。 */
 export function ThreadlineDocument({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+  nonce,
+}: Readonly<{ children: React.ReactNode; nonce?: string }>) {
   return (
-    <html lang="zh-CN" data-theme="blue">
-      <body>{children}</body>
+    <html lang="zh-CN" data-theme="blue" data-font="default" suppressHydrationWarning>
+      <head>
+        <script
+          nonce={nonce}
+          dangerouslySetInnerHTML={{ __html: appearanceBootstrap }}
+        />
+      </head>
+      <body>
+        <AppearanceRuntime />
+        {children}
+      </body>
     </html>
   );
 }

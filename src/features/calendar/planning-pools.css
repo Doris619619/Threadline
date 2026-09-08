@@ -220,6 +220,11 @@
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
+.planning-pool-empty .theme-illustration {
+  width: 80px;
+  height: 80px;
+  margin: 12px auto;
+}
 .planning-pool-notice:empty {
   margin: 0;
 }

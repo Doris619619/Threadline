@@ -6,6 +6,8 @@ import {
   CalendarDays,
   ChartNoAxesCombined,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   FolderKanban,
   Home,
   Minus,
@@ -27,6 +29,7 @@ import { useOptionalCloudRuntime } from '@/features/auth/cloud-runtime-provider'
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import { addLocalDateDays, getLocalDateKey, parseLocalDateKey } from '@/lib/local-date';
 import { cn } from '@/lib/cn';
+import { ThemeIllustration } from '@/features/appearance/theme-illustration';
 
 const navigation = [
   { id: 'home', label: '首页', icon: Home, description: '安排、执行、记录今天' },
@@ -309,49 +312,57 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </aside>
         )}
         <main id="main-content" className="tl-main">
-          {!isCompact && !usesDedicatedProjectHeader && active !== 'calendar' && (
-            <header className="tl-header">
-              <div>
-                <h1>{activeItem.label === '首页' ? '我的工作台' : activeItem.label}</h1>
-                <p>{activeItem.description}</p>
-              </div>
-              <div className="tl-header-actions">
-                {active !== 'settings' && active !== 'rhythm' && (
-                  <div className="tl-date">
-                    <button aria-label="前一天" onClick={() => shiftDate(-1)}>
-                      ‹
-                    </button>
-                    <time dateTime={selectedDate}>
-                      {selectedDate}　{weekday}
-                    </time>
-                    <button aria-label="后一天" onClick={() => shiftDate(1)}>
-                      ›
-                    </button>
-                    <button
-                      aria-label="选择日期"
-                      onClick={() =>
-                        (
-                          document.getElementById(
-                            'workspace-date-picker',
-                          ) as HTMLInputElement | null
-                        )?.showPicker()
-                      }
-                    >
-                      <CalendarDays size={20} />
-                    </button>
-                    <input
-                      id="workspace-date-picker"
-                      aria-label="工作区日期"
-                      className="sr-only"
-                      type="date"
-                      value={selectedDate}
-                      onChange={(event) => setSelectedDate(event.target.value)}
-                    />
-                  </div>
+          {!isCompact &&
+            !usesDedicatedProjectHeader &&
+            active !== 'calendar' &&
+            active !== 'settings' && (
+              <header className="tl-header" data-home={active === 'home'}>
+                <div>
+                  <h1>
+                    {activeItem.label === '首页' ? '我的工作台' : activeItem.label}
+                  </h1>
+                  <p>{activeItem.description}</p>
+                </div>
+                {active === 'home' && (
+                  <ThemeIllustration className="home-theme-illustration" />
                 )}
-              </div>
-            </header>
-          )}
+                <div className="tl-header-actions">
+                  {active !== 'rhythm' && (
+                    <div className="tl-date">
+                      <div className="tl-date-select">
+                        <label
+                          className="tl-date-picker"
+                          htmlFor="workspace-date-picker"
+                        >
+                          <CalendarDays size={18} aria-hidden="true" />
+                          <time dateTime={selectedDate}>
+                            {selectedDate}　{weekday}
+                          </time>
+                        </label>
+                        <input
+                          id="workspace-date-picker"
+                          aria-label="工作区日期"
+                          className="tl-native-date-picker"
+                          type="date"
+                          value={selectedDate}
+                          onChange={(event) => {
+                            if (event.target.value) setSelectedDate(event.target.value);
+                          }}
+                        />
+                      </div>
+                      <div className="tl-date-step">
+                        <button aria-label="前一天" onClick={() => shiftDate(-1)}>
+                          <ChevronLeft size={18} aria-hidden="true" />
+                        </button>
+                        <button aria-label="后一天" onClick={() => shiftDate(1)}>
+                          <ChevronRight size={18} aria-hidden="true" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </header>
+            )}
           <WorkspaceViewContext.Provider
             value={{ active, selectedDate, setActive, setSelectedDate }}
           >

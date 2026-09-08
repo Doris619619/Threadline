@@ -13,6 +13,10 @@ export const dynamic = 'force-dynamic';
 export default async function WebRootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  await headers();
-  return <ThreadlineDocument>{children}</ThreadlineDocument>;
+  const requestHeaders = await headers();
+  return (
+    <ThreadlineDocument nonce={requestHeaders.get('x-nonce') ?? undefined}>
+      {children}
+    </ThreadlineDocument>
+  );
 }

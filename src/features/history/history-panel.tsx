@@ -2,6 +2,7 @@
 
 'use client';
 import { RotateCcw } from 'lucide-react';
+import { ThemeIllustration } from '@/features/appearance/theme-illustration';
 import { Surface } from '@/components/ui/surface';
 import { getLocalDateKey, getLocalDateKeyFromTimestamp } from '@/lib/local-date';
 import type { DailyHistoryEntry } from '@/features/daily/daily-panel';
@@ -20,6 +21,7 @@ const eventLabel: Record<string, string> = {
   close_abandoned: '收尾：放弃',
 };
 
+/** Render legacy history sections, reusing the standalone trash list without changing recovery semantics. */
 export function HistoryPanel({
   tasks,
   history,
@@ -33,7 +35,6 @@ export function HistoryPanel({
   dailyHistory: DailyHistoryEntry[];
   onUpdate: (task: Task) => void;
 }) {
-  const trashed = tasks.filter((task) => task.status === 'trashed');
   return (
     <div className="history-panel">
       <Surface>
@@ -109,35 +110,7 @@ export function HistoryPanel({
           </table>
         )}
       </Surface>
-      <Surface className="trash-panel">
-        <header>
-          <h2>回收站</h2>
-          <p>删除的数据保留 30 天，恢复后回到今天的待办。</p>
-        </header>
-        {trashed.length === 0 ? (
-          <p className="empty-copy">回收站为空。</p>
-        ) : (
-          trashed.map((task) => (
-            <div className="trash-row" key={task.id}>
-              <b>{task.title}</b>
-              <small>删除后 30 天内可恢复</small>
-              <button
-                onClick={() =>
-                  onUpdate({
-                    ...task,
-                    status: 'active',
-                    date: getLocalDateKey(),
-                    deletedAt: undefined,
-                  })
-                }
-              >
-                <RotateCcw size={15} />
-                恢复
-              </button>
-            </div>
-          ))
-        )}
-      </Surface>
+      <TrashPanel tasks={tasks} onUpdate={onUpdate} showHeading />
     </div>
   );
 }
@@ -146,25 +119,32 @@ export function HistoryPanel({
 export function TrashPanel({
   tasks,
   onUpdate,
+  showHeading = false,
 }: {
   tasks: Task[];
+  showHeading?: boolean;
   onUpdate: (task: Task) => void;
 }) {
   const trashed = tasks.filter((task) => task.status === 'trashed');
   return (
     <Surface className="trash-panel">
       <header>
-        <h2>回收站</h2>
+        {showHeading && <h2>回收站</h2>}
         <p>删除的数据保留 30 天，恢复后回到今天的待办。</p>
       </header>
       {trashed.length === 0 ? (
-        <p className="empty-copy">回收站为空。</p>
+        <div className="trash-empty">
+          <ThemeIllustration />
+          <p className="empty-copy">回收站为空。</p>
+        </div>
       ) : (
         trashed.map((task) => (
           <div className="trash-row" key={task.id}>
-            <b>{task.title}</b>
-            <small>删除后 30 天内可恢复</small>
+            <div className="trash-row-copy">
+              <b>{task.title}</b>
+            </div>
             <button
+              aria-label={`恢复 ${task.title}`}
               type="button"
               onClick={() =>
                 onUpdate({
