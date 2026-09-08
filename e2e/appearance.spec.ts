@@ -6,6 +6,32 @@ import {
   openWorkspaceSection,
 } from './support/workspace';
 
+test('opens the entire workspace date entry by pointer and keyboard and still changes days', async ({
+  page,
+}) => {
+  await bootstrapLocalAdapterWorkspace(page, 'appearance-date-entry');
+  const input = page.getByLabel('工作区日期', { exact: true });
+  // Native browser popups are outside the DOM: observe their invocation, then verify real date changes.
+  await input.evaluate((element: HTMLInputElement) => {
+    element.dataset.opens = '0';
+    element.showPicker = () => {
+      element.dataset.opens = String(Number(element.dataset.opens) + 1);
+    };
+  });
+  await input.click({ position: { x: 8, y: 15 } });
+  await expect(input).toHaveAttribute('data-opens', '1');
+  await input.click({ position: { x: 65, y: 15 } });
+  await expect(input).toHaveAttribute('data-opens', '2');
+  await input.press('Enter');
+  await input.press('Space');
+  await expect(input).toHaveAttribute('data-opens', '4');
+  await input.fill('2026-08-25');
+  await expect(page.locator('.tl-date time')).toContainText('2026-08-25');
+  await page.getByRole('button', { name: '后一天', exact: true }).click();
+  await expect(input).toHaveValue('2026-08-26');
+  await expect(input).toHaveAttribute('data-opens', '4');
+});
+
 test('keeps independent theme/font choices, renders real fonts and follows system appearance', async ({
   page,
   context,

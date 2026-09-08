@@ -29,6 +29,10 @@
 - 允许 Service Worker 的独立 Chrome profile：字体网络请求成功后确认字体/插画实际写入 Cache Storage，断网刷新后安妮雅主题和思源黑体仍成功显示。不同于常规 E2E 的禁用 Service Worker 模式。
 - 静态导出会替换 Next 的中间产物，因此 Electron 构建与 Web 运行验收顺序执行；中途被构建替换影响的测试轮次已作废并重建重跑。
 
+## 合并前审计补充
+
+审计发现桌面日期文字区域只聚焦透明输入框、未显式打开原生日历。新增回归在原提交上失败（打开次数为 0），补齐整块点击与 Enter/空格调用后，桌面、手机和 WebKit 的 18 项外观回归全部通过；另在真实 Chrome 原生 API 上确认成功打开。lint、TypeScript、Web production build 与 nonce CSP 检查通过。API 不可用或受限制时保留原生输入行为。README 的使用路径不变。
+
 ## 尚需真机验收
 
 WebKit 设备模拟不等同于 iPhone 真机 PWA。iOS 系统 Dynamic Type、原生日期弹层、安全区、主屏幕启动及系统清理离线缓存仍需要真实设备验收。Windows 已验证开发 Electron 壳和静态 Renderer 构建，本次没有生成/安装新的正式安装包。未部署生产、合并分支或变更数据库。

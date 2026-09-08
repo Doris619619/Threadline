@@ -31,6 +31,17 @@ import { addLocalDateDays, getLocalDateKey, parseLocalDateKey } from '@/lib/loca
 import { cn } from '@/lib/cn';
 import { ThemeIllustration } from '@/features/appearance/theme-illustration';
 
+/** Open the native date popup for the full visible control; unsupported/restricted browsers keep their native input behavior. */
+function openWorkspaceDatePicker(input: HTMLInputElement): boolean {
+  if (typeof input.showPicker !== 'function') return false;
+  try {
+    input.showPicker();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const navigation = [
   { id: 'home', label: '首页', icon: Home, description: '安排、执行、记录今天' },
   {
@@ -345,6 +356,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           className="tl-native-date-picker"
                           type="date"
                           value={selectedDate}
+                          onClick={(event) => {
+                            if (openWorkspaceDatePicker(event.currentTarget))
+                              event.preventDefault();
+                          }}
+                          onKeyDown={(event) => {
+                            if (
+                              (event.key === 'Enter' || event.key === ' ') &&
+                              openWorkspaceDatePicker(event.currentTarget)
+                            )
+                              event.preventDefault();
+                          }}
                           onChange={(event) => {
                             if (event.target.value) setSelectedDate(event.target.value);
                           }}
