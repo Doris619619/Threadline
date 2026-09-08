@@ -32,10 +32,11 @@ test('opens the entire workspace date entry by pointer and keyboard and still ch
   await expect(input).toHaveAttribute('data-opens', '4');
 });
 
-test('keeps independent theme/font choices, renders real fonts and follows system appearance', async ({
+test('keeps independent theme/font choices and renders real fonts after reload', async ({
   page,
-  context,
 }) => {
+  // First decoding two large CJK variable fonts can exceed the default budget on Linux WebKit.
+  test.setTimeout(60_000);
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await bootstrapLocalAdapterWorkspace(page, 'appearance-choice');
@@ -69,6 +70,19 @@ test('keeps independent theme/font choices, renders real fonts and follows syste
   await expect(root).toHaveAttribute('data-theme', 'anya');
   await expect(root).toHaveAttribute('data-font', 'source-han-sans');
   await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('follows system appearance and synchronizes preferences between tabs', async ({
+  page,
+  context,
+}) => {
+  await bootstrapLocalAdapterWorkspace(page, 'appearance-system-sync');
+  await openWorkspaceSection(page, '设置');
+  await page.getByRole('button', { name: '外观', exact: true }).click();
+  await page.getByRole('button', { name: /安妮雅/ }).click();
+  const root = page.locator('html');
+  await expect(root).toHaveAttribute('data-theme', 'anya');
   await page.emulateMedia({ colorScheme: 'dark' });
   await expect
     .poll(() =>
@@ -98,7 +112,6 @@ test('keeps independent theme/font choices, renders real fonts and follows syste
   await other.evaluate(() => localStorage.removeItem('threadline.appearance.v1'));
   await expect(root).toHaveAttribute('data-font', 'default');
   await other.close();
-  expect(errors).toEqual([]);
 });
 
 test('keeps a single planning pool and aligns project arrows and trash actions', async ({

@@ -706,7 +706,7 @@ test('deletes a task and restores it from trash', async ({ page }) => {
   await expect(
     page.locator('.trash-panel').getByText('取快递', { exact: true }),
   ).toBeVisible();
-  await page.getByRole('button', { name: '恢复', exact: true }).click();
+  await page.getByRole('button', { name: '恢复 取快递', exact: true }).click();
   await expect(page.getByText('回收站为空。')).toBeVisible();
   await openWorkspaceSection(page, '首页');
   await expect(
