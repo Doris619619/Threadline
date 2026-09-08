@@ -2,6 +2,7 @@
 
 import './globals.css';
 import '../styles/tokens.css';
+import '../features/appearance/appearance.css';
 import '../styles/base.css';
 import '../components/ui/ui.css';
 import '../styles/desktop-window.css';

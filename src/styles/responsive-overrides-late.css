@@ -8,23 +8,23 @@
    * 该选择器放在最后加载的响应式样式中，并以 html 主题和 type 属性提高
    * 优先级，确保业务中的紧凑控件不能回落到桌面端的小字号。
    */
-  html[data-theme='blue'] body input:not([type]),
-  html[data-theme='blue'] body input[type='date'],
-  html[data-theme='blue'] body input[type='datetime-local'],
-  html[data-theme='blue'] body input[type='email'],
-  html[data-theme='blue'] body input[type='month'],
-  html[data-theme='blue'] body input[type='number'],
-  html[data-theme='blue'] body input[type='password'],
-  html[data-theme='blue'] body input[type='search'],
-  html[data-theme='blue'] body input[type='tel'],
-  html[data-theme='blue'] body input[type='text'],
-  html[data-theme='blue'] body input[type='time'],
-  html[data-theme='blue'] body input[type='url'],
-  html[data-theme='blue'] body input[type='week'],
-  html[data-theme='blue'] body select,
-  html[data-theme='blue'] body textarea,
-  html[data-theme='blue'] body [contenteditable=''],
-  html[data-theme='blue'] body [contenteditable='true'] {
+  html[data-theme] body input:not([type]),
+  html[data-theme] body input[type='date'],
+  html[data-theme] body input[type='datetime-local'],
+  html[data-theme] body input[type='email'],
+  html[data-theme] body input[type='month'],
+  html[data-theme] body input[type='number'],
+  html[data-theme] body input[type='password'],
+  html[data-theme] body input[type='search'],
+  html[data-theme] body input[type='tel'],
+  html[data-theme] body input[type='text'],
+  html[data-theme] body input[type='time'],
+  html[data-theme] body input[type='url'],
+  html[data-theme] body input[type='week'],
+  html[data-theme] body select,
+  html[data-theme] body textarea,
+  html[data-theme] body [contenteditable=''],
+  html[data-theme] body [contenteditable='true'] {
     font-size: var(--mobile-form-control-font-size);
   }
 }

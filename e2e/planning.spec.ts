@@ -191,11 +191,19 @@ test('keeps month-first navigation, source month and keyboard focus', async ({
   await expect(page.getByRole('button', { name: /^2026-08-01，/ })).toBeFocused();
   await page.getByRole('button', { name: '今天', exact: true }).click();
   await expect(page.getByRole('heading', { name: '2026年8月' })).toBeVisible();
-  await page.locator('.planning-inbox').click();
+  await expect(page.locator('.planning-inbox')).toHaveCount(0);
+  const pool = page.locator('.planning-waiting');
+  // The sole pool remains in the month view; use keyboard activation in both default-open and closed layouts.
+  if (await pool.evaluate((element) => (element as HTMLDetailsElement).open))
+    await pool.locator('summary').click();
+  await pool.locator('summary').focus();
+  await page.keyboard.press('Enter');
   await expect(page.locator('.planning-waiting > summary')).toBeFocused();
   await expect(page.locator('.planning-waiting')).toHaveAttribute('open', '');
-  await page.getByRole('button', { name: '返回月历' }).click();
-  await expect(page.locator('.planning-inbox')).toBeFocused();
+  await expect(page.getByRole('region', { name: '月份选日' })).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(pool).not.toHaveAttribute('open', '');
+  await expect(pool.locator('summary')).toBeFocused();
 });
 
 test('keeps dense heat readable in light and dark and displays the exact day tasks', async ({

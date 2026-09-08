@@ -2,6 +2,7 @@
 import { useSyncExternalStore, type ReactNode, type RefObject } from 'react';
 import { ChevronDown, Inbox } from 'lucide-react';
 import { getLocalDateKey } from '@/lib/local-date';
+import { ThemeIllustration } from '@/features/appearance/theme-illustration';
 import type { Task } from '@/types/domain';
 
 /** 订阅桌面断点，仅用于未操作过的任务池默认展开状态。 */
@@ -76,7 +77,10 @@ export function PlanningWaitingPool({
           </label>
           <div className="planning-pool-list">
             {tasks.length === 0 && (
-              <p className="planning-pool-empty">暂时没有待安排任务。</p>
+              <div className="planning-pool-empty">
+                <ThemeIllustration />
+                <p>暂时没有待安排任务。</p>
+              </div>
             )}
             {(['important', 'normal'] as const).map((importance) => {
               const items = tasks.filter((task) => task.importance === importance);

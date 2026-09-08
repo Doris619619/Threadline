@@ -7,15 +7,15 @@
   min-height: 0;
   padding: 26px 24px 14px;
   overflow: auto;
-  background: #fffdf8;
+  background: var(--background);
 }
 .compact-section {
   margin-bottom: 16px;
   padding: 16px 14px;
-  background: #fff;
-  border: 1px solid #f0ece4;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
   border-radius: 18px;
-  box-shadow: 0 3px 14px rgb(93 70 27 / 6%);
+  box-shadow: var(--shadow-card);
 }
 .compact-section > header {
   display: flex;
@@ -62,7 +62,7 @@
   align-items: center;
   gap: 9px;
   min-height: 56px;
-  border-top: 1px solid #f1eee9;
+  border-top: 1px solid var(--border-subtle);
 }
 .mini-task-row {
   grid-template-columns: 104px 20px minmax(0, 1fr) 26px;
@@ -110,7 +110,7 @@
   place-items: center;
   color: var(--text-tertiary);
   background: transparent;
-  border: 1px solid #edf0f4;
+  border: 1px solid var(--border-subtle);
   border-radius: 50%;
   cursor: pointer;
 }
@@ -148,7 +148,7 @@
   display: grid;
   gap: 6px;
   padding: 8px 0;
-  border-top: 1px solid #f1eee9;
+  border-top: 1px solid var(--border-subtle);
 }
 .compact-add-row input,
 .compact-add-row select {
@@ -156,7 +156,7 @@
   height: 28px;
   padding: 0 5px;
   color: var(--text-primary);
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--accent);
   border-radius: 5px;
   font: inherit;
@@ -230,10 +230,10 @@
 .workstation-panel ol {
   min-height: 0;
   overflow: auto;
-  background: #fff;
-  border: 1px solid #f0ece4;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
   border-radius: 18px;
-  box-shadow: 0 3px 14px rgb(93 70 27 / 6%);
+  box-shadow: var(--shadow-card);
 }
 .workstation-row {
   display: grid;
@@ -242,7 +242,7 @@
   gap: 9px;
   min-height: 77px;
   padding: 0 16px;
-  border-bottom: 1px solid #f1eee9;
+  border-bottom: 1px solid var(--border-subtle);
   cursor: grab;
 }
 .workstation-row:last-child {
@@ -275,7 +275,7 @@
 }
 .workstation-remove:hover {
   color: var(--danger);
-  background: #fff0f0;
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface));
 }
 .workstation-panel .compact-full-link {
   margin-top: auto;

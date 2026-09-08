@@ -29,7 +29,6 @@ export function CalendarPanel() {
   const [view, setView] = useState<'month' | 'day'>('month');
   const panelRef = useRef<HTMLDivElement>(null);
   const returnDate = useRef<string | undefined>(undefined);
-  const returnToInbox = useRef(false);
   const previousView = useRef(view);
   const [waitingOpen, setWaitingOpen] = useState<boolean>();
   const [notice, setNotice] = useState<string>();
@@ -64,12 +63,10 @@ export function CalendarPanel() {
     if (previousView.current === view) return;
     previousView.current = view;
     if (view === 'day') {
-      const target = returnToInbox.current ? '.planning-waiting > summary' : 'h1';
+      const target = 'h1';
       panelRef.current?.querySelector<HTMLElement>(target)?.focus();
     } else {
-      const selector = returnToInbox.current
-        ? '.planning-inbox'
-        : `[data-date="${returnDate.current}"]`;
+      const selector = `[data-date="${returnDate.current}"]`;
       panelRef.current?.querySelector<HTMLElement>(selector)?.focus();
     }
   }, [view]);
@@ -86,7 +83,6 @@ export function CalendarPanel() {
   /** 点击日期进入独立日详情，记住来源月份内的格子供返回定位。 */
   const openDay = (next: string) => {
     returnDate.current = next;
-    returnToInbox.current = false;
     setDate(next);
     setNotice(undefined);
     setView('day');
@@ -119,11 +115,6 @@ export function CalendarPanel() {
       setEditor(undefined);
     }
     return message;
-  };
-  /** 从空态进入同一待安排池，避免创建重复任务入口。 */
-  const showWaiting = () => {
-    setWaitingOpen(true);
-    waitingRef.current?.querySelector('summary')?.focus();
   };
   /** 记住实际点击的时间块；密集组展开后的每一项仍绑定原任务。 */
   const showSelection = (items: Task[]) => {
@@ -208,15 +199,8 @@ export function CalendarPanel() {
             date={date}
             month={month}
             days={days}
-            waitingCount={waiting.length}
             onMonth={setMonth}
             onSelect={openDay}
-            onWaiting={() => {
-              returnToInbox.current = true;
-              setDate(today);
-              showWaiting();
-              setView('day');
-            }}
           />
         ) : (
           <div className="planning-detail">

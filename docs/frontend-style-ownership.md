@@ -41,8 +41,12 @@ Insights 使用 `insights.css`（主页面及手机响应式规则）、`insight
 
 `e2e/ui-accessibility.spec.ts` 在 local test adapter 中扫描 Workspace、Calendar、Projects、Settings 与任务编辑 Dialog 的 axe critical/serious 结果。现有产品债务按 surface、rule id 和节点数写入 `knownBlockingAxeBaseline`：新增 rule、节点数增加、或修复后未同步下调 baseline 都会失败。不得通过 `disableRules` 关闭这些规则；修复产品样式或 Calendar ARIA 结构时，应先让测试展示实际结果，再下调相应 baseline。
 
-当前基线来自本次 local adapter 审计：Workspace 为 `color-contrast: 2`；Calendar 为 `aria-required-children: 1`、`aria-required-parent: 42`、`color-contrast: 15`；Projects 为 `color-contrast: 16`；Settings 为 `color-contrast: 2`；任务编辑 Dialog 为 `color-contrast: 3`。这些是现有产品样式和 Calendar ARIA 结构债务；本次“测试覆盖加固”明确不改产品 UI/语义，因此只把它们转换成可见、可收紧的回归合同。
+当前代码中的 Workspace、Calendar、Projects、Settings 与任务编辑 Dialog 基线均已收紧为 `{}`：不允许 critical/serious 违规。外观回归额外检查安妮雅主题的明暗选择器及四级月历热力，不通过关闭规则或恢复旧债务数值放行。
 
 ## 当前独立维护项
 
 - History、Review、Stats 的代码和样式只维持可构建性，不删除、不重新接入。
+
+## 外观设置（2026-09-08）
+
+共用尺寸 token 位于根选择器，颜色由 blue/anya 主题提供。features/appearance/appearance.css 紧随 tokens 加载，拥有字体声明、安妮雅 token 与外观选择界面；壳层插画布局仍由 app-shell.css 管理。回收站样式由 history.css 自包含，不再依赖 history-panel 容器；Settings 的概览和详情各自管理唯一 h1。详见 [外观说明](appearance.md)。

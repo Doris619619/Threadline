@@ -103,8 +103,8 @@ test.describe('compact viewport layout matrix', () => {
     }
     for (const circle of await daily.locator('.daily-check').all()) {
       const box = (await circle.boundingBox())!;
-      expect(box.width).toBeGreaterThanOrEqual(44);
-      expect(box.height).toBeGreaterThanOrEqual(44);
+      expect(box.width).toBeGreaterThanOrEqual(44 - 0.001);
+      expect(box.height).toBeGreaterThanOrEqual(44 - 0.001);
     }
     for (const input of await daily.locator('input[type=number], textarea').all()) {
       await expectElementWithinHorizontalViewport(page, input, 'Daily 输入');
@@ -216,8 +216,8 @@ test.describe('compact viewport layout matrix', () => {
 
     if (isMobileLayoutProject(testInfo.project.name)) {
       const triggerBox = (await newTrigger.boundingBox())!;
-      expect(triggerBox.height).toBeGreaterThanOrEqual(44);
-      expect(triggerBox.width).toBeGreaterThanOrEqual(44);
+      expect(triggerBox.height).toBeGreaterThanOrEqual(44 - 0.001);
+      expect(triggerBox.width).toBeGreaterThanOrEqual(44 - 0.001);
     }
 
     await openProjectCreateDialog(page, '新建项目');
@@ -281,12 +281,13 @@ test.describe('compact viewport layout matrix', () => {
     await expectElementsNotToOverlap(plannedDisplay, confirmBtn, '预计时长与保存按钮');
 
     // 断言真实可点击元素满足 iOS 44×44pt 触控目标，而不是只检查内部视觉按钮。
+    // Chromium page scaling can report 44px as 43.999969px; allow only this subpixel rounding error.
     const cancelBox = (await cancelBtn.boundingBox())!;
     const confirmBox = (await confirmBtn.boundingBox())!;
-    expect(cancelBox.height).toBeGreaterThanOrEqual(44);
-    expect(cancelBox.width).toBeGreaterThanOrEqual(44);
-    expect(confirmBox.height).toBeGreaterThanOrEqual(44);
-    expect(confirmBox.width).toBeGreaterThanOrEqual(44);
+    expect(cancelBox.height).toBeGreaterThanOrEqual(44 - 0.001);
+    expect(cancelBox.width).toBeGreaterThanOrEqual(44 - 0.001);
+    expect(confirmBox.height).toBeGreaterThanOrEqual(44 - 0.001);
+    expect(confirmBox.width).toBeGreaterThanOrEqual(44 - 0.001);
 
     for (const [control, label] of [
       [projectSelect, '今日日程项目选择'],
@@ -299,7 +300,7 @@ test.describe('compact viewport layout matrix', () => {
       expect(
         (await control.boundingBox())?.height,
         `${label}触控高度`,
-      ).toBeGreaterThanOrEqual(44);
+      ).toBeGreaterThanOrEqual(44 - 0.001);
     }
 
     // 验证预计是独立可编辑分钟；修改起止时间不自动填写它。
@@ -335,10 +336,10 @@ test.describe('compact viewport layout matrix', () => {
 
     const quickConfirmBox = (await quickConfirm.boundingBox())!;
     const quickCancelBox = (await quickCancel.boundingBox())!;
-    expect(quickConfirmBox.height).toBeGreaterThanOrEqual(44);
-    expect(quickConfirmBox.width).toBeGreaterThanOrEqual(44);
-    expect(quickCancelBox.height).toBeGreaterThanOrEqual(44);
-    expect(quickCancelBox.width).toBeGreaterThanOrEqual(44);
+    expect(quickConfirmBox.height).toBeGreaterThanOrEqual(44 - 0.001);
+    expect(quickConfirmBox.width).toBeGreaterThanOrEqual(44 - 0.001);
+    expect(quickCancelBox.height).toBeGreaterThanOrEqual(44 - 0.001);
+    expect(quickCancelBox.width).toBeGreaterThanOrEqual(44 - 0.001);
 
     for (const [control, label] of [
       [quickProject.locator('.project-inline-select'), '无时间待办项目选择'],
@@ -347,7 +348,7 @@ test.describe('compact viewport layout matrix', () => {
       expect(
         (await control.boundingBox())?.height,
         `${label}触控高度`,
-      ).toBeGreaterThanOrEqual(44);
+      ).toBeGreaterThanOrEqual(44 - 0.001);
     }
 
     // 3. 测试移动端已创建任务行紧凑卡片、操作收敛、44x44 触控区与完全无工作站操作
@@ -370,14 +371,14 @@ test.describe('compact viewport layout matrix', () => {
     }
 
     const checkWrapBox = (await checkWrap.boundingBox())!;
-    expect(checkWrapBox.width).toBeGreaterThanOrEqual(44);
-    expect(checkWrapBox.height).toBeGreaterThanOrEqual(44);
+    expect(checkWrapBox.width).toBeGreaterThanOrEqual(44 - 0.001);
+    expect(checkWrapBox.height).toBeGreaterThanOrEqual(44 - 0.001);
 
     const moreBtn = seededTimelineRow.getByLabel('邮件处理更多操作');
     await expect(moreBtn).toBeVisible();
     const moreBtnBox = (await moreBtn.boundingBox())!;
-    expect(moreBtnBox.width).toBeGreaterThanOrEqual(44);
-    expect(moreBtnBox.height).toBeGreaterThanOrEqual(44);
+    expect(moreBtnBox.width).toBeGreaterThanOrEqual(44 - 0.001);
+    expect(moreBtnBox.height).toBeGreaterThanOrEqual(44 - 0.001);
 
     await moreBtn.click();
     const moreMenu = seededTimelineRow.locator('.task-actions > div');

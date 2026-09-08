@@ -1,6 +1,6 @@
 /** Service Worker：缓存精确的应用壳与 Next 静态资源，绝不以 HTML 响应脚本或样式请求。 */
 
-const CACHE = 'threadline-shell-v3';
+const CACHE = 'threadline-shell-v4';
 const SHELL = [
   '/',
   '/manifest.webmanifest',
@@ -10,6 +10,7 @@ const SHELL = [
   '/icon-maskable.png',
   '/auth/welcome-illustration.jpg',
   '/auth/login-illustration.jpg',
+  '/themes/anya/notebook.webp',
 ];
 const PRECACHE_MANIFEST = '/sw-precache.json';
 
@@ -62,6 +63,18 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+/** Clone before returning the live response and keep the worker alive until its cache write finishes. */
+function cacheResponse(event, response) {
+  if (!response.ok) return;
+  const copy = response.clone();
+  event.waitUntil(
+    caches
+      .open(CACHE)
+      .then((cache) => cache.put(event.request, copy))
+      .catch(() => undefined),
+  );
+}
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
@@ -75,10 +88,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          if (response.ok)
-            void caches
-              .open(CACHE)
-              .then((cache) => cache.put(event.request, response.clone()));
+          cacheResponse(event, response);
           return response;
         })
         .catch(async () => (await caches.match(event.request)) ?? caches.match('/')),
@@ -92,10 +102,7 @@ self.addEventListener('fetch', (event) => {
         (cached) =>
           cached ??
           fetch(event.request).then((response) => {
-            if (response.ok)
-              void caches
-                .open(CACHE)
-                .then((cache) => cache.put(event.request, response.clone()));
+            cacheResponse(event, response);
             return response;
           }),
       ),
@@ -106,10 +113,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        if (event.request.url.startsWith(self.location.origin) && response.ok) {
-          const copy = response.clone();
-          void caches.open(CACHE).then((cache) => cache.put(event.request, copy));
-        }
+        cacheResponse(event, response);
         return response;
       })
       .catch(() => caches.match(event.request)),

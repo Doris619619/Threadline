@@ -1,13 +1,5 @@
-/** @fileoverview 规划月历与日详情的响应式排版，使用独立雾蓝色阶与共享主题表面。 */
+/** @fileoverview 规划月历与日详情的响应式排版，颜色由全局主题提供。 */
 .planning-panel {
-  --planning-heat-1: #edf3fa;
-  --planning-heat-2: #dfebf7;
-  --planning-heat-3: #c8dcf0;
-  --planning-heat-4: #a7c5e5;
-  --planning-ink: #203b59;
-  --planning-count-ink: #354e68;
-  --planning-accent: #426fa6;
-  --planning-on-accent: #ffffff;
   max-width: 1080px;
   margin-inline: auto;
   color: var(--text-primary);
@@ -208,24 +200,7 @@
   padding-top: 8px;
   margin-top: 16px;
 }
-.planning-panel .planning-inbox {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 0 8px 12px;
-  font-size: 15px;
-}
-.planning-inbox > svg:first-child {
-  color: var(--accent-text);
-}
-.planning-inbox-count {
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-.planning-inbox > svg:last-child {
-  color: var(--text-secondary);
-  margin-left: 10px;
-}
+
 .planning-panel[data-view='day'] {
   max-width: 900px;
 }
@@ -487,14 +462,7 @@
   .planning-legend {
     margin: 8px 0;
   }
-  .planning-panel .planning-inbox {
-    width: 100%;
-    padding: 8px;
-    border-top: 1px solid var(--border-subtle);
-  }
-  .planning-inbox-count {
-    margin-left: auto;
-  }
+
   .planning-detail {
     padding: 12px 8px 4px;
   }
@@ -536,18 +504,5 @@
   }
   .planning-month-heading {
     padding-inline: 6px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  .planning-panel {
-    --planning-heat-1: #232f40;
-    --planning-heat-2: #2a3d55;
-    --planning-heat-3: #314e70;
-    --planning-heat-4: #3b638e;
-    --planning-ink: #f0f6ff;
-    --planning-count-ink: #d4e5f7;
-    --planning-accent: #a8cef8;
-    --planning-on-accent: #1b2530;
   }
 }

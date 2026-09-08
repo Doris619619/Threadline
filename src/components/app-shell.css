@@ -223,6 +223,8 @@
 }
 
 .tl-header {
+  position: relative;
+  container-type: inline-size;
   display: flex;
   min-height: 48px;
   align-items: center;
@@ -254,10 +256,64 @@
 }
 
 .tl-date {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
   color: var(--text-primary);
+}
+
+/* Keep the visible date and its native picker aligned, including on iOS Safari. */
+.tl-date-select {
+  position: relative;
+  min-width: 0;
+}
+.tl-date-picker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  pointer-events: none;
+}
+.tl-date-step {
+  flex-shrink: 0;
+  display: flex;
+  gap: 4px;
+  margin-left: 12px;
+}
+.tl-native-date-picker {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  min-width: 0;
+}
+.tl-date:has(.tl-native-date-picker:focus-visible) .tl-date-picker {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
+}
+.home-theme-illustration {
+  width: 68px;
+  height: 68px;
+  margin-left: auto;
+  align-self: end;
+}
+html[data-theme='anya'] .tl-header[data-home='true'] {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+html[data-theme='anya'] .tl-sidebar-item.is-active {
+  box-shadow: inset 3px 0 var(--theme-gold);
+}
+html[data-theme='anya'] .mode-full .tl-main {
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--accent-soft) 45%, var(--background)),
+    var(--background) 320px
+  );
 }
 
 .tl-date button {
@@ -383,7 +439,8 @@
 
   .tl-header {
     align-items: flex-start;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: var(--space-2);
     padding: 4px 0 12px;
   }
@@ -394,12 +451,34 @@
   }
 
   .tl-header h1 {
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   /* 窄屏日期工具栏换行，标题不再因 flex 收缩与日期重叠。 */
   .tl-header-actions {
-    margin-left: auto;
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .tl-date {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .tl-date-step {
+    margin-left: 4px;
+  }
+  .home-theme-illustration {
+    width: 80px;
+    height: 80px;
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: -12px;
+    margin-bottom: -12px;
+  }
+  .tl-native-date-picker {
+    width: 100%;
   }
 
   .tl-header p {
@@ -414,5 +493,17 @@
   .tl-date time {
     padding: 0 2px;
     font-size: var(--text-secondary-size);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Relative to text size: decoration yields space when the user enlarges text, even on a narrow phone. */
+@container (max-width: 17rem) {
+  .tl-header > div:first-child {
+    grid-column: 1 / -1;
+  }
+  html[data-theme='anya'] .home-theme-illustration {
+    display: none;
   }
 }

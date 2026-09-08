@@ -1,0 +1,366 @@
+/** @fileoverview Local font faces, Anya's cherry-pink/cream palette, and the device appearance chooser. */
+
+@font-face {
+  font-family: 'Threadline Source Han Sans';
+  src: url('/fonts/SourceHanSansSC.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 250 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Threadline Source Han Serif';
+  src: url('/fonts/SourceHanSerifSC.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+}
+:root {
+  --font-default:
+    -apple-system, BlinkMacSystemFont, system-ui, 'PingFang SC', 'Segoe UI Variable',
+    'Segoe UI', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  --font-sans: var(--font-default);
+  --theme-decoration: none;
+}
+html[data-font='source-han-sans'] {
+  --font-sans: 'Threadline Source Han Sans', var(--font-default);
+}
+html[data-font='source-han-serif'] {
+  --font-sans: 'Threadline Source Han Serif', var(--font-default);
+}
+
+html[data-theme='anya'] {
+  color-scheme: light;
+  --background: #fff2f5;
+  --surface: #fffbfc;
+  --surface-secondary: #fcebf0;
+  --border: #ebcdd7;
+  --border-subtle: #f2dfe6;
+  --border-strong: #c398aa;
+  --text-primary: #4b3340;
+  --text-secondary: #79616c;
+  --text-tertiary: #846a76;
+  --text-on-accent: #fffbfc;
+  --accent: #a63e65;
+  --accent-hover: #893052;
+  --accent-text: #a63e65;
+  --accent-soft: #f9dce6;
+  --accent-muted: var(--accent-soft);
+  --accent-border: #d995ad;
+  --daily-accent: #97647d;
+  --success: #326a48;
+  --warning: #875b20;
+  --danger: #b03f3c;
+  --shadow-card: 0 2px 3px rgb(69 44 31 / 3%), 0 8px 24px rgb(69 44 31 / 4%);
+  --shadow-window: 0 8px 28px rgb(69 44 31 / 9%);
+  --shadow-popover: 0 10px 32px rgb(69 44 31 / 13%);
+  --calendar-heat-text-1: #a63e65;
+  --calendar-heat-text-2: #843052;
+  --calendar-heat-text-3: #702844;
+  --calendar-heat-text-4: #5b2238;
+  --planning-heat-1: #fbe8ef;
+  --planning-heat-2: #f6d4e1;
+  --planning-heat-3: #edb6cb;
+  --planning-heat-4: #e59bb7;
+  --planning-ink: #673347;
+  --planning-count-ink: #623348;
+  --planning-accent: #a63e65;
+  --planning-on-accent: #fffbfc;
+  --theme-decoration: url('/themes/anya/notebook.webp');
+  --theme-gold: #af8555;
+}
+@media (prefers-color-scheme: dark) {
+  html[data-theme='anya'] {
+    color-scheme: dark;
+    --background: #291e26;
+    --surface: #372630;
+    --surface-secondary: #45323e;
+    --border: #71505f;
+    --border-subtle: #59404d;
+    --border-strong: #a88293;
+    --text-primary: #fff0f5;
+    --text-secondary: #dfc4d0;
+    --text-tertiary: #c7a6b6;
+    --text-on-accent: #3c2130;
+    --accent: #f3adc6;
+    --accent-hover: #f8c8db;
+    --accent-text: #f6b9d0;
+    --accent-soft: #583646;
+    --accent-border: #a46a84;
+    --daily-accent: #e3a6ca;
+    --success: #a6d4ac;
+    --warning: #ecc28a;
+    --danger: #ffaba0;
+    --calendar-heat-text-1: #f8d5e3;
+    --calendar-heat-text-2: #fbe0eb;
+    --calendar-heat-text-3: #ffeaf2;
+    --calendar-heat-text-4: #fff4f8;
+    --planning-heat-1: #4c303f;
+    --planning-heat-2: #684051;
+    --planning-heat-3: #875167;
+    --planning-heat-4: #8e4d68;
+    --planning-ink: #fff0f6;
+    --planning-count-ink: #f9dbe8;
+    --planning-accent: #f3adc6;
+    --planning-on-accent: #3c2130;
+    --theme-gold: #d0b27c;
+    --shadow-card: 0 1px 0 rgb(233 213 184 / 4%);
+  }
+}
+
+.theme-illustration {
+  display: none;
+  object-fit: contain;
+  pointer-events: none;
+}
+html[data-theme='anya'] .theme-illustration {
+  display: block;
+}
+.appearance-panel {
+  max-width: 760px;
+  container-type: inline-size;
+}
+.appearance-intro {
+  margin: 0 0 28px;
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+  line-height: 1.65;
+}
+.appearance-section {
+  border: 0;
+  padding: 0;
+  margin: 0 0 28px;
+  min-width: 0;
+}
+.appearance-section legend {
+  padding: 0;
+  margin-bottom: 12px;
+  font-size: var(--text-section-size);
+  font-weight: 600;
+}
+.appearance-theme-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.appearance-theme-option,
+.appearance-font-option {
+  min-width: 0;
+  width: 100%;
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-surface);
+  transition:
+    border-color var(--motion-fast),
+    box-shadow var(--motion-fast);
+}
+.appearance-theme-option[aria-pressed='true'] {
+  border-color: var(--accent-text);
+  box-shadow: 0 0 0 1px var(--accent-text);
+}
+.appearance-option-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+.appearance-option-label strong {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.appearance-option-label svg {
+  flex-shrink: 0;
+  color: var(--accent-text);
+  visibility: hidden;
+}
+[aria-pressed='true'] > .appearance-option-label svg {
+  visibility: visible;
+}
+.appearance-theme-option > small,
+.appearance-font-option > small {
+  display: block;
+  margin-top: 5px;
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+  line-height: 1.5;
+}
+.appearance-preview {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  position: relative;
+  isolation: isolate;
+  min-height: 148px;
+  padding: 16px;
+  border-radius: 10px;
+  overflow: hidden;
+  font-family: var(--font-default);
+}
+.appearance-preview--blue {
+  background: #edf3fb;
+  color: #234567;
+}
+.appearance-preview--anya {
+  background: #fbe0e9;
+  color: #a63e65;
+}
+.appearance-preview-heading {
+  font-size: 14px;
+  font-weight: 600;
+  position: relative;
+  z-index: 1;
+}
+.appearance-preview-line {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  position: relative;
+  z-index: 1;
+}
+.appearance-preview-line i {
+  width: 10px;
+  height: 10px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+}
+.appearance-preview .theme-illustration {
+  display: block;
+  position: absolute;
+  height: 106px;
+  width: 106px;
+  bottom: -6px;
+  right: -14px;
+  opacity: 1;
+  z-index: 0;
+}
+.appearance-preview-bar {
+  display: block;
+  width: 36px;
+  height: 5px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.22;
+}
+.appearance-font-options {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-surface);
+  background: var(--surface);
+}
+.appearance-font-option {
+  padding: 18px 20px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.appearance-font-option + .appearance-font-option {
+  border-top: 1px solid var(--border-subtle);
+}
+.appearance-font-option[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface));
+}
+.appearance-font-option:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: -3px;
+}
+.appearance-font-option .appearance-option-label {
+  margin-top: 0;
+  font-family: var(--font-default);
+}
+.appearance-font-option .appearance-option-label strong {
+  font-size: var(--text-caption-size);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.appearance-font-sample {
+  display: block;
+  font-family: var(--font-default);
+  font-size: 1.125rem;
+  line-height: 1.65;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+.appearance-font-sample span {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.appearance-font-sample[data-font='source-han-sans'] {
+  font-family: 'Threadline Source Han Sans', var(--font-default);
+}
+.appearance-font-sample[data-font='source-han-serif'] {
+  font-family: 'Threadline Source Han Serif', var(--font-default);
+}
+.appearance-hint {
+  font-size: var(--text-caption-size);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 12px 0 0;
+}
+.appearance-hint:empty {
+  display: none;
+}
+.appearance-load-notice {
+  display: none;
+  position: fixed;
+  z-index: 100;
+  left: 16px;
+  right: 16px;
+  bottom: calc(var(--bottom-nav-height) + 16px);
+  margin: 0;
+  padding: 12px 16px;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-popover);
+  font-size: 14px;
+}
+html[data-font-error='true'] .appearance-load-notice {
+  display: block;
+}
+@media (max-width: 359px) {
+  .appearance-theme-options {
+    gap: 10px;
+  }
+  .appearance-theme-option {
+    padding: 8px;
+  }
+  .appearance-preview {
+    padding: 10px;
+    min-height: 120px;
+  }
+  .appearance-preview-heading {
+    font-size: 12px;
+  }
+  .appearance-preview-line {
+    font-size: 10px;
+    gap: 4px;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  .appearance-preview--blue {
+    background: #223449;
+    color: #d3e7ff;
+  }
+  .appearance-preview--anya {
+    background: #543747;
+    color: #ffdeed;
+  }
+}
+/* Enlarged labels need the full row instead of squeezing two theme choices together. */
+@container (max-width: 15rem) {
+  .appearance-theme-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

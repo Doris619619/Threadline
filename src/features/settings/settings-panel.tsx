@@ -10,6 +10,7 @@ import {
   Info,
   LogOut,
   MonitorCog,
+  Palette,
   RotateCcw,
   ShieldCheck,
   Trash2,
@@ -18,12 +19,14 @@ import { useState } from 'react';
 import { Surface } from '@/components/ui/surface';
 import { useOptionalCloudRuntime } from '@/features/auth/cloud-runtime-provider';
 import { getUserIdentity } from '@/features/auth/user-identity';
+import { AppearancePanel } from '@/features/appearance/appearance-panel';
 import { TrashPanel } from '@/features/history/history-panel';
 import { threadlineAppVersion } from '@/lib/app-info';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import type { Task } from '@/types/domain';
 
-type SettingsSection = 'overview' | 'sync' | 'privacy' | 'desktop' | 'trash' | 'about';
+type SettingsSection =
+  'overview' | 'appearance' | 'sync' | 'privacy' | 'desktop' | 'trash' | 'about';
 
 /** 渲染有明确目标的设置行；仅在真实 section 可用时成为按钮。 */
 function SettingsRow({
@@ -68,7 +71,7 @@ function SettingsDetail({
       <button type="button" className="settings-back" onClick={onBack}>
         <ChevronLeft size={18} aria-hidden="true" /> 设置
       </button>
-      <h2>{title}</h2>
+      <h1>{title}</h1>
       {children}
     </div>
   );
@@ -102,6 +105,12 @@ export function SettingsPanel({
       setSigningOut(false);
     }
   };
+  if (section === 'appearance')
+    return (
+      <SettingsDetail title="外观" onBack={() => setSection('overview')}>
+        <AppearancePanel />
+      </SettingsDetail>
+    );
   if (section === 'sync')
     return (
       <SettingsDetail title="数据与同步" onBack={() => setSection('overview')}>
@@ -112,7 +121,8 @@ export function SettingsPanel({
             Realtime 刷新。
           </p>
           <p>
-            批注笔迹、高亮颜色和桌面窗口尺寸只保存在当前设备，不会上传到 Cloud 工作区。
+            主题、字体、批注笔迹、高亮颜色和桌面窗口尺寸只保存在当前设备，不会上传到
+            Cloud 工作区。
           </p>
         </Surface>
       </SettingsDetail>
@@ -206,6 +216,7 @@ export function SettingsPanel({
     );
   return (
     <div className="settings-panel" data-testid="settings-panel">
+      <h1 className="settings-title">设置</h1>
       {identity && (
         <Surface className="settings-account-summary">
           <span className="settings-avatar" aria-hidden="true">
@@ -223,6 +234,12 @@ export function SettingsPanel({
       <section className="settings-group" aria-labelledby="settings-general">
         <h2 id="settings-general">通用</h2>
         <Surface>
+          <SettingsRow
+            icon={Palette}
+            title="外观"
+            description="选择主题与字体"
+            onClick={() => setSection('appearance')}
+          />
           {isNativeDesktop && (
             <SettingsRow
               icon={MonitorCog}

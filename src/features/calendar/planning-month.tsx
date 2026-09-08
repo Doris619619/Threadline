@@ -1,5 +1,5 @@
-/** @fileoverview 月历首页：雾蓝热力与次要任务数量，月份浏览与当天详情分层。 */
-import { ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
+/** @fileoverview 月历首页：主题热力与次要任务数量，月份浏览与当天详情分层。 */
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getMonthGrid } from '@/lib/date-range';
 import { getLocalDateKey, parseLocalDateKey } from '@/lib/local-date';
 import { planningHeat } from './planning-rules';
@@ -10,18 +10,14 @@ export function PlanningMonth({
   date,
   month,
   days,
-  waitingCount,
   onMonth,
   onSelect,
-  onWaiting,
 }: {
   date: string;
   month: string;
   days: Map<string, Task[]>;
-  waitingCount: number;
   onMonth: (month: string) => void;
   onSelect: (date: string) => void;
-  onWaiting: () => void;
 }) {
   const today = getLocalDateKey();
   /** 使用自然月加减，避免大小月和跨年边界跳月。 */
@@ -88,12 +84,6 @@ export function PlanningMonth({
           ))}
           <span>多</span>
         </div>
-        <button className="planning-inbox" onClick={onWaiting}>
-          <Inbox size={20} aria-hidden="true" />
-          <span>待安排</span>
-          <span className="planning-inbox-count">{waitingCount}</span>
-          <ChevronRight size={18} aria-hidden="true" />
-        </button>
       </footer>
     </section>
   );
