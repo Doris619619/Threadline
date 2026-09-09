@@ -8,6 +8,7 @@ import type {
   DesktopViewMode,
   WindowStateConfig,
 } from '@/lib/desktop-window-policy';
+import type { DesktopUpdateBridge } from '@/lib/desktop-update';
 
 export type DesktopWindowStates = Partial<Record<DesktopViewMode, WindowStateConfig>>;
 
@@ -66,7 +67,7 @@ export type ReportPdfExportResult =
 type Unsubscribe = () => void;
 
 export type ThreadlineDesktopBridge =
-  | {
+  | (DesktopUpdateBridge & {
       environment: 'electron';
       role: 'main';
       hydrateDesktopState: (
@@ -98,7 +99,7 @@ export type ThreadlineDesktopBridge =
       onPresentationRollback: (
         listener: (event: PresentationRollback) => void,
       ) => Unsubscribe;
-    }
+    })
   | {
       environment: 'electron';
       role: 'edge-tab';

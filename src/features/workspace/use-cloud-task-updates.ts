@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState, type SetStateAction } from 'react';
 import { isCancelledError, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SupabaseWorkspaceRepository } from '@/lib/supabase/workspace-repository';
 import type { Task } from '@/types/domain';
+import { beginCloudWrite } from '@/lib/cloud-write-guard';
 
 type TaskRepository = Pick<
   SupabaseWorkspaceRepository,
@@ -127,6 +128,13 @@ export function useCloudTaskUpdates(
       for (const task of next) {
         const previous = current.find((row) => row.id === task.id);
         if (JSON.stringify(previous) === JSON.stringify(task)) continue;
+        let endWrite: () => void;
+        try {
+          endWrite = beginCloudWrite();
+        } catch (error) {
+          onError(error instanceof Error ? error.message : '正在更新，请稍后再保存。');
+          return;
+        }
         const entry = scope.pending.get(task.id) ?? {
           latest: task,
           confirmed: previous,
@@ -134,7 +142,7 @@ export function useCloudTaskUpdates(
         };
         entry.latest = task;
         scope.pending.set(task.id, entry);
-        entry.tail = entry.tail.then(() => save(task, entry));
+        entry.tail = entry.tail.then(() => save(task, entry)).finally(endWrite);
       }
       publishPending();
     },

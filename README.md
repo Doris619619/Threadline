@@ -82,6 +82,8 @@ Web/PWA 使用请求期 nonce CSP，Electron 静态导出继续从实际 HTML �
 
 Windows 普通用户优先使用构建生成的 NSIS 安装器：
 
+从 0.1.1 起，安装版支持「设置 → 关于 Threadline」检查、下载和重启更新；启动后也会自动检查，但不会自动下载或在普通退出时安装。旧版需手动安装一次带此功能的新版本。安装包公开分发、源码保持私有；发布配置与验证边界见 [Windows 自动更新](docs/desktop-auto-update.md)。
+
 ```text
 release/Threadline_<version>_x64-setup.exe
 ```
@@ -174,3 +176,5 @@ docs/                    PRD、目标、工程协作规范、桌面交互与 PR 
 ### 粉色 Windows 预览与安装包
 
 PowerShell 设置 `$env:THREADLINE_DESKTOP_THEME='anya'` 后运行 `pnpm desktop:preview` 或 `pnpm desktop:build`，即可生成配套粉色 EXE/安装图标并为新设备默认选用粉色主题。已有主题和字体偏好优先。使用 `Remove-Item Env:THREADLINE_DESKTOP_THEME` 恢复默认蓝色构建。预览启动入口为 `release/preview/win-unpacked/Threadline.exe`，使用时保留整个目录。
+
+设置 → 外观可用按钮切换浅色、深色或跟随系统，明暗模式与蓝色 / 安妮雅配色独立保存。

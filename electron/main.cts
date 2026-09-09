@@ -36,6 +36,7 @@ import {
   type WindowStateConfig,
 } from '../src/lib/desktop-window-policy.js';
 import { readFramelessGeometry } from './window-geometry.cjs';
+import { registerDesktopUpdates } from './desktop-updates.cjs';
 
 // Windows/Linux 默认菜单会占用紧凑窗口的标题区域，必须在 app ready 前移除。
 Menu.setApplicationMenu(null);
@@ -43,7 +44,7 @@ Menu.setApplicationMenu(null);
 const APP_PROTOCOL = 'threadline';
 const APP_HOST = 'app';
 const APP_USER_MODEL_ID = 'com.doris619619.threadline';
-const PRODUCT_NAME = 'Threadline';
+const PRODUCT_NAME = app.isPackaged ? app.getName() : 'Threadline';
 const DEFAULT_RENDERER_URL = 'http://127.0.0.1:3118';
 const STARTUP_TIMEOUT_MS = 8_000;
 const EDGE_REVEAL_TIMEOUT_MS = 8_000;
@@ -968,6 +969,10 @@ function bootstrapApplication(): void {
     try {
       registerRendererProtocol();
       registerDesktopIpc();
+      registerDesktopUpdates(
+        () => mainWindow,
+        (event) => isTrustedSender(event, 'main'),
+      );
       await createMainWindow();
       screen.on(
         'display-removed',
@@ -1007,7 +1012,7 @@ function bootstrapApplication(): void {
     isQuitting = true;
   });
 
-  app.on('window-all-closed', () => app.exit(0));
+  app.on('window-all-closed', () => app.quit());
 }
 
 if (hasSingleInstanceLock) {

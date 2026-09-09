@@ -1,0 +1,43 @@
+/* 文件用途：更新提示和设置页控件沿用应用主题，在紧凑窗口内保持可操作。 */
+.desktop-update-confirmation .manager-dialog-backdrop {
+  z-index: 110;
+}
+.desktop-update-notice {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 100;
+  width: min(340px, calc(100vw - 32px));
+  max-height: calc(100dvh - 64px);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-popover);
+}
+.desktop-update-controls {
+  display: grid;
+  gap: 8px;
+}
+.desktop-update-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+.desktop-update-controls p {
+  margin: 0;
+}
+.desktop-update-controls progress {
+  width: 100%;
+  accent-color: var(--accent);
+}
+.desktop-update-notice button,
+.desktop-update-controls button {
+  min-height: 44px;
+}
+.desktop-update-notice > button {
+  margin-top: 8px;
+}

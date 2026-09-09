@@ -6,6 +6,12 @@ module.exports = {
   extraMetadata: { threadlineIconTheme: iconTheme },
   appId: 'com.doris619619.threadline',
   productName: 'Threadline',
+  publish: {
+    provider: 'github',
+    owner: 'Doris619619',
+    repo: 'Threadline-releases',
+    releaseType: 'draft',
+  },
   directories: {
     output: 'release',
   },
@@ -26,6 +32,7 @@ module.exports = {
         : 'electron/assets/icon.ico',
   },
   nsis: {
+    include: 'scripts/installer.nsh',
     oneClick: false,
     perMachine: false,
     allowToChangeInstallationDirectory: true,

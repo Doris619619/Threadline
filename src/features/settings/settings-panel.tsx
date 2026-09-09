@@ -22,6 +22,7 @@ import { getUserIdentity } from '@/features/auth/user-identity';
 import { AppearancePanel } from '@/features/appearance/appearance-panel';
 import { TrashPanel } from '@/features/history/history-panel';
 import { threadlineAppVersion } from '@/lib/app-info';
+import { UpdateControls } from '@/features/desktop-update/update-runtime';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import type { Task } from '@/types/domain';
 
@@ -205,6 +206,7 @@ export function SettingsPanel({
               <dd>个人任务工作台</dd>
             </div>
           </dl>
+          <UpdateControls />
         </Surface>
       </SettingsDetail>
     );

@@ -7,6 +7,7 @@ import { once } from 'node:events';
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { validateRelease } from './publish-desktop.mjs';
 
 import {
   comparePackagedApplications,
@@ -92,8 +93,8 @@ const modeDefinitions = {
   },
   release: {
     buildType: 'release',
-    publish: 'always',
-    builderArguments: ['--win', 'nsis', '--x64', '--publish', 'always'],
+    publish: 'never',
+    builderArguments: ['--win', 'nsis', '--x64', '--publish', 'never'],
     outputRoot: join(repositoryRoot, 'release'),
     appOutDir: join(repositoryRoot, 'release', 'win-unpacked'),
     manifestPath: join(repositoryRoot, 'release', 'build-manifests', 'release.json'),
@@ -484,7 +485,9 @@ try {
   } else if (command === 'package') {
     await runPackagingMode(modeDefinitions.package);
   } else if (command === 'release') {
+    await validateRelease();
     await runPackagingMode(modeDefinitions.release);
+    await runBuildStage('publish-release', ['scripts/publish-desktop.mjs']);
   } else if (command === 'dev') {
     await runDevelopmentShell();
   } else {
