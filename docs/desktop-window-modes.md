@@ -12,18 +12,18 @@
 ## 三态工作流
 
 - **完整工作台**：无原生标题栏、非置顶，保留首页、规划、项目、洞察、记录、节律与设置。仅检测到 Electron Main Renderer bridge 时，独立的 40px 顶部 chrome 才提供连续拖动区、“迷你今日”、“工作站”、最小化、原生最大化/还原和关闭入口；Web/PWA 不渲染这些原生入口，也不会由历史桌面模式切入紧凑视图。紧凑视图不支持最大化。
-- **迷你今日**：始终置顶的紧凑快速视图，显示“今日日程”和按重要/普通分组的“待安排”。每行保持完成框、项目标签、任务名与预计时长（空值为待定）；新建可以只填预计、只填时段、都填或都不填；可完成任务、加入或移出工作站，并可直接新增任务；不显示统计、Daily 和批注工具。迷你今日的待安排区是**执行优先**的简化面：不提供 `···`、安排日期或删除，需安排/编辑/删除时打开完整工作台，避免紧凑窗承载第二套排程菜单。
-- **工作站**：始终置顶的小尺寸提醒窗，只显示有序的序号、项目和任务名。它保存 `threadline.workstation.v1` 中的 task ID 引用，不复制标题或任务内容；因此改名或改项目会同步。移除、清空和拖动排序只改引用集合，不会删除、完成、移期或修改原任务。
+- **迷你今日**：始终置顶的小便签，只显示实际今天的日程（包括尚未填写时间的任务），不显示待安排、统计、Daily 或批注。完成框紧挨项目与任务名，已填时间位于次行；点任务打开完整工作台的详情，预计时长和工作站引用操作在详情中显示。底部加号打开完整工作台的今日新增表单。
+- **工作站**：始终置顶的小尺寸提醒窗，只显示有序的序号、项目和任务名。它保存 `threadline.workstation.v1` 中的 task ID 引用，不复制标题或任务内容；因此改名或改项目会同步。右键任务（或 Shift+F10）选择“移出工作站”，菜单不占用列表宽度；移除、清空和拖动排序只改引用集合，不会删除、完成、移期或修改原任务。
 
-迷你今日与工作站使用**同一个无原生 frame 的 Electron Main BrowserWindow**平滑变形；Renderer 的唯一紧凑 header 提供拖动、模式切换、收起和低强调关闭入口。Mini Today 默认 518 × 822 logical px，Workstation 默认 518 × 504 logical px；底部“打开完整工作台”会恢复完整工作台并保留此前侧边栏页面。
+迷你今日与工作站使用**同一个无原生 frame 的 Electron Main BrowserWindow**平滑变形；Renderer 的唯一紧凑 header 提供拖动、模式切换、收起和低强调关闭入口。Mini Today 默认 200 × 170 logical px，Workstation 默认 200 × 200 logical px；底部“打开完整工作台”会恢复完整工作台并保留此前侧边栏页面。
 
-## 右侧收起入口
+## 左右贴边收起入口
 
-右侧 edge tab 不是第四种窗口模式。只有迷你今日和工作站可通过“收起”进入 `edge-collapsed` presentation；悬停约 260ms 或点击后恢复最近的紧凑视图。完整工作台不能收起为 edge tab。
+右侧 edge tab 不是第四种窗口模式。只有迷你今日和工作站可通过“收起”进入 `edge-collapsed` presentation；只点击后恢复最近的紧凑视图，悬停不会展开。完整工作台不能收起为 edge tab。
 
-edge tab 是独立的无边框 Electron BrowserWindow，固定在当前显示器 work area 的右边缘，并使用 logical pixel 安全 bounds，避免多显示器和 DPI 缩放下的单屏硬编码。
+edge tab 是独立的无边框 Electron BrowserWindow，拖动松手后吸附至所在显示器 work area 的左/右边缘，并使用 logical pixel 安全 bounds，避免多显示器和 DPI 缩放下的单屏硬编码。
 
-Main 与 Renderer 共同复用 `src/lib/desktop-window-policy.ts`：Main 不再维护第二套默认尺寸或 safe-bounds 算法。显示器增加、移除、DPI 和 work area 变化都会重新执行该 policy；Edge 以 Main 当前（或最近）bounds 所在显示器的右缘定位。
+Main 与 Renderer 共同复用 `src/lib/desktop-window-policy.ts`：Main 不再维护第二套默认尺寸或 safe-bounds 算法。显示器增加、移除、DPI 和 work area 变化都会重新执行该 policy；Edge 记忆显示器、左右侧和纵向相对位置；原屏幕移除后回退到 Main 所在屏幕。入口设置 always-on-top，以 showInactive 显示而不抢焦点。超过 4 DIP 的拖动不触发展开。
 
 ## 原生窗口恢复与单实例
 
@@ -38,5 +38,13 @@ Main 与 Renderer 共同复用 `src/lib/desktop-window-policy.ts`：Main 不再�
 
 - v3 key：`threadline.desktop-mode.v3`、`threadline.desktop-window-states.v3`、`threadline.desktop-last-compact-mode.v3`、`threadline.desktop-compact-presentation.v3`。
 - 旧 v2 的 `floating-icon` 和 72px geometry 不会迁入；非法旧值安全回退到完整工作台。
-- Mini Today 默认 518 × 822，限制为 480–540 × 760–860 logical px；Workstation 默认 518 × 504，限制为 480–540 × 460–560 logical px。重置窗口尺寸与位置会清空 v3 geometry。
+- Mini Today 默认 200 × 170，限制为 200–340 × 96–170 logical px；Workstation 默认 200 × 200，限制为 200–340 × 96–220 logical px。列表自然高度加 68px 标题/底部/内边距，通过受限 IPC 交给 Main 限幅；过量任务内部滚动。旧版超宽 geometry 回到 200px，位置仍保留。重置窗口尺寸与位置会清空 v3 geometry。
 - 真正移入回收站的任务会从工作站引用集合清除；完成任务不会自动移除。
+
+## 启动与认证
+
+启动、登录和缺配置门禁在认证外层提供可拖动标题栏以及最小化、关闭按钮。首次显示居中于指针所在显示器的工作区，按工作区限制完整窗口尺寸。工作区数据尚未就绪时不恢复历史小窗尺寸，避免启动画面被裁切；就绪后沿用上次窗口模式。
+
+## 原生接口
+
+`desktop:compact-height` 只接受当前紧凑模式与有限高度；`desktop:appearance` 只接受 blue/anya 主题；`desktop:edge-pointer` 只接受 Edge 的 start/move/end/cancel，坐标由原生 screen 获取。Main 独立保存 `compact-preferences.json` 中的主题、显示器 ID、左右侧与纵向比例，不接触任务数据。普通 Web/PWA 没有这些原生能力。

@@ -14,6 +14,12 @@ import {
   shell,
   type IpcMainInvokeEvent,
 } from 'electron';
+import {
+  getThemedWindowIcon,
+  loadCompactPreferences,
+  placeEdgeWindow,
+  registerCompactControls,
+} from './compact-controls.cjs';
 import { existsSync, readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { join, normalize, resolve, sep } from 'node:path';
@@ -64,6 +70,7 @@ type NativeApplyResult = {
 let mainWindow: BrowserWindow | undefined;
 let edgeWindow: BrowserWindow | undefined;
 let mainReadyToShow = false;
+let entryWindowShown = false;
 let startupWatchdog: ReturnType<typeof setTimeout> | undefined;
 let stateRevision = 0;
 const stateAcknowledgements = new Map<number, () => void>();
@@ -83,7 +90,7 @@ let rendererCspManifest: { routes?: Record<string, { header?: string }> } | unde
 
 /** 返回开发与打包应用都可读取的统一 Threadline 窗口图标。 */
 function getWindowIconPath(): string {
-  return join(app.getAppPath(), 'electron', 'assets', 'icon.ico');
+  return getThemedWindowIcon();
 }
 
 protocol.registerSchemesAsPrivileged([
@@ -488,7 +495,8 @@ async function revealEdge(): Promise<void> {
       resizable: false,
       maximizable: false,
       minimizable: false,
-      skipTaskbar: false,
+      skipTaskbar: true,
+      alwaysOnTop: true,
       width: EDGE_TAB_SIZE.width,
       height: EDGE_TAB_SIZE.height,
     });
@@ -532,19 +540,15 @@ async function revealEdge(): Promise<void> {
   const matchingBounds =
     mainBounds ??
     resolveNativeBounds(latestState.mode, latestState.windowStates[latestState.mode]);
-  const area = screen.getDisplayMatching({
-    ...matchingBounds,
-    x: matchingBounds.x ?? 0,
-    y: matchingBounds.y ?? 0,
-  }).workArea;
-  edgeWindow.setBounds({
-    x: area.x + area.width - EDGE_TAB_SIZE.width,
-    y: Math.round(area.y + Math.max(32, (area.height - EDGE_TAB_SIZE.height) / 2)),
-    width: EDGE_TAB_SIZE.width,
-    height: EDGE_TAB_SIZE.height,
-  });
-  edgeWindow.show();
-  edgeWindow.focus();
+  placeEdgeWindow(
+    edgeWindow,
+    screen.getDisplayMatching({
+      ...matchingBounds,
+      x: matchingBounds.x ?? 0,
+      y: matchingBounds.y ?? 0,
+    }),
+  );
+  edgeWindow.showInactive();
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
 }
 
@@ -695,6 +699,21 @@ async function revealSafeFull(reason: string): Promise<NativeApplyResult> {
 
 /** 注册 URL、窗口角色、payload schema 与 revision 四重校验的 IPC handlers。 */
 function registerDesktopIpc(): void {
+  registerCompactControls({
+    getMain: () => mainWindow,
+    getEdge: () => edgeWindow,
+    getMode: () => latestState.mode,
+    isTrusted: isTrustedSender,
+    onResize: (geometry) => {
+      latestState.windowStates[latestState.mode] = geometry;
+      mainWindow?.webContents.send('desktop:geometry-changed', {
+        geometry,
+        mode: latestState.mode,
+        origin: 'content',
+        nativeRevision: stateRevision,
+      });
+    },
+  });
   ipcMain.handle('desktop:hydrate', async (event, payload: unknown) => {
     if (!isTrustedSender(event, 'main'))
       throw new Error('Rejected desktop hydrate sender');
@@ -710,6 +729,22 @@ function registerDesktopIpc(): void {
     if (!state) throw new Error('Rejected desktop transition');
     return applyDesktopState(state);
   });
+  /** 启动和登录页不等待业务水合即可居中显示；每次进程启动只执行一次。 */
+  ipcMain.handle('desktop:entry-window', (event) => {
+    if (!isTrustedSender(event, 'main')) throw new Error('Rejected entry sender');
+    if (entryWindowShown || !mainWindow) return;
+    entryWindowShown = true;
+    if (startupWatchdog) clearTimeout(startupWatchdog);
+    const area = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea;
+    const bounds = resolveSafeWindowState(
+      'full',
+      DEFAULT_WINDOW_CONFIGS.full,
+      getLogicalWorkAreas(),
+      area,
+    );
+    applyMainNativeState('full', bounds);
+    mainWindow.show();
+  });
   ipcMain.handle('desktop:bring-to-front', async (event) => {
     if (!isTrustedSender(event, 'main'))
       throw new Error('Rejected desktop focus sender');
@@ -722,11 +757,26 @@ function registerDesktopIpc(): void {
   ipcMain.handle('desktop:restore-main', async (event) => {
     if (!isTrustedSender(event, 'edge-tab'))
       throw new Error('Rejected edge restore sender');
+    // 展开位置跟随用户刚拖动的入口，避免回到另一侧或旧显示器。
+    const compactMode = latestState.lastCompactMode;
+    const windowStates = { ...latestState.windowStates };
+    if (edgeWindow) {
+      const edge = edgeWindow.getBounds();
+      const area = screen.getDisplayMatching(edge).workArea;
+      const compact = resolveNativeBounds(compactMode, windowStates[compactMode]);
+      const left = edge.x < area.x + area.width / 2;
+      windowStates[compactMode] = {
+        ...compact,
+        x: left ? area.x : area.x + area.width - compact.width,
+        y: Math.max(area.y, Math.min(edge.y, area.y + area.height - compact.height)),
+      };
+    }
     return applyDesktopState(
       {
         ...latestState,
+        windowStates,
         requestId: 0,
-        mode: latestState.lastCompactMode,
+        mode: compactMode,
         presentation: 'expanded',
       },
       undefined,
@@ -815,12 +865,18 @@ function registerDesktopIpc(): void {
 
 /** 创建初始隐藏 Main，并注册 handshake 前必要的 renderer 故障与 closed 保护。 */
 async function createMainWindow(): Promise<void> {
+  loadCompactPreferences();
+  const initialBounds = resolveSafeWindowState(
+    'full',
+    DEFAULT_WINDOW_CONFIGS.full,
+    getLogicalWorkAreas(),
+    screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea,
+  );
   const window = createWindow('main', {
     frame: false,
-    width: 1280,
-    height: 840,
     minWidth: 800,
-    minHeight: 560,
+    minHeight: Math.min(560, initialBounds.height),
+    ...initialBounds,
   });
   mainWindow = window;
   let userRequestedClose = false;
@@ -884,13 +940,14 @@ function bootstrapApplication(): void {
         () =>
           void reconcileDisplayState('display-added').catch(exitAfterStartupFailure),
       );
-      startupWatchdog = setTimeout(
-        () =>
-          void revealSafeFull('startup-handshake-timeout').catch(
-            exitAfterStartupFailure,
-          ),
-        STARTUP_TIMEOUT_MS,
-      );
+      if (!entryWindowShown)
+        startupWatchdog = setTimeout(
+          () =>
+            void revealSafeFull('startup-handshake-timeout').catch(
+              exitAfterStartupFailure,
+            ),
+          STARTUP_TIMEOUT_MS,
+        );
     } catch (error) {
       exitAfterStartupFailure(error);
     }

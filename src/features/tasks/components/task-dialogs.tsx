@@ -257,6 +257,8 @@ export function TaskDialog({
   onSave,
   onClose,
   initialFocus = 'title',
+  inWorkstation = false,
+  onToggleWorkstation,
 }: {
   open: boolean;
   mode?: 'normal' | 'waiting';
@@ -266,6 +268,8 @@ export function TaskDialog({
   onClose: () => void;
   /** 规划的“定时间”入口直接聚焦开始时间；待安排表单始终聚焦标题。 */
   initialFocus?: 'title' | 'start';
+  inWorkstation?: boolean;
+  onToggleWorkstation?: (id: string) => void;
 }) {
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
@@ -343,7 +347,7 @@ export function TaskDialog({
           </div>
         ) : (
           <div className="task-form-grid">
-            <label>
+            <label className="task-form-project">
               项目
               <select name="project" defaultValue={defaultProjectId}>
                 {projects
@@ -374,6 +378,12 @@ export function TaskDialog({
                 placeholder="可选"
               />
             </label>
+          </div>
+        )}
+
+        <div className="task-form-grid task-form-durations">
+          <PlannedMinutesField defaultValue={editing?.plannedDurationMinutes} />
+          {!isWaiting && (
             <label>
               实际时长（分钟）
               <Input
@@ -382,12 +392,19 @@ export function TaskDialog({
                 defaultValue={editing?.actualDurationMinutes}
               />
             </label>
-          </div>
+          )}
+        </div>
+
+        {editing && onToggleWorkstation && (
+          <button
+            type="button"
+            className="task-workstation-detail"
+            aria-pressed={inWorkstation}
+            onClick={() => onToggleWorkstation(editing.id)}
+          >
+            {inWorkstation ? '从工作站移除' : '加入工作站'}
+          </button>
         )}
-
-        <PlannedMinutesField defaultValue={editing?.plannedDurationMinutes} />
-        {!isWaiting && <p>预计与起止时间均可不填，分别保存；时段不支持跨午夜。</p>}
-
         {error && (
           <p className="form-error" role="alert">
             {error}

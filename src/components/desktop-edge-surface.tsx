@@ -1,40 +1,58 @@
-/**
- * @fileoverview Electron Edge 轻量入口，只恢复 Main，绝不挂载业务 Provider 或任务运行时。
- */
-
+/** @fileoverview 只响应明确点击的原生贴边入口；捕获指针拖动，由 Main 计算屏幕坐标。 */
 'use client';
-
-import { useCallback, useRef } from 'react';
+import { useRef } from 'react';
 import { getThreadlineDesktopBridge } from '@/lib/desktop-bridge';
 
-/** 渲染 Edge 独立窗口的最小恢复控件。 */
+/** Edge 不挂载业务 Provider，拖动结束与键盘激活均经过最小 bridge。 */
 export function DesktopEdgeSurface() {
-  const restoreTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  /** 请求 Main 恢复，并吞掉窗口已销毁时的可恢复 IPC 竞争。 */
-  const restoreMain = useCallback(() => {
+  const dragging = useRef(false);
+  /** 仅恢复最近紧凑窗口，销毁过程的 IPC 竞争可以安全忽略。 */
+  const restore = () => {
     const bridge = getThreadlineDesktopBridge();
     if (bridge?.role === 'edge-tab') void bridge.restoreMain().catch(() => undefined);
-  }, []);
-
-  /** 连续悬停后恢复，避免经过屏幕右缘时反复切换。 */
-  const scheduleRestore = useCallback(() => {
-    restoreTimerRef.current = setTimeout(restoreMain, 260);
-  }, [restoreMain]);
-
-  /** 取消尚未触发的悬停恢复。 */
-  const cancelRestore = useCallback(() => {
-    if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
-  }, []);
-
+  };
   return (
     <button
       type="button"
       className="edge-tab"
       aria-label="展开最近的紧凑工作台"
-      onPointerEnter={scheduleRestore}
-      onPointerLeave={cancelRestore}
-      onClick={restoreMain}
+      title="点击展开，拖动调整贴边位置"
+      onPointerDown={(event) => {
+        if (event.button !== 0) return;
+        const bridge = getThreadlineDesktopBridge();
+        if (bridge?.role !== 'edge-tab') return;
+        dragging.current = true;
+        event.currentTarget.setPointerCapture(event.pointerId);
+        void bridge.edgePointer('start').catch(() => {
+          dragging.current = false;
+        });
+      }}
+      onPointerMove={() => {
+        const bridge = getThreadlineDesktopBridge();
+        if (dragging.current && bridge?.role === 'edge-tab')
+          void bridge.edgePointer('move').catch(() => undefined);
+      }}
+      onPointerUp={async (event) => {
+        if (!dragging.current) return;
+        dragging.current = false;
+        event.currentTarget.releasePointerCapture(event.pointerId);
+        const bridge = getThreadlineDesktopBridge();
+        if (bridge?.role !== 'edge-tab') return;
+        try {
+          if (!(await bridge.edgePointer('end'))) restore();
+        } catch {
+          /* 窗口销毁后不恢复。 */
+        }
+      }}
+      onPointerCancel={() => {
+        dragging.current = false;
+        const bridge = getThreadlineDesktopBridge();
+        if (bridge?.role === 'edge-tab')
+          void bridge.edgePointer('cancel').catch(() => undefined);
+      }}
+      onClick={(event) => {
+        if (event.detail === 0) restore();
+      }}
     >
       <span>Threadline</span>
       <small>展开</small>

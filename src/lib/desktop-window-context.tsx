@@ -12,6 +12,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react';
+import { useOptionalStartupProgress } from '@/features/startup/startup-progress-context';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import {
   normalizeCompactWindowState,
@@ -78,6 +79,9 @@ function normalizeCompactMode(value: unknown): CompactViewMode {
 
 /** 提供 Web/PWA 业务状态和窄 Electron bridge 之间的单向桌面状态同步。 */
 export function DesktopWindowProvider({ children }: { children: ReactNode }) {
+  const startupProgress = useOptionalStartupProgress();
+  const workspaceReady =
+    !startupProgress || startupProgress.workspaceData.status === 'completed';
   const isNativeDesktop = useSyncExternalStore(
     subscribeToDesktopBridge,
     getNativeDesktopSnapshot,
@@ -191,7 +195,7 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
 
   /** 只在首次 hydration 发起一次 Electron 握手；Web/PWA 直接成为 ready。 */
   useEffect(() => {
-    if (!hydrated || startupAppliedRef.current) return;
+    if (!hydrated || !workspaceReady || startupAppliedRef.current) return;
     startupAppliedRef.current = true;
     const bridge = getMainDesktopBridge();
     if (!bridge) {
@@ -222,6 +226,7 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
       })
       .finally(() => setIsDesktopReady(true));
   }, [
+    workspaceReady,
     hydrated,
     lastCompactMode,
     mode,
@@ -256,13 +261,13 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     });
   }, [setLastCompactMode, setModeState, setPresentation, setWindowStates]);
 
-  /** 仅保存 Main 标记为用户行为的 canonical geometry，不产生反向 transition。 */
+  /** 仅保存 Main 确认的用户移动或内容高度 geometry，不产生反向 transition。 */
   useEffect(() => {
     const bridge = getMainDesktopBridge();
     if (!bridge) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     return bridge.onNativeGeometryChanged((event) => {
-      if (event.origin !== 'user') return;
+      if (event.origin !== 'user' && event.origin !== 'content') return;
       if (timer) clearTimeout(timer);
       timer = setTimeout(
         () =>

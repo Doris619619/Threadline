@@ -49,8 +49,8 @@ import type { Task } from '@/types/domain';
  * 按当前工作台视图渲染首页、功能页或 Electron 紧凑窗口。
  */
 export function TaskDashboard() {
-  const { active, selectedDate } = useWorkspaceView();
-  const { isMiniToday, isWorkstation } = useDesktopWindow();
+  const { active, selectedDate, setActive, setSelectedDate } = useWorkspaceView();
+  const { isMiniToday, isWorkstation, setMode } = useDesktopWindow();
   const startupProgress = useOptionalStartupProgress();
   const {
     tasks,
@@ -177,21 +177,15 @@ export function TaskDashboard() {
     transitionTask,
   });
 
-  const {
-    createCompactWaitingTask,
-    createCompactTimedTask,
-    createProjectDirectly,
-    createWaitingTask,
-    createTimedTask,
-    saveTask,
-  } = useTaskCreateAndEdit({
-    createTask,
-    createProject,
-    editing,
-    projects: workspaceProjects,
-    selectedDate,
-    updateTask: saveTaskConfirmed,
-  });
+  const { createProjectDirectly, createWaitingTask, createTimedTask, saveTask } =
+    useTaskCreateAndEdit({
+      createTask,
+      createProject,
+      editing,
+      projects: workspaceProjects,
+      selectedDate,
+      updateTask: saveTaskConfirmed,
+    });
 
   const closeDay = useCloseDay({
     closeDay: commitCloseDay,
@@ -236,18 +230,20 @@ export function TaskDashboard() {
       <>
         <CompactWindowHeader />
         <MiniTodayPanel
-          timed={timed}
-          waiting={waiting}
+          timed={tasks
+            .filter(
+              (task) => task.status === 'active' && task.date === getLocalDateKey(),
+            )
+            .sort((a, b) =>
+              (a.plannedStartTime ?? '99').localeCompare(b.plannedStartTime ?? '99'),
+            )}
           projects={workspaceProjects}
-          workstationTaskIds={workstationTaskIds}
           onUpdateTask={update}
-          onToggleWorkstation={toggleWorkstationTask}
-          onClearWorkstation={clearWorkstation}
-          onReorderWorkstation={reorderWorkstation}
-          onCreateTimedTask={createCompactTimedTask}
-          onCreateQuickTask={createCompactWaitingTask}
-          onCompleteWaitingTask={(id) => {
-            void completeWaitingTask(id, getLocalDateKey()).catch(() => undefined);
+          onOpenTask={async (task) => {
+            setActive('home');
+            setSelectedDate(getLocalDateKey());
+            await setMode('full');
+            open(task);
           }}
         />
       </>
@@ -498,6 +494,8 @@ export function TaskDashboard() {
         disabled={false}
       />
       <TaskDialog
+        inWorkstation={Boolean(editing && workstationTaskIds.includes(editing.id))}
+        onToggleWorkstation={toggleWorkstationTask}
         open={taskDialogOpen}
         mode={taskDialogMode}
         editing={editing}

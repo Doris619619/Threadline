@@ -364,3 +364,21 @@ html[data-font-error='true'] .appearance-load-notice {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* 图片显隐由同步主题属性控制，登录前也不会闪出错误配色。 */
+.theme-brand-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.theme-brand-icon img {
+  object-fit: contain;
+}
+.brand-icon-anya {
+  display: none;
+}
+html[data-theme='anya'] .brand-icon-blue {
+  display: none;
+}
+html[data-theme='anya'] .brand-icon-anya {
+  display: block;
+}

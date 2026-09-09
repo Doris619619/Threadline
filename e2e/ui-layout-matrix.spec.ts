@@ -308,7 +308,11 @@ test.describe('compact viewport layout matrix', () => {
     await endTimeInput.fill('10:00');
     await expect(plannedDisplay).toHaveValue('');
     await plannedDisplay.fill('90');
-    await expect(timedRow.locator('.estimate-preview')).toHaveText('1h30min');
+    await expect(plannedDisplay).toHaveValue('90');
+    await expect(timedRow.locator('.estimate-preview')).toHaveCount(0);
+    await expect(
+      timedRow.getByRole('button', { name: '清空预计，设为待定' }),
+    ).toHaveCount(0);
     await endTimeInput.fill('11:00');
     await expect(plannedDisplay).toHaveValue('90');
 

@@ -28,6 +28,10 @@ import {
   updateDesktopBuildLock,
 } from './desktop-build-runtime.mjs';
 
+// 将显式桌面主题传入静态 renderer；已有用户外观偏好始终优先。
+if (process.env.THREADLINE_DESKTOP_THEME === 'anya')
+  process.env.NEXT_PUBLIC_THREADLINE_THEME = 'anya';
+
 const repositoryRoot = resolve(import.meta.dirname, '..');
 const lockPath = join(repositoryRoot, '.tmp', 'desktop-packaging.lock.json');
 const builderCli = join(

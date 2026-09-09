@@ -5,7 +5,7 @@ export type AppearanceFont = 'default' | 'source-han-sans' | 'source-han-serif';
 export type AppearancePreferences = { theme: AppearanceTheme; font: AppearanceFont };
 export const appearanceStorageKey = 'threadline.appearance.v1';
 export const defaultAppearance: AppearancePreferences = {
-  theme: 'blue',
+  theme: process.env.NEXT_PUBLIC_THREADLINE_THEME === 'anya' ? 'anya' : 'blue',
   font: 'default',
 };
 
@@ -31,6 +31,6 @@ export const appearanceBootstrap = `(() => {
   let value;
   try { value = JSON.parse(localStorage.getItem(${JSON.stringify(appearanceStorageKey)}) || 'null'); } catch {}
   const root = document.documentElement;
-  root.dataset.theme = value && value.theme === 'anya' ? 'anya' : 'blue';
+  root.dataset.theme = value ? (value.theme === 'anya' ? 'anya' : 'blue') : ${JSON.stringify(defaultAppearance.theme)};
   root.dataset.font = value && ['source-han-sans', 'source-han-serif'].includes(value.font) ? value.font : 'default';
 })();`;

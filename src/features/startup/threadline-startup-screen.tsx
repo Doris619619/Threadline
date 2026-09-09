@@ -5,7 +5,8 @@
 'use client';
 
 import { Check, LoaderCircle, ShieldCheck, TriangleAlert } from 'lucide-react';
-import Image from 'next/image';
+import { BrandIcon } from '@/features/appearance/brand-icon';
+import { DesktopEntryChrome } from '@/components/desktop-entry-chrome';
 import type {
   StartupOperation,
   StartupOperationStatus,
@@ -122,6 +123,7 @@ export function ThreadlineStartupScreen({
 
   return (
     <main className="threadline-startup" aria-busy={!failedStep}>
+      <DesktopEntryChrome />
       <section className="threadline-startup-visual" aria-hidden="true">
         <span className="threadline-startup-star threadline-startup-star-left" />
         <span className="threadline-startup-star threadline-startup-star-right" />
@@ -133,13 +135,13 @@ export function ThreadlineStartupScreen({
         <span className="threadline-startup-layer threadline-startup-layer-back" />
         <span className="threadline-startup-layer threadline-startup-layer-front" />
         <span className="threadline-startup-icon-wrap">
-          <Image src="/icon.png" alt="" width={80} height={80} unoptimized />
+          <BrandIcon size={80} />
         </span>
       </section>
 
       <section className="threadline-startup-card" aria-label="Threadline 启动进度">
         <div className="threadline-startup-brand">
-          <Image src="/icon.png" alt="" width={24} height={24} unoptimized />
+          <BrandIcon size={24} />
           <span>Threadline</span>
         </div>
         <div className="threadline-startup-heading">

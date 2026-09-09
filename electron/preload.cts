@@ -30,6 +30,8 @@ const bridge =
         environment: 'electron' as const,
         role,
         restoreMain: () => ipcRenderer.invoke('desktop:restore-main'),
+        edgePointer: (phase: 'start' | 'move' | 'end' | 'cancel') =>
+          ipcRenderer.invoke('desktop:edge-pointer', phase),
       }
     : {
         environment: 'electron' as const,
@@ -39,6 +41,11 @@ const bridge =
         transitionWindow: (payload: unknown) =>
           ipcRenderer.invoke('desktop:transition', payload),
         bringToFront: () => ipcRenderer.invoke('desktop:bring-to-front'),
+        resizeCompactContent: (mode: string, height: number) =>
+          ipcRenderer.invoke('desktop:compact-height', mode, height),
+        setAppearanceTheme: (theme: string) =>
+          ipcRenderer.invoke('desktop:appearance', theme),
+        showEntryWindow: () => ipcRenderer.invoke('desktop:entry-window'),
         minimizeMainWindow: () => ipcRenderer.invoke('desktop:minimize-main'),
         closeMainWindow: () => ipcRenderer.invoke('desktop:close-main'),
         getMainWindowMaximized: () => ipcRenderer.invoke('desktop:get-maximized'),

@@ -111,7 +111,7 @@ describe('desktop window policy', () => {
         x: -120,
         y: 48,
       }),
-    ).toEqual({ width: 540, height: 460, x: -120, y: 48 });
+    ).toEqual({ width: 200, height: 100, x: -120, y: 48 });
   });
 
   /** 缺失和非法 persisted state 必须恢复为当前三态的安全规格。 */
@@ -124,8 +124,8 @@ describe('desktop window policy', () => {
         floating: { width: 72, height: 72 },
       }),
     ).toEqual({
-      'mini-today': { width: 518, height: 860 },
-      workstation: { width: 500, height: 480, x: 80, y: 48 },
+      'mini-today': { width: 200, height: 170 },
+      workstation: { width: 200, height: 220, x: 80, y: 48 },
     });
   });
 });

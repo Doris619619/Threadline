@@ -4,6 +4,8 @@
 
 'use client';
 
+import { DesktopEntryChrome } from '@/components/desktop-entry-chrome';
+import { BrandIcon } from '@/features/appearance/brand-icon';
 import {
   createContext,
   useContext,
@@ -62,6 +64,7 @@ export function useOptionalCloudRuntime(): CloudRuntime | null {
 function CloudConfigurationRequired({ reason }: { reason: string }) {
   return (
     <main className="auth-gate">
+      <DesktopEntryChrome />
       <section className="auth-card" role="alert">
         <p className="auth-eyebrow">Threadline Cloud</p>
         <h1>尚未配置云工作区</h1>
@@ -95,6 +98,7 @@ function LoginGate({ client }: { client: SupabaseClient }) {
 
   return (
     <main className="auth-gate">
+      <DesktopEntryChrome />
       <div className="auth-viewport">
         {view === 'welcome' ? (
           <section className="auth-view auth-view-welcome" aria-label="欢迎页面">
@@ -174,14 +178,7 @@ function LoginGate({ client }: { client: SupabaseClient }) {
             </div>
 
             <div className="auth-brand-badge">
-              <Image
-                src="/icon.png"
-                alt="Threadline"
-                width={40}
-                height={40}
-                className="auth-brand-logo"
-                unoptimized
-              />
+              <BrandIcon size={40} alt="Threadline" className="auth-brand-logo" />
               <span className="auth-brand-name">Threadline</span>
             </div>
 
@@ -257,11 +254,7 @@ function LoginGate({ client }: { client: SupabaseClient }) {
                 </p>
               )}
 
-              <button
-                type="submit"
-                className="auth-primary-btn"
-                disabled={submitting}
-              >
+              <button type="submit" className="auth-primary-btn" disabled={submitting}>
                 {submitting ? '正在登录…' : '登录'}
               </button>
             </form>

@@ -1,6 +1,7 @@
 /** @fileoverview Applies external appearance updates and announces a readable fallback if a selected font fails. */
 'use client';
 import { useEffect } from 'react';
+import { getMainDesktopBridge } from '@/lib/desktop-bridge';
 import {
   getAppearance,
   applyFontResult,
@@ -16,6 +17,15 @@ export function AppearanceRuntime() {
     let cancelled = false;
     const current = getAppearance();
     document.documentElement.dataset.theme = current.theme;
+    void getMainDesktopBridge()
+      ?.setAppearanceTheme(current.theme)
+      .catch(() => undefined);
+    document
+      .querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="shortcut icon"]')
+      .forEach((link) => {
+        link.href = current.theme === 'anya' ? '/themes/anya/icon.png' : '/icon.png';
+        link.type = 'image/png';
+      });
     document.documentElement.dataset.font = current.font;
     void loadAppearanceFont(current.font)
       .then(() => {

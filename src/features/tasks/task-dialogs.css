@@ -326,13 +326,57 @@
 .manager-dialog .task-editor-form > footer button {
   min-height: 44px;
   padding: 0 var(--space-4);
-  color: var(--accent-text);
+  color: var(--text-secondary);
   border: 0;
   border-radius: var(--radius-control);
-  background: var(--accent-soft);
+  background: transparent;
   cursor: pointer;
 }
 .manager-dialog .task-editor-form > footer button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* 表单按项目、时段、时长组织，保存是唯一主要操作。 */
+.task-form-project {
+  grid-column: 1 / -1;
+}
+.task-form-durations .estimate-field {
+  display: block;
+  margin: 0;
+}
+.task-form-durations .estimate-field label {
+  display: grid;
+  gap: 8px;
+}
+.manager-dialog .task-editor-form > footer button[type='submit'] {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+.manager-dialog .task-editor-form > footer button[type='button']:hover {
+  background: var(--surface-secondary);
+}
+
+.task-workstation-detail {
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+
+.task-form-durations .estimate-field input {
+  min-height: var(--control-height);
+  height: var(--control-height);
+  border-color: var(--border);
+  font-size: var(--text-label-size);
+}
+@media (max-width: 760px) {
+  .task-form-durations .estimate-field input {
+    min-height: var(--touch-target);
+    font-size: var(--mobile-form-control-font-size);
+  }
 }

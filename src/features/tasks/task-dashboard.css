@@ -526,7 +526,7 @@
 
 .schedule-panel {
   /* 统一桌面单一日程网格定义，时间、复选框、项目、任务、预计、实际、操作共 7 列 */
-  --timeline-grid-columns: 86px 20px 64px minmax(130px, 1fr) 68px 68px 48px;
+  --timeline-grid-columns: 86px 20px 48px minmax(130px, 1fr) 60px 60px 32px;
   overflow: visible;
 }
 
@@ -543,7 +543,7 @@
   grid-template-columns: var(--timeline-grid-columns);
   grid-template-areas: 'time check project title planned actual actions';
   align-items: center;
-  gap: 6px;
+  gap: 3px;
   padding: 6px 8px;
   color: var(--text-tertiary);
   background: var(--surface-secondary);
@@ -607,7 +607,7 @@
   grid-template-columns: var(--timeline-grid-columns);
   grid-template-areas: 'time check project title planned actual actions';
   align-items: center;
-  gap: 6px;
+  gap: 3px;
   min-height: 38px;
   padding: 3px 8px;
   border-bottom: 1px solid var(--border-subtle);

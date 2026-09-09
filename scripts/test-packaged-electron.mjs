@@ -196,14 +196,48 @@ async function runPackagedSmoke(executablePath) {
       },
     );
     assert.equal(await waitForProcessExit(secondInstance, 'second instance exit'), 0);
-    await page.locator('.full-window-chrome').waitFor();
-
-    await page.getByRole('button', { name: '迷你今日', exact: true }).click();
-    await page.getByTestId('mini-today-panel').waitFor();
-    await page.getByRole('button', { name: '工作站', exact: true }).click();
-    await page.getByTestId('workstation-panel').waitFor();
-    await page.getByRole('button', { name: '打开完整工作台' }).click();
-    await page.locator('.full-window-chrome').waitFor();
+    await page.locator('.full-window-chrome, .desktop-entry-chrome').first().waitFor();
+    if (await page.locator('.desktop-entry-chrome').count()) {
+      // 真实云预览在登录阶段也必须可关闭、居中；不为 smoke 登录或写入云数据。
+      const geometry = await page.evaluate(() => ({
+        x: window.screenX,
+        y: window.screenY,
+        width: window.outerWidth,
+        height: window.outerHeight,
+        area: {
+          x: screen.availLeft,
+          y: screen.availTop,
+          width: screen.availWidth,
+          height: screen.availHeight,
+        },
+      }));
+      assert.ok(
+        Math.abs(
+          geometry.x + geometry.width / 2 - geometry.area.x - geometry.area.width / 2,
+        ) < 4,
+        'Entry window horizontally centered',
+      );
+      assert.ok(
+        Math.abs(
+          geometry.y + geometry.height / 2 - geometry.area.y - geometry.area.height / 2,
+        ) < 4,
+        'Entry window vertically centered',
+      );
+      await page
+        .locator('.desktop-entry-chrome button[aria-label="关闭窗口"]')
+        .first()
+        .waitFor();
+      await page.locator('.auth-gate').waitFor();
+      if (process.env.THREADLINE_ENTRY_SCREENSHOT)
+        await page.screenshot({ path: process.env.THREADLINE_ENTRY_SCREENSHOT });
+    } else {
+      await page.getByRole('button', { name: '迷你今日', exact: true }).click();
+      await page.getByTestId('mini-today-panel').waitFor();
+      await page.getByRole('button', { name: '工作站', exact: true }).click();
+      await page.getByTestId('workstation-panel').waitFor();
+      await page.getByRole('button', { name: '打开完整工作台' }).click();
+      await page.locator('.full-window-chrome').waitFor();
+    }
     await page.getByRole('button', { name: '关闭窗口' }).click();
     assert.equal(await waitForProcessExit(executable, 'packaged Main close'), 0);
   } finally {
@@ -220,7 +254,12 @@ try {
   console.log(
     verifyWindowsExecutableIcon(
       executablePath,
-      join(repositoryRoot, 'electron', 'assets', 'icon.ico'),
+      join(
+        repositoryRoot,
+        'electron',
+        'assets',
+        process.env.THREADLINE_DESKTOP_THEME === 'anya' ? 'icon-anya.ico' : 'icon.ico',
+      ),
     ),
   );
   await runPackagedSmoke(executablePath);
