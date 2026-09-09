@@ -320,6 +320,27 @@ try {
       ),
     'second instance must restore the latest compact Main from Edge',
   );
+  // 同次运行允许调宽；重启读取旧宽度时回到窄初始尺寸。
+  await application.evaluate(({ BrowserWindow }) => {
+    const main = BrowserWindow.getAllWindows().find((window) =>
+      window.webContents.getURL().includes('threadline-role=main'),
+    );
+    main.setBounds({ width: 280 });
+  });
+  await waitFor(
+    async () =>
+      (await inspectWindows(application)).some(
+        (window) => window.visible && window.bounds.width === 280,
+      ),
+    'workstation remains manually resizable',
+  );
+  await page.evaluate(() => {
+    const states = JSON.parse(
+      localStorage.getItem('threadline.desktop-window-states.v3') ?? '{}',
+    );
+    states.workstation = { ...states.workstation, width: 340 };
+    localStorage.setItem('threadline.desktop-window-states.v3', JSON.stringify(states));
+  });
   await page.getByRole('button', { name: '关闭窗口' }).click();
   await waitFor(
     async () => desktopProcess.exitCode !== null,
@@ -332,6 +353,13 @@ try {
   desktopProcess = application.process();
   const restartedPage = await application.firstWindow();
   await restartedPage.getByTestId('workstation-panel').waitFor();
+  await waitFor(
+    async () =>
+      (await inspectWindows(application)).some(
+        (window) => window.visible && window.bounds.width === 200,
+      ),
+    'restart must use compact initial width despite old wide preferences',
+  );
   await restartedPage.getByRole('button', { name: '收起', exact: true }).click();
   await waitFor(async () => {
     const edge = (await inspectWindows(application)).find(

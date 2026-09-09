@@ -119,6 +119,20 @@ export function normalizeWindowStates(
   };
 }
 
+/** 新进程读取偏好时让工作站从窄宽度开始；位置/高度和其他视图不变，运行中调宽仍使用通常的尺寸校验。 */
+export function normalizeStartupWindowStates(
+  value: unknown,
+): Partial<Record<DesktopViewMode, WindowStateConfig>> {
+  const states = normalizeWindowStates(value);
+  return {
+    ...states,
+    workstation: {
+      ...states.workstation!,
+      width: DEFAULT_WINDOW_CONFIGS.workstation.width,
+    },
+  };
+}
+
 /** 判断窗口在任意工作区域内是否仍保留足够的可拖回可见矩形。 */
 export function hasSufficientVisibleArea(
   mode: DesktopViewMode,

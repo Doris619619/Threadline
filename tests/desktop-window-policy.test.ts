@@ -5,6 +5,7 @@ import {
   hasSufficientVisibleArea,
   normalizeCompactWindowState,
   normalizeWindowStates,
+  normalizeStartupWindowStates,
   resolveSafeWindowState,
   type LogicalWorkArea,
 } from '@/lib/desktop-window-policy';
@@ -113,6 +114,25 @@ describe('desktop window policy', () => {
       }),
     ).toEqual({ width: 200, height: 100, x: -120, y: 48 });
   });
+
+  /** 历史大宽度不能成为新进程默认，但当前会话的主动调整仍有效。 */
+  it.each([260, 340, 800])(
+    'starts workstation at 200 instead of saved width %s',
+    (width) => {
+      const stored = {
+        full: { width: 1000, height: 700, x: 10, y: 20 },
+        'mini-today': { width: 280, height: 160, x: 20, y: 40 },
+        workstation: { width, height: 130, x: 800, y: 100 },
+      };
+      expect(normalizeStartupWindowStates(stored)).toEqual({
+        ...stored,
+        workstation: { ...stored.workstation, width: 200 },
+      });
+      expect(
+        normalizeCompactWindowState('workstation', { width: 280, height: 130 }),
+      ).toEqual({ width: 280, height: 130 });
+    },
+  );
 
   /** 缺失和非法 persisted state 必须恢复为当前三态的安全规格。 */
   it('normalizes malformed persisted window state without accepting legacy modes', () => {

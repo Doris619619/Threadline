@@ -16,7 +16,7 @@ import { useOptionalStartupProgress } from '@/features/startup/startup-progress-
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import {
   normalizeCompactWindowState,
-  normalizeWindowStates,
+  normalizeStartupWindowStates,
   type CompactPresentation,
   type CompactViewMode,
   type DesktopViewMode,
@@ -106,7 +106,7 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     );
   const [windowStates, setWindowStates, statesHydrated] = usePersistentState<
     Partial<Record<DesktopViewMode, WindowStateConfig>>
-  >('threadline.desktop-window-states.v3', {}, normalizeWindowStates);
+  >('threadline.desktop-window-states.v3', {}, normalizeStartupWindowStates);
   const requestIdRef = useRef(0);
   const appliedStateRevisionRef = useRef(0);
   const startupAppliedRef = useRef(false);

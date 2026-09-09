@@ -39,6 +39,7 @@ Main 与 Renderer 共同复用 `src/lib/desktop-window-policy.ts`：Main 不再�
 - v3 key：`threadline.desktop-mode.v3`、`threadline.desktop-window-states.v3`、`threadline.desktop-last-compact-mode.v3`、`threadline.desktop-compact-presentation.v3`。
 - 旧 v2 的 `floating-icon` 和 72px geometry 不会迁入；非法旧值安全回退到完整工作台。
 - Mini Today 默认 200 × 170，限制为 200–340 × 96–170 logical px；Workstation 默认 200 × 200，限制为 200–340 × 96–220 logical px。列表自然高度加 68px 标题/底部/内边距，通过受限 IPC 交给 Main 限幅；过量任务内部滚动。旧版超宽 geometry 回到 200px，位置仍保留。重置窗口尺寸与位置会清空 v3 geometry。
+- 工作站在新进程读取偏好时将初始宽度设为 200 logical px，保留有效位置与高度；旧的大宽度不会再次成为默认。同一次运行中允许手动调宽，切换视图与收起/展开不重置该宽度。迷你今日和 Full 沿用现有策略。
 - 真正移入回收站的任务会从工作站引用集合清除；完成任务不会自动移除。
 
 ## 启动与认证
