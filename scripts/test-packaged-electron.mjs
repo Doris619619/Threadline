@@ -231,8 +231,6 @@ async function runPackagedSmoke(executablePath) {
       if (process.env.THREADLINE_ENTRY_SCREENSHOT)
         await page.screenshot({ path: process.env.THREADLINE_ENTRY_SCREENSHOT });
     } else {
-      await page.getByRole('button', { name: '迷你今日', exact: true }).click();
-      await page.getByTestId('mini-today-panel').waitFor();
       await page.getByRole('button', { name: '工作站', exact: true }).click();
       await page.getByTestId('workstation-panel').waitFor();
       await page.getByRole('button', { name: '打开完整工作台' }).click();

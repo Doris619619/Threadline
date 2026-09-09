@@ -159,17 +159,11 @@ export function SettingsPanel({
     return (
       <SettingsDetail title="桌面窗口" onBack={() => setSection('overview')}>
         <Surface className="desktop-settings">
-          <p>完整工作台、迷你今日与工作站共用主窗口；紧凑视图可收起为右侧入口。</p>
+          <p>完整工作台与工作站共用主窗口；工作站可收起到左右屏幕边缘。</p>
           <dl>
             <div>
               <dt>当前窗口</dt>
-              <dd>
-                {mode === 'full'
-                  ? '完整工作台'
-                  : mode === 'mini-today'
-                    ? '迷你今日'
-                    : '工作站'}
-              </dd>
+              <dd>{mode === 'full' ? '完整工作台' : '工作站'}</dd>
             </div>
             <div>
               <dt>重置范围</dt>

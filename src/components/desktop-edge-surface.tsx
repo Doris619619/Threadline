@@ -6,7 +6,7 @@ import { getThreadlineDesktopBridge } from '@/lib/desktop-bridge';
 /** Edge 不挂载业务 Provider，拖动结束与键盘激活均经过最小 bridge。 */
 export function DesktopEdgeSurface() {
   const dragging = useRef(false);
-  /** 仅恢复最近紧凑窗口，销毁过程的 IPC 竞争可以安全忽略。 */
+  /** 仅恢复工作站，销毁过程的 IPC 竞争可以安全忽略。 */
   const restore = () => {
     const bridge = getThreadlineDesktopBridge();
     if (bridge?.role === 'edge-tab') void bridge.restoreMain().catch(() => undefined);
@@ -15,7 +15,7 @@ export function DesktopEdgeSurface() {
     <button
       type="button"
       className="edge-tab"
-      aria-label="展开最近的紧凑工作台"
+      aria-label="展开工作站"
       title="点击展开，拖动调整贴边位置"
       onPointerDown={(event) => {
         if (event.button !== 0) return;

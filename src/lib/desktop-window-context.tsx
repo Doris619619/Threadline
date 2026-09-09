@@ -16,14 +16,15 @@ import { useOptionalStartupProgress } from '@/features/startup/startup-progress-
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import {
   normalizeCompactWindowState,
+  normalizeDesktopViewMode,
   normalizeStartupWindowStates,
   type CompactPresentation,
-  type CompactViewMode,
   type DesktopViewMode,
   type WindowStateConfig,
 } from '@/lib/desktop-window-policy';
 import { getMainDesktopBridge } from '@/lib/desktop-bridge';
 import { resolveDesktopWindowCapability } from '@/lib/desktop-window-capability';
+import { createPersistentStateRepository } from '@/lib/repository';
 
 type DesktopWindowContextValue = {
   isNativeDesktop: boolean;
@@ -37,7 +38,6 @@ type DesktopWindowContextValue = {
   closeMainWindow: () => Promise<void>;
   isMainWindowMaximized: boolean;
   toggleMainWindowMaximized: () => Promise<void>;
-  isMiniToday: boolean;
   isWorkstation: boolean;
   isCompact: boolean;
   isEdgeCollapsed: boolean;
@@ -66,17 +66,6 @@ export function useDesktopWindow(): DesktopWindowContextValue {
   if (!context) throw new Error('useDesktopWindow 必须在 DesktopWindowProvider 内使用');
   return context;
 }
-/** 只接受当前三个业务 view。 */
-function normalizeViewMode(value: unknown): DesktopViewMode {
-  return value === 'mini-today' || value === 'workstation' || value === 'full'
-    ? value
-    : 'full';
-}
-/** Edge 永远从紧凑 view 恢复。 */
-function normalizeCompactMode(value: unknown): CompactViewMode {
-  return value === 'workstation' ? 'workstation' : 'mini-today';
-}
-
 /** 提供 Web/PWA 业务状态和窄 Electron bridge 之间的单向桌面状态同步。 */
 export function DesktopWindowProvider({ children }: { children: ReactNode }) {
   const startupProgress = useOptionalStartupProgress();
@@ -90,7 +79,7 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState, modeHydrated] = usePersistentState<DesktopViewMode>(
     'threadline.desktop-mode.v3',
     'full',
-    normalizeViewMode,
+    normalizeDesktopViewMode,
   );
   const [presentation, setPresentation, presentationHydrated] =
     usePersistentState<CompactPresentation>(
@@ -98,15 +87,15 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
       'expanded',
       (value) => (value === 'edge-collapsed' ? value : 'expanded'),
     );
-  const [lastCompactMode, setLastCompactMode, compactHydrated] =
-    usePersistentState<CompactViewMode>(
-      'threadline.desktop-last-compact-mode.v3',
-      'mini-today',
-      normalizeCompactMode,
-    );
   const [windowStates, setWindowStates, statesHydrated] = usePersistentState<
     Partial<Record<DesktopViewMode, WindowStateConfig>>
   >('threadline.desktop-window-states.v3', {}, normalizeStartupWindowStates);
+  /** 清除已移除的模式选择键，不触碰工作站引用或任务数据。 */
+  useEffect(() => {
+    void createPersistentStateRepository()
+      .remove('threadline.desktop-last-compact-mode.v3')
+      .catch(() => undefined);
+  }, []);
   const requestIdRef = useRef(0);
   const appliedStateRevisionRef = useRef(0);
   const startupAppliedRef = useRef(false);
@@ -114,15 +103,13 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     () => typeof window !== 'undefined' && !getMainDesktopBridge(),
   );
   const [isMainWindowMaximized, setIsMainWindowMaximized] = useState(false);
-  const hydrated =
-    modeHydrated && presentationHydrated && compactHydrated && statesHydrated;
+  const hydrated = modeHydrated && presentationHydrated && statesHydrated;
 
   /** 发送唯一允许的原生 transition，并持久化 Main 返回的 canonical geometry。 */
   const transition = useCallback(
     async (
       nextMode: DesktopViewMode,
       nextPresentation: CompactPresentation,
-      nextLastCompactMode: CompactViewMode,
       nextWindowStates: Partial<Record<DesktopViewMode, WindowStateConfig>>,
     ) => {
       const bridge = getMainDesktopBridge();
@@ -132,7 +119,6 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
         requestId,
         mode: nextMode,
         presentation: nextPresentation,
-        lastCompactMode: nextLastCompactMode,
         windowStates: nextWindowStates,
       });
       if (result.requestId !== requestId || requestId !== requestIdRef.current) return;
@@ -142,40 +128,32 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
       );
       setModeState(result.mode);
       setPresentation(result.presentation);
-      setLastCompactMode(
-        result.mode === 'workstation' ? 'workstation' : nextLastCompactMode,
-      );
       setWindowStates((current) => ({ ...current, [result.mode]: result.geometry }));
     },
-    [setLastCompactMode, setModeState, setPresentation, setWindowStates],
+    [setModeState, setPresentation, setWindowStates],
   );
 
   /** 切换仅由 Electron Main 支持的业务窗口 view。 */
   const setMode = useCallback(
     async (next: DesktopViewMode) => {
       if (next === mode && presentation === 'expanded') return;
-      await transition(
-        next,
-        'expanded',
-        next === 'full' ? lastCompactMode : next,
-        windowStates,
-      );
+      await transition(next, 'expanded', windowStates);
     },
-    [lastCompactMode, mode, presentation, transition, windowStates],
+    [mode, presentation, transition, windowStates],
   );
   /** 收起 Electron 紧凑 view 为受限的原生 Edge 窗口。 */
   const collapseCompactView = useCallback(async () => {
-    if (mode !== 'full') await transition(mode, 'edge-collapsed', mode, windowStates);
+    if (mode !== 'full') await transition(mode, 'edge-collapsed', windowStates);
   }, [mode, transition, windowStates]);
-  /** 恢复最近紧凑 view。 */
+  /** 收起入口始终恢复唯一的工作站视图。 */
   const restoreCompactView = useCallback(
-    async () => transition(lastCompactMode, 'expanded', lastCompactMode, windowStates),
-    [lastCompactMode, transition, windowStates],
+    async () => transition('workstation', 'expanded', windowStates),
+    [transition, windowStates],
   );
   /** 忘记 persisted geometry 并应用默认状态。 */
   const resetWindowStates = useCallback(
-    async () => transition(mode, presentation, lastCompactMode, {}),
-    [lastCompactMode, mode, presentation, transition],
+    async () => transition(mode, presentation, {}),
+    [mode, presentation, transition],
   );
   /** 请求 Electron Main 关闭受管窗口。 */
   const closeMainWindow = useCallback(async () => {
@@ -207,7 +185,6 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
         requestId,
         mode,
         presentation,
-        lastCompactMode,
         windowStates,
       })
       .then((result) => {
@@ -228,7 +205,6 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
   }, [
     workspaceReady,
     hydrated,
-    lastCompactMode,
     mode,
     presentation,
     setModeState,
@@ -249,9 +225,6 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
       appliedStateRevisionRef.current = event.stateRevision;
       setModeState(event.mode);
       setPresentation(event.presentation);
-      setLastCompactMode(
-        event.mode === 'workstation' ? 'workstation' : event.lastCompactMode,
-      );
       setWindowStates((current) => ({
         ...current,
         ...event.windowStates,
@@ -259,7 +232,7 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
       }));
       void bridge.acknowledgeNativeState(event.stateRevision);
     });
-  }, [setLastCompactMode, setModeState, setPresentation, setWindowStates]);
+  }, [setModeState, setPresentation, setWindowStates]);
 
   /** 仅保存 Main 确认的用户移动或内容高度 geometry，不产生反向 transition。 */
   useEffect(() => {
@@ -301,10 +274,9 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     if (!bridge) return;
     return bridge.onPresentationRollback(({ mode: restoredMode }) => {
       setModeState(restoredMode);
-      setLastCompactMode(restoredMode === 'workstation' ? 'workstation' : 'mini-today');
       setPresentation('expanded');
     });
-  }, [setLastCompactMode, setModeState, setPresentation]);
+  }, [setModeState, setPresentation]);
 
   const { mode: effectiveMode, presentation: effectivePresentation } =
     resolveDesktopWindowCapability(isNativeDesktop, mode, presentation);
@@ -322,7 +294,6 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
         closeMainWindow,
         isMainWindowMaximized,
         toggleMainWindowMaximized,
-        isMiniToday: effectiveMode === 'mini-today',
         isWorkstation: effectiveMode === 'workstation',
         isCompact: effectiveMode !== 'full',
         isEdgeCollapsed: effectivePresentation === 'edge-collapsed',

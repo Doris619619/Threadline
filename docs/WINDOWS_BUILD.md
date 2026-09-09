@@ -43,7 +43,7 @@ Preview 是 **production-equivalent unpacked Electron app**：它与正式 packa
 - 正式 preload bridge、IPC、BrowserWindow 与本地数据语义；
 - Embedded ASAR integrity 与 `OnlyLoadAppFromAsar`。
 
-Preview 不是 dev server、`file://`、开发模式 Electron，也不是手工复制 `node_modules/electron/dist` 得到的近似包。它能验收 UI、交互、production renderer、窗口行为、IPC、Full、Mini Today、Workstation 和 Edge。它只省略 NSIS，因此不验证安装/卸载流程、安装目录 UI、快捷方式、Start Menu 和其他 installer-specific 行为。
+Preview 不是 dev server、`file://`、开发模式 Electron，也不是手工复制 `node_modules/electron/dist` 得到的近似包。它能验收 UI、交互、production renderer、窗口行为、IPC、Full、Workstation 和 Edge。它只省略 NSIS，因此不验证安装/卸载流程、安装目录 UI、快捷方式、Start Menu 和其他 installer-specific 行为。
 
 ## 输出、锁与 Manifest
 

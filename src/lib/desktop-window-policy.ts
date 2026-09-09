@@ -2,7 +2,7 @@
  * @fileoverview 定义与桌面壳无关的窗口模式、geometry 归一化和显示器安全恢复策略。
  */
 
-export type DesktopViewMode = 'full' | 'mini-today' | 'workstation';
+export type DesktopViewMode = 'full' | 'workstation';
 export type CompactViewMode = Exclude<DesktopViewMode, 'full'>;
 export type CompactPresentation = 'expanded' | 'edge-collapsed';
 
@@ -21,10 +21,9 @@ export interface LogicalWorkArea {
   height: number;
 }
 
-/** 定义三种业务窗口模式在没有 persisted geometry 时使用的默认尺寸。 */
+/** 定义两种业务窗口模式在没有 persisted geometry 时使用的默认尺寸。 */
 export const DEFAULT_WINDOW_CONFIGS: Record<DesktopViewMode, WindowStateConfig> = {
   full: { width: 1280, height: 840 },
-  'mini-today': { width: 200, height: 170 },
   workstation: { width: 200, height: 200 },
 };
 
@@ -36,14 +35,12 @@ export const COMPACT_WINDOW_BOUNDS: Record<
   CompactViewMode,
   { minWidth: number; maxWidth: number; minHeight: number; maxHeight: number }
 > = {
-  'mini-today': { minWidth: 200, maxWidth: 340, minHeight: 96, maxHeight: 170 },
   workstation: { minWidth: 200, maxWidth: 340, minHeight: 96, maxHeight: 220 },
 };
 
 const MINIMUM_VISIBLE_SIZE: Record<DesktopViewMode, { width: number; height: number }> =
   {
     full: { width: 240, height: 160 },
-    'mini-today': { width: 80, height: 80 },
     workstation: { width: 80, height: 80 },
   };
 
@@ -89,7 +86,7 @@ export function normalizeCompactWindowState(
     : normalized;
 }
 
-/** 过滤 persisted window state，只接受当前三种业务窗口模式的合法 geometry。 */
+/** 过滤 persisted window state，只接受当前两种业务窗口模式的合法 geometry。 */
 export function normalizeWindowStates(
   value: unknown,
 ): Partial<Record<DesktopViewMode, WindowStateConfig>> {
@@ -114,7 +111,6 @@ export function normalizeWindowStates(
 
   return {
     ...(normalizedFull ? { full: normalizedFull } : {}),
-    'mini-today': normalizeCompactWindowState('mini-today', states['mini-today']),
     workstation: normalizeCompactWindowState('workstation', states.workstation),
   };
 }
@@ -197,4 +193,9 @@ export function resolveSafeWindowState(
   return fallbackArea
     ? getFallbackWindowState(mode, state, fallbackArea)
     : { ...state };
+}
+
+/** 停用视图的旧偏好迁移到工作站；未知模式回退完整工作台。 */
+export function normalizeDesktopViewMode(value: unknown): DesktopViewMode {
+  return value === 'workstation' || value === 'mini-today' ? 'workstation' : 'full';
 }

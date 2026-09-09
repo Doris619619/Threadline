@@ -185,8 +185,8 @@ try {
     normalBounds,
     'maximize and restore must retain the normal window geometry',
   );
-  await page.getByRole('button', { name: '迷你今日', exact: true }).click();
-  await page.getByTestId('mini-today-panel').waitFor();
+  await page.getByRole('button', { name: '工作站', exact: true }).click();
+  await page.getByTestId('workstation-panel').waitFor();
   assert.equal(
     await page
       .locator('.compact-window-header')
@@ -196,17 +196,42 @@ try {
     'drag',
     'frameless compact header must provide a drag region',
   );
-  const miniMain = (await inspectWindows(application)).find(
+  const compactMain = (await inspectWindows(application)).find(
     (window) => window.visible && window.url.includes('threadline-role=main'),
   );
-  assert.ok(miniMain, 'Mini mode must keep the Main BrowserWindow visible');
-  assert.equal(miniMain.bounds.width, 200);
+  assert.ok(compactMain, 'Workstation mode must keep the Main BrowserWindow visible');
+  assert.equal(compactMain.bounds.width, 200);
   assert.ok(
-    miniMain.bounds.height >= 96 && miniMain.bounds.height <= 170,
-    'Mini height must use the target range or a work-area-clamped value',
+    compactMain.bounds.height >= 96 && compactMain.bounds.height <= 220,
+    'Workstation height must use the target range or a work-area-clamped value',
   );
-  await page.getByRole('button', { name: '工作站', exact: true }).click();
-  await page.getByTestId('workstation-panel').waitFor();
+  // 奇数屏幕坐标在 250% 下产生分数物理像素，是旧外框回填增宽的触发条件。
+  await application.evaluate(({ BrowserWindow }) => {
+    BrowserWindow.getAllWindows()
+      .find((w) => w.webContents.getURL().includes('role=main'))
+      .setBounds({ x: 601, y: 101, width: 280 });
+  });
+  for (let index = 0; index < 100; index++) {
+    await page.evaluate(
+      (height) => window.threadlineDesktop.resizeCompactContent('workstation', height),
+      120 + (index % 2),
+    );
+    assert.equal(
+      await application.evaluate(
+        ({ BrowserWindow }) =>
+          BrowserWindow.getAllWindows()
+            .find((w) => w.webContents.getURL().includes('role=main'))
+            .getContentSize()[0],
+      ),
+      280,
+      'content height updates preserve user width at fractional physical coordinates',
+    );
+  }
+  await application.evaluate(({ BrowserWindow }) => {
+    BrowserWindow.getAllWindows()
+      .find((w) => w.webContents.getURL().includes('role=main'))
+      .setBounds({ x: 600, y: 100, width: 200 });
+  });
   await page.getByRole('button', { name: '收起', exact: true }).click();
   await waitFor(
     async () =>
@@ -254,11 +279,28 @@ try {
   });
   await edgePage.mouse.move(10, 10);
   await edgePage.mouse.down();
-  await application.evaluate(({ screen }) => {
-    const area = screen.getPrimaryDisplay().workArea;
-    globalThis.compactTestCursor = { x: area.x + 4, y: area.y + 84 };
-  });
-  await edgePage.mouse.move(12, 20);
+  // 连续真实 Renderer 指针事件经过 trusted IPC，原生尺寸不能随每次定位递增。
+  for (let index = 0; index < 120; index++) {
+    await application.evaluate(({ screen }, index) => {
+      const area = screen.getPrimaryDisplay().workArea;
+      globalThis.compactTestCursor = {
+        x: area.x + 4 + (index % 2),
+        y: area.y + 84 + (index % 20),
+      };
+    }, index);
+    await edgePage.mouse.move(12 + (index % 2), 20 + (index % 20));
+    const bounds = (await inspectWindows(application)).find((w) =>
+      w.url.includes('edge-tab'),
+    ).bounds;
+    assert.ok(
+      Math.abs(bounds.width - edgeBounds.width) <= 1,
+      'held drag must not grow native width',
+    );
+    assert.ok(
+      Math.abs(bounds.height - edgeBounds.height) <= 1,
+      'held drag must not grow native height',
+    );
+  }
   await edgePage.mouse.up();
   await waitFor(
     async () =>
@@ -285,7 +327,7 @@ try {
     screen.getCursorScreenPoint = globalThis.compactOriginalCursor;
   });
   // 用键盘激活复核无指针环境；下面仍通过真实按钮 click 验证鼠标恢复。
-  await edgePage.getByRole('button', { name: '展开最近的紧凑工作台' }).click();
+  await edgePage.getByRole('button', { name: '展开工作站' }).click();
   await page.getByTestId('workstation-panel').waitFor();
   await waitFor(
     async () =>

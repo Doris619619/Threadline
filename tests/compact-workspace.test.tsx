@@ -1,7 +1,7 @@
-/** @fileoverview 验证便签今日只呈现传入日程，完成与详情操作仍交给业务层。 */
+/** @fileoverview 验证工作站引用移除与预计输入行为。 */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MiniTodayPanel, WorkstationPanel } from '@/features/tasks/compact-workspace';
+import { WorkstationPanel } from '@/features/tasks/compact-workspace';
 import { PlannedMinutesField } from '@/features/tasks/components/planned-minutes-field';
 import type { Project, Task } from '@/types/domain';
 vi.mock('@/lib/desktop-window-context', () => ({
@@ -28,29 +28,6 @@ const task: Task = {
   plannedEndTime: '19:30',
 };
 describe('compact note behavior', () => {
-  it('shows schedule with adjacent completion and opens details or creation through the parent', () => {
-    const update = vi.fn(),
-      open = vi.fn();
-    render(
-      <MiniTodayPanel
-        timed={[task]}
-        projects={[project]}
-        onUpdateTask={update}
-        onOpenTask={open}
-      />,
-    );
-    expect(screen.queryByText('待安排')).toBeNull();
-    expect(screen.queryByText('待定')).toBeNull();
-    expect(screen.getByText('19:00–19:30')).toBeVisible();
-    fireEvent.click(screen.getByRole('checkbox', { name: `完成${task.title}` }));
-    expect(update).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 't', completed: true }),
-    );
-    fireEvent.click(screen.getByRole('button', { name: `查看任务${task.title}` }));
-    expect(open).toHaveBeenCalledWith(task);
-    fireEvent.click(screen.getByRole('button', { name: '添加今日日程' }));
-    expect(open).toHaveBeenLastCalledWith();
-  });
   it('removes workstation references without completing or deleting the task', () => {
     const remove = vi.fn();
     render(

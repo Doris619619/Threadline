@@ -15,7 +15,6 @@ export type DesktopHydrationPayload = {
   requestId: number;
   mode: DesktopViewMode;
   presentation: CompactPresentation;
-  lastCompactMode: CompactViewMode;
   windowStates: DesktopWindowStates;
 };
 

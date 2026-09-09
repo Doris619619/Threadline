@@ -15,7 +15,6 @@
   scrollbar-width: thin;
   flex: 1;
 }
-.compact-scroll ul,
 .compact-scroll ol {
   list-style: none;
   margin: 0;
@@ -25,7 +24,6 @@
   background: var(--surface);
   overflow: hidden;
 }
-.mini-task-row,
 .workstation-row {
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr);
@@ -35,7 +33,6 @@
   padding: 2px 4px;
   border-bottom: 1px solid var(--border-subtle);
 }
-.mini-task-row:last-child,
 .workstation-row:last-child {
   border-bottom: 0;
 }
@@ -63,33 +60,6 @@
   font-weight: 400;
   color: var(--text-primary);
 }
-.mini-task-details {
-  display: grid;
-  gap: 1px;
-  min-width: 0;
-  min-height: 24px;
-  padding: 2px 0;
-  text-align: left;
-  border: 0;
-  background: transparent;
-  color: var(--text-primary);
-  cursor: pointer;
-}
-.mini-task-details time {
-  font-size: 10px;
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-.mode-compact .mini-task-row .tl-checkbox {
-  width: 24px;
-  height: 24px;
-  min-height: 24px;
-  padding: 4px;
-}
-.mini-task-row.completed strong {
-  text-decoration: line-through;
-  color: var(--text-secondary);
-}
 .compact-empty {
   padding: 12px 6px;
   font-size: 12px;
@@ -109,23 +79,6 @@
 }
 .compact-full-link:hover {
   text-decoration: underline;
-}
-.mini-footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  flex-shrink: 0;
-}
-.compact-add-trigger {
-  position: absolute;
-  right: 0;
-  width: 24px;
-  height: 24px;
-  border: 0;
-  background: transparent;
-  color: var(--accent-text);
-  cursor: pointer;
 }
 .workstation-row {
   grid-template-columns: 16px minmax(0, 1fr);
@@ -170,10 +123,6 @@
 
 .dashboard-annotatable {
   position: relative;
-}
-
-.dashboard-columns.is-mini-today {
-  grid-template-columns: 1fr;
 }
 
 .schedule-panel.is-drop-target,
@@ -434,18 +383,6 @@
   background: #28c840;
 }
 
-.mode-compact .mini-task-row .tl-checkbox span {
-  width: 15px;
-  height: 15px;
-  min-width: 15px;
-  flex: 0 0 15px;
-  border-width: 1px;
-  border-radius: 4px;
-}
-.mode-compact .mini-task-row .tl-checkbox span svg {
-  width: 12px;
-  height: 12px;
-}
 /* 右键菜单浮于列表上方，不占用任务标题的任何宽度。 */
 .workstation-context-menu {
   position: fixed;

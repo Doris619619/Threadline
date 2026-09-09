@@ -1,57 +1,51 @@
-<!-- 文件用途：记录桌面工作台的拖拽排程、荧光笔批注与完整工作台/迷你今日/工作站三态窗口行为。 -->
+<!-- 文件用途：记录完整工作台、工作站与贴边入口的交互、原生尺寸和兼容迁移。 -->
 
 # 桌面交互与窗口形态
 
-本文档描述首页今日工作台的拖拽排程、荧光笔批注，以及 Windows 桌面端的三态工作流。Web/PWA 与桌面端共用前端；Electron native geometry 仅在桌面端生效。
+Web/PWA 保持完整工作台。Windows Electron 使用同一 Main BrowserWindow 承载完整工作台和工作站；收起时用独立的 Edge BrowserWindow 显示入口。Edge 不挂载业务 Provider，也不访问任务仓储。
 
-## 任务拖拽与批注
+## 完整工作台与工作站
 
-- 今日日程可拖拽同一条任务记录进入待安排池。待安排通过菜单安排进日程后进入持久化的 `schedulePendingTime`；拖回待安排会清除日期、待填时间和起止时间，保留独立预计时长。
-- 荧光笔或橡皮擦激活时锁定任务拖拽与行内编辑，Esc 或再次点击当前工具退出。荧光笔提供黄、粉、蓝、绿、紫预设色，当前色会记住为本地偏好；笔迹按相对坐标保存，窗口缩放后保持对齐。
+- 完整工作台无原生标题栏、非置顶；保留全部导航。仅 Electron 提供工作站、最小化、最大化/还原与关闭按钮。启动与登录阶段也有关闭和最小化按钮，首次显示居中于指针所在显示器的工作区。
+- 工作站始终置顶。标题栏仅显示“工作站／清空／收起／关闭”，中间是连续的“序号＋项目＋任务名”，底部打开完整工作台。拖动标题栏移动窗口，拖动边框可调宽。
+- 工作站保存 `threadline.workstation.v1` 的有序 task ID 引用。改名和项目变化会同步；右键或 Shift+F10 可移出引用，拖动任务可排序。移出和清空不会删除、完成或修改原任务；真正移入回收站的任务才自动清理引用。
+- 工作站每个新进程初始宽度 200 logical px，保留有效位置；当前运行期间可调至 340px，切换和收起/展开保留用户宽度。默认高度 200px，按列表自然高度加 68px 调整，范围 96–220px；大量任务只滚动列表，不滚动标题栏。
+- Full 默认 1280×840，最小 800×560；屏幕工作区域不足时做可见性保护。最大化和最小化期间不保存异常 bounds。
 
-## 三态工作流
+## 贴边入口与尺寸稳定性
 
-- **完整工作台**：无原生标题栏、非置顶，保留首页、规划、项目、洞察、记录、节律与设置。仅检测到 Electron Main Renderer bridge 时，独立的 40px 顶部 chrome 才提供连续拖动区、“迷你今日”、“工作站”、最小化、原生最大化/还原和关闭入口；Web/PWA 不渲染这些原生入口，也不会由历史桌面模式切入紧凑视图。紧凑视图不支持最大化。
-- **迷你今日**：始终置顶的小便签，只显示实际今天的日程（包括尚未填写时间的任务），不显示待安排、统计、Daily 或批注。完成框紧挨项目与任务名，已填时间位于次行；点任务打开完整工作台的详情，预计时长和工作站引用操作在详情中显示。底部加号打开完整工作台的今日新增表单。
-- **工作站**：始终置顶的小尺寸提醒窗，只显示有序的序号、项目和任务名。它保存 `threadline.workstation.v1` 中的 task ID 引用，不复制标题或任务内容；因此改名或改项目会同步。右键任务（或 Shift+F10）选择“移出工作站”，菜单不占用列表宽度；移除、清空和拖动排序只改引用集合，不会删除、完成、移期或修改原任务。
+“收起”只隐藏工作站，入口显示时用 `showInactive` 避免抢焦点。入口和工作站均原生置顶；悬停不展开，明确单击或键盘激活恢复工作站。超过 4 DIP 算拖动，松手吸附到所在显示器左右边缘，拖动结束不展开。
 
-迷你今日与工作站使用**同一个无原生 frame 的 Electron Main BrowserWindow**平滑变形；Renderer 的唯一紧凑 header 提供拖动、模式切换、收起和低强调关闭入口。Mini Today 默认 200 × 170 logical px，Workstation 默认 200 × 200 logical px；底部“打开完整工作台”会恢复完整工作台并保留此前侧边栏页面。
+入口规格为 28×104 logical px，Main 设置一致的最小/最大尺寸。Windows 的最小原生窗口宽度和 DPI 取整可能使读回外框略大：本机 Windows 11、Electron 44、250% 下外框稳定为 32×105。尺寸不能从 `getBounds()` 读回后再用于定位。
 
-## 左右贴边收起入口
+本次故障在相同机器的隔离原生窗口中复现：旧 `setPosition` 定位链连续调用 100 次，外框高度从 106 变为 206，每次约增加 1 DIP；`setBounds({...getBounds(), x, y})` 同样累积。按住拖动时的高频指针消息重复调用这条链，因此入口不断拉长。固定尺寸的 `setBounds({width:28,height:104,x,y})` 对照组 100 次始终为 32×105。
 
-右侧 edge tab 不是第四种窗口模式。只有迷你今日和工作站可通过“收起”进入 `edge-collapsed` presentation；只点击后恢复最近的紧凑视图，悬停不会展开。完整工作台不能收起为 edge tab。
+修复后拖动和屏幕重新定位都传入固定规格，原生最小/最大尺寸作为第二道保护。相同位置不重复定位。入口位置只保存显示器 ID、左右侧和纵向比例；原屏幕移除时回退 Main 所在屏幕。工作站仍可手动调宽，固定尺寸限制仅用于入口。
 
-edge tab 是独立的无边框 Electron BrowserWindow，拖动松手后吸附至所在显示器 work area 的左/右边缘，并使用 logical pixel 安全 bounds，避免多显示器和 DPI 缩放下的单屏硬编码。
+工作站的自动高度也存在同源问题：例如 x=601、y=101 在 250% 下对应分数物理像素，旧代码将向外取整后的外框宽度再次写回，280px 会逐渐增大到原生上限。Main 现在统一用 `readFramelessGeometry` 读取可重用的内容宽高与屏幕位置，高度调整、用户尺寸保存、收起与恢复均使用它。修复后相同坐标连续 100 次交替高度更新，内容宽度始终为手动设定的 280px；外框允许固定的取整差异，但不能累积。
 
-Main 与 Renderer 共同复用 `src/lib/desktop-window-policy.ts`：Main 不再维护第二套默认尺寸或 safe-bounds 算法。显示器增加、移除、DPI 和 work area 变化都会重新执行该 policy；Edge 记忆显示器、左右侧和纵向相对位置；原屏幕移除后回退到 Main 所在屏幕。入口设置 always-on-top，以 showInactive 显示而不抢焦点。超过 4 DIP 的拖动不触发展开。
+## 状态、恢复与迁移
 
-## 原生窗口恢复与单实例
-
-- 只在状态水合完成时恢复一次原生窗口；用户移动/缩放产生的 geometry 写回不会反向触发窗口 apply，避免持续跳动。
-- 展开窗口恢复前会以 Electron `screen` 的 logical work area 校验可见矩形。`-32000` 最小化哨兵、已拔除显示器、DPI 变化或只露出极小边缘时，完整工作台居中回退，迷你今日和工作站回退到当前工作区右上方并保留 24px 边距。
-- 最小化期间不持久化 geometry。每次启动、三态切换、edge tab 恢复和第二次启动都会先取消最小化、显示并聚焦窗口，再执行可见性保护。
-- 最大化期间不回传或持久化 BrowserWindow bounds；还原后沿用原本 normal bounds，避免最大化尺寸污染下次 Full 启动的 geometry。
-- Windows 使用 Electron `requestSingleInstanceLock()`。重复启动不会创建第二个应用；既有可见窗口会被唤醒。若当前只显示 edge tab，Main 会恢复最近的紧凑视图；若已展开，则保留当前视图。
-- Renderer 命令的 `requestId` 只用于命令回包关联；Main 的 canonical state 使用独立递增的 `stateRevision`。Edge 恢复、第二实例和故障恢复会先广播该状态，等待 Main Renderer 写入 v3 状态并确认对应 revision，再显示 Main、隐藏 Edge。确认超时仍显示安全 Main，避免两个 surface 同时不可见。
-
-## 持久化与尺寸保护
-
-- v3 key：`threadline.desktop-mode.v3`、`threadline.desktop-window-states.v3`、`threadline.desktop-last-compact-mode.v3`、`threadline.desktop-compact-presentation.v3`。
-- 旧 v2 的 `floating-icon` 和 72px geometry 不会迁入；非法旧值安全回退到完整工作台。
-- Mini Today 默认 200 × 170，限制为 200–340 × 96–170 logical px；Workstation 默认 200 × 200，限制为 200–340 × 96–220 logical px。列表自然高度加 68px 标题/底部/内边距，通过受限 IPC 交给 Main 限幅；过量任务内部滚动。旧版超宽 geometry 回到 200px，位置仍保留。重置窗口尺寸与位置会清空 v3 geometry。
-- 工作站在新进程读取偏好时将初始宽度设为 200 logical px，保留有效位置与高度；旧的大宽度不会再次成为默认。同一次运行中允许手动调宽，切换视图与收起/展开不重置该宽度。迷你今日和 Full 沿用现有策略。
-- 真正移入回收站的任务会从工作站引用集合清除；完成任务不会自动移除。
-
-## 启动与认证
-
-启动、登录和缺配置门禁在认证外层提供可拖动标题栏以及最小化、关闭按钮。首次显示居中于指针所在显示器的工作区，按工作区限制完整窗口尺寸。工作区数据尚未就绪时不恢复历史小窗尺寸，避免启动画面被裁切；就绪后沿用上次窗口模式。
+- 当前模式仅为 `full`、`workstation`，收起属于 `edge-collapsed` presentation。独立今日小窗的 UI、模式、按钮、样式、专用新增草稿与动作、截图已移除。
+- 旧 `mini-today` 偏好在读取时迁移到工作站；旧 geometry 从保存对象中剔除，`threadline.desktop-last-compact-mode.v3` 删除。仅保留这段兼容识别，不保留旧视图。任务、预计、日期和工作站引用不迁移，不需要数据库变更。
+- 当前偏好键为 `threadline.desktop-mode.v3`、`threadline.desktop-window-states.v3`、`threadline.desktop-compact-presentation.v3`；重置仅清空位置/尺寸。Web/PWA 不会因历史桌面偏好进入小窗。
+- Renderer 在业务就绪后只发起一次 hydration。Main 校验模式、geometry、来源角色与 requestId，返回原生状态；Renderer 以递增 stateRevision 保存状态并 ACK。保存用户 geometry 不触发反向 transition。
+- 工作区、DPI 和显示器变更重新检查可见区域。Full 离屏时居中回退，工作站离屏时移到工作区右上方并留 24px；已收起时只定位 Edge，不调整隐藏 Main，也不等待后台 ACK。
+- 收起采用 Main 当前真实尺寸，忽略过期 Renderer 宽度；隐藏/最小化时忽略内容高度消息。迟到的启动居中请求和启动 watchdog 不得覆盖已经选定的业务窗口状态。
+- 单实例锁保证重复启动唤醒已有窗口；Edge 可见时恢复工作站。Edge 加载失败、崩溃或异常关闭时恢复 Main，避免应用无可见入口。
 
 ## 原生接口
 
-`desktop:compact-height` 只接受当前紧凑模式与有限高度；`desktop:appearance` 只接受 blue/anya 主题；`desktop:edge-pointer` 只接受 Edge 的 start/move/end/cancel，坐标由原生 screen 获取。Main 独立保存 `compact-preferences.json` 中的主题、显示器 ID、左右侧与纵向比例，不接触任务数据。普通 Web/PWA 没有这些原生能力。
+`desktop:compact-height` 只接受 workstation 与有限高度；`desktop:appearance` 仅接受 blue/anya；`desktop:edge-pointer` 仅接受 Edge 的 start/move/end/cancel，坐标由原生 screen 获取。主题和入口位置保存在 Main 的 `compact-preferences.json`，不接触业务数据。拖动区与按钮区按 [Electron 窗口交互规则](https://www.electronjs.org/docs/latest/tutorial/custom-window-interactions) 分开。
 
-## 收起与尺寸稳定性回归
+## 验证
 
-系统工作区变化时，已收起状态只重新定位 Edge，不调整隐藏 Main，也不等待后台页面 ACK；后台被节流不能成为强制展开理由。手动移动/缩放先同步写入 Main，再通知 Renderer 持久化。收起以实际当前尺寸为准，不重新套用过期的前端宽度。内容高度消息只应用于当前展开、可见且未最小化的便签。业务窗口首次握手或用户切换后，不再接受启动层迟到的居中/显示请求，启动 watchdog 也不得重置已选模式。
+`pnpm test:electron` 构建测试 adapter 并运行业务窗口烟测，包含工作站连续 100 次高度调整和入口连续 120 次 Renderer 指针拖动。`node scripts/test-electron-collapse.mjs` 在生产静态 Renderer 与 Main/Preload 构建完成后单独运行，使用隔离登录门禁，不需要登录。
 
-`node scripts/test-electron-collapse.mjs` 在已生成生产静态 renderer 和 Main/Preload 后运行；使用隔离目录和登录门禁，不需要登录。它模拟 340→200 的手动缩小、带旧宽度的收起请求、延迟高度消息，以及后台不回应的显示器事件。之前可复现工作站自动展开；修复后保持 Edge 且 Main 宽度仍为 200。
+原生回归检查手动 340→200、过期宽度收起、迟到高度、后台 ACK、100 次不移动的按住消息、左右各 120 次拖动、20 次显示器通知、悬停不展开和单击恢复。在本机 250% 下拖动前后外框保持 32×105。测试仅控制 cursor 输入；IPC、原生窗口、定位及 Windows DPI 转换真实执行。UI 烟测另以 Renderer 指针事件验证拖动捕获与松手行为，并检查置顶和重启位置。
+
+物理多显示器拔插与跨屏缩放需要额外设备验收；自动化显示器通知不能替代实际拔插。
+
+## 任务拖拽与批注
+
+今日日程拖到待安排会清除日期、待填时间与起止时间，保留独立预计。荧光笔/橡皮擦激活时锁定任务拖拽和行内编辑；Esc 或再次点击退出。笔迹按相对坐标保存，窗口缩放后保持对齐。

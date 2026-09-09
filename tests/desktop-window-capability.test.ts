@@ -7,7 +7,7 @@ describe('desktop window capability', () => {
   /** 无 Electron Main Renderer bridge 时，历史紧凑和 Edge 状态不能改变 Web/PWA 壳层。 */
   it('forces full workspace state outside Electron', () => {
     expect(
-      resolveDesktopWindowCapability(false, 'mini-today', 'edge-collapsed'),
+      resolveDesktopWindowCapability(false, 'workstation', 'edge-collapsed'),
     ).toEqual({ mode: 'full', presentation: 'expanded' });
   });
 

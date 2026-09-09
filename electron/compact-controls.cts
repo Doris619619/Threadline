@@ -2,8 +2,10 @@
 import { app, BrowserWindow, ipcMain, screen, type IpcMainInvokeEvent } from 'electron';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { readFramelessGeometry } from './window-geometry.cjs';
 import {
   COMPACT_WINDOW_BOUNDS,
+  EDGE_TAB_SIZE,
   type DesktopViewMode,
 } from '../src/lib/desktop-window-policy.js';
 
@@ -72,7 +74,7 @@ export function placeEdgeWindow(window: BrowserWindow, fallback: Electron.Displa
   const area = display.workArea;
   const bounds = window.getBounds();
   window.setBounds({
-    ...bounds,
+    ...EDGE_TAB_SIZE,
     x: edgePosition?.side === 'left' ? area.x : area.x + area.width - bounds.width,
     y: Math.round(
       area.y + (area.height - bounds.height) * (edgePosition?.ratio ?? 0.5),
@@ -101,7 +103,7 @@ export function registerCompactControls({
   ipcMain.handle('desktop:compact-height', (event, mode: unknown, height: unknown) => {
     if (!isTrusted(event, 'main')) throw new Error('Rejected compact size sender');
     if (
-      (mode !== 'mini-today' && mode !== 'workstation') ||
+      mode !== 'workstation' ||
       typeof height !== 'number' ||
       !Number.isFinite(height)
     )
@@ -116,7 +118,7 @@ export function registerCompactControls({
       window.isMinimized()
     )
       return;
-    const bounds = window.getBounds();
+    const bounds = readFramelessGeometry(window);
     const area = screen.getDisplayMatching(bounds).workArea;
     const limits = COMPACT_WINDOW_BOUNDS[mode];
     const nextHeight = Math.min(
@@ -159,11 +161,15 @@ export function registerCompactControls({
     const dx = cursor.x - drag.x,
       dy = cursor.y - drag.y;
     drag.moved ||= Math.hypot(dx, dy) > 4;
-    if (drag.moved)
-      window.setPosition(
-        Math.round(drag.bounds.x + dx),
-        Math.round(drag.bounds.y + dy),
-      );
+    if (drag.moved) {
+      // Windows 250% 下 setPosition / getBounds 回填会每次增加约 1 DIP 高度。
+      // 定位只使用固定规格，绝不把原生尺寸读回后作为下一次的输入。
+      const x = Math.round(drag.bounds.x + dx),
+        y = Math.round(drag.bounds.y + dy);
+      const current = window.getBounds();
+      if (current.x !== x || current.y !== y)
+        window.setBounds({ ...EDGE_TAB_SIZE, x, y });
+    }
     if (phase === 'move') return drag.moved;
     const moved = drag.moved;
     drag = undefined;

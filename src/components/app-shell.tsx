@@ -1,4 +1,4 @@
-/** @fileoverview 应用壳层：完整工作台导航、三态直达入口、紧凑窗口标题栏与右侧 edge tab。 */
+/** @fileoverview 应用壳层：完整工作台导航、工作站入口、紧凑窗口标题栏与右侧 edge tab。 */
 
 'use client';
 
@@ -97,26 +97,17 @@ export function CompactWindowHeader({
 }: {
   onClearWorkstation?: () => void;
 }) {
-  const { isMiniToday, isWorkstation, setMode, collapseCompactView, closeMainWindow } =
-    useDesktopWindow();
+  const { collapseCompactView, closeMainWindow } = useDesktopWindow();
   return (
-    <header className={cn('compact-window-header', isWorkstation && 'is-workstation')}>
+    <header className="compact-window-header is-workstation">
       <span className="compact-window-title">
         <CalendarDays size={12} />
-        {isMiniToday ? '迷你今日' : '工作站'}
+        工作站
       </span>
       <div className="compact-window-actions">
-        <button
-          type="button"
-          onClick={() => void setMode(isMiniToday ? 'workstation' : 'mini-today')}
-        >
-          {isMiniToday ? '工作站' : '今日'}
+        <button type="button" onClick={onClearWorkstation}>
+          清空
         </button>
-        {isWorkstation && (
-          <button type="button" onClick={onClearWorkstation}>
-            清空
-          </button>
-        )}
         <button
           type="button"
           className="compact-collapse-button"
@@ -153,9 +144,6 @@ function FullWindowChrome() {
     <header className="full-window-chrome">
       <span className="full-window-caption">Threadline</span>
       <div className="full-window-entries">
-        <button type="button" onClick={() => void setMode('mini-today')}>
-          迷你今日
-        </button>
         <button type="button" onClick={() => void setMode('workstation')}>
           工作站
         </button>

@@ -6,6 +6,7 @@ import {
   normalizeCompactWindowState,
   normalizeWindowStates,
   normalizeStartupWindowStates,
+  normalizeDesktopViewMode,
   resolveSafeWindowState,
   type LogicalWorkArea,
 } from '@/lib/desktop-window-policy';
@@ -13,12 +14,23 @@ import {
 const primaryWorkArea: LogicalWorkArea = { x: 0, y: 0, width: 1920, height: 1040 };
 
 describe('desktop window policy', () => {
+  it('migrates the retired mode and removes its saved geometry', () => {
+    expect(normalizeDesktopViewMode('mini-today')).toBe('workstation');
+    expect(normalizeDesktopViewMode('unknown')).toBe('full');
+    const states = normalizeStartupWindowStates({
+      'mini-today': { width: 340, height: 760, x: 40, y: 60 },
+      workstation: { width: 280, height: 130, x: 800, y: 100 },
+    });
+    expect(states).toEqual({
+      workstation: { width: 200, height: 130, x: 800, y: 100 },
+    });
+  });
   /** 确认同一显示器中的合法持久化 geometry 不会被不必要地覆盖。 */
   it('keeps a fully visible window on its original display', () => {
     const state = { width: 500, height: 800, x: 1200, y: 80 };
 
     expect(
-      resolveSafeWindowState('mini-today', state, [primaryWorkArea], primaryWorkArea),
+      resolveSafeWindowState('workstation', state, [primaryWorkArea], primaryWorkArea),
     ).toEqual(state);
   });
 
@@ -37,7 +49,7 @@ describe('desktop window policy', () => {
   /** 保存位置所属显示器消失后，紧凑窗口应在当前工作区右侧留出边距。 */
   it('recovers a window whose original monitor is no longer available', () => {
     const restored = resolveSafeWindowState(
-      'mini-today',
+      'workstation',
       { width: 500, height: 800, x: -2200, y: 80 },
       [primaryWorkArea],
       primaryWorkArea,
@@ -51,11 +63,11 @@ describe('desktop window policy', () => {
     const almostOffscreen = { width: 500, height: 800, x: 1881, y: 80 };
 
     expect(
-      hasSufficientVisibleArea('mini-today', almostOffscreen, [primaryWorkArea]),
+      hasSufficientVisibleArea('workstation', almostOffscreen, [primaryWorkArea]),
     ).toBe(false);
     expect(
       resolveSafeWindowState(
-        'mini-today',
+        'workstation',
         almostOffscreen,
         [primaryWorkArea],
         primaryWorkArea,
@@ -75,7 +87,7 @@ describe('desktop window policy', () => {
 
     expect(
       resolveSafeWindowState(
-        'mini-today',
+        'workstation',
         state,
         [logicalWorkAreaAt125Percent],
         logicalWorkAreaAt125Percent,
@@ -121,7 +133,6 @@ describe('desktop window policy', () => {
     (width) => {
       const stored = {
         full: { width: 1000, height: 700, x: 10, y: 20 },
-        'mini-today': { width: 280, height: 160, x: 20, y: 40 },
         workstation: { width, height: 130, x: 800, y: 100 },
       };
       expect(normalizeStartupWindowStates(stored)).toEqual({
@@ -134,7 +145,7 @@ describe('desktop window policy', () => {
     },
   );
 
-  /** 缺失和非法 persisted state 必须恢复为当前三态的安全规格。 */
+  /** 缺失和非法 persisted state 必须恢复为当前模式的安全规格。 */
   it('normalizes malformed persisted window state without accepting legacy modes', () => {
     expect(
       normalizeWindowStates({
@@ -144,7 +155,6 @@ describe('desktop window policy', () => {
         floating: { width: 72, height: 72 },
       }),
     ).toEqual({
-      'mini-today': { width: 200, height: 170 },
       workstation: { width: 200, height: 220, x: 80, y: 48 },
     });
   });
