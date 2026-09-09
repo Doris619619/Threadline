@@ -319,6 +319,9 @@ function applyMainNativeState(
   if (!mainWindow || mainWindow.isDestroyed())
     throw new Error('Main window is unavailable');
   if (mode !== 'full' && mainWindow.isMaximized()) mainWindow.unmaximize();
+  // 在任何原生尺寸约束变更之前抑制中间 resize，避免把最大宽度误存为用户尺寸。
+  suppressGeometryUntil = Date.now() + 320;
+  if (userGeometryTimer) clearTimeout(userGeometryTimer);
   const compactLimits = mode === 'full' ? undefined : COMPACT_WINDOW_BOUNDS[mode];
   mainWindow.setAlwaysOnTop(mode !== 'full');
   mainWindow.setResizable(true);
@@ -331,7 +334,6 @@ function applyMainNativeState(
     compactLimits?.maxWidth ?? 0,
     compactLimits?.maxHeight ?? 0,
   );
-  suppressGeometryUntil = Date.now() + 320;
   mainWindow.setBounds(geometry);
 }
 
@@ -355,11 +357,15 @@ function publishUserGeometry(): void {
   ) {
     return;
   }
+  // Main 先同步保存最终尺寸；显示器事件不能等待 Renderer 的两轮防抖。
+  latestState.windowStates[latestState.mode] = mainWindow.getBounds();
   if (userGeometryTimer) clearTimeout(userGeometryTimer);
   userGeometryTimer = setTimeout(() => {
     if (
       !mainWindow ||
       mainWindow.isDestroyed() ||
+      !mainWindow.isVisible() ||
+      latestState.presentation === 'edge-collapsed' ||
       mainWindow.isMaximized() ||
       Date.now() < suppressGeometryUntil
     )
@@ -564,20 +570,45 @@ async function reconcileDisplayState(reason: string): Promise<void> {
       windowStates: { ...latestState.windowStates, [mode]: geometry },
     };
     stateRevision += 1;
-    applyMainNativeState(mode, geometry);
     const edgeVisible = Boolean(
-      edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible(),
+      latestState.presentation === 'edge-collapsed' &&
+      edgeWindow &&
+      !edgeWindow.isDestroyed() &&
+      edgeWindow.isVisible(),
     );
-    if (edgeVisible) await revealEdge();
+    if (edgeVisible) {
+      // 收起时只移动入口；后台 Renderer 可能被节流，不以 ACK 超时强制展开。
+      placeEdgeWindow(
+        edgeWindow!,
+        screen.getDisplayMatching({
+          ...geometry,
+          x: geometry.x ?? 0,
+          y: geometry.y ?? 0,
+        }),
+      );
+      mainWindow?.webContents.send('desktop:state-changed', {
+        ...latestState,
+        geometry,
+        visibleSurface: 'edge',
+        stateRevision,
+        origin: 'recovery',
+        reason,
+      });
+      return;
+    }
+    applyMainNativeState(mode, geometry);
     await waitForMainReadyToShow();
     try {
-      await publishCanonicalState(
-        geometry,
-        edgeVisible ? 'edge' : 'main',
-        'recovery',
-        reason,
-      );
+      await publishCanonicalState(geometry, 'main', 'recovery', reason);
     } catch {
+      // 等待期间用户可能已经收起；旧的显示器同步不能覆盖这个新选择。
+      if (
+        latestState.presentation === 'edge-collapsed' &&
+        edgeWindow &&
+        !edgeWindow.isDestroyed() &&
+        edgeWindow.isVisible()
+      )
+        return;
       await ensureVisibleSurface('display-state-sync-timeout');
     }
   } finally {
@@ -637,13 +668,22 @@ async function applyDesktopState(
     payload.presentation === 'edge-collapsed' && payload.mode === 'full'
       ? payload.lastCompactMode
       : payload.mode;
-  const geometry = resolveNativeBounds(mode, payload.windowStates[mode]);
+  const sourceGeometry =
+    mode === latestState.mode && mainWindow && !mainWindow.isDestroyed()
+      ? mainWindow.getBounds()
+      : payload.windowStates[mode];
+  const geometry = resolveNativeBounds(
+    mode,
+    origin === 'renderer-command' && payload.presentation === 'edge-collapsed'
+      ? sourceGeometry
+      : payload.windowStates[mode],
+  );
   const wantsEdge = payload.presentation === 'edge-collapsed' && mode !== 'full';
   latestState = {
     mode,
     presentation: payload.presentation,
     lastCompactMode: payload.lastCompactMode,
-    windowStates: payload.windowStates,
+    windowStates: { ...payload.windowStates, [mode]: geometry },
   };
   stateRevision += 1;
   applyMainNativeState(mode, geometry);
@@ -703,9 +743,11 @@ function registerDesktopIpc(): void {
     getMain: () => mainWindow,
     getEdge: () => edgeWindow,
     getMode: () => latestState.mode,
+    isExpanded: () => latestState.presentation === 'expanded',
     isTrusted: isTrustedSender,
     onResize: (geometry) => {
       latestState.windowStates[latestState.mode] = geometry;
+      stateRevision += 1;
       mainWindow?.webContents.send('desktop:geometry-changed', {
         geometry,
         mode: latestState.mode,

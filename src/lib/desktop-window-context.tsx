@@ -135,7 +135,7 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
         lastCompactMode: nextLastCompactMode,
         windowStates: nextWindowStates,
       });
-      if (result.requestId !== requestId) return;
+      if (result.requestId !== requestId || requestId !== requestIdRef.current) return;
       appliedStateRevisionRef.current = Math.max(
         appliedStateRevisionRef.current,
         result.stateRevision,
@@ -211,7 +211,7 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
         windowStates,
       })
       .then((result) => {
-        if (result.requestId === requestId) {
+        if (result.requestId === requestId && requestId === requestIdRef.current) {
           appliedStateRevisionRef.current = Math.max(
             appliedStateRevisionRef.current,
             result.stateRevision,
@@ -266,7 +266,7 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
     const bridge = getMainDesktopBridge();
     if (!bridge) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    return bridge.onNativeGeometryChanged((event) => {
+    const unsubscribe = bridge.onNativeGeometryChanged((event) => {
       if (event.origin !== 'user' && event.origin !== 'content') return;
       if (timer) clearTimeout(timer);
       timer = setTimeout(
@@ -281,6 +281,10 @@ export function DesktopWindowProvider({ children }: { children: ReactNode }) {
         180,
       );
     });
+    return () => {
+      unsubscribe();
+      if (timer) clearTimeout(timer);
+    };
   }, [setWindowStates]);
   /** 订阅原生最大化事件并在首次 hydration 后读取初始状态，避免用 CSS 反推窗口状态。 */
   useEffect(() => {

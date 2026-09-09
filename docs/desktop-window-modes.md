@@ -48,3 +48,9 @@ Main 与 Renderer 共同复用 `src/lib/desktop-window-policy.ts`：Main 不再�
 ## 原生接口
 
 `desktop:compact-height` 只接受当前紧凑模式与有限高度；`desktop:appearance` 只接受 blue/anya 主题；`desktop:edge-pointer` 只接受 Edge 的 start/move/end/cancel，坐标由原生 screen 获取。Main 独立保存 `compact-preferences.json` 中的主题、显示器 ID、左右侧与纵向比例，不接触任务数据。普通 Web/PWA 没有这些原生能力。
+
+## 收起与尺寸稳定性回归
+
+系统工作区变化时，已收起状态只重新定位 Edge，不调整隐藏 Main，也不等待后台页面 ACK；后台被节流不能成为强制展开理由。手动移动/缩放先同步写入 Main，再通知 Renderer 持久化。收起以实际当前尺寸为准，不重新套用过期的前端宽度。内容高度消息只应用于当前展开、可见且未最小化的便签。
+
+`node scripts/test-electron-collapse.mjs` 在已生成生产静态 renderer 和 Main/Preload 后运行；使用隔离目录和登录门禁，不需要登录。它模拟 340→200 的手动缩小、带旧宽度的收起请求、延迟高度消息，以及后台不回应的显示器事件。之前可复现工作站自动展开；修复后保持 Edge 且 Main 宽度仍为 200。

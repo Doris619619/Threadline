@@ -86,12 +86,14 @@ export function registerCompactControls({
   getMain,
   getEdge,
   getMode,
+  isExpanded,
   isTrusted,
   onResize,
 }: {
   getMain: () => BrowserWindow | undefined;
   getEdge: () => BrowserWindow | undefined;
   getMode: () => DesktopViewMode;
+  isExpanded: () => boolean;
   isTrusted: (event: IpcMainInvokeEvent, role: 'main' | 'edge-tab') => boolean;
   onResize: (geometry: Electron.Rectangle) => void;
 }) {
@@ -105,7 +107,15 @@ export function registerCompactControls({
     )
       throw new Error('Invalid compact size');
     const window = getMain();
-    if (!window || window.isDestroyed() || getMode() !== mode) return;
+    if (
+      !window ||
+      window.isDestroyed() ||
+      getMode() !== mode ||
+      !isExpanded() ||
+      !window.isVisible() ||
+      window.isMinimized()
+    )
+      return;
     const bounds = window.getBounds();
     const area = screen.getDisplayMatching(bounds).workArea;
     const limits = COMPACT_WINDOW_BOUNDS[mode];
