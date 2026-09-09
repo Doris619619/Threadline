@@ -42,7 +42,8 @@
 
 .mode-compact .tl-main {
   display: grid;
-  grid-template-rows: 64px minmax(0, 1fr);
+  grid-template-rows: 28px minmax(0, 1fr);
+  height: 100dvh;
   min-height: 100dvh;
   padding: 0;
 }
@@ -71,10 +72,10 @@
 .compact-window-header {
   display: flex;
   min-width: 0;
-  min-height: 64px;
+  min-height: 28px;
   align-items: center;
   justify-content: space-between;
-  padding: 0 22px 0 28px;
+  padding: 0 6px;
   color: var(--text-primary);
   background: var(--surface);
   user-select: none;
@@ -84,38 +85,38 @@
   display: inline-flex;
   min-width: 0;
   align-items: center;
-  gap: 8px;
+  gap: 3px;
   color: var(--text-primary);
-  font-size: var(--text-card-size);
-  font-weight: 650;
+  font-size: 11px;
+  font-weight: 600;
   letter-spacing: 0.01em;
 }
 .compact-window-actions {
   display: flex;
-  width: 190px;
+  width: auto;
   align-items: center;
   justify-content: space-between;
   gap: 3px;
   -webkit-app-region: no-drag;
 }
 .compact-window-header.is-workstation .compact-window-actions {
-  width: 270px;
+  width: auto;
 }
 .compact-window-header.is-workstation .compact-window-actions button:nth-child(2) {
   color: var(--daily-accent);
 }
 .compact-window-actions button {
   display: inline-flex;
-  min-height: 30px;
+  min-height: 24px;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 0 6px;
+  padding: 0 2px;
   border: 0;
   color: var(--text-secondary);
   background: transparent;
   border-radius: 7px;
-  font-size: var(--text-caption-size);
+  font-size: 10px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -212,4 +213,84 @@
   .mode-full .tl-window-body {
     display: block;
   }
+}
+
+/* 原生小窗使用鼠标密度，不能套用小于 760px 的手机控件规则。 */
+.compact-window-title {
+  flex-shrink: 0;
+}
+.compact-window-actions {
+  gap: 0;
+}
+.compact-window-actions .desktop-close-button {
+  width: 24px;
+}
+.compact-window-actions .desktop-close-button svg {
+  width: 12px;
+}
+.edge-tab {
+  padding: 0;
+  border-radius: 8px;
+  box-shadow: none;
+  gap: 4px;
+  user-select: none;
+  touch-action: none;
+}
+.edge-tab span {
+  font-size: 10px;
+}
+.edge-tab small {
+  font-size: 10px;
+  color: var(--accent-text);
+}
+.edge-tab:active {
+  cursor: grabbing;
+}
+
+/* 启动遮罩与认证外层始终提供可拖动、可关闭的原生标题栏。 */
+.desktop-entry-chrome {
+  position: fixed;
+  inset: 0 0 auto;
+  height: 36px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px 0 12px;
+  z-index: 10001;
+  font-size: 12px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+.desktop-entry-chrome > div {
+  display: flex;
+  -webkit-app-region: no-drag;
+}
+.desktop-entry-chrome button {
+  width: 32px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: inherit;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.desktop-entry-chrome button:hover {
+  background: var(--surface-secondary);
+}
+.desktop-entry-chrome button:last-child:hover {
+  background: var(--danger);
+  color: white;
+}
+.auth-gate:has(.desktop-entry-chrome) {
+  padding-top: 44px;
+}
+.threadline-startup:has(.desktop-entry-chrome) {
+  padding-top: 44px;
+  min-height: 100dvh;
+  height: 100dvh;
+  overflow: auto;
 }

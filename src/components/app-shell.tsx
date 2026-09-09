@@ -1,4 +1,4 @@
-/** @fileoverview 应用壳层：完整工作台导航、三态直达入口、紧凑窗口标题栏与右侧 edge tab。 */
+/** @fileoverview 应用壳层：完整工作台导航、工作站入口、紧凑窗口标题栏与右侧 edge tab。 */
 
 'use client';
 
@@ -19,7 +19,7 @@ import {
   Spline,
   X,
 } from 'lucide-react';
-import { createContext, useContext, useRef, useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { SidebarItem } from '@/components/ui/sidebar-item';
@@ -97,32 +97,23 @@ export function CompactWindowHeader({
 }: {
   onClearWorkstation?: () => void;
 }) {
-  const { isMiniToday, isWorkstation, setMode, collapseCompactView, closeMainWindow } =
-    useDesktopWindow();
+  const { collapseCompactView, closeMainWindow } = useDesktopWindow();
   return (
-    <header className={cn('compact-window-header', isWorkstation && 'is-workstation')}>
+    <header className="compact-window-header is-workstation">
       <span className="compact-window-title">
-        <CalendarDays size={20} />
-        {isMiniToday ? '迷你今日' : '工作站'}
+        <CalendarDays size={12} />
+        工作站
       </span>
       <div className="compact-window-actions">
-        <button
-          type="button"
-          onClick={() => void setMode(isMiniToday ? 'workstation' : 'mini-today')}
-        >
-          {isMiniToday ? '工作站' : '今日'}
+        <button type="button" onClick={onClearWorkstation}>
+          清空
         </button>
-        {isWorkstation && (
-          <button type="button" onClick={onClearWorkstation}>
-            清空
-          </button>
-        )}
         <button
           type="button"
           className="compact-collapse-button"
           onClick={() => void collapseCompactView()}
         >
-          收起 <ChevronUp size={16} aria-hidden="true" />
+          收起 <ChevronUp size={10} aria-hidden="true" />
         </button>
         <button
           type="button"
@@ -153,9 +144,6 @@ function FullWindowChrome() {
     <header className="full-window-chrome">
       <span className="full-window-caption">Threadline</span>
       <div className="full-window-entries">
-        <button type="button" onClick={() => void setMode('mini-today')}>
-          迷你今日
-        </button>
         <button type="button" onClick={() => void setMode('workstation')}>
           工作站
         </button>
@@ -195,26 +183,17 @@ function FullWindowChrome() {
   );
 }
 
-/** 展示右侧窄标签；悬停有短容差后恢复最近紧凑视图。 */
+/** Renderer 回退入口仅响应点击，悬停不改变窗口形态。 */
 function EdgeTab() {
-  const { mode, restoreCompactView } = useDesktopWindow();
-  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  /** 仅连续悬停后恢复，防止鼠标掠过屏幕右缘反复弹窗。 */
-  const onPointerEnter = () => {
-    timerRef.current = setTimeout(() => void restoreCompactView(), 260);
-  };
+  const { restoreCompactView } = useDesktopWindow();
   return (
     <button
       type="button"
       className="edge-tab"
-      aria-label={`展开${mode === 'workstation' ? '工作站' : '迷你今日'}`}
-      onPointerEnter={onPointerEnter}
-      onPointerLeave={() => {
-        if (timerRef.current) clearTimeout(timerRef.current);
-      }}
       onClick={() => void restoreCompactView()}
+      aria-label="展开紧凑工作台"
     >
-      <span>{mode === 'workstation' ? '工作站' : '迷你今日'}</span>
+      <span>Threadline</span>
       <small>展开</small>
     </button>
   );

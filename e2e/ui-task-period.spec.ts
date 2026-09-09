@@ -83,6 +83,77 @@ for (const [label, selector, image] of [
   });
 }
 
+test('waiting creation gives estimates usable width in narrow columns', async ({
+  page,
+}, info) => {
+  await page.evaluate(async () => {
+    document.documentElement.dataset.theme = 'anya';
+    document.documentElement.dataset.font = 'source-han-serif';
+    await document.fonts.ready;
+  });
+  const waiting = page.locator('.waiting-panel');
+  await waiting.getByRole('button', { name: '添加普通事项', exact: true }).click();
+  const form = waiting.locator('.quick-task-create-row');
+  const estimate = form.getByLabel('预计时长（分钟）');
+  const title = form.getByLabel('普通事项内容');
+  // 新增行有进入动画；等待结束，避免跨帧读取把整体位移误报为控件错位。
+  await form.evaluate(async (element) => {
+    await Promise.all(
+      element.getAnimations({ subtree: true }).map((animation) => animation.finished),
+    );
+  });
+  const desktop = (page.viewportSize()?.width ?? 0) > 760;
+  for (const width of desktop ? [260, 300, 360] : [null]) {
+    if (width)
+      await waiting.evaluate((element, width) => {
+        element.style.width = `${width}px`;
+      }, width);
+    // 所有坐标在同一次布局读取中获取，保留严格对齐阈值。
+    const { field, label, actions, titleBox } = await form.evaluate((element) => {
+      /** 同步读取控件矩形；缺少字段时立即失败，不能跳过布局断言。 */
+      const rect = (selector: string) => {
+        const target = element.querySelector(selector);
+        if (!target) throw new Error(`新增表单缺少 ${selector}`);
+        return target.getBoundingClientRect().toJSON();
+      };
+      return {
+        field: rect('.estimate-field input'),
+        label: rect('.estimate-field label > span'),
+        actions: rect('.quick-create-actions'),
+        titleBox: rect('.quick-create-title'),
+      };
+    });
+    expect(field!.width).toBeGreaterThanOrEqual(desktop ? 64 : 100);
+    expect(label!.height).toBeLessThan(30);
+    expect(actions!.x).toBeGreaterThanOrEqual(field!.x + field!.width);
+    expect(actions!.y).toBeGreaterThanOrEqual(titleBox!.y + titleBox!.height);
+    expect(
+      Math.abs(actions!.y + actions!.height - field!.y - field!.height),
+    ).toBeLessThan(2);
+    expect(
+      Math.abs(titleBox!.x + titleBox!.width - actions!.x - actions!.width),
+    ).toBeLessThan(2);
+    if (desktop) {
+      expect(
+        Math.abs(label!.y + label!.height / 2 - field!.y - field!.height / 2),
+      ).toBeLessThan(2);
+      expect((await form.boundingBox())!.height).toBeLessThan(100);
+    }
+    await expectNoUnexpectedHorizontalOverflow(page);
+  }
+  await title.fill('窄栏新增预计测试');
+  await estimate.fill('90');
+  await page.screenshot({
+    path: info.outputPath('waiting-create.png'),
+    fullPage: true,
+  });
+  await form.screenshot({ path: info.outputPath('waiting-create-detail.png') });
+  await form.getByTitle('保存待办').click();
+  await expect(
+    waiting.locator('.waiting-task-row').filter({ hasText: '窄栏新增预计测试' }),
+  ).toContainText('1h30min');
+});
+
 test('independent estimates persist through schedule and waiting; compact pages stay readable', async ({
   page,
 }, info) => {

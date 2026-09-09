@@ -21,7 +21,7 @@ import { CompactWindowHeader, useWorkspaceView } from '@/components/app-shell';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import { resolveActiveProject } from '@/lib/project-rules';
 import { getLocalDateKey } from '@/lib/local-date';
-import { MiniTodayPanel, WorkstationPanel } from '@/features/tasks/compact-workspace';
+import { WorkstationPanel } from '@/features/tasks/compact-workspace';
 import { formatMinutes } from '@/features/tasks/task-time';
 import { DesktopScheduleList } from '@/features/tasks/components/desktop-schedule-list';
 import { TaskLine } from '@/features/tasks/components/task-line';
@@ -39,7 +39,6 @@ import {
   TaskDialog,
 } from '@/features/tasks/components/task-dialogs';
 import { useTaskCreateAndEdit } from '@/features/tasks/hooks/use-task-create-and-edit';
-import { cn } from '@/lib/cn';
 import { useTaskCreateDrafts } from '@/features/tasks/hooks/use-task-create-drafts';
 import { useTaskDashboardController } from '@/features/tasks/hooks/use-task-dashboard-controller';
 import { useCloseDay } from '@/features/tasks/hooks/use-close-day';
@@ -50,7 +49,7 @@ import type { Task } from '@/types/domain';
  */
 export function TaskDashboard() {
   const { active, selectedDate } = useWorkspaceView();
-  const { isMiniToday, isWorkstation } = useDesktopWindow();
+  const { isWorkstation } = useDesktopWindow();
   const startupProgress = useOptionalStartupProgress();
   const {
     tasks,
@@ -177,21 +176,15 @@ export function TaskDashboard() {
     transitionTask,
   });
 
-  const {
-    createCompactWaitingTask,
-    createCompactTimedTask,
-    createProjectDirectly,
-    createWaitingTask,
-    createTimedTask,
-    saveTask,
-  } = useTaskCreateAndEdit({
-    createTask,
-    createProject,
-    editing,
-    projects: workspaceProjects,
-    selectedDate,
-    updateTask: saveTaskConfirmed,
-  });
+  const { createProjectDirectly, createWaitingTask, createTimedTask, saveTask } =
+    useTaskCreateAndEdit({
+      createTask,
+      createProject,
+      editing,
+      projects: workspaceProjects,
+      selectedDate,
+      updateTask: saveTaskConfirmed,
+    });
 
   const closeDay = useCloseDay({
     closeDay: commitCloseDay,
@@ -231,27 +224,6 @@ export function TaskDashboard() {
     if (!message && rescheduling) setRescheduling(undefined);
     return message;
   };
-  if (isMiniToday)
-    return (
-      <>
-        <CompactWindowHeader />
-        <MiniTodayPanel
-          timed={timed}
-          waiting={waiting}
-          projects={workspaceProjects}
-          workstationTaskIds={workstationTaskIds}
-          onUpdateTask={update}
-          onToggleWorkstation={toggleWorkstationTask}
-          onClearWorkstation={clearWorkstation}
-          onReorderWorkstation={reorderWorkstation}
-          onCreateTimedTask={createCompactTimedTask}
-          onCreateQuickTask={createCompactWaitingTask}
-          onCompleteWaitingTask={(id) => {
-            void completeWaitingTask(id, getLocalDateKey()).catch(() => undefined);
-          }}
-        />
-      </>
-    );
   if (isWorkstation)
     return (
       <>
@@ -290,62 +262,58 @@ export function TaskDashboard() {
     return <SettingsPanel tasks={tasks} onUpdateTask={update} />;
   return (
     <div className="dashboard dashboard-annotatable" data-testid="home-panel">
-      {!isMiniToday && (
-        <>
-          <p className="home-summary" aria-live="polite">
-            <span className="home-summary-check" aria-hidden="true">
-              ✓
-            </span>
-            今日任务 {normalTaskTotal} · 已完成 {done}
-          </p>
-          <Surface className="metric-strip" variant="flat">
-            <StatItem
-              label="普通任务"
-              value={
-                <>
-                  <em>{done}</em>
-                  <small>/ {normalTaskTotal}</small>
-                </>
-              }
-            />
-            <StatItem
-              label="Daily"
-              value={
-                <>
-                  <em>{dailyDone}</em>
-                  <small>/ {daily.length}</small>
-                </>
-              }
-            />
-            <StatItem
-              label="普通实际"
-              value={
-                <>
-                  <em>{formatMinutes(actual)}</em>
-                </>
-              }
-            />
-            <StatItem
-              label="Daily 实际"
-              value={
-                <>
-                  <em>{formatMinutes(dailyActual)}</em>
-                </>
-              }
-            />
-            <StatItem
-              label="今日总实际"
-              value={
-                <>
-                  <em>{formatMinutes(actual + dailyActual)}</em>
-                </>
-              }
-            />
-          </Surface>
-        </>
-      )}
+      <p className="home-summary" aria-live="polite">
+        <span className="home-summary-check" aria-hidden="true">
+          ✓
+        </span>
+        今日任务 {normalTaskTotal} · 已完成 {done}
+      </p>
+      <Surface className="metric-strip" variant="flat">
+        <StatItem
+          label="普通任务"
+          value={
+            <>
+              <em>{done}</em>
+              <small>/ {normalTaskTotal}</small>
+            </>
+          }
+        />
+        <StatItem
+          label="Daily"
+          value={
+            <>
+              <em>{dailyDone}</em>
+              <small>/ {daily.length}</small>
+            </>
+          }
+        />
+        <StatItem
+          label="普通实际"
+          value={
+            <>
+              <em>{formatMinutes(actual)}</em>
+            </>
+          }
+        />
+        <StatItem
+          label="Daily 实际"
+          value={
+            <>
+              <em>{formatMinutes(dailyActual)}</em>
+            </>
+          }
+        />
+        <StatItem
+          label="今日总实际"
+          value={
+            <>
+              <em>{formatMinutes(actual + dailyActual)}</em>
+            </>
+          }
+        />
+      </Surface>
       <div
-        className={cn('dashboard-columns', isMiniToday && 'is-mini-today')}
+        className="dashboard-columns"
         style={{ '--schedule-ratio': `${scheduleRatio}fr` } as React.CSSProperties}
         onPointerMove={handlePointerDragMove}
         onPointerUp={handlePointerDragEnd}
@@ -354,7 +322,7 @@ export function TaskDashboard() {
           annotationTool={annotationTool}
           highlightColor={highlightColor}
           isDropTarget={dropTarget === 'schedule'}
-          isFullWorkspace={!isMiniToday}
+          isFullWorkspace
           isResizing={isResizingSchedule}
           isAdding={createDrafts.timedOpen}
           onAdd={() => createDrafts.openTimed(defaultProjectId)}
@@ -407,88 +375,84 @@ export function TaskDashboard() {
             </DesktopScheduleList>
           )}
         </SchedulePanel>
-        {!isMiniToday && (
-          <div className="side-column">
-            <WaitingTaskPanel
-              isDropTarget={dropTarget === 'waiting'}
-              onDragLeave={() => setDropTarget(null)}
-              onDragOver={handleWaitingDragOver}
-              onDrop={handleWaitingDrop}
-            >
-              <div className="waiting-tasks">
-                {(['important', 'normal'] as const).map((importance) => {
-                  const items = waiting.filter(
-                    (task) => (task.importance ?? 'normal') === importance,
-                  );
-                  return (
-                    <WaitingTaskGroup
-                      key={importance}
-                      importance={importance}
-                      count={items.length}
-                      onAdd={() => createDrafts.openQuick(defaultProjectId, importance)}
-                    >
-                      {items.map((task) => (
-                        <WaitingTaskRow
-                          key={task.id}
-                          task={task}
-                          projects={workspaceProjects}
-                          onEdit={() => open(task, 'waiting')}
-                          onDelete={(id) => move(id, 'trashed')}
-                          onSchedule={(id, date) => {
-                            void transitionTask(id, 'scheduled', date)
-                              .then(() => {
-                                if (date === getLocalDateKey())
-                                  setAutoFocusTimeTaskId(id);
-                              })
-                              .catch(() => undefined);
-                          }}
-                          onComplete={(id) => {
-                            void completeWaitingTask(id, getLocalDateKey()).catch(
-                              () => undefined,
-                            );
-                          }}
-                        />
-                      ))}
-                      <WaitingTaskCreateRow
-                        open={
-                          createDrafts.quickOpen &&
-                          createDrafts.quickDraft.importance === importance
-                        }
-                        draft={createDrafts.quickDraft}
+        <div className="side-column">
+          <WaitingTaskPanel
+            isDropTarget={dropTarget === 'waiting'}
+            onDragLeave={() => setDropTarget(null)}
+            onDragOver={handleWaitingDragOver}
+            onDrop={handleWaitingDrop}
+          >
+            <div className="waiting-tasks">
+              {(['important', 'normal'] as const).map((importance) => {
+                const items = waiting.filter(
+                  (task) => (task.importance ?? 'normal') === importance,
+                );
+                return (
+                  <WaitingTaskGroup
+                    key={importance}
+                    importance={importance}
+                    count={items.length}
+                    onAdd={() => createDrafts.openQuick(defaultProjectId, importance)}
+                  >
+                    {items.map((task) => (
+                      <WaitingTaskRow
+                        key={task.id}
+                        task={task}
                         projects={workspaceProjects}
-                        onCreate={createWaitingTask}
-                        onCreateProject={createProjectDirectly}
-                        onChange={createDrafts.updateQuickDraft}
-                        onReset={() => createDrafts.resetQuick(defaultProjectId)}
-                        onClose={createDrafts.closeQuick}
+                        onEdit={() => open(task, 'waiting')}
+                        onDelete={(id) => move(id, 'trashed')}
+                        onSchedule={(id, date) => {
+                          void transitionTask(id, 'scheduled', date)
+                            .then(() => {
+                              if (date === getLocalDateKey())
+                                setAutoFocusTimeTaskId(id);
+                            })
+                            .catch(() => undefined);
+                        }}
+                        onComplete={(id) => {
+                          void completeWaitingTask(id, getLocalDateKey()).catch(
+                            () => undefined,
+                          );
+                        }}
                       />
-                    </WaitingTaskGroup>
-                  );
-                })}
-              </div>
-            </WaitingTaskPanel>
-            <DailyPanel
-              ref={dailyPanel}
-              items={daily}
-              date={selectedDate}
-              onSave={saveDailyEntry}
-            />
-          </div>
-        )}
+                    ))}
+                    <WaitingTaskCreateRow
+                      open={
+                        createDrafts.quickOpen &&
+                        createDrafts.quickDraft.importance === importance
+                      }
+                      draft={createDrafts.quickDraft}
+                      projects={workspaceProjects}
+                      onCreate={createWaitingTask}
+                      onCreateProject={createProjectDirectly}
+                      onChange={createDrafts.updateQuickDraft}
+                      onReset={() => createDrafts.resetQuick(defaultProjectId)}
+                      onClose={createDrafts.closeQuick}
+                    />
+                  </WaitingTaskGroup>
+                );
+              })}
+            </div>
+          </WaitingTaskPanel>
+          <DailyPanel
+            ref={dailyPanel}
+            items={daily}
+            date={selectedDate}
+            onSave={saveDailyEntry}
+          />
+        </div>
       </div>
-      {!isMiniToday && (
-        <button
-          className="finish-day"
-          disabled={isDayClosed || preparingClose}
-          onClick={() => void openCloseDialog()}
-        >
-          <Moon size={18} aria-hidden="true" />
-          <span>
-            {isDayClosed ? '今日已结束' : preparingClose ? '正在保存…' : '结束今天'}
-          </span>
-          <ChevronRight size={18} aria-hidden="true" />
-        </button>
-      )}
+      <button
+        className="finish-day"
+        disabled={isDayClosed || preparingClose}
+        onClick={() => void openCloseDialog()}
+      >
+        <Moon size={18} aria-hidden="true" />
+        <span>
+          {isDayClosed ? '今日已结束' : preparingClose ? '正在保存…' : '结束今天'}
+        </span>
+        <ChevronRight size={18} aria-hidden="true" />
+      </button>
       <AnnotationLayer
         activeTool={annotationTool}
         highlightColor={highlightColor}
@@ -498,6 +462,8 @@ export function TaskDashboard() {
         disabled={false}
       />
       <TaskDialog
+        inWorkstation={Boolean(editing && workstationTaskIds.includes(editing.id))}
+        onToggleWorkstation={toggleWorkstationTask}
         open={taskDialogOpen}
         mode={taskDialogMode}
         editing={editing}

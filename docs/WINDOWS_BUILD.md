@@ -43,7 +43,7 @@ Preview 是 **production-equivalent unpacked Electron app**：它与正式 packa
 - 正式 preload bridge、IPC、BrowserWindow 与本地数据语义；
 - Embedded ASAR integrity 与 `OnlyLoadAppFromAsar`。
 
-Preview 不是 dev server、`file://`、开发模式 Electron，也不是手工复制 `node_modules/electron/dist` 得到的近似包。它能验收 UI、交互、production renderer、窗口行为、IPC、Full、Mini Today、Workstation 和 Edge。它只省略 NSIS，因此不验证安装/卸载流程、安装目录 UI、快捷方式、Start Menu 和其他 installer-specific 行为。
+Preview 不是 dev server、`file://`、开发模式 Electron，也不是手工复制 `node_modules/electron/dist` 得到的近似包。它能验收 UI、交互、production renderer、窗口行为、IPC、Full、Workstation 和 Edge。它只省略 NSIS，因此不验证安装/卸载流程、安装目录 UI、快捷方式、Start Menu 和其他 installer-specific 行为。
 
 ## 输出、锁与 Manifest
 
@@ -104,7 +104,7 @@ $env:THREADLINE_PACKAGED_EXECUTABLE = (Resolve-Path 'release/preview/win-unpacke
 pnpm test:electron:packaged
 ```
 
-packaged runner 不启动 Next server，并主动清除继承的 `THREADLINE_ELECTRON_RENDERER_URL`。正式 fuse 会关闭 Node CLI inspect，Playwright `_electron.launch()` 无法在不削弱安全设置的前提下连接 packaged Main；因此 runner 只开启 loopback Chromium CDP，要求 `threadline://app/...`、无 `http(s):` 或 `file:` Renderer、CSP 正常，并通过受限 Preload 完成 Full→Mini→Workstation→Full、单实例与退出。Main menu、原生 bounds 和 Edge 内部状态继续由第一项开发壳 smoke 覆盖。测试或清理超时后只结束自己创建的精确 Electron 进程树。NSIS 安装/卸载仍是 release-tier 人工验收，未被加入普通 PR gate。
+packaged runner 不启动 Next server，并主动清除继承的 `THREADLINE_ELECTRON_RENDERER_URL`。正式 fuse 会关闭 Node CLI inspect，Playwright `_electron.launch()` 无法在不削弱安全设置的前提下连接 packaged Main；因此 runner 只开启 loopback Chromium CDP，要求 `threadline://app/...`、无 `http(s):` 或 `file:` Renderer、CSP 正常，并通过受限 Preload 完成 Full→Workstation→Full、单实例与退出。Main menu、原生 bounds 和 Edge 内部状态继续由第一项开发壳 smoke 覆盖。测试或清理超时后只结束自己创建的精确 Electron 进程树。NSIS 安装/卸载仍是 release-tier 人工验收，未被加入普通 PR gate。
 
 ## `PACKAGING_STALL` 与 Windows Defender
 

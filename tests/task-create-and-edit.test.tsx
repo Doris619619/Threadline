@@ -157,28 +157,6 @@ describe('useTaskCreateAndEdit', () => {
     );
   });
 
-  it('defaults compact scheduled creation to normal importance', async () => {
-    const dependencies = createHookDependencies();
-    const { result } = renderHook(() => useTaskCreateAndEdit(dependencies));
-
-    await act(async () => {
-      await result.current.createCompactTimedTask({
-        projectId: activeProject.id,
-        title: '迷你日程',
-        start: '09:00',
-        end: '10:00',
-      });
-    });
-
-    expect(dependencies.createTask).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: '迷你日程',
-        status: 'active',
-        importance: 'normal',
-      }),
-    );
-  });
-
   it('keeps cross-midnight rejection and sends valid create or edit models to their separate persistence paths', async () => {
     const creating = createHookDependencies();
     const { result, rerender } = renderHook(

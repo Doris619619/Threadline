@@ -493,6 +493,9 @@ test('keeps all timed task creation controls visible in a compact desktop schedu
     timelineBox.x + timelineBox.width,
   );
   await expect(timeline).toHaveCSS('overflow-x', 'auto');
+  await timeline.screenshot({
+    path: testInfo.outputPath('schedule-create-aligned.png'),
+  });
 });
 
 test('starts the full workspace with a wider schedule column', async ({

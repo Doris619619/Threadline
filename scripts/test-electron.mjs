@@ -185,8 +185,8 @@ try {
     normalBounds,
     'maximize and restore must retain the normal window geometry',
   );
-  await page.getByRole('button', { name: '迷你今日', exact: true }).click();
-  await page.getByTestId('mini-today-panel').waitFor();
+  await page.getByRole('button', { name: '工作站', exact: true }).click();
+  await page.getByTestId('workstation-panel').waitFor();
   assert.equal(
     await page
       .locator('.compact-window-header')
@@ -196,17 +196,42 @@ try {
     'drag',
     'frameless compact header must provide a drag region',
   );
-  const miniMain = (await inspectWindows(application)).find(
+  const compactMain = (await inspectWindows(application)).find(
     (window) => window.visible && window.url.includes('threadline-role=main'),
   );
-  assert.ok(miniMain, 'Mini mode must keep the Main BrowserWindow visible');
-  assert.equal(miniMain.bounds.width, 518);
+  assert.ok(compactMain, 'Workstation mode must keep the Main BrowserWindow visible');
+  assert.equal(compactMain.bounds.width, 200);
   assert.ok(
-    miniMain.bounds.height >= 760 && miniMain.bounds.height <= 822,
-    'Mini height must use the target range or a work-area-clamped value',
+    compactMain.bounds.height >= 96 && compactMain.bounds.height <= 220,
+    'Workstation height must use the target range or a work-area-clamped value',
   );
-  await page.getByRole('button', { name: '工作站', exact: true }).click();
-  await page.getByTestId('workstation-panel').waitFor();
+  // 奇数屏幕坐标在 250% 下产生分数物理像素，是旧外框回填增宽的触发条件。
+  await application.evaluate(({ BrowserWindow }) => {
+    BrowserWindow.getAllWindows()
+      .find((w) => w.webContents.getURL().includes('role=main'))
+      .setBounds({ x: 601, y: 101, width: 280 });
+  });
+  for (let index = 0; index < 100; index++) {
+    await page.evaluate(
+      (height) => window.threadlineDesktop.resizeCompactContent('workstation', height),
+      120 + (index % 2),
+    );
+    assert.equal(
+      await application.evaluate(
+        ({ BrowserWindow }) =>
+          BrowserWindow.getAllWindows()
+            .find((w) => w.webContents.getURL().includes('role=main'))
+            .getContentSize()[0],
+      ),
+      280,
+      'content height updates preserve user width at fractional physical coordinates',
+    );
+  }
+  await application.evaluate(({ BrowserWindow }) => {
+    BrowserWindow.getAllWindows()
+      .find((w) => w.webContents.getURL().includes('role=main'))
+      .setBounds({ x: 600, y: 100, width: 200 });
+  });
   await page.getByRole('button', { name: '收起', exact: true }).click();
   await waitFor(
     async () =>
@@ -224,7 +249,85 @@ try {
     .windows()
     .find((window) => window.url().includes('threadline-role=edge-tab'));
   assert.ok(edgePage, 'Edge renderer page must be attached to Playwright');
-  await edgePage.getByRole('button', { name: '展开最近的紧凑工作台' }).click();
+  await edgePage.getByRole('button').hover();
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  assert.ok(
+    (await inspectWindows(application)).some(
+      (item) => item.visible && item.url.includes('edge-tab'),
+    ),
+    'Hover must never expand Edge',
+  );
+  assert.ok(
+    await application.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()
+        .find((window) => window.webContents.getURL().includes('edge-tab'))
+        .isAlwaysOnTop(),
+    ),
+    'Edge must stay above ordinary windows',
+  );
+
+  // 测试控制 screen 输入以覆盖跨屏坐标规则，窗口移动和吸附仍使用真实 BrowserWindow。
+  const edgeBounds = await application.evaluate(({ BrowserWindow, screen }) => {
+    const window = BrowserWindow.getAllWindows().find((item) =>
+      item.webContents.getURL().includes('edge-tab'),
+    );
+    globalThis.compactOriginalCursor = screen.getCursorScreenPoint;
+    const bounds = window.getBounds();
+    globalThis.compactTestCursor = { x: bounds.x + 10, y: bounds.y + 10 };
+    screen.getCursorScreenPoint = () => globalThis.compactTestCursor;
+    return bounds;
+  });
+  await edgePage.mouse.move(10, 10);
+  await edgePage.mouse.down();
+  // 连续真实 Renderer 指针事件经过 trusted IPC，原生尺寸不能随每次定位递增。
+  for (let index = 0; index < 120; index++) {
+    await application.evaluate(({ screen }, index) => {
+      const area = screen.getPrimaryDisplay().workArea;
+      globalThis.compactTestCursor = {
+        x: area.x + 4 + (index % 2),
+        y: area.y + 84 + (index % 20),
+      };
+    }, index);
+    await edgePage.mouse.move(12 + (index % 2), 20 + (index % 20));
+    const bounds = (await inspectWindows(application)).find((w) =>
+      w.url.includes('edge-tab'),
+    ).bounds;
+    assert.ok(
+      Math.abs(bounds.width - edgeBounds.width) <= 1,
+      'held drag must not grow native width',
+    );
+    assert.ok(
+      Math.abs(bounds.height - edgeBounds.height) <= 1,
+      'held drag must not grow native height',
+    );
+  }
+  await edgePage.mouse.up();
+  await waitFor(
+    async () =>
+      application.evaluate(({ BrowserWindow, screen }) => {
+        const edge = BrowserWindow.getAllWindows().find((item) =>
+          item.webContents.getURL().includes('edge-tab'),
+        );
+        return (
+          edge?.isVisible() &&
+          edge.getBounds().x === screen.getPrimaryDisplay().workArea.x
+        );
+      }),
+    'drag must snap Edge left without restoring Main',
+  );
+  const movedEdge = (await inspectWindows(application)).find(
+    (item) => item.visible && item.url.includes('edge-tab'),
+  );
+  assert.notEqual(
+    movedEdge.bounds.y,
+    edgeBounds.y,
+    'Edge must retain the vertical drag',
+  );
+  await application.evaluate(({ screen }) => {
+    screen.getCursorScreenPoint = globalThis.compactOriginalCursor;
+  });
+  // 用键盘激活复核无指针环境；下面仍通过真实按钮 click 验证鼠标恢复。
+  await edgePage.getByRole('button', { name: '展开工作站' }).click();
   await page.getByTestId('workstation-panel').waitFor();
   await waitFor(
     async () =>
@@ -259,12 +362,56 @@ try {
       ),
     'second instance must restore the latest compact Main from Edge',
   );
+  // 同次运行允许调宽；重启读取旧宽度时回到窄初始尺寸。
+  await application.evaluate(({ BrowserWindow }) => {
+    const main = BrowserWindow.getAllWindows().find((window) =>
+      window.webContents.getURL().includes('threadline-role=main'),
+    );
+    main.setBounds({ width: 280 });
+  });
+  await waitFor(
+    async () =>
+      (await inspectWindows(application)).some(
+        (window) => window.visible && window.bounds.width === 280,
+      ),
+    'workstation remains manually resizable',
+  );
+  await page.evaluate(() => {
+    const states = JSON.parse(
+      localStorage.getItem('threadline.desktop-window-states.v3') ?? '{}',
+    );
+    states.workstation = { ...states.workstation, width: 340 };
+    localStorage.setItem('threadline.desktop-window-states.v3', JSON.stringify(states));
+  });
   await page.getByRole('button', { name: '关闭窗口' }).click();
   await waitFor(
     async () => desktopProcess.exitCode !== null,
     'Full close must terminate the Electron process without rebuilding Main',
   );
-  console.log('Electron window smoke test passed.');
+  application = await electron.launch({
+    args: ['.', `--user-data-dir=${userDataDirectory}`, '--no-sandbox'],
+    env: { ...process.env, THREADLINE_ELECTRON_RENDERER_URL: rendererUrl },
+  });
+  desktopProcess = application.process();
+  const restartedPage = await application.firstWindow();
+  await restartedPage.getByTestId('workstation-panel').waitFor();
+  await waitFor(
+    async () =>
+      (await inspectWindows(application)).some(
+        (window) => window.visible && window.bounds.width === 200,
+      ),
+    'restart must use compact initial width despite old wide preferences',
+  );
+  await restartedPage.getByRole('button', { name: '收起', exact: true }).click();
+  await waitFor(async () => {
+    const edge = (await inspectWindows(application)).find(
+      (item) => item.visible && item.url.includes('edge-tab'),
+    );
+    return (
+      edge?.bounds.x === movedEdge.bounds.x && edge?.bounds.y === movedEdge.bounds.y
+    );
+  }, 'Edge side and vertical position must survive a process restart');
+  console.log('Electron window smoke test passed, including persisted Edge position.');
 } catch (error) {
   exitCode = 1;
   console.error(error);

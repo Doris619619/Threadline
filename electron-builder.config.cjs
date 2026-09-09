@@ -1,6 +1,9 @@
 /** 文件用途：定义 Threadline Electron Windows x64 unpacked 与 NSIS 打包基础配置。 */
 
+const iconTheme = process.env.THREADLINE_DESKTOP_THEME === 'anya' ? 'anya' : 'blue';
+
 module.exports = {
+  extraMetadata: { threadlineIconTheme: iconTheme },
   appId: 'com.doris619619.threadline',
   productName: 'Threadline',
   directories: {
@@ -17,7 +20,10 @@ module.exports = {
   afterPack: './scripts/after-pack.cjs',
   win: {
     target: [{ target: 'nsis', arch: ['x64'] }],
-    icon: 'electron/assets/icon.ico',
+    icon:
+      iconTheme === 'anya'
+        ? 'electron/assets/icon-anya.ico'
+        : 'electron/assets/icon.ico',
   },
   nsis: {
     oneClick: false,

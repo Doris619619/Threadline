@@ -1,284 +1,97 @@
-/**
- * @fileoverview 定义迷你今日与工作站紧凑任务视图样式。
- */
-
-/* ================= 紧凑工作流 ================= */
+/** @fileoverview 原生便签窗口的连续列表，以及完整工作台的批注与拖拽样式。 */
 .compact-workspace {
-  min-height: 0;
-  padding: 26px 24px 14px;
-  overflow: auto;
-  background: var(--background);
-}
-.compact-section {
-  margin-bottom: 16px;
-  padding: 16px 14px;
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 18px;
-  box-shadow: var(--shadow-card);
-}
-.compact-section > header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 32px;
-  margin-bottom: 8px;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  padding: 6px 8px 4px;
+  gap: 4px;
+  overflow: hidden;
+  background: var(--surface);
 }
-.compact-section h2 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 1rem;
-  font-weight: 760;
+.compact-scroll {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  flex: 1;
 }
-.compact-add-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  min-height: 30px;
-  padding: 0 2px;
-  border: 0;
-  color: var(--text-secondary);
-  background: transparent;
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-.compact-add-trigger:hover {
-  color: var(--accent);
-}
-.compact-section ul,
-.workstation-panel ol {
-  display: grid;
-  gap: 0;
+.compact-scroll ol {
+  list-style: none;
   margin: 0;
   padding: 0;
-  list-style: none;
-}
-.mini-task-row,
-.mini-quick-row {
-  display: grid;
-  min-width: 0;
-  align-items: center;
-  gap: 9px;
-  min-height: 56px;
-  border-top: 1px solid var(--border-subtle);
-}
-.mini-task-row {
-  grid-template-columns: 104px 20px minmax(0, 1fr) 26px;
-}
-.mini-quick-row {
-  grid-template-columns: 20px minmax(0, 1fr) 26px;
-}
-.mini-task-row time {
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--surface);
   overflow: hidden;
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+.workstation-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  min-height: 28px;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.workstation-row:last-child {
+  border-bottom: 0;
 }
 .compact-task-label {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 8px;
+  gap: 2px;
 }
 .compact-task-label .tl-project-tag {
+  font-size: 11px;
   flex: 0 1 auto;
+  max-width: 48px;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .compact-task-label strong {
+  min-width: 0;
   overflow: hidden;
-  color: var(--text-primary);
-  font-size: 0.84rem;
-  font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.mini-task-row.completed strong,
-.mini-quick-row.completed strong {
-  color: var(--text-tertiary);
-  text-decoration: line-through;
-}
-.workstation-toggle {
-  display: grid;
-  width: 25px;
-  height: 25px;
-  place-items: center;
-  color: var(--text-tertiary);
-  background: transparent;
-  border: 1px solid var(--border-subtle);
-  border-radius: 50%;
-  cursor: pointer;
-}
-.workstation-toggle:hover,
-.workstation-toggle.is-active {
-  color: var(--accent);
-  background: var(--accent-muted);
-}
-.workstation-toggle.is-active {
-  transform: rotate(45deg);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-primary);
 }
 .compact-empty {
-  padding: 16px 2px;
-  color: var(--text-tertiary);
-  font-size: 0.78rem;
-  line-height: 1.5;
+  padding: 12px 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 .compact-full-link {
   display: block;
-  width: 100%;
-  min-height: 44px;
-  margin-top: 8px;
-  color: var(--accent);
-  background: transparent;
+  min-height: 26px;
+  flex-shrink: 0;
+  padding: 0 2px;
   border: 0;
-  font-size: 0.94rem;
-  font-weight: 760;
+  background: transparent;
+  color: var(--accent-text);
+  font-size: 11px;
+  font-weight: 500;
   cursor: pointer;
 }
 .compact-full-link:hover {
   text-decoration: underline;
 }
-.compact-add-row {
-  position: relative;
-  display: grid;
-  gap: 6px;
-  padding: 8px 0;
-  border-top: 1px solid var(--border-subtle);
-}
-.compact-add-row input,
-.compact-add-row select {
-  min-width: 0;
-  height: 28px;
-  padding: 0 5px;
-  color: var(--text-primary);
-  background: var(--surface);
-  border: 1px solid var(--accent);
-  border-radius: 5px;
-  font: inherit;
-  font-size: 0.72rem;
-}
-.compact-timed-add-row {
-  grid-template-columns: minmax(0, 1fr) 76px minmax(0, 1fr) 26px;
-}
-.compact-quick-add-row {
-  grid-template-columns: 82px minmax(0, 1fr) 26px;
-}
-.compact-add-time {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 2px;
-}
-.compact-add-confirm {
-  display: grid;
-  width: 26px;
-  height: 28px;
-  place-items: center;
-  color: var(--accent);
-  background: var(--accent-muted);
-  border: 0;
-  border-radius: 5px;
-  cursor: pointer;
-}
-.compact-add-error {
-  grid-column: 1 / -1;
-  color: var(--danger);
-  font-size: 0.68rem;
-}
-
-@media (max-width: 760px) {
-  /* 手机窄窗在保留 16px 以上录入字号时改为两行，避免紧凑新增行横向溢出。 */
-  .compact-add-row {
-    gap: 8px;
-  }
-
-  .compact-add-row input,
-  .compact-add-row select {
-    height: var(--touch-target);
-    padding: 0 8px;
-    font-size: var(--mobile-form-control-font-size);
-  }
-
-  .compact-add-confirm {
-    width: var(--touch-target);
-    height: var(--touch-target);
-  }
-
-  .compact-timed-add-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--touch-target);
-  }
-
-  .compact-timed-add-row .compact-add-time {
-    grid-column: 1 / -1;
-  }
-
-  .compact-quick-add-row {
-    grid-template-columns: minmax(84px, 0.75fr) minmax(0, 1fr) var(--touch-target);
-  }
-}
-.workstation-panel {
-  display: flex;
-  min-height: 0;
-  flex-direction: column;
-  gap: 14px;
-}
-.workstation-panel ol {
-  min-height: 0;
-  overflow: auto;
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 18px;
-  box-shadow: var(--shadow-card);
-}
 .workstation-row {
-  display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) 16px 24px;
-  align-items: center;
-  gap: 9px;
-  min-height: 77px;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--border-subtle);
+  grid-template-columns: 16px minmax(0, 1fr);
+  position: relative;
   cursor: grab;
 }
-.workstation-row:last-child {
-  border-bottom: 0;
-}
 .workstation-order {
-  color: var(--text-primary);
-  font-size: 1rem;
-  font-weight: 760;
-  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
 }
-.workstation-grip {
-  color: var(--text-tertiary);
-}
-.workstation-remove {
-  display: grid;
-  width: 23px;
-  height: 23px;
-  place-items: center;
-  color: var(--text-tertiary);
-  background: transparent;
-  border: 0;
-  border-radius: 5px;
-  opacity: 0;
-  cursor: pointer;
-}
-.workstation-row:hover .workstation-remove,
-.workstation-row:focus-within .workstation-remove {
-  opacity: 1;
-}
-.workstation-remove:hover {
-  color: var(--danger);
-  background: color-mix(in srgb, var(--danger) 12%, var(--surface));
-}
-.workstation-panel .compact-full-link {
-  margin-top: auto;
+.workstation-panel > .compact-full-link {
+  align-self: center;
 }
 
 .schedule-workspace {
@@ -310,10 +123,6 @@
 
 .dashboard-annotatable {
   position: relative;
-}
-
-.dashboard-columns.is-mini-today {
-  grid-template-columns: 1fr;
 }
 
 .schedule-panel.is-drop-target,
@@ -556,7 +365,7 @@
 
 .timeline-time.is-pending-time {
   color: var(--accent);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .tl-window-controls i {
@@ -572,4 +381,33 @@
 
 .tl-window-controls i:nth-child(3) {
   background: #28c840;
+}
+
+/* 右键菜单浮于列表上方，不占用任务标题的任何宽度。 */
+.workstation-context-menu {
+  position: fixed;
+  z-index: 1000;
+  width: 144px;
+  max-width: calc(100vw - 8px);
+  padding: 4px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 7px;
+  background: var(--surface);
+  box-shadow: 0 4px 18px #0002;
+}
+.workstation-context-menu button {
+  width: 100%;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 4px;
+  text-align: left;
+  font-size: 12px;
+  color: var(--danger);
+  background: transparent;
+  cursor: pointer;
+}
+.workstation-context-menu button:hover,
+.workstation-context-menu button:focus-visible {
+  background: var(--surface-secondary);
 }

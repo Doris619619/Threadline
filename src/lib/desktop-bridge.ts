@@ -15,7 +15,6 @@ export type DesktopHydrationPayload = {
   requestId: number;
   mode: DesktopViewMode;
   presentation: CompactPresentation;
-  lastCompactMode: CompactViewMode;
   windowStates: DesktopWindowStates;
 };
 
@@ -47,7 +46,7 @@ export type NativeDesktopStateChanged = CanonicalDesktopState & {
 export type NativeGeometryChanged = {
   geometry: WindowStateConfig;
   mode: DesktopViewMode;
-  origin: 'user';
+  origin: 'user' | 'content';
   nativeRevision: number;
 };
 
@@ -77,6 +76,9 @@ export type ThreadlineDesktopBridge =
         command: DesktopTransitionCommand,
       ) => Promise<NativeApplyResult>;
       bringToFront: () => Promise<NativeApplyResult>;
+      resizeCompactContent: (mode: CompactViewMode, height: number) => Promise<void>;
+      setAppearanceTheme: (theme: 'blue' | 'anya') => Promise<void>;
+      showEntryWindow: () => Promise<void>;
       minimizeMainWindow: () => Promise<void>;
       closeMainWindow: () => Promise<void>;
       getMainWindowMaximized: () => Promise<boolean>;
@@ -101,6 +103,7 @@ export type ThreadlineDesktopBridge =
       environment: 'electron';
       role: 'edge-tab';
       restoreMain: () => Promise<NativeApplyResult>;
+      edgePointer: (phase: 'start' | 'move' | 'end' | 'cancel') => Promise<boolean>;
     };
 
 declare global {

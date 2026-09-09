@@ -42,3 +42,11 @@ Service Worker 在返回网络响应前同步复制响应，并通过 `event.wai
 自动验证入口：`tests/appearance-preferences.test.ts`、`e2e/appearance.spec.ts`，以及现有 UI 布局/无障碍矩阵。覆盖损坏偏好、首屏与客户端校验一致、真实字体加载、刷新和同源标签页同步、字体失败重试、明暗模式、单一待安排入口、箭头对齐和长标题回收站恢复。
 
 截图与最终结果记录于 `docs/screenshots/appearance/README.md`。浏览器设备模拟和 iPhone WebKit 不等同于真实 iPhone PWA、系统 Dynamic Type 或安装版验收。此改动不包含生产部署、PR 合并或云端数据变更。
+
+## 表单与配套图标
+
+预计分钟只保留一个“待定”占位字，清空即待定；错误在提交时报告，不常驻展示时间规则。任务详情按任务名、项目、起止时间、预计/实际时长分组，取消为中性文字，保存为唯一主题主按钮。项目与任务列间距压至 3px。
+
+`BrandIcon` 使用同步 data-theme 属性显示蓝/粉静态 PNG，启动页、登录标志首帧匹配当前主题。原生窗口图标由 Main 验证主题枚举后切换，浏览器 favicon 同步更新。粉色 PNG 为内置 imagegen 对现有品牌图标的忠实换色版本，第二次编辑移除背景；最终提示为“保持粉色图案不变，移除棋盘背景并输出真实透明 PNG”。资源位于 `public/themes/anya/icon.png`，`node scripts/build-theme-icon.mjs` 仅转换大小和 ICO 容器，不重绘图案。
+
+Windows 粉色安装包通过 PowerShell `$env:THREADLINE_DESKTOP_THEME='anya'; pnpm desktop:build` 构建，EXE、NSIS 与快捷方式使用 `icon-anya.ico`。同一选项支持 desktop:preview。新设备默认粉色，已有外观偏好优先；移除环境变量后恢复蓝色构建。Windows 已固定到任务栏的快捷方式可能保留安装时的图标，运行时窗口图标不改写用户快捷方式。

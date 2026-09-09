@@ -2,7 +2,7 @@
  * @fileoverview 定义与桌面壳无关的窗口模式、geometry 归一化和显示器安全恢复策略。
  */
 
-export type DesktopViewMode = 'full' | 'mini-today' | 'workstation';
+export type DesktopViewMode = 'full' | 'workstation';
 export type CompactViewMode = Exclude<DesktopViewMode, 'full'>;
 export type CompactPresentation = 'expanded' | 'edge-collapsed';
 
@@ -21,29 +21,26 @@ export interface LogicalWorkArea {
   height: number;
 }
 
-/** 定义三种业务窗口模式在没有 persisted geometry 时使用的默认尺寸。 */
+/** 定义两种业务窗口模式在没有 persisted geometry 时使用的默认尺寸。 */
 export const DEFAULT_WINDOW_CONFIGS: Record<DesktopViewMode, WindowStateConfig> = {
   full: { width: 1280, height: 840 },
-  'mini-today': { width: 518, height: 822 },
-  workstation: { width: 518, height: 504 },
+  workstation: { width: 200, height: 200 },
 };
 
 /** 定义 Edge 窗口在所有壳实现中必须保持一致的固定逻辑尺寸。 */
-export const EDGE_TAB_SIZE = { width: 42, height: 146 };
+export const EDGE_TAB_SIZE = { width: 28, height: 104 };
 
 /** 紧凑窗口的统一 logical px 尺寸边界，Main 与 Renderer 必须共用。 */
 export const COMPACT_WINDOW_BOUNDS: Record<
   CompactViewMode,
   { minWidth: number; maxWidth: number; minHeight: number; maxHeight: number }
 > = {
-  'mini-today': { minWidth: 480, maxWidth: 540, minHeight: 760, maxHeight: 860 },
-  workstation: { minWidth: 480, maxWidth: 540, minHeight: 460, maxHeight: 560 },
+  workstation: { minWidth: 200, maxWidth: 340, minHeight: 96, maxHeight: 220 },
 };
 
 const MINIMUM_VISIBLE_SIZE: Record<DesktopViewMode, { width: number; height: number }> =
   {
     full: { width: 240, height: 160 },
-    'mini-today': { width: 80, height: 80 },
     workstation: { width: 80, height: 80 },
   };
 
@@ -77,7 +74,10 @@ export function normalizeCompactWindowState(
       ? state.height
       : fallback.height;
   const normalized = {
-    width: clamp(width, bounds.minWidth, bounds.maxWidth),
+    width:
+      width > bounds.maxWidth
+        ? fallback.width
+        : clamp(width, bounds.minWidth, bounds.maxWidth),
     height: clamp(height, bounds.minHeight, bounds.maxHeight),
   };
 
@@ -86,7 +86,7 @@ export function normalizeCompactWindowState(
     : normalized;
 }
 
-/** 过滤 persisted window state，只接受当前三种业务窗口模式的合法 geometry。 */
+/** 过滤 persisted window state，只接受当前两种业务窗口模式的合法 geometry。 */
 export function normalizeWindowStates(
   value: unknown,
 ): Partial<Record<DesktopViewMode, WindowStateConfig>> {
@@ -111,8 +111,21 @@ export function normalizeWindowStates(
 
   return {
     ...(normalizedFull ? { full: normalizedFull } : {}),
-    'mini-today': normalizeCompactWindowState('mini-today', states['mini-today']),
     workstation: normalizeCompactWindowState('workstation', states.workstation),
+  };
+}
+
+/** 新进程读取偏好时让工作站从窄宽度开始；位置/高度和其他视图不变，运行中调宽仍使用通常的尺寸校验。 */
+export function normalizeStartupWindowStates(
+  value: unknown,
+): Partial<Record<DesktopViewMode, WindowStateConfig>> {
+  const states = normalizeWindowStates(value);
+  return {
+    ...states,
+    workstation: {
+      ...states.workstation!,
+      width: DEFAULT_WINDOW_CONFIGS.workstation.width,
+    },
   };
 }
 
@@ -180,4 +193,9 @@ export function resolveSafeWindowState(
   return fallbackArea
     ? getFallbackWindowState(mode, state, fallbackArea)
     : { ...state };
+}
+
+/** 停用视图的旧偏好迁移到工作站；未知模式回退完整工作台。 */
+export function normalizeDesktopViewMode(value: unknown): DesktopViewMode {
+  return value === 'workstation' || value === 'mini-today' ? 'workstation' : 'full';
 }

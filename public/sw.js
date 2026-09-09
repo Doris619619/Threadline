@@ -11,6 +11,7 @@ const SHELL = [
   '/auth/welcome-illustration.jpg',
   '/auth/login-illustration.jpg',
   '/themes/anya/notebook.webp',
+  '/themes/anya/icon.png',
 ];
 const PRECACHE_MANIFEST = '/sw-precache.json';
 

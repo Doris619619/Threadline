@@ -1,4 +1,4 @@
-/** @fileoverview 验证分钟格式、独立预计输入、待安排与迷你今日保存及无效草稿保护。 */
+/** @fileoverview 验证分钟格式、独立预计输入、待安排保存及无效草稿保护。 */
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { parseEstimateMinutes, formatEstimate } from '@/features/tasks/task-time';
@@ -71,23 +71,11 @@ describe('independent estimates', () => {
       );
     },
   );
-  it('keeps estimates for waiting and compact creation, and prevents invalid writes', async () => {
+  it('keeps estimates for waiting creation, and prevents invalid writes', async () => {
     const { actions, createTask } = setup();
     await actions.createWaitingTask({
       title: '待安排',
       projectId: project.id,
-      planned: '90',
-    });
-    await actions.createCompactWaitingTask({
-      title: '迷你待安排',
-      projectId: project.id,
-      planned: '90',
-    });
-    await actions.createCompactTimedTask({
-      title: '迷你日程',
-      projectId: project.id,
-      start: '09:00',
-      end: '10:00',
       planned: '90',
     });
     expect(
@@ -103,6 +91,6 @@ describe('independent estimates', () => {
       completed: false,
     });
     expect(response).toHaveProperty('error');
-    expect(createTask).toHaveBeenCalledTimes(3);
+    expect(createTask).toHaveBeenCalledTimes(1);
   });
 });

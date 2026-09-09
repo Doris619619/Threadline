@@ -14,6 +14,12 @@ import {
   shell,
   type IpcMainInvokeEvent,
 } from 'electron';
+import {
+  getThemedWindowIcon,
+  loadCompactPreferences,
+  placeEdgeWindow,
+  registerCompactControls,
+} from './compact-controls.cjs';
 import { existsSync, readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { join, normalize, resolve, sep } from 'node:path';
@@ -25,11 +31,11 @@ import {
   normalizeWindowStates,
   resolveSafeWindowState,
   type DesktopViewMode,
-  type CompactViewMode,
   type CompactPresentation,
   type LogicalWorkArea,
   type WindowStateConfig,
 } from '../src/lib/desktop-window-policy.js';
+import { readFramelessGeometry } from './window-geometry.cjs';
 
 // Windows/Linux 默认菜单会占用紧凑窗口的标题区域，必须在 app ready 前移除。
 Menu.setApplicationMenu(null);
@@ -46,7 +52,6 @@ type DesktopHydrationPayload = {
   requestId: number;
   mode: DesktopViewMode;
   presentation: CompactPresentation;
-  lastCompactMode: CompactViewMode;
   windowStates: Partial<Record<DesktopViewMode, WindowStateConfig>>;
 };
 type CanonicalDesktopState = Omit<DesktopHydrationPayload, 'requestId'>;
@@ -64,6 +69,8 @@ type NativeApplyResult = {
 let mainWindow: BrowserWindow | undefined;
 let edgeWindow: BrowserWindow | undefined;
 let mainReadyToShow = false;
+let entryWindowShown = false;
+let desktopStateInitialized = false;
 let startupWatchdog: ReturnType<typeof setTimeout> | undefined;
 let stateRevision = 0;
 const stateAcknowledgements = new Map<number, () => void>();
@@ -76,14 +83,13 @@ let isQuitting = false;
 let latestState: CanonicalDesktopState = {
   mode: 'full',
   presentation: 'expanded',
-  lastCompactMode: 'mini-today',
   windowStates: {},
 };
 let rendererCspManifest: { routes?: Record<string, { header?: string }> } | undefined;
 
 /** 返回开发与打包应用都可读取的统一 Threadline 窗口图标。 */
 function getWindowIconPath(): string {
-  return join(app.getAppPath(), 'electron', 'assets', 'icon.ico');
+  return getThemedWindowIcon();
 }
 
 protocol.registerSchemesAsPrivileged([
@@ -254,15 +260,12 @@ function parseHydrationPayload(value: unknown): DesktopHydrationPayload | undefi
   const candidate = value as Partial<DesktopHydrationPayload>;
   if (!Number.isSafeInteger(candidate.requestId) || (candidate.requestId ?? 0) < 1)
     return undefined;
-  if (!['full', 'mini-today', 'workstation'].includes(candidate.mode ?? ''))
-    return undefined;
+  if (!['full', 'workstation'].includes(candidate.mode ?? '')) return undefined;
   if (!['expanded', 'edge-collapsed'].includes(candidate.presentation ?? ''))
-    return undefined;
-  if (!['mini-today', 'workstation'].includes(candidate.lastCompactMode ?? ''))
     return undefined;
   if (!candidate.windowStates || typeof candidate.windowStates !== 'object')
     return undefined;
-  const allowedKeys = new Set(['full', 'mini-today', 'workstation']);
+  const allowedKeys = new Set(['full', 'workstation']);
   for (const [mode, geometry] of Object.entries(candidate.windowStates)) {
     if (!allowedKeys.has(mode) || !isValidWindowState(geometry)) return undefined;
   }
@@ -312,6 +315,9 @@ function applyMainNativeState(
   if (!mainWindow || mainWindow.isDestroyed())
     throw new Error('Main window is unavailable');
   if (mode !== 'full' && mainWindow.isMaximized()) mainWindow.unmaximize();
+  // 在任何原生尺寸约束变更之前抑制中间 resize，避免把最大宽度误存为用户尺寸。
+  suppressGeometryUntil = Date.now() + 320;
+  if (userGeometryTimer) clearTimeout(userGeometryTimer);
   const compactLimits = mode === 'full' ? undefined : COMPACT_WINDOW_BOUNDS[mode];
   mainWindow.setAlwaysOnTop(mode !== 'full');
   mainWindow.setResizable(true);
@@ -324,7 +330,6 @@ function applyMainNativeState(
     compactLimits?.maxWidth ?? 0,
     compactLimits?.maxHeight ?? 0,
   );
-  suppressGeometryUntil = Date.now() + 320;
   mainWindow.setBounds(geometry);
 }
 
@@ -348,16 +353,20 @@ function publishUserGeometry(): void {
   ) {
     return;
   }
+  // Main 先同步保存最终尺寸；显示器事件不能等待 Renderer 的两轮防抖。
+  latestState.windowStates[latestState.mode] = readFramelessGeometry(mainWindow);
   if (userGeometryTimer) clearTimeout(userGeometryTimer);
   userGeometryTimer = setTimeout(() => {
     if (
       !mainWindow ||
       mainWindow.isDestroyed() ||
+      !mainWindow.isVisible() ||
+      latestState.presentation === 'edge-collapsed' ||
       mainWindow.isMaximized() ||
       Date.now() < suppressGeometryUntil
     )
       return;
-    const bounds = mainWindow.getBounds();
+    const bounds = readFramelessGeometry(mainWindow);
     stateRevision += 1;
     mainWindow.webContents.send('desktop:geometry-changed', {
       geometry: {
@@ -392,7 +401,7 @@ function revealMain(): void {
 /** 以 Main 为最终安全 surface；仅在 Main 可见后才销毁已故障的 Edge。 */
 async function ensureVisibleSurface(reason: string): Promise<NativeApplyResult> {
   if (!mainWindow || mainWindow.isDestroyed()) await createMainWindow();
-  const mode = latestState.lastCompactMode ?? 'mini-today';
+  const mode = 'workstation';
   const geometry = resolveNativeBounds(mode, latestState.windowStates[mode]);
   latestState = {
     ...latestState,
@@ -438,7 +447,7 @@ async function activateExistingInstance(): Promise<void> {
       {
         ...latestState,
         requestId: 0,
-        mode: latestState.lastCompactMode,
+        mode: 'workstation' as const,
         presentation: 'expanded',
       },
       undefined,
@@ -488,7 +497,12 @@ async function revealEdge(): Promise<void> {
       resizable: false,
       maximizable: false,
       minimizable: false,
-      skipTaskbar: false,
+      skipTaskbar: true,
+      alwaysOnTop: true,
+      minWidth: EDGE_TAB_SIZE.width,
+      maxWidth: EDGE_TAB_SIZE.width,
+      minHeight: EDGE_TAB_SIZE.height,
+      maxHeight: EDGE_TAB_SIZE.height,
       width: EDGE_TAB_SIZE.width,
       height: EDGE_TAB_SIZE.height,
     });
@@ -528,23 +542,21 @@ async function revealEdge(): Promise<void> {
     await edgeReady;
   }
   const mainBounds =
-    mainWindow && !mainWindow.isDestroyed() ? mainWindow.getBounds() : undefined;
+    mainWindow && !mainWindow.isDestroyed()
+      ? readFramelessGeometry(mainWindow)
+      : undefined;
   const matchingBounds =
     mainBounds ??
     resolveNativeBounds(latestState.mode, latestState.windowStates[latestState.mode]);
-  const area = screen.getDisplayMatching({
-    ...matchingBounds,
-    x: matchingBounds.x ?? 0,
-    y: matchingBounds.y ?? 0,
-  }).workArea;
-  edgeWindow.setBounds({
-    x: area.x + area.width - EDGE_TAB_SIZE.width,
-    y: Math.round(area.y + Math.max(32, (area.height - EDGE_TAB_SIZE.height) / 2)),
-    width: EDGE_TAB_SIZE.width,
-    height: EDGE_TAB_SIZE.height,
-  });
-  edgeWindow.show();
-  edgeWindow.focus();
+  placeEdgeWindow(
+    edgeWindow,
+    screen.getDisplayMatching({
+      ...matchingBounds,
+      x: matchingBounds.x ?? 0,
+      y: matchingBounds.y ?? 0,
+    }),
+  );
+  edgeWindow.showInactive();
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
 }
 
@@ -560,20 +572,45 @@ async function reconcileDisplayState(reason: string): Promise<void> {
       windowStates: { ...latestState.windowStates, [mode]: geometry },
     };
     stateRevision += 1;
-    applyMainNativeState(mode, geometry);
     const edgeVisible = Boolean(
-      edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible(),
+      latestState.presentation === 'edge-collapsed' &&
+      edgeWindow &&
+      !edgeWindow.isDestroyed() &&
+      edgeWindow.isVisible(),
     );
-    if (edgeVisible) await revealEdge();
+    if (edgeVisible) {
+      // 收起时只移动入口；后台 Renderer 可能被节流，不以 ACK 超时强制展开。
+      placeEdgeWindow(
+        edgeWindow!,
+        screen.getDisplayMatching({
+          ...geometry,
+          x: geometry.x ?? 0,
+          y: geometry.y ?? 0,
+        }),
+      );
+      mainWindow?.webContents.send('desktop:state-changed', {
+        ...latestState,
+        geometry,
+        visibleSurface: 'edge',
+        stateRevision,
+        origin: 'recovery',
+        reason,
+      });
+      return;
+    }
+    applyMainNativeState(mode, geometry);
     await waitForMainReadyToShow();
     try {
-      await publishCanonicalState(
-        geometry,
-        edgeVisible ? 'edge' : 'main',
-        'recovery',
-        reason,
-      );
+      await publishCanonicalState(geometry, 'main', 'recovery', reason);
     } catch {
+      // 等待期间用户可能已经收起；旧的显示器同步不能覆盖这个新选择。
+      if (
+        latestState.presentation === 'edge-collapsed' &&
+        edgeWindow &&
+        !edgeWindow.isDestroyed() &&
+        edgeWindow.isVisible()
+      )
+        return;
       await ensureVisibleSurface('display-state-sync-timeout');
     }
   } finally {
@@ -631,15 +668,23 @@ async function applyDesktopState(
 ): Promise<NativeApplyResult> {
   const mode =
     payload.presentation === 'edge-collapsed' && payload.mode === 'full'
-      ? payload.lastCompactMode
+      ? 'workstation'
       : payload.mode;
-  const geometry = resolveNativeBounds(mode, payload.windowStates[mode]);
+  const sourceGeometry =
+    mode === latestState.mode && mainWindow && !mainWindow.isDestroyed()
+      ? readFramelessGeometry(mainWindow)
+      : payload.windowStates[mode];
+  const geometry = resolveNativeBounds(
+    mode,
+    origin === 'renderer-command' && payload.presentation === 'edge-collapsed'
+      ? sourceGeometry
+      : payload.windowStates[mode],
+  );
   const wantsEdge = payload.presentation === 'edge-collapsed' && mode !== 'full';
   latestState = {
     mode,
     presentation: payload.presentation,
-    lastCompactMode: payload.lastCompactMode,
-    windowStates: payload.windowStates,
+    windowStates: { ...payload.windowStates, [mode]: geometry },
   };
   stateRevision += 1;
   applyMainNativeState(mode, geometry);
@@ -687,7 +732,6 @@ async function revealSafeFull(reason: string): Promise<NativeApplyResult> {
     requestId: 0,
     mode: 'full',
     presentation: 'expanded',
-    lastCompactMode: 'mini-today',
     windowStates: {},
   };
   return applyDesktopState(payload, reason, 'recovery');
@@ -695,11 +739,29 @@ async function revealSafeFull(reason: string): Promise<NativeApplyResult> {
 
 /** 注册 URL、窗口角色、payload schema 与 revision 四重校验的 IPC handlers。 */
 function registerDesktopIpc(): void {
+  registerCompactControls({
+    getMain: () => mainWindow,
+    getEdge: () => edgeWindow,
+    getMode: () => latestState.mode,
+    isExpanded: () => latestState.presentation === 'expanded',
+    isTrusted: isTrustedSender,
+    onResize: (geometry) => {
+      latestState.windowStates[latestState.mode] = geometry;
+      stateRevision += 1;
+      mainWindow?.webContents.send('desktop:geometry-changed', {
+        geometry,
+        mode: latestState.mode,
+        origin: 'content',
+        nativeRevision: stateRevision,
+      });
+    },
+  });
   ipcMain.handle('desktop:hydrate', async (event, payload: unknown) => {
     if (!isTrustedSender(event, 'main'))
       throw new Error('Rejected desktop hydrate sender');
     const state = parseHydrationPayload(payload);
     if (!state) return revealSafeFull('invalid-hydration-payload');
+    desktopStateInitialized = true;
     if (startupWatchdog) clearTimeout(startupWatchdog);
     return applyDesktopState(state);
   });
@@ -708,7 +770,26 @@ function registerDesktopIpc(): void {
       throw new Error('Rejected desktop transition sender');
     const state = parseHydrationPayload(payload);
     if (!state) throw new Error('Rejected desktop transition');
+    desktopStateInitialized = true;
+    if (startupWatchdog) clearTimeout(startupWatchdog);
     return applyDesktopState(state);
+  });
+  /** 启动和登录页不等待业务水合即可居中显示；每次进程启动只执行一次。 */
+  ipcMain.handle('desktop:entry-window', (event) => {
+    if (!isTrustedSender(event, 'main')) throw new Error('Rejected entry sender');
+    // 启动层迟到的 effect 不能覆盖已经选择的工作站尺寸或收起状态。
+    if (entryWindowShown || desktopStateInitialized || !mainWindow) return;
+    entryWindowShown = true;
+    if (startupWatchdog) clearTimeout(startupWatchdog);
+    const area = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea;
+    const bounds = resolveSafeWindowState(
+      'full',
+      DEFAULT_WINDOW_CONFIGS.full,
+      getLogicalWorkAreas(),
+      area,
+    );
+    applyMainNativeState('full', bounds);
+    mainWindow.show();
   });
   ipcMain.handle('desktop:bring-to-front', async (event) => {
     if (!isTrustedSender(event, 'main'))
@@ -722,11 +803,26 @@ function registerDesktopIpc(): void {
   ipcMain.handle('desktop:restore-main', async (event) => {
     if (!isTrustedSender(event, 'edge-tab'))
       throw new Error('Rejected edge restore sender');
+    // 展开位置跟随用户刚拖动的入口，避免回到另一侧或旧显示器。
+    const compactMode = 'workstation' as const;
+    const windowStates = { ...latestState.windowStates };
+    if (edgeWindow) {
+      const edge = edgeWindow.getBounds();
+      const area = screen.getDisplayMatching(edge).workArea;
+      const compact = resolveNativeBounds(compactMode, windowStates[compactMode]);
+      const left = edge.x < area.x + area.width / 2;
+      windowStates[compactMode] = {
+        ...compact,
+        x: left ? area.x : area.x + area.width - compact.width,
+        y: Math.max(area.y, Math.min(edge.y, area.y + area.height - compact.height)),
+      };
+    }
     return applyDesktopState(
       {
         ...latestState,
+        windowStates,
         requestId: 0,
-        mode: latestState.lastCompactMode,
+        mode: compactMode,
         presentation: 'expanded',
       },
       undefined,
@@ -815,12 +911,18 @@ function registerDesktopIpc(): void {
 
 /** 创建初始隐藏 Main，并注册 handshake 前必要的 renderer 故障与 closed 保护。 */
 async function createMainWindow(): Promise<void> {
+  loadCompactPreferences();
+  const initialBounds = resolveSafeWindowState(
+    'full',
+    DEFAULT_WINDOW_CONFIGS.full,
+    getLogicalWorkAreas(),
+    screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea,
+  );
   const window = createWindow('main', {
     frame: false,
-    width: 1280,
-    height: 840,
     minWidth: 800,
-    minHeight: 560,
+    minHeight: Math.min(560, initialBounds.height),
+    ...initialBounds,
   });
   mainWindow = window;
   let userRequestedClose = false;
@@ -884,13 +986,14 @@ function bootstrapApplication(): void {
         () =>
           void reconcileDisplayState('display-added').catch(exitAfterStartupFailure),
       );
-      startupWatchdog = setTimeout(
-        () =>
-          void revealSafeFull('startup-handshake-timeout').catch(
-            exitAfterStartupFailure,
-          ),
-        STARTUP_TIMEOUT_MS,
-      );
+      if (!entryWindowShown && !desktopStateInitialized)
+        startupWatchdog = setTimeout(
+          () =>
+            void revealSafeFull('startup-handshake-timeout').catch(
+              exitAfterStartupFailure,
+            ),
+          STARTUP_TIMEOUT_MS,
+        );
     } catch (error) {
       exitAfterStartupFailure(error);
     }

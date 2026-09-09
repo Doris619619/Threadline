@@ -26,20 +26,22 @@
 | Phase 7       | Done | `feat(windows)：统一单实例生命周期与任务栏应用身份`、`fix(windows)：收紧单实例启动与打包验收`           | 最新 NSIS 安装器从开始菜单二次启动后稳定保留一个主进程；Renderer 命令行确认统一 AppUserModelID                                                                            | None                                                                                                                   |
 | Phase 8       | Done | `refactor(web)：解除 PWA 与 Tauri 环境探测耦合`                                                         | lint、typecheck、13 个 unit tests、Web build、desktop renderer export 与 Main/Preload compile 通过                                                                        | None                                                                                                                   |
 | Phase 9       | Done | `test(desktop)：覆盖 Electron 启动切换与故障恢复`、`fix(windows)：收紧单实例启动与打包验收`             | typecheck、lint、Vitest（13 passed）、Electron window smoke（含共享 user-data 的第二实例退出断言）、desktop/mobile 浏览器 E2E（49 passed，3 个 desktop-only skipped）通过 | Electron smoke 的测试 user-data 改用系统临时目录，防止 Chromium 锁文件被 Next 构建扫描；生产沙箱配置不变               |
-| Phase 10      | Done | `build(windows)：配置 Threadline NSIS 安装与发布产物`、`docs(desktop)：完成 Electron 迁移验收记录`      | unpacked app、NSIS 安装/启动/卸载、覆盖升级、任务栏固定、Full/Mini/Workstation/Edge 同组、退出不常驻和二次启动单实例均通过                                                | 官方 artifact 下载仅在当前会话临时使用本机代理；pnpm collector SQLite 问题通过临时 collector store 隔离                |
+| Phase 10      | Done | `build(windows)：配置 Threadline NSIS 安装与发布产物`、`docs(desktop)：完成 Electron 迁移验收记录`      | unpacked app、NSIS 安装/启动/卸载、覆盖升级、任务栏固定、Full/Workstation/Edge 同组、退出不常驻和二次启动单实例均通过                                                     | 官方 artifact 下载仅在当前会话临时使用本机代理；pnpm collector SQLite 问题通过临时 collector store 隔离                |
 | Phase 11      | Done | `refactor(desktop)：移除 Tauri 壳并完成 Electron 迁移交接`、`docs(desktop)：完成 Electron 迁移验收记录` | Tauri 清理、最终工程门禁、Windows 手工验收和最终仓库残留扫描均通过                                                                                                        | None                                                                                                                   |
 
-## 不可变架构决策
+> 2026-09-09：迁移阶段结果属于历史记录；当前仅保留完整工作台与工作站，尺寸、入口与恢复行为以 [桌面窗口文档](desktop-window-modes.md) 为准。
+
+## 当前架构决策
 
 ### 窗口模型
 
-- Full、Mini Today、Workstation 共用带 Windows 原生边框的 Main `BrowserWindow`；Edge 使用独立、无边框、固定尺寸的 Edge `BrowserWindow`。
-- 逻辑尺寸保持为 Full `1280 × 840`、Mini Today `420 × 660`、Workstation `300 × 420`、Edge `42 × 146`。
+- Full、Workstation 共用无边框的 Main `BrowserWindow`；Edge 使用独立、无边框、固定尺寸的 Edge `BrowserWindow`。
+- 逻辑尺寸保持为 Full `1280 × 840`、Workstation `200 × 200`、Edge `28 × 104`（Windows 原生外框存在 DPI 取整差异）。
 - Main/Edge 切换总是先显示目标、再隐藏源窗口。用户关闭 Main 即退出；不引入托盘常驻或无窗口后台模式。
 
 ### 状态权威边界
 
-- Renderer 是业务 view、presentation、`lastCompactMode`、期望 geometry 和所有 persisted business state 的唯一 source of truth。
+- Renderer 是业务 view、presentation、期望 geometry 和所有 persisted business state 的唯一 source of truth。
 - Main 是 BrowserWindow 真实 bounds、可见性、焦点、显示器和原生回退结果的唯一 source of truth；只缓存最近一次通过校验的 Renderer 状态用于本进程恢复，不持久化业务状态。
 - 请求带单调递增 `requestId`，Main 忽略过期请求并在程序化 `setBounds` 时抑制 geometry 回传。仅用户实际拖动/缩放产生 `origin: "user"` 事件；Renderer 保存 canonical geometry 但不得由保存动作再次触发 transition。
 
@@ -57,7 +59,7 @@
 
 - `ThreadlineRoot` 必须在任何业务 Provider 前同步读取 `window.threadlineDesktop?.role`。
 - `edge-tab` 只渲染 `DesktopEdgeSurface`，不得挂载 `TaskDashboard`、`WorkspaceRepository`、Supabase、React Query、业务订阅或完整 `DesktopWindowProvider`。
-- Main 集中维护 `ensureVisibleSurface(reason)`。Edge 构造/加载失败、`did-fail-load`、`render-process-gone`、`unresponsive`、非主动 `closed`、显示器变化、定位失败或 reveal 超时，都恢复 Main 到 `lastCompactMode + expanded`；无有效 compact mode 时回退 Full。
+- Main 集中维护 `ensureVisibleSurface(reason)`。Edge 构造/加载失败、`did-fail-load`、`render-process-gone`、`unresponsive`、非主动 `closed`、显示器变化、定位失败或 reveal 超时，都恢复 Main 到 `workstation + expanded`。
 - 每次故障恢复先安全显示 Main，再销毁 Edge；rollback 必须通知 Renderer 将 persisted presentation 修正为 `expanded`。
 
 ### Windows 身份、安全与打包
@@ -88,7 +90,7 @@ type ThreadlineDesktopBridge =
     };
 ```
 
-- `DesktopHydrationPayload`：`requestId`、mode、presentation、`lastCompactMode` 和 persisted geometry。
+- `DesktopHydrationPayload`：`requestId`、mode、presentation 和 persisted geometry。
 - `DesktopTransitionCommand`：`requestId`、目标 mode/presentation 和 Renderer snapshot。
 - `NativeApplyResult`：`requestId`、实际 geometry、visible surface 与 fallback reason。
 - `NativeGeometryChanged`：实际 geometry、mode、`origin: "user"` 和 native revision。
@@ -258,7 +260,7 @@ pnpm desktop:build
 ```
 
 - hoisted linker 在 Phase 0、Phase 2 和最终 CI 都是硬门禁。
-- Web/PWA、Full、Mini Today、Workstation、Edge 均通过回归；Edge 不初始化完整业务运行时；进入运行态后不出现 Main/Edge 同时不可见。
+- Web/PWA、Full、Workstation、Edge 均通过回归；Edge 不初始化完整业务运行时；进入运行态后不出现 Main/Edge 同时不可见。
 - 每个 commit 只包含单一 Phase，遵守 `<type>(<scope>)：<summary>`；每个 Phase 最终 commit 同步本文件。
 - 推送/PR 前检查 `git status`、`git diff --check`、`git diff origin/main...HEAD`、实际提交序列及敏感/未跟踪文件。
 - PR 必须按仓库规范使用 Summary、背景、改动（逻辑）、改动（代码）、影响、验证、材料；未完成的人工 Windows 验收必须明确标注。

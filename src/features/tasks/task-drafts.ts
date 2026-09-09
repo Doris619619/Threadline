@@ -21,18 +21,3 @@ export type QuickTaskDraft = {
   projectId: string;
   title: string;
 };
-
-/** 迷你今日中可选起止时间的紧凑新增草稿。 */
-export type CompactTimedTaskDraft = {
-  planned?: string;
-  projectId: string;
-  title: string;
-  start?: string;
-  end?: string;
-};
-
-/** 迷你今日中无日期待安排的紧凑新增草稿。 */
-export type CompactQuickTaskDraft = Pick<
-  CompactTimedTaskDraft,
-  'projectId' | 'title' | 'planned'
->;

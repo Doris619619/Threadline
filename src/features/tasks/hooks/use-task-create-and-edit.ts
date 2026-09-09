@@ -6,12 +6,7 @@ import { taskFormSchema } from '@/lib/schemas';
 import { getLocalDateKey } from '@/lib/local-date';
 import { resolveActiveProject } from '@/lib/project-rules';
 import { makeTask } from '@/lib/task-factory';
-import type {
-  CompactQuickTaskDraft,
-  CompactTimedTaskDraft,
-  QuickTaskDraft,
-  TimedTaskDraft,
-} from '@/features/tasks/task-drafts';
+import type { QuickTaskDraft, TimedTaskDraft } from '@/features/tasks/task-drafts';
 import {
   normalizeTime,
   parseDurationInput,
@@ -107,25 +102,6 @@ export function useTaskCreateAndEdit({
     return { task: await createTask(task) };
   };
 
-  /** 迷你今日复用完整工作台的校验与字段构造，输入错误交给紧凑表单保留草稿。 */
-  const createCompactTimedTask = async (draft: CompactTimedTaskDraft) => {
-    const result = await createTimedTask({
-      ...draft,
-      planned: draft.planned ?? '',
-      startTime: draft.start ?? '',
-      endTime: draft.end ?? '',
-      actual: '',
-      completed: false,
-    });
-    if ('error' in result) throw new Error(result.error);
-  };
-
-  /** 迷你今日与完整工作台共享待安排写入规则，不产生日期绑定。 */
-  const createCompactWaitingTask = async (draft: CompactQuickTaskDraft) => {
-    const result = await createWaitingTask(draft);
-    if ('error' in result) throw new Error(result.error);
-  };
-
   /** 验证 Dialog FormData 并保留现有跨午夜拒绝和新建双写流程。 */
   const saveTask = async (form: FormData): Promise<string | undefined> => {
     const title = String(form.get('title') ?? '').trim();
@@ -185,8 +161,6 @@ export function useTaskCreateAndEdit({
   };
 
   return {
-    createCompactWaitingTask,
-    createCompactTimedTask,
     createProjectDirectly,
     createWaitingTask,
     createTimedTask,

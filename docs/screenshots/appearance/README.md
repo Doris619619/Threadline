@@ -7,25 +7,25 @@
 `before/` 原样保留用户提供的 P1–P4。调整后使用隔离 local test adapter 演示任务，日期固定为 2026-09-08；不是用户线上账号的数据。手机截图为 Chrome 模拟 390×844 CSS px，蓝色示例使用默认字体，安妮雅示例主要使用思源黑体。浏览器截图不包含 iPhone 系统状态栏。
 
 另保留用户指出视觉杂乱的[首版字体选择](before/font-chooser.png)；最终改为连续列表、统一名称排版、轻量选中状态，仅样张保留不同字体。
-`font-samples.png` 单独截取字体字段组，便于完整比较三种样张。紧凑视图另外保留[深色实际窗口](anya-electron-mini-dark.png)。
+`font-samples.png` 单独截取字体字段组，便于完整比较三种样张。
 
-| 原始问题 | 调整后 |
-| --- | --- |
-| [P1 页头](before/p1-home.png) | [安妮雅首页](anya-home-light.png)、[默认蓝色](blue-home.png)：标题与日期分行、前后按钮靠右 |
-| [P2 重复待安排](before/p2-planning.png) | [规划](anya-planning-light.png)：仅底部任务池，四级粉色热力 |
-| [P3 页头与箭头](before/p3-projects.png) | [项目](anya-projects.png)：单行页头、轻量分组、行尾箭头 |
-| [P4 回收站](before/p4-trash.jpg) | [回收站](anya-trash.png)、[空状态](anya-trash-empty.png)：唯一标题、长标题换行、紧凑恢复按钮 |
+| 原始问题                                | 调整后                                                                                       |
+| --------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [P1 页头](before/p1-home.png)           | [安妮雅首页](anya-home-light.png)、[默认蓝色](blue-home.png)：标题与日期分行、前后按钮靠右   |
+| [P2 重复待安排](before/p2-planning.png) | [规划](anya-planning-light.png)：仅底部任务池，四级粉色热力                                  |
+| [P3 页头与箭头](before/p3-projects.png) | [项目](anya-projects.png)：单行页头、轻量分组、行尾箭头                                      |
+| [P4 回收站](before/p4-trash.jpg)        | [回收站](anya-trash.png)、[空状态](anya-trash-empty.png)：唯一标题、长标题换行、紧凑恢复按钮 |
 
-其他材料：[外观选择](anya-appearance.png)、[三种真实字体样张](font-samples.png)、[宋体首页](anya-home-serif.png)、[深色首页](anya-home-dark.png)、[深色规划](anya-planning-dark.png)、[桌面 1440×900](anya-desktop.png)、[320px／200% 文字](anya-320-enlarged.png)、[Windows Electron](anya-electron.png)、[迷你今日](anya-electron-mini.png)。Electron 截图为真实 Windows 测试窗口，图片物理像素受当前系统缩放影响。
+其他材料：[外观选择](anya-appearance.png)、[三种真实字体样张](font-samples.png)、[宋体首页](anya-home-serif.png)、[深色首页](anya-home-dark.png)、[深色规划](anya-planning-dark.png)、[桌面 1440×900](anya-desktop.png)、[320px／200% 文字](anya-320-enlarged.png)、[Windows Electron](anya-electron.png)。Electron 截图为真实 Windows 测试窗口，图片物理像素受当前系统缩放影响。
 
 ## 验证记录
 
 - 全量 Vitest：51 个文件、231 项通过；包含偏好解析/首屏脚本一致性、Service Worker 响应克隆与 CSS token 合同。lint、TypeScript 检查通过。
 - 外观＋规划＋通用无障碍回归：49 项通过，覆盖 Chrome 桌面/手机和 iPhone WebKit、主题/字体独立选择、同源标签同步、真实字体加载、失败重试、四级热力明暗对比、连续安排与焦点返回、回收站恢复。
-- 字体列表精简后重新顺序构建 Web 与 Electron；最终外观回归 **15 项全部通过**。补齐紧凑视图和启动页语义配色后复查 CSS token；实际 Electron 迷你窗口深色背景与当前主题一致，退出重启保留主题和字体。
+- 字体列表精简后重新顺序构建 Web 与 Electron；最终外观回归 **15 项全部通过**。补齐紧凑视图和启动页语义配色后复查 CSS token；当时的 Electron 紧凑窗口深色背景与当前主题一致，退出重启保留主题和字体。
 - 布局矩阵覆盖 320／375／390／430px、1440px 桌面、iPhone WebKit 与移动输入字号，含 200% 文字、长标题、Daily 表单与新增任务控件。初轮 81 项中 79 项通过，两个控件尺寸断言因 Chromium 把 44px 返回为 43.999969px 失败；仅为断言加入 0.001px 测量容差后，外观与 320／375px 布局定向回归 **27 项全部通过**，不降低产品触控尺寸。
 - Web production build、请求 nonce CSP 校验、Electron 静态 Renderer/hash CSP、Electron Main/Preload 类型检查及编译通过。
-- `node scripts/test-electron.mjs`：实际 Windows 窗口切换冒烟通过；另用隔离 Electron profile 验证退出重启后仍保留安妮雅与已解码的思源黑体，补充迷你今日截图。
+- `node scripts/test-electron.mjs`：实际 Windows 窗口切换冒烟通过；另用隔离 Electron profile 验证退出重启后仍保留安妮雅与已解码的思源黑体。
 - 允许 Service Worker 的独立 Chrome profile：字体网络请求成功后确认字体/插画实际写入 Cache Storage，断网刷新后安妮雅主题和思源黑体仍成功显示。不同于常规 E2E 的禁用 Service Worker 模式。
 - 静态导出会替换 Next 的中间产物，因此 Electron 构建与 Web 运行验收顺序执行；中途被构建替换影响的测试轮次已作废并重建重跑。
 

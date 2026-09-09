@@ -483,3 +483,11 @@ html[data-theme='anya'] .auth-illustration-wrap::after {
   inset: 12px;
   background: var(--theme-decoration) center / contain no-repeat;
 }
+
+/* 粉色登录页沿用配套插画，避免表单背景继续出现蓝色品牌图案。 */
+html[data-theme='anya'] .auth-bg-illustration-img {
+  visibility: hidden;
+}
+html[data-theme='anya'] .auth-bg-illustration-wrap {
+  background: var(--theme-decoration) right top / 190px auto no-repeat;
+}
