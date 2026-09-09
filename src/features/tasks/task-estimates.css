@@ -31,9 +31,42 @@
   grid-area: planned;
 }
 .quick-task-create-row > .estimate-field {
-  flex-basis: 100%;
+  grid-area: planned;
+}
+.quick-task-create-row .quick-create-title {
+  grid-area: title;
+}
+.quick-task-create-row .quick-create-actions {
+  grid-area: actions;
+}
+.quick-task-create-row .quick-create-check-cell {
+  display: none;
+}
+.quick-task-create-row > .timeline-inline-error {
+  grid-column: 1 / -1;
 }
 @media (min-width: 761px) {
+  /* 新增表单没有完成框；预计必须跨整行，不能自动落入旧列表的 24px 列。 */
+  .quick-task-row-adding.quick-task-create-row {
+    grid-template-columns: minmax(64px, 80px) minmax(0, 1fr) auto;
+    grid-template-areas:
+      'project title actions'
+      'planned planned planned';
+    gap: 6px;
+  }
+  .quick-task-create-row > .estimate-field label {
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+  }
+  .quick-task-create-row > .estimate-field label > span {
+    white-space: nowrap;
+  }
+  .quick-task-create-row > .estimate-field input {
+    min-height: 28px;
+    padding: 2px 6px;
+    font-size: 0.8125rem;
+  }
   .timed-create-planned-cell .estimate-field {
     grid-template-columns: 1fr;
     gap: 2px;
@@ -45,6 +78,14 @@
     min-height: 28px;
     padding: 2px 4px;
     font-size: 0.8125rem;
+  }
+}
+@media (max-width: 760px) {
+  .quick-task-row-adding.quick-task-create-row {
+    grid-template-areas:
+      'project actions'
+      'title title'
+      'planned planned';
   }
 }
 @media (prefers-reduced-motion: reduce) {
