@@ -260,7 +260,7 @@ pnpm desktop:build
 ```
 
 - hoisted linker 在 Phase 0、Phase 2 和最终 CI 都是硬门禁。
-- Web/PWA、Full、Mini Today、Workstation、Edge 均通过回归；Edge 不初始化完整业务运行时；进入运行态后不出现 Main/Edge 同时不可见。
+- Web/PWA、Full、Workstation、Edge 均通过回归；Edge 不初始化完整业务运行时；进入运行态后不出现 Main/Edge 同时不可见。
 - 每个 commit 只包含单一 Phase，遵守 `<type>(<scope>)：<summary>`；每个 Phase 最终 commit 同步本文件。
 - 推送/PR 前检查 `git status`、`git diff --check`、`git diff origin/main...HEAD`、实际提交序列及敏感/未跟踪文件。
 - PR 必须按仓库规范使用 Summary、背景、改动（逻辑）、改动（代码）、影响、验证、材料；未完成的人工 Windows 验收必须明确标注。
