@@ -38,6 +38,7 @@
 }
 .quick-task-create-row .quick-create-actions {
   grid-area: actions;
+  align-self: end;
 }
 .quick-task-create-row .quick-create-check-cell {
   display: none;
@@ -46,12 +47,12 @@
   grid-column: 1 / -1;
 }
 @media (min-width: 761px) {
-  /* 新增表单没有完成框；预计必须跨整行，不能自动落入旧列表的 24px 列。 */
+  /* 第一行把操作列让给标题；预计与取消/保存在下一行，避免占用标题宽度。 */
   .quick-task-row-adding.quick-task-create-row {
     grid-template-columns: minmax(64px, 80px) minmax(0, 1fr) auto;
     grid-template-areas:
-      'project title actions'
-      'planned planned planned';
+      'project title title'
+      'planned planned actions';
     gap: 6px;
   }
   .quick-task-create-row > .estimate-field label {
@@ -83,9 +84,9 @@
 @media (max-width: 760px) {
   .quick-task-row-adding.quick-task-create-row {
     grid-template-areas:
-      'project actions'
+      'project project'
       'title title'
-      'planned planned';
+      'planned actions';
   }
 }
 @media (prefers-reduced-motion: reduce) {

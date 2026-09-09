@@ -104,8 +104,18 @@ test('waiting creation gives estimates usable width in narrow columns', async ({
       }, width);
     const field = await estimate.boundingBox();
     const label = await form.locator('.estimate-field label > span').boundingBox();
-    expect(field!.width).toBeGreaterThanOrEqual(100);
+    expect(field!.width).toBeGreaterThanOrEqual(desktop ? 64 : 100);
     expect(label!.height).toBeLessThan(30);
+    const actions = await form.locator('.quick-create-actions').boundingBox();
+    const titleBox = await title.boundingBox();
+    expect(actions!.x).toBeGreaterThanOrEqual(field!.x + field!.width);
+    expect(actions!.y).toBeGreaterThanOrEqual(titleBox!.y + titleBox!.height);
+    expect(
+      Math.abs(actions!.y + actions!.height - field!.y - field!.height),
+    ).toBeLessThan(2);
+    expect(
+      Math.abs(titleBox!.x + titleBox!.width - actions!.x - actions!.width),
+    ).toBeLessThan(2);
     if (desktop) {
       expect(
         Math.abs(label!.y + label!.height / 2 - field!.y - field!.height / 2),
