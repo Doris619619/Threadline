@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { getMainDesktopBridge } from '@/lib/desktop-bridge';
 import {
   getAppearance,
+  applyColorMode,
   applyFontResult,
   loadAppearanceFont,
   useAppearance,
@@ -11,7 +12,14 @@ import {
 
 /** Mount outside authentication so login, workspace and Electron edge use the same device preference. */
 export function AppearanceRuntime() {
-  const { theme, font } = useAppearance();
+  const { theme, font, colorMode } = useAppearance();
+  useEffect(() => {
+    applyColorMode();
+    if (typeof matchMedia !== 'function') return;
+    const media = matchMedia('(prefers-color-scheme: dark)');
+    media.addEventListener('change', applyColorMode);
+    return () => media.removeEventListener('change', applyColorMode);
+  }, [colorMode]);
   useEffect(() => {
     // Read the store only after hydration, leaving the pre-paint script in control of the first frame.
     let cancelled = false;

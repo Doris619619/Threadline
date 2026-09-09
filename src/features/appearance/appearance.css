@@ -68,43 +68,41 @@ html[data-theme='anya'] {
   --theme-decoration: url('/themes/anya/notebook.webp');
   --theme-gold: #af8555;
 }
-@media (prefers-color-scheme: dark) {
-  html[data-theme='anya'] {
-    color-scheme: dark;
-    --background: #291e26;
-    --surface: #372630;
-    --surface-secondary: #45323e;
-    --border: #71505f;
-    --border-subtle: #59404d;
-    --border-strong: #a88293;
-    --text-primary: #fff0f5;
-    --text-secondary: #dfc4d0;
-    --text-tertiary: #c7a6b6;
-    --text-on-accent: #3c2130;
-    --accent: #f3adc6;
-    --accent-hover: #f8c8db;
-    --accent-text: #f6b9d0;
-    --accent-soft: #583646;
-    --accent-border: #a46a84;
-    --daily-accent: #e3a6ca;
-    --success: #a6d4ac;
-    --warning: #ecc28a;
-    --danger: #ffaba0;
-    --calendar-heat-text-1: #f8d5e3;
-    --calendar-heat-text-2: #fbe0eb;
-    --calendar-heat-text-3: #ffeaf2;
-    --calendar-heat-text-4: #fff4f8;
-    --planning-heat-1: #4c303f;
-    --planning-heat-2: #684051;
-    --planning-heat-3: #875167;
-    --planning-heat-4: #8e4d68;
-    --planning-ink: #fff0f6;
-    --planning-count-ink: #f9dbe8;
-    --planning-accent: #f3adc6;
-    --planning-on-accent: #3c2130;
-    --theme-gold: #d0b27c;
-    --shadow-card: 0 1px 0 rgb(233 213 184 / 4%);
-  }
+html[data-color-scheme='dark'][data-theme='anya'] {
+  color-scheme: dark;
+  --background: #291e26;
+  --surface: #372630;
+  --surface-secondary: #45323e;
+  --border: #71505f;
+  --border-subtle: #59404d;
+  --border-strong: #a88293;
+  --text-primary: #fff0f5;
+  --text-secondary: #dfc4d0;
+  --text-tertiary: #c7a6b6;
+  --text-on-accent: #3c2130;
+  --accent: #f3adc6;
+  --accent-hover: #f8c8db;
+  --accent-text: #f6b9d0;
+  --accent-soft: #583646;
+  --accent-border: #a46a84;
+  --daily-accent: #e3a6ca;
+  --success: #a6d4ac;
+  --warning: #ecc28a;
+  --danger: #ffaba0;
+  --calendar-heat-text-1: #f8d5e3;
+  --calendar-heat-text-2: #fbe0eb;
+  --calendar-heat-text-3: #ffeaf2;
+  --calendar-heat-text-4: #fff4f8;
+  --planning-heat-1: #4c303f;
+  --planning-heat-2: #684051;
+  --planning-heat-3: #875167;
+  --planning-heat-4: #8e4d68;
+  --planning-ink: #fff0f6;
+  --planning-count-ink: #f9dbe8;
+  --planning-accent: #f3adc6;
+  --planning-on-accent: #3c2130;
+  --theme-gold: #d0b27c;
+  --shadow-card: 0 1px 0 rgb(233 213 184 / 4%);
 }
 
 .theme-illustration {
@@ -348,15 +346,13 @@ html[data-font-error='true'] .appearance-load-notice {
     gap: 4px;
   }
 }
-@media (prefers-color-scheme: dark) {
-  .appearance-preview--blue {
-    background: #223449;
-    color: #d3e7ff;
-  }
-  .appearance-preview--anya {
-    background: #543747;
-    color: #ffdeed;
-  }
+html[data-color-scheme='dark'] .appearance-preview--blue {
+  background: #223449;
+  color: #d3e7ff;
+}
+html[data-color-scheme='dark'] .appearance-preview--anya {
+  background: #543747;
+  color: #ffdeed;
 }
 /* Enlarged labels need the full row instead of squeezing two theme choices together. */
 @container (max-width: 15rem) {
@@ -381,4 +377,23 @@ html[data-theme='anya'] .brand-icon-blue {
 }
 html[data-theme='anya'] .brand-icon-anya {
   display: block;
+}
+
+.appearance-mode-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.appearance-mode-option {
+  min-height: 44px;
+  padding: 8px 20px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.appearance-mode-option[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }

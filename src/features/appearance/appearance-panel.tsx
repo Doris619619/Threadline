@@ -103,7 +103,31 @@ export function AppearancePanel() {
             </button>
           ))}
         </div>
-        <p className="appearance-hint">浅色与深色自动跟随系统。</p>
+      </fieldset>
+      <fieldset className="appearance-section">
+        <legend>明暗模式</legend>
+        <div className="appearance-mode-options">
+          {(
+            [
+              { id: 'light', label: '浅色' },
+              { id: 'dark', label: '深色' },
+              { id: 'system', label: '跟随系统' },
+            ] as const
+          ).map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              className="appearance-mode-option"
+              aria-pressed={preferences.colorMode === id}
+              onClick={() => void select({ ...preferences, colorMode: id })}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="appearance-hint">
+          立即生效，下次打开仍保留。与蓝色、安妮雅主题独立选择。
+        </p>
       </fieldset>
       <fieldset className="appearance-section">
         <legend>字体</legend>
