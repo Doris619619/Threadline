@@ -71,6 +71,7 @@ let mainWindow: BrowserWindow | undefined;
 let edgeWindow: BrowserWindow | undefined;
 let mainReadyToShow = false;
 let entryWindowShown = false;
+let desktopStateInitialized = false;
 let startupWatchdog: ReturnType<typeof setTimeout> | undefined;
 let stateRevision = 0;
 const stateAcknowledgements = new Map<number, () => void>();
@@ -761,6 +762,7 @@ function registerDesktopIpc(): void {
       throw new Error('Rejected desktop hydrate sender');
     const state = parseHydrationPayload(payload);
     if (!state) return revealSafeFull('invalid-hydration-payload');
+    desktopStateInitialized = true;
     if (startupWatchdog) clearTimeout(startupWatchdog);
     return applyDesktopState(state);
   });
@@ -769,12 +771,15 @@ function registerDesktopIpc(): void {
       throw new Error('Rejected desktop transition sender');
     const state = parseHydrationPayload(payload);
     if (!state) throw new Error('Rejected desktop transition');
+    desktopStateInitialized = true;
+    if (startupWatchdog) clearTimeout(startupWatchdog);
     return applyDesktopState(state);
   });
   /** 启动和登录页不等待业务水合即可居中显示；每次进程启动只执行一次。 */
   ipcMain.handle('desktop:entry-window', (event) => {
     if (!isTrustedSender(event, 'main')) throw new Error('Rejected entry sender');
-    if (entryWindowShown || !mainWindow) return;
+    // 启动层迟到的 effect 不能覆盖已经选择的工作站尺寸或收起状态。
+    if (entryWindowShown || desktopStateInitialized || !mainWindow) return;
     entryWindowShown = true;
     if (startupWatchdog) clearTimeout(startupWatchdog);
     const area = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea;
@@ -982,7 +987,7 @@ function bootstrapApplication(): void {
         () =>
           void reconcileDisplayState('display-added').catch(exitAfterStartupFailure),
       );
-      if (!entryWindowShown)
+      if (!entryWindowShown && !desktopStateInitialized)
         startupWatchdog = setTimeout(
           () =>
             void revealSafeFull('startup-handshake-timeout').catch(

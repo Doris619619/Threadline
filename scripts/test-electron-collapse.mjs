@@ -18,6 +18,7 @@ try {
   // 以登录门禁替代业务层，只在可见时 ACK，复现后台 Renderer 暂停/节流。
   await page.evaluate(() =>
     window.threadlineDesktop.onNativeStateChanged((event) => {
+      (window.desktopEvents ??= []).push(event);
       if (document.visibilityState === 'visible')
         void window.threadlineDesktop.acknowledgeNativeState(event.stateRevision);
     }),
@@ -72,6 +73,8 @@ try {
     200,
     'collapse ignores stale renderer geometry',
   );
+  // 已进入业务窗口后，迟到的启动层居中请求也不能把它重新显示。
+  await page.evaluate(() => window.threadlineDesktop.showEntryWindow());
   for (const height of [200, 180, 140])
     await page.evaluate(
       (height) => window.threadlineDesktop.resizeCompactContent('workstation', height),
@@ -91,6 +94,14 @@ try {
       bounds: window.getBounds(),
     })),
   );
+  if (
+    !windows.find((window) => window.visible)?.url.includes('threadline-role=edge-tab')
+  )
+    console.log(
+      'FAILURE STATE',
+      windows,
+      await page.evaluate(() => window.desktopEvents),
+    );
   assert.equal(windows.filter((window) => window.visible).length, 1);
   assert.ok(
     windows.find((window) => window.visible).url.includes('threadline-role=edge-tab'),
