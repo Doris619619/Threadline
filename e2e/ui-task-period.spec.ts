@@ -96,18 +96,35 @@ test('waiting creation gives estimates usable width in narrow columns', async ({
   const form = waiting.locator('.quick-task-create-row');
   const estimate = form.getByLabel('预计时长（分钟）');
   const title = form.getByLabel('普通事项内容');
+  // 新增行有进入动画；等待结束，避免跨帧读取把整体位移误报为控件错位。
+  await form.evaluate(async (element) => {
+    await Promise.all(
+      element.getAnimations({ subtree: true }).map((animation) => animation.finished),
+    );
+  });
   const desktop = (page.viewportSize()?.width ?? 0) > 760;
   for (const width of desktop ? [260, 300, 360] : [null]) {
     if (width)
       await waiting.evaluate((element, width) => {
         element.style.width = `${width}px`;
       }, width);
-    const field = await estimate.boundingBox();
-    const label = await form.locator('.estimate-field label > span').boundingBox();
+    // 所有坐标在同一次布局读取中获取，保留严格对齐阈值。
+    const { field, label, actions, titleBox } = await form.evaluate((element) => {
+      /** 同步读取控件矩形；缺少字段时立即失败，不能跳过布局断言。 */
+      const rect = (selector: string) => {
+        const target = element.querySelector(selector);
+        if (!target) throw new Error(`新增表单缺少 ${selector}`);
+        return target.getBoundingClientRect().toJSON();
+      };
+      return {
+        field: rect('.estimate-field input'),
+        label: rect('.estimate-field label > span'),
+        actions: rect('.quick-create-actions'),
+        titleBox: rect('.quick-create-title'),
+      };
+    });
     expect(field!.width).toBeGreaterThanOrEqual(desktop ? 64 : 100);
     expect(label!.height).toBeLessThan(30);
-    const actions = await form.locator('.quick-create-actions').boundingBox();
-    const titleBox = await title.boundingBox();
     expect(actions!.x).toBeGreaterThanOrEqual(field!.x + field!.width);
     expect(actions!.y).toBeGreaterThanOrEqual(titleBox!.y + titleBox!.height);
     expect(
