@@ -24,6 +24,7 @@ import '../features/insights/insights.css';
 import '../features/rhythm/rhythm.css';
 import '../features/insights/insights-report.css';
 import '../features/settings/settings-page.css';
+import '../features/desktop-update/update.css';
 import '../styles/responsive-overrides-late.css';
 import '../features/insights/insights-print.css';
 import '../features/auth/auth.css';

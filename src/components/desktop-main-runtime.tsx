@@ -12,6 +12,7 @@ import { TaskDashboard } from '@/features/tasks/task-dashboard';
 import { WorkspaceDataProvider } from '@/features/workspace/workspace-data-provider';
 import { DesktopWindowProvider } from '@/lib/desktop-window-context';
 import { usesLocalWorkspace } from '@/lib/workspace-runtime';
+import { DesktopUpdateRuntime } from '@/features/desktop-update/update-runtime';
 
 /** 挂载与数据来源无关的完整业务树和桌面视图状态。 */
 function WorkspaceRuntime() {
@@ -31,11 +32,15 @@ function WorkspaceRuntime() {
 
 /** 生产必须经过云配置/认证门禁；Preview 演示与显式测试直接进入本地工作台。 */
 export function DesktopMainRuntime() {
-  return usesLocalWorkspace() ? (
-    <WorkspaceRuntime />
-  ) : (
-    <CloudRuntimeProvider>
-      <WorkspaceRuntime />
-    </CloudRuntimeProvider>
+  return (
+    <DesktopUpdateRuntime>
+      {usesLocalWorkspace() ? (
+        <WorkspaceRuntime />
+      ) : (
+        <CloudRuntimeProvider>
+          <WorkspaceRuntime />
+        </CloudRuntimeProvider>
+      )}
+    </DesktopUpdateRuntime>
   );
 }

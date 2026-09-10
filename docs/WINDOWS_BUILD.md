@@ -2,6 +2,8 @@
 
 # Windows 本地 Preview 与正式打包
 
+安装版自动更新、分发仓库和跨仓库发布配置见 [Windows 自动更新](desktop-auto-update.md)。`desktop:release` 要求 GitHub Actions 的匹配版本 tag；先本地完成 NSIS 验证，再上传草稿并核验资产，最后公开。目录包保持原有 parity 合同，不具有 NSIS 安装标记，因此不启用自动更新。
+
 ## 日常命令
 
 用户说“给我最新 EXE”“打个 EXE 验收”或“给我快速版”时，默认执行：

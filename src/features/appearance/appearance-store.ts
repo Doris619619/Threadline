@@ -57,6 +57,18 @@ export function getAppearance() {
   return parseAppearance(readSnapshot());
 }
 
+/** Resolve the saved mode immediately, while keeping system changes optional. */
+export function applyColorMode() {
+  const { colorMode } = getAppearance();
+  document.documentElement.dataset.colorScheme =
+    colorMode === 'dark' ||
+    (colorMode === 'system' &&
+      typeof matchMedia === 'function' &&
+      matchMedia('(prefers-color-scheme: dark)').matches)
+      ? 'dark'
+      : 'light';
+}
+
 /** Apply only the latest font request, so a delayed load cannot overwrite a newer user choice. */
 export function applyFontResult(requested: AppearanceFont, loaded: boolean) {
   if (getAppearance().font !== requested) return;
@@ -76,6 +88,7 @@ export function saveAppearance(value: AppearancePreferences): boolean {
   }
   document.documentElement.dataset.theme = preferences.theme;
   document.documentElement.dataset.font = preferences.font;
+  applyColorMode();
   window.dispatchEvent(new Event(changeEvent));
   return saved;
 }

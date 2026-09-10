@@ -299,12 +299,10 @@ button.period-save {
   color: var(--danger) !important;
   overflow-wrap: anywhere;
 }
-@media (prefers-color-scheme: dark) {
-  .rhythm-panel {
-    --period-color: #f19daf;
-    --period-fill: #a7324b;
-    --period-soft: #38222a;
-  }
+html[data-color-scheme='dark'] .rhythm-panel {
+  --period-color: #f19daf;
+  --period-fill: #a7324b;
+  --period-soft: #38222a;
 }
 @media (max-width: 760px) {
   .rhythm-panel .tl-surface {

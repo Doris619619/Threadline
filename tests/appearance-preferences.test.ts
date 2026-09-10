@@ -29,7 +29,11 @@ describe('device appearance', () => {
         },
       },
     });
-    expect(dataset).toEqual(parseAppearance(raw));
+    const { colorMode, ...appearance } = parseAppearance(raw);
+    expect(dataset).toEqual({
+      ...appearance,
+      colorScheme: colorMode === 'dark' ? 'dark' : 'light',
+    });
   });
   it('can paint normally when local storage is blocked', () => {
     const dataset = {};
@@ -41,6 +45,6 @@ describe('device appearance', () => {
         },
       },
     });
-    expect(dataset).toEqual({ theme: 'blue', font: 'default' });
+    expect(dataset).toEqual({ theme: 'blue', font: 'default', colorScheme: 'light' });
   });
 });

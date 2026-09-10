@@ -90,40 +90,38 @@
 }
 
 /* 跟随系统外观，仅重映射语义颜色；文字和交互层级在两种外观中保持一致。 */
-@media (prefers-color-scheme: dark) {
-  html[data-theme='blue'] {
-    --planning-heat-1: #232f40;
-    --planning-heat-2: #2a3d55;
-    --planning-heat-3: #314e70;
-    --planning-heat-4: #3b638e;
-    --planning-ink: #f0f6ff;
-    --planning-count-ink: #d4e5f7;
-    --planning-accent: #a8cef8;
-    --planning-on-accent: #1b2530;
-    color-scheme: dark;
-    --background: #000000;
-    --surface: #1c1c1e;
-    --surface-secondary: #2c2c2e;
-    --border: #48484a;
-    --border-subtle: #38383a;
-    --border-strong: #636366;
-    --text-primary: #f2f2f7;
-    --text-secondary: #b1b1b8;
-    --text-tertiary: #a0a0a8;
-    --accent-hover: #005bbf;
-    --accent-text: #78b9ff;
-    --accent-soft: #182c46;
-    --accent-border: #365f8c;
-    --daily-accent: #b8a5ff;
-    --success: #75d59a;
-    --warning: #f3bd64;
-    --danger: #ff8a80;
-    --calendar-heat-text-1: #9dcdff;
-    --calendar-heat-text-2: #b5d9ff;
-    --calendar-heat-text-3: #d2e7ff;
-    --calendar-heat-text-4: #ffffff;
-    --shadow-card: none;
-  }
+html[data-color-scheme='dark'][data-theme='blue'] {
+  --planning-heat-1: #232f40;
+  --planning-heat-2: #2a3d55;
+  --planning-heat-3: #314e70;
+  --planning-heat-4: #3b638e;
+  --planning-ink: #f0f6ff;
+  --planning-count-ink: #d4e5f7;
+  --planning-accent: #a8cef8;
+  --planning-on-accent: #1b2530;
+  color-scheme: dark;
+  --background: #000000;
+  --surface: #1c1c1e;
+  --surface-secondary: #2c2c2e;
+  --border: #48484a;
+  --border-subtle: #38383a;
+  --border-strong: #636366;
+  --text-primary: #f2f2f7;
+  --text-secondary: #b1b1b8;
+  --text-tertiary: #a0a0a8;
+  --accent-hover: #005bbf;
+  --accent-text: #78b9ff;
+  --accent-soft: #182c46;
+  --accent-border: #365f8c;
+  --daily-accent: #b8a5ff;
+  --success: #75d59a;
+  --warning: #f3bd64;
+  --danger: #ff8a80;
+  --calendar-heat-text-1: #9dcdff;
+  --calendar-heat-text-2: #b5d9ff;
+  --calendar-heat-text-3: #d2e7ff;
+  --calendar-heat-text-4: #ffffff;
+  --shadow-card: none;
 }
 
 @media (max-width: 760px) {

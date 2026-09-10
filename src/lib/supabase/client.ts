@@ -4,12 +4,14 @@
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { SupabasePublicConfig } from '@/lib/supabase/config';
+import { trackedCloudFetch } from '@/lib/cloud-write-guard';
 
 let browserClient: SupabaseClient | undefined;
 
 /** 使用持久会话和自动刷新创建客户端；Main/Preload 不导入本模块。 */
 export function getSupabaseBrowserClient(config: SupabasePublicConfig): SupabaseClient {
   browserClient ??= createClient(config.url, config.publishableKey, {
+    global: { fetch: trackedCloudFetch },
     auth: {
       persistSession: true,
       autoRefreshToken: true,

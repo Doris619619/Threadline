@@ -31,7 +31,7 @@ await build({
   outdir: 'dist-electron',
   outExtension: { '.js': '.cjs' },
   bundle: true,
-  external: ['electron'],
+  external: ['electron', 'electron-updater'],
   format: 'cjs',
   platform: 'node',
   target: 'node22',

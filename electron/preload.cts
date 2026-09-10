@@ -15,7 +15,8 @@ function subscribe(
     | 'desktop:geometry-changed'
     | 'desktop:maximize-changed'
     | 'desktop:presentation-rollback'
-    | 'desktop:state-changed',
+    | 'desktop:state-changed'
+    | 'desktop:update-state',
   listener: (payload: unknown) => void,
 ): () => void {
   const handler = (_event: Electron.IpcRendererEvent, payload: unknown) =>
@@ -62,6 +63,12 @@ const bridge =
           subscribe('desktop:maximize-changed', listener),
         onPresentationRollback: (listener: (payload: unknown) => void) =>
           subscribe('desktop:presentation-rollback', listener),
+        getUpdateState: () => ipcRenderer.invoke('desktop:update-get'),
+        checkForUpdate: () => ipcRenderer.invoke('desktop:update-check'),
+        downloadUpdate: () => ipcRenderer.invoke('desktop:update-download'),
+        installUpdate: () => ipcRenderer.invoke('desktop:update-install'),
+        onUpdateState: (listener: (payload: unknown) => void) =>
+          subscribe('desktop:update-state', listener),
       };
 
 contextBridge.exposeInMainWorld('threadlineDesktop', bridge);
