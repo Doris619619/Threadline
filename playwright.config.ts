@@ -71,7 +71,12 @@ export default defineConfig({
   projects: [
     {
       name: 'planning-webkit',
-      testMatch: ['**/planning.spec.ts', '**/appearance.spec.ts', '**/cottage.spec.ts'],
+      testMatch: [
+        '**/planning.spec.ts',
+        '**/appearance.spec.ts',
+        '**/cottage.spec.ts',
+        '**/classic.spec.ts',
+      ],
       use: { ...devices['iPhone 13'], browserName: 'webkit' },
     },
     {

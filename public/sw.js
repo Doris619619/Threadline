@@ -20,6 +20,12 @@ const SHELL = [
   '/themes/cottage/avatar-casual.webp',
   '/themes/cottage/icon.svg',
   '/themes/cottage/icon.png',
+  '/themes/classic/icon.svg',
+  '/themes/classic/icon.png',
+  '/themes/classic/frame.svg',
+  '/themes/classic/bracket.svg',
+  '/themes/classic/frame-dark.svg',
+  '/themes/classic/bracket-dark.svg',
 ];
 const PRECACHE_MANIFEST = '/sw-precache.json';
 

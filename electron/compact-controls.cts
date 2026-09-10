@@ -11,7 +11,7 @@ import {
 
 type EdgePosition = { displayId: number; side: 'left' | 'right'; ratio: number };
 let edgePosition: EdgePosition | undefined;
-let theme: 'blue' | 'anya' | 'cottage' = 'blue';
+let theme: 'blue' | 'anya' | 'cottage' | 'classic' = 'blue';
 let drag:
   { x: number; y: number; bounds: Electron.Rectangle; moved: boolean } | undefined;
 
@@ -38,7 +38,13 @@ export function loadCompactPreferences() {
       readFileSync(join(app.getPath('userData'), 'compact-preferences.json'), 'utf8'),
     );
     theme =
-      data.theme === 'cottage' ? 'cottage' : data.theme === 'anya' ? 'anya' : 'blue';
+      data.theme === 'classic'
+        ? 'classic'
+        : data.theme === 'cottage'
+          ? 'cottage'
+          : data.theme === 'anya'
+            ? 'anya'
+            : 'blue';
     const position = data.edgePosition;
     if (
       position &&
@@ -63,11 +69,13 @@ export function getThemedWindowIcon() {
     app.getAppPath(),
     'electron',
     'assets',
-    theme === 'cottage'
-      ? 'icon-cottage.ico'
-      : theme === 'anya'
-        ? 'icon-anya.ico'
-        : 'icon.ico',
+    theme === 'classic'
+      ? 'icon-classic.ico'
+      : theme === 'cottage'
+        ? 'icon-cottage.ico'
+        : theme === 'anya'
+          ? 'icon-anya.ico'
+          : 'icon.ico',
   );
 }
 
@@ -143,7 +151,7 @@ export function registerCompactControls({
   ipcMain.handle('desktop:appearance', (event, value: unknown) => {
     if (
       !isTrusted(event, 'main') ||
-      !['blue', 'anya', 'cottage'].includes(String(value))
+      !['blue', 'anya', 'cottage', 'classic'].includes(String(value))
     )
       throw new Error('Invalid desktop appearance');
     theme = value as typeof theme;

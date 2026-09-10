@@ -1,0 +1,9 @@
+<!-- Original golden task-window brand for Pika Classic; no game screenshot or logo is embedded. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" shape-rendering="crispEdges">
+  <path fill="#ffe050" stroke="#845005" d="M2 2h28v28H2z"/><path fill="#fff48e" d="M3 3h26v4H3z"/>
+  <path fill="#fff9d9" stroke="#af740b" d="M5 9h22v18H5z"/>
+  <path fill="#bb3026" d="M24 3h5v5h-5z"/><path stroke="#fff5df" d="M25 4l3 3M28 4l-3 3"/>
+  <path fill="#638510" d="M7 13h5v5H7zM7 21h5v4H7z"/><path stroke="#fff9d9" d="M8 15l1 1 2-2"/>
+  <path fill="#a16a10" d="M15 13h9v2h-9zM15 17h6v1h-6zM15 21h9v2h-9z"/>
+  <path fill="#ffd013" stroke="#8f5407" d="M0 0h6v6H0zM26 26h6v6h-6z"/><path fill="#fff78f" d="M2 2h2v2H2zM28 28h2v2h-2z"/>
+</svg>
