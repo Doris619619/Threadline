@@ -200,6 +200,15 @@ test('keeps the appearance chooser accessible in both Anya light and dark modes'
   await page.evaluate(() => document.fonts.ready);
   for (const colorScheme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme });
+    // Wait for the media listener and the active navigation's color transition before axe samples pixels.
+    await expect(page.locator('html')).toHaveAttribute(
+      'data-color-scheme',
+      colorScheme,
+    );
+    await expect(page.locator('.tl-sidebar-item.is-active:visible').first()).toHaveCSS(
+      'background-color',
+      colorScheme === 'dark' ? 'rgb(88, 54, 70)' : 'rgb(249, 220, 230)',
+    );
     await page.evaluate(async () => {
       void document.documentElement.offsetWidth;
       await Promise.allSettled(
@@ -243,6 +252,15 @@ test('keeps all pink calendar heat levels readable and enlarged task titles wide
   ).toHaveText('12 项');
   for (const colorScheme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme });
+    // Wait for the media listener and the active navigation's color transition before axe samples pixels.
+    await expect(page.locator('html')).toHaveAttribute(
+      'data-color-scheme',
+      colorScheme,
+    );
+    await expect(page.locator('.tl-sidebar-item.is-active:visible').first()).toHaveCSS(
+      'background-color',
+      colorScheme === 'dark' ? 'rgb(88, 54, 70)' : 'rgb(249, 220, 230)',
+    );
     await page.evaluate(async () => {
       void document.documentElement.offsetWidth;
       await Promise.allSettled(

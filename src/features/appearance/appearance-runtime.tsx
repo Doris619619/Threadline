@@ -31,7 +31,12 @@ export function AppearanceRuntime() {
     document
       .querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="shortcut icon"]')
       .forEach((link) => {
-        link.href = current.theme === 'anya' ? '/themes/anya/icon.png' : '/icon.png';
+        link.href =
+          current.theme === 'cottage'
+            ? '/themes/cottage/icon.png'
+            : current.theme === 'anya'
+              ? '/themes/anya/icon.png'
+              : '/icon.png';
         link.type = 'image/png';
       });
     document.documentElement.dataset.font = current.font;

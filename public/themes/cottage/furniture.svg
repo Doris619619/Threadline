@@ -1,0 +1,76 @@
+<!-- Personal furniture motifs, redrawn on a 64px grid from the user's house; shared symbol and CSS view atlas. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" shape-rendering="crispEdges">
+  <defs>
+    <g id="sofa" stroke="#80616b" stroke-width="1">
+      <path fill="#fff8e9" d="M7 32h50v23H7zM9 55h4v6H9zM51 55h4v6h-4z"/>
+      <path fill="#e6a2be" d="M11 23h42v22H11z"/><path fill="#ffd8e6" d="M14 26h36v17H14z"/>
+      <path fill="#f6bbd2" d="M9 43h23v11H9zM32 43h23v11H32z"/>
+      <path fill="#fff2e1" d="M5 34h7v20H5zM52 34h7v20h-7z"/>
+      <path fill="#f9dc77" d="M17 25h5v3h3v-3h5v3h2v6h-3v3h-3v3h-4v-3h-3v-3h-3v-6h1z"/>
+      <path fill="#87d5c5" d="M36 24h14v16H34V26h2z"/>
+      <path fill="#fff2b2" stroke="none" d="M41 27h2v3h4v2h-3v4h-2v-3h-4v-2h3z"/>
+      <path stroke="#fff3f5" d="M15 46h13M35 46h14M7 37v13M55 37v13"/>
+    </g>
+    <g id="swing" stroke="#80616b" stroke-width="1">
+      <path fill="#acbc81" d="M9 9h4v48H9zM51 9h4v48h-4zM8 8h48v5H8z"/>
+      <path fill="none" stroke="#c5a777" stroke-width="2" d="M18 12v28M46 12v28"/>
+      <g id="swing-seat"><path fill="#c69c77" d="M17 36h30v11H17zM14 47h36v5H14z"/>
+      <path stroke="#f3d4a7" d="M19 39h26M19 43h26M17 49h29"/></g>
+      <path fill="#86ac75" d="M6 17h5v5H6zM14 5h6v4h-6zM31 10h5v6h-5zM47 4h6v5h-6zM53 22h5v6h-5zM48 52h12v5H48z"/>
+      <g fill="#f5b7d1"><path d="M7 6h4V3h5v3h4v5h-4v4h-5v-4H7zM25 7h4V4h5v3h4v5h-4v4h-5v-4h-4zM43 14h4v-3h5v3h4v5h-4v4h-5v-4h-4z"/></g>
+      <path fill="#fff1c9" stroke="none" d="M11 7h4v4h-4zM29 8h4v4h-4zM47 15h4v4h-4z"/>
+      <path fill="#e9b5c9" d="M6 51h5v5H6zM53 48h5v5h-5z"/>
+    </g>
+    <g id="claw" stroke="#80616b" stroke-width="1">
+      <path fill="#b8a4df" d="M13 5h38v5H13zM15 56h5v6h-5zM44 56h5v6h-5z"/>
+      <path fill="#efa9d0" d="M12 10h40v45H12z"/><path fill="#fff0ec" d="M16 15h32v26H16z"/>
+      <path fill="#c6eced" d="M19 17h26v21H19z"/>
+      <path stroke="#9e89ba" fill="none" d="M32 17v10l-5 4v4M32 27l5 4v4"/>
+      <path fill="#d6b9e7" d="M20 31h3v-3h4v3h3v8H20z"/><path fill="#f7db8e" d="M34 33h3v-3h4v3h3v6H34z"/>
+      <path fill="#fff7d6" d="M10 41h44v7H10z"/><path fill="#ad91c9" d="M26 50h16v5H26z"/>
+      <path fill="#8fcdb5" d="M19 41h4v4h-4z"/><path fill="#e18faf" d="M40 42h5v3h-5z"/>
+      <path stroke="#fff4d1" stroke-width="2" d="M17 8h3M24 8h3M31 8h3M38 8h3M45 8h3"/>
+      <path stroke="#fff" d="M20 20v7M23 20v3"/>
+    </g>
+    <g id="tv" stroke="#80616b" stroke-width="1">
+      <path fill="#a7dfd2" d="M5 42h54v13H5zM8 55h4v6H8zM51 55h4v6h-4z"/>
+      <path fill="#fff4dc" d="M9 46h15v6H9zM39 46h16v6H39z"/><path fill="#9b91c0" d="M27 46h8v6h-8z"/>
+      <path fill="#f4d895" d="M12 11h40v29H12z"/><path fill="#91cee0" d="M16 15h32v21H16z"/>
+      <path fill="#fff0a0" d="M29 17h5v5h5v4h-4v6h-5v-5h-5v-5h4z"/>
+      <path stroke="#e9fbf3" d="M19 18v7M44 27v6"/>
+      <path fill="#cdb998" d="M28 40h8v3h-8z"/>
+    </g>
+    <g id="lemonade" stroke="#80616b" stroke-width="1">
+      <path stroke="#809d79" stroke-width="3" d="M37 4l-6 17"/>
+      <path fill="#e1efbf" d="M15 18h33v33h-3v7H18v-7h-3z"/><path fill="#c0da89" d="M18 28h27v23h-3v4H21v-4h-3z"/>
+      <path fill="#f8ed9f" d="M10 16h18v18H10z"/><path fill="#fff8d6" d="M13 19h12v12H13z"/>
+      <path stroke="#dfc17b" d="M13 25h12M19 19v12M14 20l10 10M14 30l10-10"/>
+      <path fill="#f4fae5" d="M27 30h5v5h-5zM35 36h5v5h-5zM26 45h5v5h-5z"/>
+      <path stroke="#fffef0" stroke-width="2" d="M20 37v10M41 22v7"/>
+      <path fill="#8ebc7d" d="M38 12h9v5h-9zM34 9h5v9h-5z"/>
+    </g>
+    <g id="desk" stroke="#80616b" stroke-width="1">
+      <path fill="#b89373" d="M5 37h54v7H5z"/><path fill="#fff0d5" d="M8 44h15v15H8zM51 44h4v15h-4z"/>
+      <path fill="#baadbb" d="M25 17h26v19H25z"/><path fill="#bfdcd5" d="M28 20h20v13H28z"/>
+      <path fill="#ece5da" d="M21 36h33v4H21z"/><path stroke="#9e8b99" d="M27 38h20M12 49h7M12 54h7"/>
+      <path fill="#f1bad4" d="M8 29h9v9H8zM17 30h3v5h-3z"/>
+      <path stroke="#b5acb7" d="M11 21v4M15 18v5"/>
+      <path fill="#a1bb83" d="M9 13h5v8H9zM5 15h4v4H5zM14 10h4v6h-4z"/>
+      <path fill="#edd49f" d="M8 21h8v6H8z"/>
+    </g>
+    <g id="bear" stroke="#80616b" stroke-width="1">
+      <path fill="#f2dfbb" d="M14 11h10v10H14zM40 11h10v10H40zM19 19h26v24H19zM18 41h28v16H18zM12 39h7v11h-7zM45 39h7v11h-7z"/>
+      <path fill="#fff4df" d="M24 32h16v8H24zM25 45h14v8H25z"/>
+      <path fill="#80616b" stroke="none" d="M25 26h3v4h-3zM37 26h3v4h-3zM30 33h5v3h-5z"/>
+      <path fill="#eab3c5" d="M23 41h8v5h-8zM33 41h8v5h-8z"/>
+      <path fill="#f8e8ce" d="M17 53h12v7H17zM35 53h12v7H35z"/>
+    </g>
+  </defs>
+  <view id="view-sofa" viewBox="0 0 64 64"/><use href="#sofa"/>
+  <view id="view-swing" viewBox="64 0 64 64"/><use href="#swing" x="64"/>
+  <view id="view-claw" viewBox="128 0 64 64"/><use href="#claw" x="128"/>
+  <view id="view-tv" viewBox="192 0 64 64"/><use href="#tv" x="192"/>
+  <view id="view-lemonade" viewBox="256 0 64 64"/><use href="#lemonade" x="256"/>
+  <view id="view-desk" viewBox="320 0 64 64"/><use href="#desk" x="320"/>
+  <view id="view-bear" viewBox="384 0 64 64"/><use href="#bear" x="384"/>
+</svg>

@@ -1,0 +1,11 @@
+<!-- Original pixel house and cat brand mark for Threadline's cottage theme. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" shape-rendering="crispEdges">
+  <path fill="#8873b5" d="M8 4h48v4h4v48h-4v4H8v-4H4V8h4z"/>
+  <path fill="#fff7da" d="M14 30h36v24H14z"/>
+  <path fill="#f3b8d4" d="M8 30h8v-8h8v-8h16v8h8v8h8v6H8z"/>
+  <path fill="#8773b1" d="M28 38h12v16H28z"/>
+  <path fill="#fff9e3" d="M18 38h6v8h-6z"/>
+  <path fill="#544b3c" d="M39 36h5v5h6v-5h5v16H39z"/>
+  <path fill="#fffaf1" d="M41 39h2v4h9v-4h1v11H41z"/>
+  <path fill="#544b3c" d="M43 44h2v2h-2zM49 44h2v2h-2z"/>
+</svg>

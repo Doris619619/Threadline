@@ -18,6 +18,8 @@ describe('device appearance', () => {
     '{"theme":"other","font":"url(evil)"}',
     '{"theme":"anya","font":"source-han-serif"}',
     '{"theme":"blue","font":"source-han-sans"}',
+    '{"theme":"cottage","font":"default","colorMode":"dark"}',
+    '{"theme":"cottage","font":"source-han-serif","colorMode":"light"}',
   ])('uses the same validated preference before and after hydration: %s', (raw) => {
     const dataset = {};
     runInNewContext(appearanceBootstrap, {

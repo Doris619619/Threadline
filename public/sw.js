@@ -12,6 +12,14 @@ const SHELL = [
   '/auth/login-illustration.jpg',
   '/themes/anya/notebook.webp',
   '/themes/anya/icon.png',
+  '/themes/cottage/personal-room.webp',
+  '/themes/cottage/pixels.svg',
+  '/themes/cottage/furniture.svg',
+  '/themes/cottage/avatar-blue.webp',
+  '/themes/cottage/avatar-pink.webp',
+  '/themes/cottage/avatar-casual.webp',
+  '/themes/cottage/icon.svg',
+  '/themes/cottage/icon.png',
 ];
 const PRECACHE_MANIFEST = '/sw-precache.json';
 

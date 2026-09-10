@@ -1,0 +1,285 @@
+/** @fileoverview Personal pixel figure in unused sidebar space and an opt-in wardrobe dialog with local outfits. */
+.cottage-companion--sidebar {
+  margin-top: 36px;
+  padding-top: 0;
+}
+.cottage-sidebar-scene {
+  position: relative;
+  height: 142px;
+  width: 150px;
+  max-width: 100%;
+  margin: 0 auto 8px;
+  border-bottom: 4px solid var(--pixel-wood);
+}
+.cottage-tiny-window {
+  position: absolute;
+  top: 4px;
+  left: 25px;
+  width: 74px;
+  height: 74px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
+  padding: 4px;
+  border: 2px solid var(--pixel-frame);
+  background: var(--pixel-highlight);
+  box-shadow: 3px 3px 0 var(--border);
+}
+.cottage-tiny-window i {
+  background: var(--pixel-sky);
+  box-shadow: inset 2px 0 0 var(--border-subtle);
+}
+.cottage-tiny-window::before,
+.cottage-tiny-window::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 10px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--accent-soft) 0 4px,
+    var(--accent-border) 4px 5px
+  );
+  border-bottom: 3px solid var(--accent-border);
+}
+.cottage-tiny-window::before {
+  left: -8px;
+}
+.cottage-tiny-window::after {
+  right: -8px;
+}
+.cottage-sidebar-scene > .cottage-avatar {
+  position: absolute;
+  height: 100px;
+  width: 75px;
+  left: 40px;
+  bottom: -1px;
+}
+.cottage-sill-flowers {
+  position: absolute;
+  width: 35px;
+  height: 35px;
+  left: 4px;
+  bottom: 0;
+}
+.cottage-sill-cat {
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  right: 0;
+  bottom: 0;
+}
+.cottage-wardrobe-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-primary);
+  background: var(--surface);
+  box-shadow:
+    inset 0 2px 0 var(--pixel-highlight),
+    0 2px 0 var(--border);
+  cursor: pointer;
+  font-size: 0.8125rem;
+}
+.cottage-wardrobe-trigger > .cottage-sprite {
+  width: 24px;
+  height: 24px;
+}
+.cottage-wardrobe-trigger > span:last-child {
+  margin-left: auto;
+}
+.cottage-wardrobe-trigger:hover {
+  background: var(--accent-soft);
+}
+.cottage-companion--compact .cottage-sidebar-scene {
+  display: none;
+}
+.cottage-companion--compact .cottage-wardrobe-trigger {
+  box-shadow: none;
+  border: 0;
+}
+.cottage-avatar {
+  display: block;
+  overflow: visible;
+}
+.cottage-wardrobe {
+  width: min(430px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  overflow-y: auto;
+  padding: 0 20px 16px;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 2px solid var(--pixel-frame);
+  border-radius: 5px;
+  box-shadow:
+    inset 0 0 0 3px var(--pixel-highlight),
+    0 20px 80px rgb(28 19 34 / 30%);
+}
+.cottage-wardrobe::backdrop {
+  background: rgb(33 27 43 / 45%);
+}
+.cottage-wardrobe > header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 -18px 16px;
+  padding: 4px 12px;
+  background: var(--surface-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.cottage-wardrobe h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.cottage-wardrobe > header > .cottage-sprite {
+  width: 24px;
+  height: 24px;
+}
+.cottage-wardrobe > header button {
+  min-width: 44px;
+  min-height: 44px;
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+.cottage-dressing-stage {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  height: 188px;
+  border-bottom: 3px solid var(--pixel-wood);
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 23px,
+    var(--border-subtle) 23px 24px
+  );
+}
+.cottage-dressing-mirror {
+  display: grid;
+  place-items: center;
+  width: 126px;
+  border: 3px solid var(--pixel-frame);
+  border-radius: 48% 48% 3px 3px;
+  background: linear-gradient(
+    135deg,
+    var(--pixel-sky) 0 40%,
+    var(--pixel-highlight) 40% 45%,
+    var(--pixel-sky) 45% 65%,
+    var(--pixel-highlight) 65% 68%,
+    var(--pixel-sky) 68%
+  );
+  box-shadow: inset 0 0 0 3px var(--pixel-highlight);
+}
+.cottage-dressing-mirror .cottage-avatar {
+  width: 108px;
+  height: 144px;
+}
+.cottage-pet-button {
+  position: absolute;
+  right: 12px;
+  bottom: 0;
+  width: 64px;
+  height: 64px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.cottage-pet-button > .cottage-sprite {
+  width: 56px;
+  height: 56px;
+}
+.cottage-pet-button[data-happy='true'] > .cottage-sprite:first-child {
+  animation: cottage-cat-hop 320ms steps(3, end);
+}
+.cottage-pet-button .cottage-pet-star {
+  position: absolute;
+  top: -10px;
+  right: 0;
+  width: 22px;
+  height: 22px;
+}
+.cottage-pet-response {
+  min-height: 1.5em;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+.cottage-outfits {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.cottage-outfits legend {
+  margin-bottom: 10px;
+  font-size: 0.8125rem;
+}
+.cottage-outfits button {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 10px 2px;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+.cottage-outfits .cottage-avatar {
+  width: 54px;
+  height: 72px;
+}
+.cottage-outfits button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow:
+    inset 0 0 0 2px var(--surface),
+    inset 0 0 0 3px var(--accent-border);
+}
+.cottage-outfits button b {
+  position: absolute;
+  right: 5px;
+  top: 2px;
+  color: var(--accent-text);
+}
+.cottage-outfits button:active {
+  transform: translateY(1px);
+}
+.cottage-wardrobe-note {
+  margin: 12px 0 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+.cottage-wardrobe button:focus-visible,
+.cottage-wardrobe-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (max-width: 760px) {
+  .cottage-companion--sidebar {
+    display: none;
+  }
+  .cottage-wardrobe {
+    padding-inline: 12px;
+  }
+  .cottage-wardrobe > header {
+    margin-inline: -10px;
+  }
+}
