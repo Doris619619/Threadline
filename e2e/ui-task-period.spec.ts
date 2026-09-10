@@ -41,6 +41,8 @@ for (const [label, selector, image] of [
       fullPage: true,
     });
     await page.emulateMedia({ colorScheme: 'dark' });
+    // 系统媒体变化通过外观运行时应用，先等根属性更新再等待 CSS 过渡。
+    await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'dark');
     // 等待真实外观过渡结束，再检查最终配色；不关闭动画、不豁免对比度规则。
     await page.evaluate(async () => {
       void document.documentElement.offsetWidth;
@@ -69,6 +71,7 @@ for (const [label, selector, image] of [
       await page.emulateMedia({ media: 'screen' });
     }
     await page.emulateMedia({ colorScheme: 'light' });
+    await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'light');
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '200%';
     });
