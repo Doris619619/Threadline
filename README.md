@@ -1,182 +1,93 @@
-<!-- 文件用途：介绍 Threadline 的产品定位、运行方式、桌面版构建、数据配置和仓库结构。 -->
+<!-- 文件用途：展示 Threadline 的产品体验、下载入口与开发文档导航。 -->
 
-# Threadline
+<p align="center">
+  <img src="public/icon.png" width="72" height="72" alt="Threadline 图标" />
+</p>
 
-面向桌面浏览器、iPhone PWA 与 Windows 桌面端的个人任务工作台。界面以“今日执行”为中心：普通任务、Daily、待安排、项目、收尾、规划、洞察和节律在同一工作区中协作。
+<h1 align="center">Threadline</h1>
 
-## 产品与运行形态
+<p align="center"><strong>安排今天，也留住认真生活的痕迹。</strong></p>
+<p align="center">一个把任务、日常习惯与时间规划放在一起的个人工作台。</p>
 
-- **Web / PWA**：Next.js App Router 应用，成功在线打开后预缓存应用壳与当前 Next 静态资源，支持断网重开。
-- **Windows 桌面版**：Electron 打包同一套前端；不维护第二套 UI 或业务逻辑。
-- **字体与外观**：「设置 → 外观」可独立选择默认蓝色／安妮雅／皮卡小屋／皮卡经典主题和默认字体／思源黑体／思源宋体，按设备保存，同源标签页同步；四套主题都支持浅色、深色与跟随系统。手机正文 17px、页面标题 28px，并支持文字放大。字体与角色插画本地分发，没有下载 Apple 字体；真机 Dynamic Type 与捏合缩放仍单独验收。详见[外观说明](docs/appearance.md)。皮卡小屋保持原有任务布局，将像素家具图标、游戏窗框、勾选反馈融入界面；侧栏或手机「更多 → 我的装扮」可切换按个人参考图重绘的三套穿搭、和白猫互动；粉沙发、樱花秋千、抓娃娃机等家具分布到各页，换装与任务完成带有短暂星光。见[皮卡小屋设计](docs/pixel-cottage.md)。皮卡经典是独立的奶油像素风格，金色集中在括号页签与真实弹窗，包含交替色列表、橙色标签与绿色立体按钮，主页面不加整圈金色外框，详见[皮卡经典设计](docs/pika-classic.md)。
-- **数据层**：Supabase 是任务、项目、Daily、历史、工作站与 Rhythm 的唯一业务真源；未配置时显示明确门禁，不回退本地业务数据。Annotation 笔迹、高亮颜色和窗口 UI 状态仍仅保存在设备上。
-- **桌面小窗**：工作站保存有序任务引用，初始宽度 200 逻辑像素，可手动调宽。按内容自动变高，超限内部滚动；收起入口可拖到左右屏幕边缘，记住位置并始终置顶，只点击展开。启动及登录阶段提供最小化/关闭按钮并居中显示。
-- **启动状态**：登录恢复、`initialize_workspace`、工作区 queries/本机 hydration 与 Supabase Realtime 分别映射为四个真实阶段；数据完成后工作台可用，Realtime 连接失败只给出非阻塞提示，不伪造订阅成功。
+<p align="center">
+  <a href="https://github.com/Doris619619/Threadline/releases/latest">下载 Windows 版</a> ·
+  <a href="#开始使用">开始使用</a> ·
+  <a href="#本地开发">本地开发</a> ·
+  <a href="#文档导航">文档导航</a>
+</p>
 
-核心流程包括任务规划与执行、Daily 当日打卡、待安排和移期、回收站恢复、每日收尾、跨日任务规划，以及跨范围洞察与报告导出。侧栏“项目”是单一管理页：页头的统一“新建”入口可选择项目或 Daily，并复用各自的短表单 Dialog；项目和 Daily 模板分别以 grouped surface 展示真实数量、项目颜色、计划清单与预计分钟，低频项目/Daily/清单项操作均收敛到整行进入的管理 sheet。Daily 模板完全独立，支持 0～N 项计划清单与“添加到已有 Daily”，而首页只保留当天执行。所有项目/Daily 管理 Dialog 都支持初始焦点、Tab 限制、Escape 关闭和触发控件焦点恢复。
+<p align="center"><sub>桌面浏览器 · iPhone PWA · Windows</sub></p>
 
-## 技术栈
+![Threadline 桌面工作台：皮卡小屋主题下的今日日程、待安排与 Daily](docs/screenshots/cottage/desktop-preview.png)
 
-- Next.js App Router、React 19、TypeScript（严格模式）
-- Tailwind/PostCSS 基础设施与项目级 CSS design tokens
-- Zod 输入验证、date-fns、TanStack Query、Supabase JS
-- Vitest + Testing Library、Playwright + axe（桌面 Chrome 与 iPhone 13）
-- Web Manifest 与 Service Worker 离线应用壳缓存
+<p align="center"><sub>皮卡小屋主题 · 截图使用虚构演示数据</sub></p>
 
-## 本地启动
+## 从今天开始
 
-需要 Node.js 22+ 与 pnpm 11+。
+| 想做的事           | Threadline 如何帮你                                            |
+| :----------------- | :------------------------------------------------------------- |
+| **专注今天**       | 在同一页安排日程、勾选任务、记录实际投入，结束时完成每日收尾。 |
+| **先记下，再安排** | 重要与普通待安排分组保存，想好时间后再放进日程。               |
+| **坚持日常**       | 用 Daily 管理重复的日常清单，在首页记录当天完成情况。          |
+| **看见时间**       | 从月历进入单日时间轴，查看安排与空闲，调整任务日期。           |
+| **回顾投入**       | 在洞察中查看实际耗时与项目分布，导出复盘报告。                 |
+| **轻装工作**       | Windows 工作站以置顶小窗呈现任务，可收起到屏幕边缘。           |
 
-```bash
+## 让工作台更像你
+
+四套主题，三种字体。主题、字体与明暗模式可以自由组合，选择会保存在当前设备。
+
+| 默认蓝色           | 安妮雅         | 皮卡小屋             | 皮卡经典                     |
+| :----------------- | :------------- | :------------------- | :--------------------------- |
+| 清爽蓝白，简洁日常 | 樱花粉与奶油白 | 像素家具、穿搭与白猫 | 奶油列表、金色页签与游戏按钮 |
+
+<details>
+<summary>看看皮卡经典的浅色与深色外观</summary>
+
+![皮卡经典浅色工作台](docs/screenshots/classic/desktop-preview-light.png)
+
+![皮卡经典深色工作台](docs/screenshots/classic/desktop-preview-dark.png)
+
+</details>
+
+在 **设置 → 外观** 中切换主题和字体；皮卡主题还可以从 **我的装扮** 选择穿搭，和白猫互动。
+
+## 开始使用
+
+**Windows** — 前往 [最新版本](https://github.com/Doris619619/Threadline/releases/latest)，下载以 `x64-setup.exe` 结尾的安装包。安装后，在 **设置 → 关于 Threadline** 中检查、下载并确认重启更新。
+
+**浏览器与 iPhone** — 打开你部署的 Threadline 网站；iPhone 可通过 Safari 的“添加到主屏幕”作为 PWA 使用。部署方式见 [云端与 Web 部署](docs/supabase-deployment.md)。
+
+登录后，任务、项目与 Daily 通过 Supabase 在设备间同步。主题、字体和批注等设备偏好保留在本机。
+
+> 正在使用 0.1.1 或未安装的预览目录？请手动安装最新版本一次。详见 [Windows 自动更新](docs/desktop-auto-update.md)。
+
+## 本地开发
+
+需要 **Node.js ≥ 22.12.0**、**pnpm 11.19.0**，以及一个 Supabase 项目。
+
+```powershell
 pnpm install
 Copy-Item .env.example .env.local
-# 填写 Supabase URL、sb_publishable_ key 与 cloud environment
+# 在 .env.local 填写 Supabase 公开配置
 pnpm dev
 ```
 
-访问 `http://localhost:3000`。普通本地/云运行时未提供 Supabase 环境变量时显示“尚未配置云工作区”，不会读取旧业务 localStorage。首次登录会原子创建“工作 / 课程 / AI研究 / 生活 / 其他”五个 UUID 项目，不创建 demo task、Daily 或 history。
+打开 <http://localhost:3000>。首次配置请按 [开发与运行指南](docs/development.md) 完成环境变量和数据库迁移；未配置云端时会显示配置提示。
 
-**PR 在线预览**：Vercel Preview 没有配置 Supabase URL/key 时自动进入演示模式，手机或电脑打开 PR 的 Preview 链接即可操作今日任务、重要/普通待安排和 Daily，无需登录或新增 Supabase 项目。演示数据为虚构样例，使用独立浏览器存储；刷新保留操作，换设备、浏览器或部署域名不会同步。优先使用 PR 的固定分支预览链接，单次部署链接仍指向旧版本。配置了 staging/test Supabase 的 Preview 继续走真实云登录；Production 必须使用正式云配置。Playwright/Electron 仍使用显式 `NEXT_PUBLIC_THREADLINE_TEST_ADAPTER=true`，该测试标记禁止部署到 Vercel。
+前端采用 **Next.js App Router · React · TypeScript**，Windows 端由 **Electron** 复用同一套界面与业务逻辑。
 
-执行 `pnpm test:preview` 可构建与 Vercel 相同的无云演示并验证桌面、320px 手机和 iPhone WebKit 的真实交互，不需要 Docker。演示模式不是跨设备同步或数据库验收。
+## 文档导航
 
-如果手机打开预览后显示“Log in to Vercel”，这是 Vercel 项目的 Deployment Protection，与 Threadline 登录无关。需要免登录分享时，在项目 Settings → Deployment Protection → Vercel Authentication 关闭 Require Log In 并保存；这是项目级访问设置，应由项目所有者确认。详细范围见[部署说明](docs/supabase-deployment.md#vercel-环境变量)。
+| 想了解什么               | 从这里开始                                                                                                          |
+| :----------------------- | :------------------------------------------------------------------------------------------------------------------ |
+| 本地启动、命令与目录结构 | [开发与运行指南](docs/development.md)                                                                               |
+| 任务、Daily 与交互规则   | [产品与交互参考](docs/interaction-reference.md)                                                                     |
+| 主题与字体               | [外观说明](docs/appearance.md) · [皮卡小屋](docs/pixel-cottage.md) · [皮卡经典](docs/pika-classic.md)               |
+| Windows 构建与发布       | [本地打包](docs/WINDOWS_BUILD.md) · [自动更新](docs/desktop-auto-update.md)                                         |
+| 云端部署与数据           | [Supabase / Vercel](docs/supabase-deployment.md) · [数据完整性](docs/data-integrity.md)                             |
+| 测试与贡献               | [测试架构](docs/testing-architecture.md) · [工程协作规范](docs/工程协作规范.md) · [PR 撰写规范](docs/PR撰写规范.md) |
 
-常用质量检查：
+---
 
-```bash
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm test:coverage
-pnpm test:sql:static
-pnpm test:css-tokens
-pnpm build
-pnpm test:e2e
-pnpm test:e2e:ui
-```
-
-## Windows 桌面版
-
-桌面版使用 Electron 44，复用同一套 Next.js 前端。需要 Node.js `>=22.12.0` 与 pnpm `11.19.0`；不需要 Rust 或 WebView2 工具链。
-
-```bash
-pnpm desktop:dev
-pnpm desktop:compile
-pnpm desktop:renderer
-pnpm test:electron
-pnpm desktop:preview
-pnpm desktop:preview:open
-pnpm desktop:verify:parity
-pnpm desktop:build:dir
-pnpm test:electron:packaged
-pnpm desktop:build
-pnpm desktop:release
-```
-
-`desktop:compile` 会先检查 Electron 类型，再以 `esbuild` 将 Main 与 Preload 输出为 `dist-electron/*.cjs`；两者保持 CommonJS。洞察报告在 Web/PWA 走浏览器打印，在 Electron 通过受限 Main bridge 保存为 PDF。`desktop:dev` 会启动隔离的 Next.js 开发服务器并打开 Electron 窗口。`desktop:renderer` 只生成 `.next-electron` 静态前端；正式 Preview/package/release 会在构建期强制校验 Production Supabase 的 HTTPS URL、`sb_publishable_` key 与环境标记。
-
-日常需要“最新 EXE”时使用 `desktop:preview`：它生成 `release/preview/win-unpacked/Threadline.exe`，仍走正式 Renderer、Main/Preload、electron-builder、ASAR、afterPack 与 fuses，只省略 NSIS。`desktop:preview:open` 会在成功后显式启动；`desktop:verify:parity` 会与 canonical package-dir 比较 ASAR、运行文件树、fuse wire 与 manifest 等静态合同，不为自动化测试改动正式 runtime。`desktop:build:dir` 保留为 CI/兼容目录包入口，随后可执行 `test:electron:packaged`：它默认启动 `release/win-unpacked/Threadline.exe`，通过 Chromium CDP 验证 `threadline://app`、CSP、非 dev-server 加载、受限 Preload 驱动的窗口切换、单实例与退出。正式 fuses 会关闭 Node CLI inspect，因此 packaged smoke 不通过放宽 fuse 来连接 Main。`desktop:build` 生成仅供验证、明确不发布的 NSIS 安装包；仅版本 tag 或手动触发的 GitHub Release workflow 会先运行静态 parity，再使用 `desktop:release` 发布。原有的 `pnpm build` 与 `pnpm start` 仍保持 Next.js Web/PWA 生产模式。
-
-Web/PWA 使用请求期 nonce CSP，Electron 静态导出继续从实际 HTML 生成精确 script hash；两条构建链使用独立路由入口与输出目录。Windows 包在 `afterPack` 写入并复核 Electron fuses、ASAR integrity 与 `OnlyLoadAppFromAsar`。完整命令、manifest、并发保护、production parity 与 Defender `PACKAGING_STALL` 诊断见 [Windows 本地构建](docs/WINDOWS_BUILD.md)；安全边界见 [CSP 与打包硬化](docs/electron-hardening.md)。
-
-Windows 普通用户优先使用构建生成的 NSIS 安装器：
-
-从 0.1.1 起，安装版支持「设置 → 关于 Threadline」检查、下载和重启更新；启动后也会自动检查，但不会自动下载或在普通退出时安装。旧版需手动安装一次带此功能的新版本。从 0.1.2 起，源码、安装包和更新文件统一放在公开的 `Doris619619/Threadline` 仓库，旧 0.1.1 需手动安装一次 0.1.2 以切换更新源；发布配置与验证边界见 [Windows 自动更新](docs/desktop-auto-update.md)。
-
-```text
-release/Threadline_<version>_x64-setup.exe
-```
-
-该文件适合上传到 GitHub Releases；`release/preview/win-unpacked/Threadline.exe` 是日常验收入口，`release/win-unpacked/Threadline.exe` 是 canonical package-dir/CI 产物，均不作为默认下载项。构建产物已被 Git 忽略，不会随源码提交。Windows 进程、快捷方式、Main/Edge 窗口统一使用 `com.doris619619.threadline` 的 AppUserModelID，以保持任务栏分组和单实例激活一致。
-
-## Supabase
-
-将 `.env.local` 中的以下变量填入对应项目的公开 URL 与 publishable key：
-
-```text
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
-NEXT_PUBLIC_THREADLINE_CLOUD_ENV=production
-```
-
-本地联调可使用 `supabase status` 返回的 `http://127.0.0.1:54321` 与 `PUBLISHABLE_KEY`，并把 cloud environment 设为 `test`；loopback HTTP 例外不会进入 Vercel 或 Electron production 构建。
-
-运行迁移和本地数据库测试：
-
-```bash
-pnpm supabase:start
-pnpm supabase:lint
-pnpm test:db
-pnpm test:supabase:integration
-pnpm exec playwright install chromium
-pnpm test:supabase:browser
-```
-
-迁移包含 UUID、same-owner FK、RLS、Daily 幂等实例化、正式 Daily History、原子任务流转/收尾/工作站排序、客户端只读且按日固定的 task actual entries、数据库重算的关账项目汇总、Realtime publication，以及保留耗时历史的 30 天 task 物理 purge。客户端只使用 Email/password 与 publishable key；Main/Preload 不持有 Supabase secret。`test:supabase:integration` 会在本地创建并清理两个临时账号，真实验证 publishable-key Auth、REST/RLS、owner-filter Realtime、Rhythm 和 Daily 并发幂等。`test:supabase:browser` 只接受 local Supabase loopback URL，以 CLI 本地 `SECRET_KEY` 创建并在 finally 删除一次性已确认账户；浏览器本身只使用公开 key 和临时 Email/password，完整走登录、工作区初始化、创建任务、刷新持久化与登出。Docker 不可用时可先执行 `pnpm test:sql:static`，但不能把本地 SQL/pgTAP 标记为通过。持久化、Daily template 与实际耗时的行为边界见 [数据完整性规则](docs/data-integrity.md)。
-
-远端 Supabase、Cron、Vercel Production/Preview 和真实手机验收步骤见 [Supabase、Vercel 与跨端验收](docs/supabase-deployment.md)。Supabase 后端配置完成不等于已有公网 HTTPS PWA URL；没有部署 URL 时，PC + 手机 hosted acceptance 必须保持 pending。
-
-## 自动化验证范围
-
-`pnpm test:e2e` 会以显式 local test adapter 生产构建启动本地服务，并覆盖既有桌面与手机关键流，以及结构、布局和无障碍 smoke。`pnpm test:e2e:ui` 只运行不依赖 screenshot baseline 的 UI 门禁：主要工作区的标题、导航、主面板与关键控件结构合同；颜色 popover、任务编辑和管理 Dialog 的 viewport/focus 边界；四种桌面与 320/375/390/430px 四种 Chrome 移动 viewport 的横向溢出、关键元素可达性和移动端控件隐藏，并额外使用 `iPhone 13` device preset 的 WebKit 回归移动端新增任务；以及关键页面和编辑 Dialog 的 axe critical/serious 回归。当前产品已有的 axe 债务会以每个页面的 rule/node 数量显式记录；新增 rule、节点数量增长或产品修复后没有下调 baseline 都会失败，避免通过关闭 rule 掩盖问题。`pnpm test:coverage` 对显式高风险业务模块执行 V8 coverage gate；`pnpm test:css-tokens` 用 PostCSS 静态校验 `src/` 下所有 CSS custom property 引用必须有定义、fallback 或已记录的运行时来源（当前仅 React inline style 注入的 `--annotation-color`）。Windows PR CI 还会先运行 `pnpm test:electron` 的开发壳行为流，再以同一隔离 adapter 打包 canonical EXE 并运行 `pnpm test:electron:packaged`；packaged runner 不启动 Next server，只通过 Renderer CDP 验证不依赖 Node inspector 的生产合同，并清理本轮拥有的 Electron 进程树。该适配器只用于 UI/Electron 自动化，不代表 Supabase 集成通过；真实云端由 pgTAP/RLS、local Supabase integration、cross-account 与 Realtime 测试独立覆盖。分层、门槛与 release-tier 边界见 [测试架构](docs/testing-architecture.md)。
-
-## 项目结构
-
-```text
-src/app/                 App Router 页面、全局样式与元数据
-src/components/          壳层与通用 UI 原子组件
-src/features/            任务、Daily、项目、规划、洞察、节律与领域状态视图
-src/styles/              design token、基础规则、Electron 窗口与有序响应式覆盖
-src/lib/                 规则、日期范围、analytics、Zod schema、仓储接口与 seed
-src/types/               领域类型
-supabase/migrations/     PostgreSQL schema 与 RLS
-e2e/                     Playwright 端到端测试
-tests/                   Vitest 单元测试
-public/                  Manifest、图标与 Service Worker
-electron/                Electron Main、Preload、protocol 与 Windows 打包资产
-electron-builder.config.cjs Windows x64 NSIS 打包配置
-docs/                    PRD、目标、工程协作规范、桌面交互与 PR 撰写规范
-```
-
-## 数据与交互约定
-
-前端结构约定见 [前端样式与模块归属](docs/frontend-style-ownership.md)：`src/app/globals.css` 保留 Tailwind，`src/app/global-styles.ts` 管理有序 CSS 入口，任务首页由展示组件及 data/create/workflow/drag/resize 等职责 Hook 组成。桌面今日日程为七列网格，手机为同一数据源下的纵向任务列表。新增样式和任务交互前应先按该文档定位 owner，避免跨功能改动。
-
-- 待安排是跨日期持续的任务池，“重要 / 普通”两组常显，各有添加入口；从哪个入口添加就归入哪组，编辑重要性后同一任务移动到另一组。安排到具体日期前不计入任何日期统计。
-- 删除进入回收站，恢复后回到当天；放弃、待安排、移期保留为可复盘历史。
-- Daily 完全不绑定 Project。日期实例独立保存 title/children/completed/actual/result snapshot；模板名称、0～N 个清单项和每项计划分钟以单个 RPC 原子保存，只影响未来实例，既有 entry/history 保持冻结快照。首页只编辑当天完成状态与实际耗时，历史结果字段保留；Records 只使用正式 `daily_history_entries`，而 Insights/PDF 会把正式记录与尚未记录的日期实例按模板和日期去重合并。Daily 实际进入全局总量，不进入项目占比或热力。
-- 洞察与 PDF 共用纯函数 analytics 口径；规划按普通任务当前安排日期聚合，不包含 Daily；旧收尾数据只能作为项目级 aggregate，绝不反推任务级历史。详细规则见 [工作台信息架构与分析口径](docs/workspace-information-architecture.md)。
-- 首页 Daily 沿用项目页的父级与浅底内嵌清单样式：子项常显，预计分钟位于名称下方，实际分钟在右侧独立列编辑，空输入提示“填写”，填写后父级显示合计。移除“记录／已记录”和“今日结果”操作；输入失焦、勾选自动保存，失败保留草稿并可重试；“结束今天”先等待全部 Daily 最新输入保存成功，再打开收尾并生成正式历史；校验或保存失败会阻止收尾。完成任一子项也算当天完成；取消父级清除当天全部勾选，但保留耗时和已有结果。无子项时直接填写父级实际，旧父级额外耗时保留并计入合计。
-- 手机日程使用分组内连续的紧凑双行布局，将项目放在任务名称前、同排展示，第二排显示时间、预计分钟和实际分钟，两排文字间距收紧且点击区域仍至少 44px；待安排复选框与文字居中，Daily 复选框对齐标题第一行。未填写实际时显示可点击的“记耗时”；收尾入口与列表对齐。收尾对话框固定居中、内容独立滚动、操作按钮常驻；仅选“指定日期”时展示日期控件，取消不提交。
-- 开始与结束时间支持 `1420` / `14:20` 输入，不支持跨午夜。预计时长独立输入整数分钟，可不填或清空为“待定”；显示为 `45min` / `1h` / `1h30min`，修改起止时间不会覆盖预计。日程与待安排遵循相同规则。待安排新增的取消/保存按钮放在预计输入旁，首行宽度留给事项内容，桌面窄侧栏中预计标签保持横排。
-- **今日日程 → 待安排**支持同一任务记录的拖拽移动（不复制）；拖出会清除日期、待填时间和起止时间，保留预计时长；安排、移期、完成与收尾也保留预计，不移动已有实际投入的日期归属。待安排通过 `···` 安排到今天或其他日期，安排后作为待填时间任务进入日程。
-- 洞察默认本周，先展示实际投入、普通任务完成数和主要项目；缺少预计的任务不参与估时偏差，报告沿用相同口径。设置使用紧凑分组列表，不显示日期切换器。数据迁移与验收说明见 [预计时长与生理期记录](docs/task-estimates-and-periods.md)。
-- 云端今日日程勾选立即反馈，保存期间不会被旧同步结果复原；连续操作按任务顺序保存，失败恢复已确认状态并提示重试。预计与实际字段仍保留，账本刷新失败不会撤销已保存的完成状态。
-- **荧光笔 / 橡皮擦**可在今日日程区域批注，坐标按相对比例持久化；按 Esc 或再次点击工具退出。
-- **节律**用于记录生理期开始、结束和补录，支持连续月历、历史编辑/删除、持续天数和开始间隔统计；旧日期标记仍保留，不自动转换为经期。不提供预测或提醒。按账号同步，离线失败保留输入并提示重试；**批注**与高亮颜色保持设备本地。任务远端进入回收站或离线期间被永久 purge 后，设备会用 authoritative all-task identity 对账清除孤立笔迹。
-- **Windows 桌面窗口**：仅 Electron 检测到受限 Main Renderer bridge 时，完整工作台才显示工作站、最小化、原生最大化/还原和关闭。Web/PWA 始终保持完整工作台，历史桌面偏好也不会制造无作用入口。完整工作台与工作站共用主窗口，工作站始终置顶；可拖到左右侧的 edge tab 只是工作站的收起状态，单击恢复工作站，悬停不会展开，拖动始终使用固定尺寸，避免 Windows 高缩放下连续定位使入口逐渐变长；收起期间系统工作区变化和后台高度更新不会触发自动展开，手动调整宽度由原生窗口立即记忆；启动、模式切换和第二次启动都会校验多显示器/DPI 下的可见 geometry，并唤醒既有窗口。
-
-## 协作约定
-
-提交代码前请阅读 [工程协作规范](docs/%E5%B7%A5%E7%A8%8B%E5%8D%8F%E4%BD%9C%E8%A7%84%E8%8C%83.md)。它要求维护文件与函数说明、清晰拆分职责、按规定创建分支、同步维护 README/docs，并在每次修改完成后创建 Git commit。提交标题必须使用 `<type>(<scope>)：<summary>`，例如 `fix(cloud)：修正ROS2话题与驱动配置`。创建或更新 Pull Request 时，正文须按 [PR撰写规范](docs/PR撰写规范.md) 的 `Summary / 背景 / 改动（逻辑） / 改动（代码） / 影响 / 验证 / 材料` 结构书写。桌面拖拽、荧光笔与三态窗口的行为说明见 [桌面交互与窗口形态](docs/desktop-window-modes.md)。
-
-## 任务规划
-
-“规划”默认进入雾蓝热力月历，点击某一天进入带紧凑周日期条的单日时间轴；手机和桌面采用相同浏览层级，返回时保留原月份与入口位置。日期为主、任务数量以较小文字显示，空日期不显示零值；深浅颜色表示安排数量，包含已完成任务。单日视图将月份与操作合并到一条工具栏，使用无外围大卡片的日历画布；按填写的起止时间绘制浅蓝时间块，留白显示空闲，重叠任务分栏，密集重叠可展开查看；只有开始时间的任务标注“结束未定”，不会用独立预计投入推算结束时间。当天尚未定时间的任务直接显示在时间轴上方，可点“定时间”补充时段；全局待安排池在桌面位于右侧，在手机位于下方可展开的独立区域，切日和安排后保持打开，支持连续分配到不同日期。点开时间块可查看完整内容、编辑、完成或改期，已完成任务仍默认折叠。预计只汇总未完成任务并标记未估时数量，浏览日期独立于首页。
-
-首页与规划的任务编辑弹窗都等待服务端保存成功后再关闭，失败保留草稿供重试；关闭后恢复入口焦点。
-
-部署前须应用 `202609060001_task_planning.sql`，新增带客户端 IANA 时区的任务流转 RPC；此迁移仅替换函数，不改写历史数据。见 [任务规划](docs/task-planning.md)。
-
-工作站每次启动默认以 200 逻辑像素的窄宽度打开，保留原位置；打开后仍可拖动边框调宽，本次运行中切换视图会保留手动宽度。
-
-工作站右键任务可选择“移出工作站”，也支持 Shift+F10；仅移除引用，不删除原任务，列表右侧不预留操作列。
-
-### 粉色 Windows 预览与安装包
-
-PowerShell 设置 `$env:THREADLINE_DESKTOP_THEME='anya'` 后运行 `pnpm desktop:preview` 或 `pnpm desktop:build`，即可生成配套粉色 EXE/安装图标并为新设备默认选用粉色主题。已有主题和字体偏好优先。使用 `Remove-Item Env:THREADLINE_DESKTOP_THEME` 恢复默认蓝色构建。预览启动入口为 `release/preview/win-unpacked/Threadline.exe`，使用时保留整个目录。
-
-设置 → 外观可用按钮切换浅色、深色或跟随系统，明暗模式与蓝色 / 安妮雅 / 皮卡小屋 / 皮卡经典配色独立保存。
-
-0.1.3 的像素主题与 Windows 升级方式见 [版本说明](docs/release-0.1.3.md)。
+[版本记录](https://github.com/Doris619619/Threadline/releases) · [反馈问题](https://github.com/Doris619619/Threadline/issues)
