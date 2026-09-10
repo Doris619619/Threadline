@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 import { ThemeIllustration } from './theme-illustration';
+import { CottageScene } from './cottage-scene';
 import {
   getAppearance,
   applyFontResult,
@@ -70,7 +71,7 @@ export function AppearancePanel() {
       <fieldset className="appearance-section">
         <legend>主题</legend>
         <div className="appearance-theme-options">
-          {(['blue', 'anya'] as const).map((theme) => (
+          {(['blue', 'anya', 'cottage'] as const).map((theme) => (
             <button
               key={theme}
               type="button"
@@ -92,13 +93,24 @@ export function AppearancePanel() {
                   <span className="appearance-preview-bar" />
                 </span>
                 {theme === 'anya' && <ThemeIllustration />}
+                {theme === 'cottage' && <CottageScene />}
               </span>
               <span className="appearance-option-label">
-                <strong>{theme === 'anya' ? '安妮雅' : '默认蓝色'}</strong>
+                <strong>
+                  {theme === 'cottage'
+                    ? '皮卡小屋'
+                    : theme === 'anya'
+                      ? '安妮雅'
+                      : '默认蓝色'}
+                </strong>
                 <Check size={18} aria-hidden="true" />
               </span>
               <small>
-                {theme === 'anya' ? '樱花粉 · 奶油白' : '清爽 · 专注 · 熟悉'}
+                {theme === 'cottage'
+                  ? '糖果像素 · 回到自己的家'
+                  : theme === 'anya'
+                    ? '樱花粉 · 奶油白'
+                    : '清爽 · 专注 · 熟悉'}
               </small>
             </button>
           ))}
@@ -126,7 +138,7 @@ export function AppearancePanel() {
           ))}
         </div>
         <p className="appearance-hint">
-          立即生效，下次打开仍保留。与蓝色、安妮雅主题独立选择。
+          立即生效，下次打开仍保留。与主题配色独立选择。
         </p>
       </fieldset>
       <fieldset className="appearance-section">

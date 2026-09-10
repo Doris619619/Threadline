@@ -1,6 +1,6 @@
 /** @fileoverview Defines device appearance preferences and the CSP-compatible pre-paint bootstrap. */
 
-export type AppearanceTheme = 'blue' | 'anya';
+export type AppearanceTheme = 'blue' | 'anya' | 'cottage';
 export type AppearanceFont = 'default' | 'source-han-sans' | 'source-han-serif';
 export type AppearanceColorMode = 'system' | 'light' | 'dark';
 export type AppearancePreferences = {
@@ -21,7 +21,12 @@ export function parseAppearance(raw: string | null): AppearancePreferences {
     const value = JSON.parse(raw ?? 'null');
     if (!value || typeof value !== 'object') return defaultAppearance;
     return {
-      theme: value.theme === 'anya' ? 'anya' : 'blue',
+      theme:
+        value.theme === 'cottage'
+          ? 'cottage'
+          : value.theme === 'anya'
+            ? 'anya'
+            : 'blue',
       colorMode:
         value.colorMode === 'light' || value.colorMode === 'dark'
           ? value.colorMode
@@ -41,7 +46,7 @@ export const appearanceBootstrap = `(() => {
   let value;
   try { value = JSON.parse(localStorage.getItem(${JSON.stringify(appearanceStorageKey)}) || 'null'); } catch {}
   const root = document.documentElement;
-  root.dataset.theme = value ? (value.theme === 'anya' ? 'anya' : 'blue') : ${JSON.stringify(defaultAppearance.theme)};
+  root.dataset.theme = value ? (value.theme === 'cottage' ? 'cottage' : value.theme === 'anya' ? 'anya' : 'blue') : ${JSON.stringify(defaultAppearance.theme)};
   root.dataset.font = value && ['source-han-sans', 'source-han-serif'].includes(value.font) ? value.font : 'default';
   const mode = value && value.colorMode;
   root.dataset.colorScheme = mode === 'dark' || (mode !== 'light' && typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';

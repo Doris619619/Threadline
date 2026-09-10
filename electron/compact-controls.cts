@@ -11,7 +11,7 @@ import {
 
 type EdgePosition = { displayId: number; side: 'left' | 'right'; ratio: number };
 let edgePosition: EdgePosition | undefined;
-let theme: 'blue' | 'anya' = 'blue';
+let theme: 'blue' | 'anya' | 'cottage' = 'blue';
 let drag:
   { x: number; y: number; bounds: Electron.Rectangle; moved: boolean } | undefined;
 
@@ -37,7 +37,8 @@ export function loadCompactPreferences() {
     const data = JSON.parse(
       readFileSync(join(app.getPath('userData'), 'compact-preferences.json'), 'utf8'),
     );
-    theme = data.theme === 'anya' ? 'anya' : 'blue';
+    theme =
+      data.theme === 'cottage' ? 'cottage' : data.theme === 'anya' ? 'anya' : 'blue';
     const position = data.edgePosition;
     if (
       position &&
@@ -62,7 +63,11 @@ export function getThemedWindowIcon() {
     app.getAppPath(),
     'electron',
     'assets',
-    theme === 'anya' ? 'icon-anya.ico' : 'icon.ico',
+    theme === 'cottage'
+      ? 'icon-cottage.ico'
+      : theme === 'anya'
+        ? 'icon-anya.ico'
+        : 'icon.ico',
   );
 }
 
@@ -136,7 +141,10 @@ export function registerCompactControls({
   });
   /** 主题只接收枚举，更新所有现存窗口并保存供下次启动首帧使用。 */
   ipcMain.handle('desktop:appearance', (event, value: unknown) => {
-    if (!isTrusted(event, 'main') || !['blue', 'anya'].includes(String(value)))
+    if (
+      !isTrusted(event, 'main') ||
+      !['blue', 'anya', 'cottage'].includes(String(value))
+    )
       throw new Error('Invalid desktop appearance');
     theme = value as typeof theme;
     for (const window of [getMain(), getEdge()])
