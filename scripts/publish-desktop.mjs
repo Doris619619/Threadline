@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const repository = 'Doris619619/Threadline-releases';
+const repository = 'Doris619619/Threadline';
 /** 调用已安装 GitHub CLI；参数不经过 shell，token 只通过进程环境传入。 */
 function gh(args) {
   return execFileSync('gh', args, { encoding: 'utf8', windowsHide: true });
@@ -24,9 +24,7 @@ export async function validateRelease() {
       'Release requires the matching stable version tag in Threadline Actions.',
     );
   if (!process.env.GH_TOKEN)
-    throw new Error(
-      'THREADLINE_RELEASE_TOKEN is required for the distribution repository.',
-    );
+    throw new Error('GitHub Actions GITHUB_TOKEN with contents:write is required.');
   if (
     process.env.NEXT_PUBLIC_THREADLINE_TEST_ADAPTER === 'true' ||
     process.env.NEXT_PUBLIC_THREADLINE_CLOUD_ENV !== 'production'
