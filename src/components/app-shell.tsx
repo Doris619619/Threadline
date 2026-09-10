@@ -30,6 +30,8 @@ import { useDesktopWindow } from '@/lib/desktop-window-context';
 import { addLocalDateDays, getLocalDateKey, parseLocalDateKey } from '@/lib/local-date';
 import { cn } from '@/lib/cn';
 import { ThemeIllustration } from '@/features/appearance/theme-illustration';
+import { CottageNavIcon } from '@/features/appearance/cottage-sprite';
+import { CottageCompanion } from '@/features/appearance/cottage-companion';
 
 /** Open the native date popup for the full visible control; unsupported/restricted browsers keep their native input behavior. */
 function openWorkspaceDatePicker(input: HTMLInputElement): boolean {
@@ -235,7 +237,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     setMobileMoreOpen(false);
                   }}
                 >
-                  <Icon aria-hidden="true" size={18} />
+                  <CottageNavIcon name={id}>
+                    <Icon aria-hidden="true" size={18} />
+                  </CottageNavIcon>
                   {label}
                 </SidebarItem>
               ))}
@@ -250,7 +254,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     setMobileMoreOpen(false);
                   }}
                 >
-                  <Icon aria-hidden="true" size={18} />
+                  <CottageNavIcon name={id}>
+                    <Icon aria-hidden="true" size={18} />
+                  </CottageNavIcon>
                   {label}
                 </SidebarItem>
               ))}
@@ -281,14 +287,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           setMobileMoreOpen(false);
                         }}
                       >
-                        <Icon aria-hidden="true" size={18} />
+                        <CottageNavIcon name={id}>
+                          <Icon aria-hidden="true" size={18} />
+                        </CottageNavIcon>
                         {label}
                       </button>
                     ))}
+                    <CottageCompanion compact />
                   </div>
                 )}
               </div>
             </nav>
+            <CottageCompanion />
             {cloudRuntime && (
               <AccountDisclosure
                 identity={getUserIdentity(cloudRuntime.user)}

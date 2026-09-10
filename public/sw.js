@@ -13,6 +13,7 @@ const SHELL = [
   '/themes/anya/notebook.webp',
   '/themes/anya/icon.png',
   '/themes/cottage/personal-room.webp',
+  '/themes/cottage/pixels.svg',
   '/themes/cottage/icon.svg',
   '/themes/cottage/icon.png',
 ];

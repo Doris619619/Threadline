@@ -43,7 +43,6 @@ import { useTaskCreateDrafts } from '@/features/tasks/hooks/use-task-create-draf
 import { useTaskDashboardController } from '@/features/tasks/hooks/use-task-dashboard-controller';
 import { useCloseDay } from '@/features/tasks/hooks/use-close-day';
 import type { Task } from '@/types/domain';
-import { CottageHome } from '@/features/appearance/cottage-home';
 
 /**
  * 按当前工作台视图渲染首页、功能页或 Electron 紧凑窗口。
@@ -263,11 +262,6 @@ export function TaskDashboard() {
     return <SettingsPanel tasks={tasks} onUpdateTask={update} />;
   return (
     <div className="dashboard dashboard-annotatable" data-testid="home-panel">
-      <CottageHome
-        key={selectedDate}
-        completed={done + dailyDone}
-        date={selectedDate}
-      />
       <p className="home-summary" aria-live="polite">
         <span className="home-summary-check" aria-hidden="true">
           ✓

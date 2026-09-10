@@ -1,65 +1,71 @@
-/** @fileoverview Pixel cottage palette, original scene materials and responsive companion; all workspace overrides are theme-scoped. */
-
+/** @fileoverview Warm neutral cottage palette and local branding; workspace geometry remains unchanged. */
 html[data-theme='cottage'] {
   color-scheme: light;
-  --background: #f5f3fb;
-  --surface: #fffdf5;
-  --surface-secondary: #fff4d8;
-  --border: #ded4b4;
-  --border-subtle: #e9e1d3;
-  --border-strong: #b6a4c7;
-  --text-primary: #443d59;
-  --text-secondary: #71647b;
-  --text-tertiary: #776a80;
-  --text-on-accent: #fffdf5;
-  --accent: #6b559c;
-  --accent-hover: #5c498e;
-  --accent-text: #6b559c;
-  --accent-soft: #eee5fa;
+  --background: #faf7f2;
+  --surface: #fffdf7;
+  --surface-secondary: #f7efdc;
+  --border: #d7c4a4;
+  --border-subtle: #e7dcc8;
+  --border-strong: #ac91a3;
+  --text-primary: #50454b;
+  --text-secondary: #78656f;
+  --text-tertiary: #806e77;
+  --text-on-accent: #fffdf7;
+  --accent: #81618f;
+  --accent-hover: #70517d;
+  --accent-text: #795984;
+  --accent-soft: #f2e5f0;
   --accent-muted: var(--accent-soft);
-  --accent-border: #c4afe3;
-  --daily-accent: #a0607d;
-  --success: #3f743f;
+  --accent-border: #cfb5d4;
+  --daily-accent: #9b627d;
+  --success: #496c45;
   --warning: #8b6122;
   --danger: #b04d3f;
-  --calendar-heat-text-1: #6b559c;
-  --calendar-heat-text-2: #675092;
-  --calendar-heat-text-3: #594281;
-  --calendar-heat-text-4: #4c3574;
-  --planning-heat-1: #f2ebfc;
-  --planning-heat-2: #e9dcf8;
-  --planning-heat-3: #dac4ee;
-  --planning-heat-4: #cdb1e4;
-  --planning-ink: #443d59;
-  --planning-count-ink: #55426c;
-  --planning-accent: #6b559c;
-  --planning-on-accent: #fffdf5;
-  --shadow-card: 0 2px 0 #e8d9b5;
-  --shadow-popover: 0 8px 28px rgb(53 69 53 / 13%);
-  --radius-control: 7px;
-  --radius-card: 10px;
-  --radius-surface: 12px;
-  --cottage-paper: #eaf7ff;
-  --cottage-grid: #d7ecfa;
+  --calendar-heat-text-1: #74577e;
+  --calendar-heat-text-2: #695072;
+  --calendar-heat-text-3: #5c4468;
+  --calendar-heat-text-4: #50375e;
+  --planning-heat-1: #f6eef5;
+  --planning-heat-2: #ecdeec;
+  --planning-heat-3: #ddc8df;
+  --planning-heat-4: #cdb2d1;
+  --planning-ink: #50454b;
+  --planning-count-ink: #574360;
+  --planning-accent: #81618f;
+  --planning-on-accent: #fffdf7;
+  --shadow-card: 0 2px 0 #e7dcc8;
+  --shadow-popover: 0 8px 28px rgb(72 51 58 / 13%);
+  --radius-control: 4px;
+  --radius-card: 5px;
+  --radius-surface: 6px;
+  --pixel-frame: #c5a777;
+  --pixel-highlight: #fffcf0;
+  --pixel-wood: #f3dfb4;
+  --pixel-ink: #78637d;
+  --pixel-shadow: #c7bbca;
+  --pixel-jade: #567957;
+  --pixel-on-jade: #fffdf1;
+  --pixel-sky: #e4f2f0;
+  --cottage-paper: #edf5f5;
 }
 html[data-theme='cottage'][data-color-scheme='dark'] {
   color-scheme: dark;
-  --background: #23233d;
-  --surface: #303048;
-  --surface-secondary: #3b3652;
-  --border: #665a79;
-  --border-subtle: #51475f;
-  --border-strong: #9581ac;
-  --text-primary: #faf0ff;
-  --text-secondary: #d6c7e3;
-  --text-tertiary: #c5b5d6;
-  --text-on-accent: #302044;
-  --accent: #d7b5f3;
-  --accent-hover: #e7cffa;
-  --accent-text: #e2c4fa;
-  --accent-soft: #4b375e;
-  --accent-border: #9f7cba;
-  --daily-accent: #d9bc86;
+  --background: #262431;
+  --surface: #302d3b;
+  --surface-secondary: #3b3545;
+  --border: #706171;
+  --border-subtle: #514653;
+  --border-strong: #9c88a1;
+  --text-primary: #f6edec;
+  --text-secondary: #d1bfcc;
+  --text-tertiary: #c9b6c5;
+  --text-on-accent: #302437;
+  --accent: #d7b5e1;
+  --accent-hover: #e6caec;
+  --accent-text: #e0c0e7;
+  --accent-soft: #4c3b55;
+  --accent-border: #9e80ab;
+  --daily-accent: #e0b0c4;
   --success: #b0d799;
   --warning: #edc37f;
   --danger: #ffa99a;
@@ -71,27 +77,51 @@ html[data-theme='cottage'][data-color-scheme='dark'] {
   --planning-heat-2: #59406d;
   --planning-heat-3: #6b4b81;
   --planning-heat-4: #77508c;
-  --planning-ink: #faf0ff;
+  --planning-ink: #f6edec;
   --planning-count-ink: #e9d6f6;
-  --planning-accent: #d7b5f3;
-  --planning-on-accent: #302044;
-  --shadow-card: 0 2px 0 #1d1830;
-  --cottage-paper: #2b3153;
-  --cottage-grid: #394264;
+  --planning-accent: #d7b5e1;
+  --planning-on-accent: #302437;
+  --shadow-card: 0 2px 0 #201d28;
+  --pixel-frame: #a48b72;
+  --pixel-highlight: #544756;
+  --pixel-wood: #57474e;
+  --pixel-shadow: #332b40;
+  --pixel-jade: #b2cea5;
+  --pixel-on-jade: #263722;
+  --pixel-sky: #374352;
+  --cottage-paper: #353344;
 }
-
-/* Small native ornaments share the room artwork's candy colors. */
-.cottage-scene,
-.cottage-pet {
-  --room-shadow: #938399;
-  --room-cream: #fffaf1;
-  --room-ink: #69506a;
-  --room-rose: #f1a1c0;
-  --room-blue: #8edcec;
-  --room-gold: #fff097;
-  --room-gold-dark: #d7ad58;
-  --room-lilac: #b5a0ef;
-  --room-leaf: #70ac70;
+.brand-icon-cottage {
+  display: none;
+}
+html[data-theme='cottage'] .brand-icon-blue {
+  display: none;
+}
+html[data-theme='cottage'] .brand-icon-cottage {
+  display: block;
+}
+html[data-theme='cottage'] .tl-brand-mark {
+  border-radius: 3px;
+  background: url('/themes/cottage/icon.svg') center / contain no-repeat;
+}
+html[data-theme='cottage'] .tl-brand-mark > svg {
+  visibility: hidden;
+}
+html[data-theme='cottage'] .auth-illustration-wrap {
+  position: relative;
+  background: var(--cottage-paper);
+}
+html[data-theme='cottage'] .auth-illustration-img {
+  visibility: hidden;
+}
+html[data-theme='cottage'] .auth-illustration-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 4%;
+  background: url('/themes/cottage/personal-room.webp') center / contain no-repeat;
+}
+html[data-theme='cottage'] .auth-bg-illustration-wrap {
+  display: none;
 }
 .cottage-scene {
   display: block;
@@ -118,319 +148,12 @@ html[data-theme='cottage'][data-color-scheme='dark'] {
 html[data-color-scheme='dark'] .cottage-room-image {
   filter: brightness(0.78) saturate(0.84);
 }
-.cottage-furniture {
-  position: absolute;
-  width: 10%;
-  height: auto;
-  left: 46%;
-  top: 60%;
-  animation: cottage-bloom 280ms ease-out;
-}
-.cottage-flowers {
-  position: absolute;
-  display: flex;
-  width: 9%;
-  height: 7%;
-  left: 49%;
-  top: 82%;
-  align-items: end;
-}
-.cottage-flowers svg {
-  width: 30%;
-  height: 100%;
-  animation: cottage-bloom 300ms ease-out;
-}
-.cottage-flowers svg:nth-child(2) {
-  height: 80%;
-}
-.cottage-cat-target {
-  position: absolute;
-  left: 38%;
-  top: 76%;
-  transform: translate(-50%, -50%);
-  width: 8%;
-  height: 12%;
-  min-width: 44px;
-  min-height: 44px;
-  border: 0;
-  background: transparent;
-  border-radius: 12px;
-  cursor: pointer;
-}
-.cottage-cat-target:hover {
-  background: rgb(255 255 255 / 18%);
-  outline: 2px dashed var(--accent-border);
-}
-.cottage-room-heart {
-  position: absolute;
-  left: 37%;
-  top: 67%;
-  color: #bb447c;
-  font-size: 1.375rem;
-  text-shadow: 1px 1px #fff;
-  animation: cottage-heart-rise 300ms steps(4, end);
-  pointer-events: none;
-}
-.cottage-home {
-  display: grid;
-  grid-template-columns: minmax(220px, 0.75fr) minmax(340px, 1.5fr);
-  align-items: center;
-  position: relative;
-  isolation: isolate;
-  min-width: 0;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background-color: var(--cottage-paper);
-  background-image: radial-gradient(var(--cottage-grid) 1px, transparent 1px);
-  background-size: 8px 8px;
-  box-shadow: 0 3px 0 var(--border-subtle);
-}
-.cottage-copy {
-  padding: 24px 8px 24px 28px;
-  z-index: 1;
-}
-.cottage-eyebrow {
-  color: var(--accent-text);
-  font-family: ui-monospace, monospace;
-  font-size: 0.6875rem;
-  letter-spacing: 0.18em;
-  font-weight: 600;
-}
-.cottage-copy h2 {
-  margin: 12px 0 8px;
-  font-size: clamp(1.5rem, 2.4vw, 2.125rem);
-  font-weight: 650;
-  letter-spacing: -0.04em;
-  line-height: 1.4;
-}
-.cottage-message {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 0.8125rem;
-  line-height: 1.6;
-  min-height: 2.6em;
-}
-.cottage-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-.cottage-actions button,
-.cottage-decorations button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 12px;
-  font-size: 0.8125rem;
-  color: var(--text-primary);
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: 6px;
-  box-shadow: 0 2px 0 var(--border);
-  cursor: pointer;
-  transition:
-    background 140ms,
-    transform 140ms,
-    box-shadow 140ms;
-}
-.cottage-actions .cottage-decorate {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-}
-.cottage-actions button:hover,
-.cottage-decorations button:hover {
-  background: var(--accent-soft);
-}
-.cottage-actions button:active,
-.cottage-decorations button:active {
-  transform: translateY(2px);
-  box-shadow: none;
-}
-.cottage-pet svg {
-  width: 30px;
-  height: 30px;
-}
-.cottage-progress {
-  margin: 18px 0 0;
-  font-size: 0.6875rem;
-  line-height: 1.6;
-  color: var(--text-secondary);
-}
-.cottage-art {
-  width: 100%;
-  max-width: 620px;
-  justify-self: center;
-  padding: 16px 20px 12px 0;
-}
-.cottage-collapse {
-  position: absolute;
-  right: 4px;
-  top: 4px;
-  z-index: 2;
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  background: transparent;
-  color: var(--text-secondary);
-  border: 0;
-  border-radius: 8px;
-  cursor: pointer;
-}
-.cottage-collapse:hover {
-  background: var(--accent-soft);
-}
-.cottage-home[data-collapsed='true'] {
-  display: block;
-}
-.cottage-home[data-collapsed='true'] .cottage-copy {
-  padding: 12px 52px 12px 20px;
-}
-.cottage-home[data-collapsed='true'] .cottage-eyebrow {
-  display: none;
-}
-.cottage-home[data-collapsed='true'] h2 {
-  font-size: 0.875rem;
-  margin: 0;
-}
-.cottage-decorations {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  grid-column: 1 / -1;
-  padding: 12px 24px 20px;
-  margin: 0;
-  border: 0;
-  background: var(--surface);
-}
-.cottage-decorations legend {
-  float: left;
-  width: 100%;
-  padding: 12px 0 4px;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-}
-.cottage-decorations button[aria-pressed='true'] {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-.cottage-decorations i {
-  width: 12px;
-  height: 12px;
-  background: var(--room-gold, #fff097);
-  border-radius: 2px;
-}
-.cottage-decorations i[data-decor='bunny'] {
-  background: #f1a1c0;
-}
-.cottage-decorations i[data-decor='hydrangea'] {
-  background: #b5a0ef;
-}
-.cottage-decorations small {
-  width: 100%;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-}
-.cottage-notice {
-  padding: 0 24px 12px;
-  grid-column: 1 / -1;
-  font-size: 0.8125rem;
-}
-.cottage-cat-pop {
-  animation: cottage-nuzzle 400ms steps(3, end);
-  transform-origin: center bottom;
-}
-.cottage-heart {
-  animation: cottage-heart-rise 400ms steps(4, end);
-}
-.cottage-bouquet {
-  animation: cottage-bloom 300ms ease-out;
-  transform-box: fill-box;
-  transform-origin: bottom;
-}
-@keyframes cottage-nuzzle {
-  40% {
-    transform: translateY(-3px) rotate(-4deg);
-  }
-  75% {
-    transform: rotate(3deg);
-  }
-}
-@keyframes cottage-heart-rise {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-@keyframes cottage-bloom {
-  from {
-    transform: scale(0.85);
-  }
-  to {
-    transform: scale(1);
-  }
-}
-
-/* Carry the same stationery and wood/linen palette through task, planning, login and navigation surfaces. */
-html[data-theme='cottage'] .tl-sidebar {
-  background: var(--surface-secondary);
-}
-html[data-theme='cottage'] .tl-sidebar-item.is-active {
-  box-shadow: inset 3px 0 var(--accent);
-  background: var(--accent-soft);
-}
-html[data-theme='cottage'] .tl-brand-mark {
-  border-radius: 5px;
-  box-shadow: 2px 2px 0 var(--border-strong);
-  background: url('/themes/cottage/icon.svg') center / contain no-repeat;
-}
-html[data-theme='cottage'] .tl-brand-mark > svg {
-  visibility: hidden;
-}
-html[data-theme='cottage'] .tl-header[data-home='true'] {
-  border-bottom: 0;
-}
-html[data-theme='cottage'] .auth-illustration-wrap {
-  position: relative;
-  background: var(--cottage-paper);
-}
-html[data-theme='cottage'] .auth-illustration-img {
-  visibility: hidden;
-}
-html[data-theme='cottage'] .auth-illustration-wrap::after {
-  content: '';
-  position: absolute;
-  inset: 4%;
-  background: url('/themes/cottage/personal-room.webp') center / contain no-repeat;
-}
-html[data-theme='cottage'] .auth-bg-illustration-wrap {
-  display: none;
-}
-.brand-icon-cottage {
-  display: none;
-}
-html[data-theme='cottage'] .brand-icon-blue {
-  display: none;
-}
-html[data-theme='cottage'] .brand-icon-cottage {
-  display: block;
-}
 .appearance-theme-options {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .appearance-preview--cottage {
-  background: #eaf7ff;
-  color: #6b559c;
+  background: #edf5f5;
+  color: #795984;
 }
 .appearance-preview--cottage > span:not(.cottage-scene) {
   display: none;
@@ -445,38 +168,9 @@ html[data-theme='cottage'] .brand-icon-cottage {
   transform: translate(-50%, -50%);
 }
 html[data-color-scheme='dark'] .appearance-preview--cottage {
-  background: #2b3153;
+  background: #353344;
 }
 @media (max-width: 760px) {
-  .cottage-home {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .cottage-copy {
-    padding: 20px 20px 0;
-  }
-  .cottage-copy h2 {
-    font-size: 1.375rem;
-    margin-top: 8px;
-  }
-  .cottage-message {
-    min-height: 0;
-    font-size: 0.875rem;
-  }
-  .cottage-actions {
-    margin-top: 14px;
-  }
-  .cottage-progress {
-    margin-top: 12px;
-    font-size: 0.75rem;
-  }
-  .cottage-art {
-    max-width: 400px;
-    padding: 0 12px 8px;
-    margin-top: -4px;
-  }
-  .cottage-decorations {
-    padding-inline: 20px;
-  }
   .appearance-theme-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -486,20 +180,9 @@ html[data-color-scheme='dark'] .appearance-preview--cottage {
   .appearance-preview--cottage {
     min-height: 180px;
   }
-  html[data-theme='cottage'] .tl-sidebar-item.is-active {
-    box-shadow: none;
-  }
 }
-@container (max-width: 15rem) {
+@container (max-width:15rem) {
   .appearance-theme-options {
     grid-template-columns: minmax(0, 1fr);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .cottage-home *,
-  .cottage-home *::before,
-  .cottage-home *::after {
-    animation: none !important;
-    transition: none !important;
   }
 }
