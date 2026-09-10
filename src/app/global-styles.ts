@@ -35,3 +35,4 @@ import '../features/calendar/planning-pools.css';
 import '../features/appearance/cottage.css';
 import '../features/appearance/cottage-details.css';
 import '../features/appearance/cottage-wardrobe.css';
+import '../features/appearance/cottage-furnishings.css';

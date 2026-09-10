@@ -293,12 +293,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         {label}
                       </button>
                     ))}
-                    <CottageCompanion compact />
+                    <CottageCompanion compact view={active} />
                   </div>
                 )}
               </div>
             </nav>
-            <CottageCompanion />
+            <CottageCompanion view={active} />
             {cloudRuntime && (
               <AccountDisclosure
                 identity={getUserIdentity(cloudRuntime.user)}
@@ -311,7 +311,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}
           </aside>
         )}
-        <main id="main-content" className="tl-main">
+        <main id="main-content" className="tl-main" data-workspace-view={active}>
           {!isCompact &&
             !usesDedicatedProjectHeader &&
             active !== 'calendar' &&

@@ -1,0 +1,284 @@
+/** @fileoverview Personal house motifs within existing footprints; interaction-driven effects stop automatically and honor reduced motion. */
+.cottage-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.cottage-furniture {
+  display: block;
+  flex: 0 0 auto;
+}
+.cottage-sidebar-furniture {
+  position: absolute;
+  bottom: 0;
+  left: -5px;
+  width: 72px;
+  height: 72px;
+  animation: cottage-furniture-arrive 450ms steps(5, end) both;
+}
+.cottage-sidebar-scene > .cottage-avatar {
+  left: 52px;
+  height: 104px;
+}
+.cottage-sidebar-scene .cottage-sill-flowers {
+  width: 27px;
+  height: 27px;
+  left: 3px;
+  bottom: 66px;
+}
+.cottage-sidebar-scene .cottage-sill-cat {
+  width: 32px;
+  height: 32px;
+  right: -3px;
+}
+.cottage-sidebar-scene::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    url('/themes/cottage/pixels.svg#view-star') 87% 18% / 13px no-repeat,
+    url('/themes/cottage/pixels.svg#view-star') 4% 45% / 9px no-repeat;
+}
+.cottage-companion--sidebar:hover .cottage-sidebar-scene::after {
+  animation: cottage-room-twinkle 1.8s steps(5, end);
+}
+.cottage-dressing-mirror {
+  position: relative;
+}
+.cottage-dressing-mirror .cottage-avatar {
+  width: 116px;
+  height: 165px;
+}
+.cottage-outfits .cottage-avatar {
+  width: 63px;
+  height: 88px;
+}
+.cottage-machine-button {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  border: 0;
+  padding: 0;
+  width: 74px;
+  height: 92px;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.cottage-machine-button > span {
+  display: block;
+  position: relative;
+}
+.cottage-machine-button .cottage-furniture {
+  width: 74px;
+  height: 90px;
+}
+.cottage-machine-is-lit > .cottage-furniture {
+  animation: cottage-machine-glow 1.4s steps(5, end);
+}
+.cottage-sparkles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.cottage-sparkles i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 15px;
+  height: 15px;
+  background: url('/themes/cottage/pixels.svg#view-star') center / contain no-repeat;
+  animation: cottage-dress-spark 900ms steps(7, end) both;
+  --spark-x: -36px;
+  --spark-y: -52px;
+}
+.cottage-sparkles i:nth-child(2) {
+  --spark-x: 34px;
+  --spark-y: -62px;
+  animation-delay: 60ms;
+}
+.cottage-sparkles i:nth-child(3) {
+  --spark-x: 45px;
+  --spark-y: -12px;
+  animation-delay: 100ms;
+}
+.cottage-sparkles i:nth-child(4) {
+  --spark-x: -39px;
+  --spark-y: 19px;
+  animation-delay: 140ms;
+}
+.cottage-sparkles i:nth-child(5) {
+  --spark-x: 24px;
+  --spark-y: 49px;
+  animation-delay: 180ms;
+}
+.cottage-sparkles i:nth-child(6) {
+  --spark-x: -19px;
+  --spark-y: -75px;
+  animation-delay: 220ms;
+}
+/* Furnish the existing labels; no extra banner, row or task-list height. */
+html[data-theme='cottage'] .schedule-panel > header h2::before {
+  background-image: url('/themes/cottage/furniture.svg#view-desk');
+}
+html[data-theme='cottage'] .waiting-panel > header h2::before {
+  background-image: url('/themes/cottage/furniture.svg#view-sofa');
+}
+html[data-theme='cottage'] .daily-panel > header h2::before {
+  background-image: url('/themes/cottage/furniture.svg#view-swing');
+}
+html[data-theme='cottage'] .insight-chart h2::before {
+  background-image: url('/themes/cottage/furniture.svg#view-tv');
+}
+html[data-theme='cottage']
+  :is(.manager-section-heading h2, .period-status-label, .period-history h2)::before {
+  content: '';
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  vertical-align: -4px;
+  margin-right: 8px;
+  background: url('/themes/cottage/furniture.svg#view-claw') center / contain no-repeat;
+}
+html[data-theme='cottage'] :is(.period-status-label, .period-history h2)::before {
+  background-image: url('/themes/cottage/furniture.svg#view-bear');
+}
+html[data-theme='cottage'] .planning-month-heading {
+  background-image: url('/themes/cottage/furniture.svg#view-swing');
+}
+html[data-theme='cottage'] .planning-empty {
+  background-image: url('/themes/cottage/furniture.svg#view-sofa');
+}
+html[data-theme='cottage'] .empty-state {
+  background-image: url('/themes/cottage/furniture.svg#view-bear');
+}
+/* Small room objects sit beside headings in otherwise unused desktop space. */
+html[data-theme='cottage']
+  :is(.tl-header h1, .project-page-heading h1, .settings-title) {
+  position: relative;
+  width: fit-content;
+}
+html[data-theme='cottage']
+  :is(.tl-header h1, .project-page-heading h1, .settings-title)::after {
+  content: '';
+  position: absolute;
+  left: calc(100% + 12px);
+  bottom: -1px;
+  width: 42px;
+  height: 42px;
+  pointer-events: none;
+  background: url('/themes/cottage/furniture.svg#view-lemonade') center / contain
+    no-repeat;
+  animation: cottage-furniture-arrive 500ms steps(5, end) both;
+}
+html[data-theme='cottage'] .project-page-heading h1::after {
+  background-image: url('/themes/cottage/furniture.svg#view-claw');
+}
+html[data-theme='cottage'] .settings-title::after {
+  background-image: url('/themes/cottage/furniture.svg#view-desk');
+}
+html[data-theme='cottage'] [data-workspace-view='insights'] .tl-header h1::after {
+  background-image: url('/themes/cottage/furniture.svg#view-tv');
+}
+html[data-theme='cottage'] [data-workspace-view='rhythm'] .tl-header h1::after {
+  background-image: url('/themes/cottage/furniture.svg#view-bear');
+}
+/* A compact star constellation rewards a check; pseudo-elements never intercept the checkbox. */
+html[data-theme='cottage'] .tl-checkbox input:checked + span::before {
+  inset: -13px;
+  background:
+    url('/themes/cottage/pixels.svg#view-star') 10% 0 / 13px no-repeat,
+    url('/themes/cottage/pixels.svg#view-star') 95% 28% / 11px no-repeat,
+    url('/themes/cottage/pixels.svg#view-star') 40% 95% / 9px no-repeat;
+  animation-duration: 650ms;
+}
+html[data-theme='cottage'] .planning-date[aria-pressed='true'] {
+  animation: cottage-calendar-glint 550ms ease-out;
+}
+@keyframes cottage-furniture-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes cottage-room-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  25%,
+  70% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+@keyframes cottage-machine-glow {
+  0%,
+  100% {
+    filter: none;
+  }
+  25%,
+  65% {
+    filter: brightness(1.12) drop-shadow(0 0 5px #e6aed4);
+  }
+}
+@keyframes cottage-dress-spark {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate(var(--spark-x), var(--spark-y)) scale(0.7);
+  }
+}
+@keyframes cottage-calendar-glint {
+  from {
+    background-color: var(--pixel-highlight);
+  }
+}
+@media (max-width: 760px) {
+  html[data-theme='cottage']
+    :is(.tl-header h1, .project-page-heading h1, .settings-title)::after {
+    width: 30px;
+    height: 30px;
+    left: calc(100% + 8px);
+  }
+  html[data-theme='cottage'] .planning-month-heading {
+    background-image: none;
+  }
+  .cottage-machine-button {
+    width: 55px;
+  }
+  .cottage-machine-button .cottage-furniture {
+    width: 55px;
+  }
+  .cottage-pet-button {
+    right: 0;
+    width: 52px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cottage-sparkles,
+  .cottage-sidebar-scene::after {
+    display: none;
+  }
+  html[data-theme='cottage'] :is(.cottage-furniture, .planning-date),
+  html[data-theme='cottage']
+    :is(.tl-header h1, .project-page-heading h1, .settings-title)::after {
+    animation: none !important;
+  }
+}

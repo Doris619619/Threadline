@@ -2,7 +2,17 @@
 
 # 皮卡小屋资源
 
-第二版把完整房间从任务首页移除，仅保留为外观预览和登录插画。全应用像素风由 `pixels.svg` 九种原创家具／饰物（小屋、挂历、书柜、望远镜、唱片机、梳妆镜、花盆、白猫、星星）、`cottage-sprite.tsx` 三套分层像素角色，以及 CSS 窗框、窗帘与控件状态构成；这些资源由代码原生绘制，不是对游戏截图的裁切。角色参考用户日常穿搭的发色、头饰与衣服轮廓。
+第二版把完整房间从任务首页移除，仅保留为外观预览和登录插画。第三版保留原布局和配色，把简化 SVG 人物替换成按用户新穿搭图生成的细致像素角色，并新增七种个人家具。
+
+`pixels.svg` 九种基础图形与 `furniture.svg` 七种个人家具均由原生 SVG 绘制，不是对游戏截图的裁切。后者包含黄心／绿星抱枕粉沙发、樱花秋千、抓娃娃机、星星电视柜、柠檬饮料、电脑桌和小熊；用户房间截图只用作外观参考。
+
+`avatar-blue.webp`、`avatar-pink.webp`、`avatar-casual.webp`：内置 imagegen 以用户三套穿搭图为参考生成，最终采用 atlas `exec-7a125814-0d08-4b24-8ef2-642a593fbf9f`。每张 256 × 355、真实 RGBA、无损 WebP；三张合计约 218 KiB。运行时只依赖本目录文件。
+
+人物生成提示词（内置工具，非 CLI）：
+
+> Use case: stylized-concept. Create a production-ready pixel-art CHARACTER SPRITE ATLAS for a personal cozy productivity app. Reference image is the user's own Pikatang game outfits; faithfully reproduce the three illustrated doll characters with their distinctive face, hairstyle, outfit and proportions. Exactly three full-body characters arranged horizontally in three equal-width cells on a TRUE TRANSPARENT ALPHA background. Each figure same scale, centered within its cell, feet on the same baseline, generous transparent margins; no figures touch another cell. LEFT cell: the rightmost active character from reference: enormous flowing silver-lavender twin tails to calves, dark silver-rimmed sunglasses atop head, violet-blue eyes, pale blue mouth pacifier/accessory, hands clasped at chest, ice-blue sleeveless layered frilly short dress, blue ankle ribbons/shoes. CENTER cell: reference left character: lavender-pink long wavy hair, black baseball cap with pink square, pink oversized jacket, pastel lavender-blue top and shorts, pastel tall socks and sneakers, slightly crossed legs. RIGHT cell: reference middle character: pink-blonde curled long hair, sunglasses atop head, white rainbow-print T-shirt, denim shorts, pink shoulder bag, pastel sneakers. STYLE: faithfully imitate the fine detailed 2D pixel dolls in the reference, crisp stepped single-pixel dark plum outlines, clusters of lavender shading, delicate skin tones, vivid eyes, 1990s/2000s isometric social dress-up game sprite quality. Slender chibi dolls about 3 heads tall, NOT blocky voxel or Minecraft, NOT smooth vector. Composition landscape atlas with uniform transparent cells and equal-height figures, characters occupy ~85 percent canvas height. No oval mirrors, no gold frames, no furniture, no UI, no labels, no words, no ground shadows, no checkerboard drawn into image. Genuine alpha transparency is essential because these figures sit over both dark and cream backgrounds.
+
+生成及后续透明编辑均返回 RGB 棋盘底；最终由 `scripts/export-cottage-avatars.mjs <atlas-path>` 做素材导出：去除中灰底色、分离三格、统一透明画布和基线、最近邻缩小、移除孤立底色杂点。深浅底实图检查保留衣服高光和深色轮廓，最终文件验证 alpha 范围 0–255。用户原图和中间生成图未进入仓库。
 
 `personal-room.webp`：内置 imagegen 生成的个人家园插画，经 Sharp 转换 WebP（quality 92，保留原尺寸 1536 × 1024）。最终 PNG 原图生成标识为 `exec-b555abbd-5d73-4bd5-95ae-0fa536b92b8d`。运行时只依赖本目录 WebP。
 

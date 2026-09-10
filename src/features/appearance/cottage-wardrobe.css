@@ -106,29 +106,8 @@
   border: 0;
 }
 .cottage-avatar {
-  --avatar-hair: #c8bff4;
-  --avatar-hair-shadow: #a397cc;
-  --avatar-hair-light: #ece9ff;
-  --avatar-skin: #ffe0c8;
-  --avatar-clothes: #ace0f2;
-  --avatar-white: #fffcf4;
-  --avatar-eye: #615477;
-  --avatar-blush: #edb3ce;
-  --avatar-denim: #a5cde7;
   display: block;
   overflow: visible;
-}
-.cottage-avatar[data-outfit='pink'] {
-  --avatar-hair: #efbddc;
-  --avatar-hair-shadow: #c58cac;
-  --avatar-hair-light: #ffe3f5;
-  --avatar-clothes: #d3c7f0;
-}
-.cottage-avatar[data-outfit='casual'] {
-  --avatar-hair: #f8df9f;
-  --avatar-hair-shadow: #d4b77d;
-  --avatar-hair-light: #fff1c4;
-  --avatar-clothes: #f2bad6;
 }
 .cottage-wardrobe {
   width: min(430px, calc(100vw - 32px));

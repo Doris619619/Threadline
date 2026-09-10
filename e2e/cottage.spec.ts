@@ -160,3 +160,35 @@ test('pixel palette is readable across planning projects insights rhythm and set
   await page.getByRole('button', { name: /默认蓝色/ }).click();
   await expect(page.locator('.cottage-companion')).toHaveCount(0);
 });
+
+test('personal sprites load and decorative effects are finite and respect reduced motion', async ({
+  page,
+}) => {
+  await bootstrapLocalAdapterWorkspace(page, 'cottage-effects');
+  await chooseTheme(page, '皮卡小屋');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await openWorkspaceSection(page, '项目');
+  await expect(page.locator('.cottage-sidebar-furniture')).toHaveAttribute(
+    'data-furniture',
+    'claw',
+  );
+  const dialog = await openWardrobe(page);
+  for (const avatar of await dialog.locator('.cottage-avatar img').all()) {
+    await expect(avatar).toHaveJSProperty('naturalWidth', 256);
+  }
+  await dialog.getByRole('button', { name: '粉色外套', exact: true }).click();
+  const sparks = dialog.locator('.cottage-dressing-mirror .cottage-sparkles');
+  await expect(sparks).toBeVisible();
+  await expect(sparks).toHaveCSS('pointer-events', 'none');
+  await expect(sparks.locator('i').first()).toHaveCSS('animation-iteration-count', '1');
+  await expect(sparks.locator('i').first()).toHaveCSS('animation-duration', '0.9s');
+  await dialog.getByRole('button', { name: '点亮抓娃娃机' }).click();
+  const machine = dialog.locator('.cottage-machine-is-lit > .cottage-furniture');
+  await expect(machine).toHaveCSS('animation-iteration-count', '1');
+  await expect(machine).toHaveCSS('animation-duration', '1.4s');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(sparks).not.toBeVisible();
+  await expect(machine).toHaveCSS('animation-name', 'none');
+  await dialog.getByRole('button', { name: '关闭装扮' }).click();
+  await expect(dialog).toHaveCount(0);
+});

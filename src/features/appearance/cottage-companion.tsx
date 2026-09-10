@@ -5,8 +5,21 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAppearance } from './appearance-store';
 import { CottageAvatar, CottageSprite, type CottageOutfit } from './cottage-sprite';
+import {
+  CottageFurniture,
+  CottageSparkles,
+  type CottageFurnitureName,
+} from './cottage-furniture';
 
 const outfitKey = 'threadline.cottage.avatar.v1';
+const furnishings: Record<string, CottageFurnitureName> = {
+  home: 'sofa',
+  calendar: 'swing',
+  projects: 'claw',
+  insights: 'tv',
+  rhythm: 'bear',
+  settings: 'desk',
+};
 const outfits = [
   { id: 'blue', label: '冰蓝裙装' },
   { id: 'pink', label: '粉色外套' },
@@ -19,19 +32,28 @@ export function parseCottageOutfit(value: string | null): CottageOutfit {
 }
 
 /** Share one wardrobe state across desktop/mobile entries while mounting nothing in other themes. */
-export function CottageCompanion({ compact = false }: { compact?: boolean }) {
+export function CottageCompanion({
+  compact = false,
+  view = 'home',
+}: {
+  compact?: boolean;
+  view?: string;
+}) {
   const { theme } = useAppearance();
-  return theme === 'cottage' ? <Companion compact={compact} /> : null;
+  return theme === 'cottage' ? <Companion compact={compact} view={view} /> : null;
 }
 
 /** Restore local dress on mount, synchronize tabs and clean up the one finite pet response timer. */
-function Companion({ compact }: { compact: boolean }) {
+function Companion({ compact, view }: { compact: boolean; view: string }) {
   const [outfit, setOutfit] = useState<CottageOutfit>('blue');
   const [open, setOpen] = useState(false);
   const [ready, setReady] = useState(false);
   const [notice, setNotice] = useState('');
   const [pet, setPet] = useState(0);
   const [happy, setHappy] = useState(false);
+  const [dressEffect, setDressEffect] = useState(0);
+  const [machineEffect, setMachineEffect] = useState(0);
+  const furniture = furnishings[view] ?? 'sofa';
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const trigger = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -59,6 +81,7 @@ function Companion({ compact }: { compact: boolean }) {
   /** Persist synchronously, so closing the dialog or immediately refreshing retains the choice. */
   const choose = (next: CottageOutfit) => {
     setOutfit(next);
+    setDressEffect((value) => value + 1);
     try {
       localStorage.setItem(outfitKey, next);
       window.dispatchEvent(new Event('cottage-outfit-changed'));
@@ -87,6 +110,11 @@ function Companion({ compact }: { compact: boolean }) {
             <i />
             <i />
           </span>
+          <CottageFurniture
+            key={view}
+            name={furniture}
+            className="cottage-sidebar-furniture"
+          />
           <CottageSprite name="flower" className="cottage-sill-flowers" />
           <CottageAvatar outfit={outfit} />
           <CottageSprite name="cat" className="cottage-sill-cat" />
@@ -106,9 +134,24 @@ function Companion({ compact }: { compact: boolean }) {
       {open && (
         <WardrobeDialog onClose={() => setOpen(false)} returnFocus={trigger}>
           <div className="cottage-dressing-stage">
-            <span className="cottage-dressing-mirror">
+            <span className="cottage-dressing-mirror" key={dressEffect}>
               <CottageAvatar outfit={outfit} />
+              {dressEffect > 0 && <CottageSparkles />}
             </span>
+            <button
+              className="cottage-machine-button"
+              type="button"
+              aria-label="点亮抓娃娃机"
+              onClick={() => setMachineEffect((value) => value + 1)}
+            >
+              <span
+                key={machineEffect}
+                className={machineEffect ? 'cottage-machine-is-lit' : undefined}
+              >
+                <CottageFurniture name="claw" />
+                {machineEffect > 0 && <CottageSparkles />}
+              </span>
+            </button>
             <button
               className="cottage-pet-button"
               onClick={petCat}
@@ -117,7 +160,11 @@ function Companion({ compact }: { compact: boolean }) {
               aria-label="摸摸小猫"
             >
               <CottageSprite name="cat" />
-              {happy && <CottageSprite name="star" className="cottage-pet-star" />}
+              {happy && (
+                <span key={pet}>
+                  <CottageSparkles />
+                </span>
+              )}
             </button>
           </div>
           <p className="cottage-pet-response" role="status">
