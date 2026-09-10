@@ -9,7 +9,7 @@ module.exports = {
   publish: {
     provider: 'github',
     owner: 'Doris619619',
-    repo: 'Threadline-releases',
+    repo: 'Threadline',
     releaseType: 'draft',
   },
   directories: {

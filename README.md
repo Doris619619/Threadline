@@ -82,7 +82,7 @@ Web/PWA 使用请求期 nonce CSP，Electron 静态导出继续从实际 HTML �
 
 Windows 普通用户优先使用构建生成的 NSIS 安装器：
 
-从 0.1.1 起，安装版支持「设置 → 关于 Threadline」检查、下载和重启更新；启动后也会自动检查，但不会自动下载或在普通退出时安装。旧版需手动安装一次带此功能的新版本。安装包公开分发、源码保持私有；发布配置与验证边界见 [Windows 自动更新](docs/desktop-auto-update.md)。
+从 0.1.1 起，安装版支持「设置 → 关于 Threadline」检查、下载和重启更新；启动后也会自动检查，但不会自动下载或在普通退出时安装。旧版需手动安装一次带此功能的新版本。从 0.1.2 起，源码、安装包和更新文件统一放在公开的 `Doris619619/Threadline` 仓库，旧 0.1.1 需手动安装一次 0.1.2 以切换更新源；发布配置与验证边界见 [Windows 自动更新](docs/desktop-auto-update.md)。
 
 ```text
 release/Threadline_<version>_x64-setup.exe
