@@ -178,3 +178,5 @@ docs/                    PRD、目标、工程协作规范、桌面交互与 PR 
 PowerShell 设置 `$env:THREADLINE_DESKTOP_THEME='anya'` 后运行 `pnpm desktop:preview` 或 `pnpm desktop:build`，即可生成配套粉色 EXE/安装图标并为新设备默认选用粉色主题。已有主题和字体偏好优先。使用 `Remove-Item Env:THREADLINE_DESKTOP_THEME` 恢复默认蓝色构建。预览启动入口为 `release/preview/win-unpacked/Threadline.exe`，使用时保留整个目录。
 
 设置 → 外观可用按钮切换浅色、深色或跟随系统，明暗模式与蓝色 / 安妮雅 / 皮卡小屋 / 皮卡经典配色独立保存。
+
+0.1.3 的像素主题与 Windows 升级方式见 [版本说明](docs/release-0.1.3.md)。
