@@ -15,15 +15,17 @@
   display: block;
   flex-shrink: 0;
 }
-html[data-theme='cottage'] .cottage-nav-icon > .cottage-sprite {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .cottage-nav-icon
+  > .cottage-sprite {
   display: block;
   width: 26px;
   height: 26px;
 }
-html[data-theme='cottage'] .cottage-standard-icon {
+html:is([data-theme='cottage'], [data-theme='classic']) .cottage-standard-icon {
   display: none;
 }
-html[data-theme='cottage'] .tl-sidebar {
+html:is([data-theme='cottage'], [data-theme='classic']) .tl-sidebar {
   background-color: var(--surface-secondary);
   background-image: repeating-linear-gradient(
     90deg,
@@ -32,24 +34,27 @@ html[data-theme='cottage'] .tl-sidebar {
   );
   border-right-color: var(--border);
 }
-html[data-theme='cottage'] .tl-sidebar-item {
+html:is([data-theme='cottage'], [data-theme='classic']) .tl-sidebar-item {
   border-radius: 3px;
 }
-html[data-theme='cottage'] .tl-sidebar-item.is-active {
+html:is([data-theme='cottage'], [data-theme='classic']) .tl-sidebar-item.is-active {
   background: var(--surface);
   box-shadow:
     inset 0 0 0 1px var(--pixel-frame),
     inset 0 0 0 3px var(--pixel-highlight),
     0 2px 0 var(--border);
 }
-html[data-theme='cottage'] .tl-sidebar-item.is-active::before {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .tl-sidebar-item.is-active::before {
   display: none;
 }
-html[data-theme='cottage'] .tl-sidebar-item:hover .cottage-sprite {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .tl-sidebar-item:hover
+  .cottage-sprite {
   transform: translateY(-1px);
 }
 /* Inset seams fit inside existing panels; there is no new header row or room banner. */
-html[data-theme='cottage']
+html:is([data-theme='cottage'], [data-theme='classic'])
   :is(
     .schedule-panel,
     .waiting-panel,
@@ -67,12 +72,13 @@ html[data-theme='cottage']
     inset 0 3px 0 var(--pixel-highlight),
     0 2px 0 var(--border-subtle);
 }
-html[data-theme='cottage'] :is(.schedule-panel, .waiting-panel, .daily-panel) {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  :is(.schedule-panel, .waiting-panel, .daily-panel) {
   background-image: linear-gradient(90deg, var(--pixel-wood), var(--surface-secondary));
   background-size: 100% 4px;
   background-repeat: no-repeat;
 }
-html[data-theme='cottage']
+html:is([data-theme='cottage'], [data-theme='classic'])
   :is(.schedule-panel, .waiting-panel, .daily-panel)
   > header
   h2::before {
@@ -84,21 +90,27 @@ html[data-theme='cottage']
   vertical-align: -4px;
   background: url('/themes/cottage/pixels.svg#view-calendar') center / contain no-repeat;
 }
-html[data-theme='cottage'] .waiting-panel > header h2::before {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .waiting-panel
+  > header
+  h2::before {
   background-image: url('/themes/cottage/pixels.svg#view-projects');
 }
-html[data-theme='cottage'] .daily-panel > header h2::before {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .daily-panel
+  > header
+  h2::before {
   background-image: url('/themes/cottage/pixels.svg#view-flower');
 }
-html[data-theme='cottage'] .timeline-head {
+html:is([data-theme='cottage'], [data-theme='classic']) .timeline-head {
   border-radius: 2px;
   box-shadow: inset 0 -1px 0 var(--border);
 }
-html[data-theme='cottage'] .daily-children {
+html:is([data-theme='cottage'], [data-theme='classic']) .daily-children {
   border-radius: 3px;
   box-shadow: inset 2px 0 0 var(--pixel-wood);
 }
-html[data-theme='cottage']
+html:is([data-theme='cottage'], [data-theme='classic'])
   :is(
     .insight-chart,
     .insight-primary,
@@ -113,7 +125,7 @@ html[data-theme='cottage']
     inset 0 2px 0 var(--pixel-highlight),
     0 2px 0 var(--border-subtle);
 }
-html[data-theme='cottage'] .insight-chart h2::before {
+html:is([data-theme='cottage'], [data-theme='classic']) .insight-chart h2::before {
   content: '';
   display: inline-block;
   width: 22px;
@@ -122,14 +134,14 @@ html[data-theme='cottage'] .insight-chart h2::before {
   vertical-align: -4px;
   background: url('/themes/cottage/pixels.svg#view-insights') center / contain no-repeat;
 }
-html[data-theme='cottage'] .settings-icon {
+html:is([data-theme='cottage'], [data-theme='classic']) .settings-icon {
   border-radius: 2px;
   background: var(--surface-secondary);
   box-shadow:
     inset 0 0 0 1px var(--border),
     inset 2px 2px 0 var(--pixel-highlight);
 }
-html[data-theme='cottage'] .tl-checkbox span {
+html:is([data-theme='cottage'], [data-theme='classic']) .tl-checkbox span {
   pointer-events: none;
   border-radius: 2px;
   border-color: var(--pixel-frame);
@@ -137,15 +149,21 @@ html[data-theme='cottage'] .tl-checkbox span {
     inset 1px 1px 0 var(--border-subtle),
     inset -1px -1px 0 var(--pixel-highlight);
 }
-html[data-theme='cottage'] .tl-checkbox span > svg {
+html:is([data-theme='cottage'], [data-theme='classic']) .tl-checkbox span > svg {
   display: none;
 }
-html[data-theme='cottage'] .tl-checkbox input:checked + span {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .tl-checkbox
+  input:checked
+  + span {
   border-color: var(--accent);
   box-shadow: inset 1px 1px 0
     color-mix(in srgb, var(--accent) 50%, var(--pixel-highlight));
 }
-html[data-theme='cottage'] .tl-checkbox input:checked + span::after {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .tl-checkbox
+  input:checked
+  + span::after {
   content: '';
   width: 12px;
   height: 10px;
@@ -173,11 +191,17 @@ html[data-theme='cottage'] .tl-checkbox input:checked + span::after {
     0 80%
   );
 }
-html[data-theme='cottage'] .tl-checkbox input:focus-visible + span {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .tl-checkbox
+  input:focus-visible
+  + span {
   outline: 2px solid var(--accent-text);
   outline-offset: 3px;
 }
-html[data-theme='cottage'] .tl-checkbox input:checked + span::before {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .tl-checkbox
+  input:checked
+  + span::before {
   content: '';
   position: absolute;
   pointer-events: none;
@@ -185,11 +209,11 @@ html[data-theme='cottage'] .tl-checkbox input:checked + span::before {
   background: url('/themes/cottage/pixels.svg#view-star') center / contain no-repeat;
   animation: cottage-check-spark 420ms steps(4, end) both;
 }
-html[data-theme='cottage']
+html:is([data-theme='cottage'], [data-theme='classic'])
   :is(.tl-button, .planning-add, .finish-day, .project-create-trigger) {
   border-radius: 3px;
 }
-html[data-theme='cottage']
+html:is([data-theme='cottage'], [data-theme='classic'])
   :is(.tl-button--primary, .planning-panel .planning-add, .finish-day) {
   color: var(--pixel-on-jade);
   background: var(--pixel-jade);
@@ -198,53 +222,57 @@ html[data-theme='cottage']
     inset 0 2px 0 color-mix(in srgb, var(--pixel-jade) 75%, white),
     0 2px 0 var(--border);
 }
-html[data-theme='cottage']
+html:is([data-theme='cottage'], [data-theme='classic'])
   :is(.tl-button--primary, .planning-panel .planning-add, .finish-day):hover:not(
     :disabled
   ) {
   filter: brightness(1.08);
 }
-html[data-theme='cottage']
+html:is([data-theme='cottage'], [data-theme='classic'])
   :is(.tl-button, .planning-add, .finish-day):active:not(:disabled) {
   box-shadow: inset 0 2px 0 var(--border-strong);
   transform: translateY(1px);
 }
-html[data-theme='cottage'] :is(.tl-input, .task-dialog input, .task-dialog select) {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  :is(.tl-input, .task-dialog input, .task-dialog select) {
   border-radius: 3px;
   box-shadow: inset 1px 1px 0 var(--border-subtle);
 }
-html[data-theme='cottage'] .planning-panel .planning-date {
+html:is([data-theme='cottage'], [data-theme='classic']) .planning-panel .planning-date {
   border-radius: 3px;
 }
-html[data-theme='cottage'] .planning-date[aria-pressed='true'] {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .planning-date[aria-pressed='true'] {
   box-shadow:
     inset 0 0 0 1px var(--pixel-frame),
     inset 0 0 0 3px var(--pixel-highlight);
 }
-html[data-theme='cottage'] .planning-date-number {
+html:is([data-theme='cottage'], [data-theme='classic']) .planning-date-number {
   border-radius: 3px;
 }
-html[data-theme='cottage'] .finish-day span {
+html:is([data-theme='cottage'], [data-theme='classic']) .finish-day span {
   color: inherit;
 }
-html[data-theme='cottage'] .planning-date[aria-current='date'] .planning-date-number {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .planning-date[aria-current='date']
+  .planning-date-number {
   box-shadow: 2px 2px 0 var(--border);
 }
-html[data-theme='cottage'] .planning-month-heading {
+html:is([data-theme='cottage'], [data-theme='classic']) .planning-month-heading {
   background: url('/themes/cottage/pixels.svg#view-calendar') right 120px center / 40px
     40px no-repeat;
 }
-html[data-theme='cottage'] .project-dot {
+html:is([data-theme='cottage'], [data-theme='classic']) .project-dot {
   border-radius: 2px;
   box-shadow:
     inset 0 0 0 1px var(--border-strong),
     inset 2px 2px 0 rgb(255 255 255 / 45%),
     1px 1px 0 var(--border);
 }
-html[data-theme='cottage'] .manager-row:hover {
+html:is([data-theme='cottage'], [data-theme='classic']) .manager-row:hover {
   background-image: linear-gradient(90deg, var(--surface-secondary), transparent);
 }
-html[data-theme='cottage']
+html:is([data-theme='cottage'], [data-theme='classic'])
   :is(
     .manager-dialog,
     .task-dialog,
@@ -258,10 +286,12 @@ html[data-theme='cottage']
     inset 0 0 0 3px var(--pixel-highlight),
     0 12px 40px rgb(37 26 41 / 20%);
 }
-html[data-theme='cottage'] :is(.manager-dialog, .task-dialog, .close-dialog) > header {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  :is(.manager-dialog, .task-dialog, .close-dialog)
+  > header {
   background-image: linear-gradient(var(--surface-secondary), var(--surface));
 }
-html[data-theme='cottage']
+html:is([data-theme='cottage'], [data-theme='classic'])
   :is(.manager-dialog, .task-dialog, .close-dialog)
   h2::before {
   content: '';
@@ -272,7 +302,8 @@ html[data-theme='cottage']
   height: 24px;
   background: url('/themes/cottage/pixels.svg#view-star') center / contain no-repeat;
 }
-html[data-theme='cottage'] :is(.planning-empty, .empty-state) {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  :is(.planning-empty, .empty-state) {
   background-image: url('/themes/cottage/pixels.svg#view-cat');
   background-position: right 12px bottom 8px;
   background-size: 36px 36px;
@@ -301,21 +332,24 @@ html[data-theme='cottage'] :is(.planning-empty, .empty-state) {
   }
 }
 @media (max-width: 760px) {
-  html[data-theme='cottage'] .tl-sidebar {
+  html:is([data-theme='cottage'], [data-theme='classic']) .tl-sidebar {
     background-image: none;
   }
-  html[data-theme='cottage'] .tl-sidebar-item.is-active {
+  html:is([data-theme='cottage'], [data-theme='classic']) .tl-sidebar-item.is-active {
     box-shadow: inset 0 0 0 1px var(--border);
   }
-  html[data-theme='cottage'] .planning-month-heading {
+  html:is([data-theme='cottage'], [data-theme='classic']) .planning-month-heading {
     background-image: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  html[data-theme='cottage'] .tl-checkbox input:checked + span::before {
+  html:is([data-theme='cottage'], [data-theme='classic'])
+    .tl-checkbox
+    input:checked
+    + span::before {
     display: none;
   }
-  html[data-theme='cottage']
+  html:is([data-theme='cottage'], [data-theme='classic'])
     :is(
       .cottage-avatar,
       .cottage-sprite,

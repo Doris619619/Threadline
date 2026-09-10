@@ -1,12 +1,13 @@
-/** @fileoverview Render the original SVG cottage icon into bundled PNG and Windows ICO assets. */
+/** @fileoverview Render a validated cottage/classic SVG icon into bundled PNG and Windows ICO assets. */
 import sharp from 'sharp';
 import { writeFile } from 'node:fs/promises';
 
-const source = 'public/themes/cottage/icon.svg';
+const theme = process.argv[2] === 'classic' ? 'classic' : 'cottage';
+const source = 'public/themes/' + theme + '/icon.svg';
 await sharp(source)
   .resize(512, 512, { kernel: 'nearest' })
   .png()
-  .toFile('public/themes/cottage/icon.png');
+  .toFile('public/themes/' + theme + '/icon.png');
 const sizes = [16, 24, 32, 48, 64, 128, 256];
 const images = await Promise.all(
   sizes.map((size) =>
@@ -27,4 +28,7 @@ for (const [index, image] of images.entries()) {
   header.writeUInt32LE(offset, entry + 12);
   offset += image.length;
 }
-await writeFile('electron/assets/icon-cottage.ico', Buffer.concat([header, ...images]));
+await writeFile(
+  'electron/assets/icon-' + theme + '.ico',
+  Buffer.concat([header, ...images]),
+);

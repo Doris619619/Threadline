@@ -1,5 +1,5 @@
 /** @fileoverview Warm neutral cottage palette and local branding; workspace geometry remains unchanged. */
-html[data-theme='cottage'] {
+html:is([data-theme='cottage'], [data-theme='classic']) {
   color-scheme: light;
   --background: #faf7f2;
   --surface: #fffdf7;
@@ -48,7 +48,7 @@ html[data-theme='cottage'] {
   --pixel-sky: #e4f2f0;
   --cottage-paper: #edf5f5;
 }
-html[data-theme='cottage'][data-color-scheme='dark'] {
+html:is([data-theme='cottage'], [data-theme='classic'])[data-color-scheme='dark'] {
   color-scheme: dark;
   --background: #262431;
   --surface: #302d3b;
@@ -94,33 +94,33 @@ html[data-theme='cottage'][data-color-scheme='dark'] {
 .brand-icon-cottage {
   display: none;
 }
-html[data-theme='cottage'] .brand-icon-blue {
+html:is([data-theme='cottage'], [data-theme='classic']) .brand-icon-blue {
   display: none;
 }
-html[data-theme='cottage'] .brand-icon-cottage {
+html:is([data-theme='cottage'], [data-theme='classic']) .brand-icon-cottage {
   display: block;
 }
-html[data-theme='cottage'] .tl-brand-mark {
+html:is([data-theme='cottage'], [data-theme='classic']) .tl-brand-mark {
   border-radius: 3px;
   background: url('/themes/cottage/icon.svg') center / contain no-repeat;
 }
-html[data-theme='cottage'] .tl-brand-mark > svg {
+html:is([data-theme='cottage'], [data-theme='classic']) .tl-brand-mark > svg {
   visibility: hidden;
 }
-html[data-theme='cottage'] .auth-illustration-wrap {
+html:is([data-theme='cottage'], [data-theme='classic']) .auth-illustration-wrap {
   position: relative;
   background: var(--cottage-paper);
 }
-html[data-theme='cottage'] .auth-illustration-img {
+html:is([data-theme='cottage'], [data-theme='classic']) .auth-illustration-img {
   visibility: hidden;
 }
-html[data-theme='cottage'] .auth-illustration-wrap::after {
+html:is([data-theme='cottage'], [data-theme='classic']) .auth-illustration-wrap::after {
   content: '';
   position: absolute;
   inset: 4%;
   background: url('/themes/cottage/personal-room.webp') center / contain no-repeat;
 }
-html[data-theme='cottage'] .auth-bg-illustration-wrap {
+html:is([data-theme='cottage'], [data-theme='classic']) .auth-bg-illustration-wrap {
   display: none;
 }
 .cottage-scene {

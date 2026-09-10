@@ -1,0 +1,6 @@
+<!-- Low-luminance night gold pixel bracket for selected game-window title tabs. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="12" height="48" viewBox="0 0 12 48" preserveAspectRatio="none" shape-rendering="crispEdges">
+  <path fill="#574832" d="M5 0h7v5H9v15H6v8h3v15h3v5H5v-4H3V29H0V19h3V4h2z"/>
+  <path fill="#ac8b46" d="M6 1h5v3H7v18H3v4h4v18h4v3H6v-4H5V28H2v-8h3V5h1z"/>
+  <path fill="#d4bd82" d="M7 2h3v1H6v19H3v3h1v-2h3V5h1zM6 28h1v15h3v2H6z"/>
+</svg>

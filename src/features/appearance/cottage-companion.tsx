@@ -40,7 +40,9 @@ export function CottageCompanion({
   view?: string;
 }) {
   const { theme } = useAppearance();
-  return theme === 'cottage' ? <Companion compact={compact} view={view} /> : null;
+  return theme === 'cottage' || theme === 'classic' ? (
+    <Companion compact={compact} view={view} />
+  ) : null;
 }
 
 /** Restore local dress on mount, synchronize tabs and clean up the one finite pet response timer. */

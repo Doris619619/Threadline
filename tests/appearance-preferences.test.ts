@@ -20,6 +20,8 @@ describe('device appearance', () => {
     '{"theme":"blue","font":"source-han-sans"}',
     '{"theme":"cottage","font":"default","colorMode":"dark"}',
     '{"theme":"cottage","font":"source-han-serif","colorMode":"light"}',
+    '{"theme":"classic","font":"default","colorMode":"dark"}',
+    '{"theme":"classic","font":"source-han-serif","colorMode":"light"}',
   ])('uses the same validated preference before and after hydration: %s', (raw) => {
     const dataset = {};
     runInNewContext(appearanceBootstrap, {

@@ -78,7 +78,9 @@ export type ThreadlineDesktopBridge =
       ) => Promise<NativeApplyResult>;
       bringToFront: () => Promise<NativeApplyResult>;
       resizeCompactContent: (mode: CompactViewMode, height: number) => Promise<void>;
-      setAppearanceTheme: (theme: 'blue' | 'anya' | 'cottage') => Promise<void>;
+      setAppearanceTheme: (
+        theme: 'blue' | 'anya' | 'cottage' | 'classic',
+      ) => Promise<void>;
       showEntryWindow: () => Promise<void>;
       minimizeMainWindow: () => Promise<void>;
       closeMainWindow: () => Promise<void>;

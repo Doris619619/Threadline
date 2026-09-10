@@ -122,19 +122,28 @@
   animation-delay: 220ms;
 }
 /* Furnish the existing labels; no extra banner, row or task-list height. */
-html[data-theme='cottage'] .schedule-panel > header h2::before {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .schedule-panel
+  > header
+  h2::before {
   background-image: url('/themes/cottage/furniture.svg#view-desk');
 }
-html[data-theme='cottage'] .waiting-panel > header h2::before {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .waiting-panel
+  > header
+  h2::before {
   background-image: url('/themes/cottage/furniture.svg#view-sofa');
 }
-html[data-theme='cottage'] .daily-panel > header h2::before {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .daily-panel
+  > header
+  h2::before {
   background-image: url('/themes/cottage/furniture.svg#view-swing');
 }
-html[data-theme='cottage'] .insight-chart h2::before {
+html:is([data-theme='cottage'], [data-theme='classic']) .insight-chart h2::before {
   background-image: url('/themes/cottage/furniture.svg#view-tv');
 }
-html[data-theme='cottage']
+html:is([data-theme='cottage'], [data-theme='classic'])
   :is(.manager-section-heading h2, .period-status-label, .period-history h2)::before {
   content: '';
   display: inline-block;
@@ -144,25 +153,26 @@ html[data-theme='cottage']
   margin-right: 8px;
   background: url('/themes/cottage/furniture.svg#view-claw') center / contain no-repeat;
 }
-html[data-theme='cottage'] :is(.period-status-label, .period-history h2)::before {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  :is(.period-status-label, .period-history h2)::before {
   background-image: url('/themes/cottage/furniture.svg#view-bear');
 }
-html[data-theme='cottage'] .planning-month-heading {
+html:is([data-theme='cottage'], [data-theme='classic']) .planning-month-heading {
   background-image: url('/themes/cottage/furniture.svg#view-swing');
 }
-html[data-theme='cottage'] .planning-empty {
+html:is([data-theme='cottage'], [data-theme='classic']) .planning-empty {
   background-image: url('/themes/cottage/furniture.svg#view-sofa');
 }
-html[data-theme='cottage'] .empty-state {
+html:is([data-theme='cottage'], [data-theme='classic']) .empty-state {
   background-image: url('/themes/cottage/furniture.svg#view-bear');
 }
 /* Small room objects sit beside headings in otherwise unused desktop space. */
-html[data-theme='cottage']
+html:is([data-theme='cottage'], [data-theme='classic'])
   :is(.tl-header h1, .project-page-heading h1, .settings-title) {
   position: relative;
   width: fit-content;
 }
-html[data-theme='cottage']
+html:is([data-theme='cottage'], [data-theme='classic'])
   :is(.tl-header h1, .project-page-heading h1, .settings-title)::after {
   content: '';
   position: absolute;
@@ -175,20 +185,31 @@ html[data-theme='cottage']
     no-repeat;
   animation: cottage-furniture-arrive 500ms steps(5, end) both;
 }
-html[data-theme='cottage'] .project-page-heading h1::after {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .project-page-heading
+  h1::after {
   background-image: url('/themes/cottage/furniture.svg#view-claw');
 }
-html[data-theme='cottage'] .settings-title::after {
+html:is([data-theme='cottage'], [data-theme='classic']) .settings-title::after {
   background-image: url('/themes/cottage/furniture.svg#view-desk');
 }
-html[data-theme='cottage'] [data-workspace-view='insights'] .tl-header h1::after {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  [data-workspace-view='insights']
+  .tl-header
+  h1::after {
   background-image: url('/themes/cottage/furniture.svg#view-tv');
 }
-html[data-theme='cottage'] [data-workspace-view='rhythm'] .tl-header h1::after {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  [data-workspace-view='rhythm']
+  .tl-header
+  h1::after {
   background-image: url('/themes/cottage/furniture.svg#view-bear');
 }
 /* A compact star constellation rewards a check; pseudo-elements never intercept the checkbox. */
-html[data-theme='cottage'] .tl-checkbox input:checked + span::before {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .tl-checkbox
+  input:checked
+  + span::before {
   inset: -13px;
   background:
     url('/themes/cottage/pixels.svg#view-star') 10% 0 / 13px no-repeat,
@@ -196,7 +217,8 @@ html[data-theme='cottage'] .tl-checkbox input:checked + span::before {
     url('/themes/cottage/pixels.svg#view-star') 40% 95% / 9px no-repeat;
   animation-duration: 650ms;
 }
-html[data-theme='cottage'] .planning-date[aria-pressed='true'] {
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .planning-date[aria-pressed='true'] {
   animation: cottage-calendar-glint 550ms ease-out;
 }
 @keyframes cottage-furniture-arrive {
@@ -251,13 +273,13 @@ html[data-theme='cottage'] .planning-date[aria-pressed='true'] {
   }
 }
 @media (max-width: 760px) {
-  html[data-theme='cottage']
+  html:is([data-theme='cottage'], [data-theme='classic'])
     :is(.tl-header h1, .project-page-heading h1, .settings-title)::after {
     width: 30px;
     height: 30px;
     left: calc(100% + 8px);
   }
-  html[data-theme='cottage'] .planning-month-heading {
+  html:is([data-theme='cottage'], [data-theme='classic']) .planning-month-heading {
     background-image: none;
   }
   .cottage-machine-button {
@@ -276,8 +298,9 @@ html[data-theme='cottage'] .planning-date[aria-pressed='true'] {
   .cottage-sidebar-scene::after {
     display: none;
   }
-  html[data-theme='cottage'] :is(.cottage-furniture, .planning-date),
-  html[data-theme='cottage']
+  html:is([data-theme='cottage'], [data-theme='classic'])
+    :is(.cottage-furniture, .planning-date),
+  html:is([data-theme='cottage'], [data-theme='classic'])
     :is(.tl-header h1, .project-page-heading h1, .settings-title)::after {
     animation: none !important;
   }
