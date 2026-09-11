@@ -1,4 +1,77 @@
-/* 文件用途：更新提示和设置页控件沿用应用主题，在紧凑窗口内保持可操作。 */
+/* 文件用途：标题栏轻量更新入口与按需展开的详情，沿用主题且不改变工作台内容尺寸。 */
+.tl-window.mode-full:has(.desktop-update-trigger) {
+  overflow: clip;
+}
+.tl-window.mode-full:has(.desktop-update-trigger) .full-window-chrome {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+.full-window-entries .desktop-update-trigger,
+.compact-window-header .desktop-update-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 26px;
+  min-height: 0;
+  min-width: 54px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+.full-window-entries .desktop-update-trigger:hover,
+.compact-window-header .desktop-update-trigger:hover {
+  background: var(--accent-soft);
+}
+.compact-window-header > .desktop-update-trigger {
+  margin-left: auto;
+  margin-right: 4px;
+}
+.desktop-update-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.desktop-update-popover {
+  position: fixed;
+  z-index: 100;
+  width: min(280px, calc(100vw - 16px));
+  max-height: calc(100dvh - 56px);
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-popover);
+  -webkit-app-region: no-drag;
+}
+.desktop-update-popover-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.desktop-update-popover-heading button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.desktop-update-popover-heading button:hover {
+  background: var(--surface-secondary);
+}
 .desktop-update-confirmation .manager-dialog-backdrop {
   z-index: 110;
 }

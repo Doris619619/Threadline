@@ -1,5 +1,11 @@
 /** @fileoverview 注册安装版专用更新 IPC、后台检查与用户确认；发布地址由打包配置固定。 */
-import { app, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
+import {
+  app,
+  ipcMain,
+  powerMonitor,
+  type BrowserWindow,
+  type IpcMainInvokeEvent,
+} from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -48,11 +54,25 @@ export function registerDesktopUpdates(
     });
   }
   if (enabled) {
-    const initial = setTimeout(() => void controller.check(), 30_000);
-    const interval = setInterval(() => void controller.check(), 6 * 60 * 60 * 1000);
+    // 首次启动留出加载时间；焦点与恢复事件共用节流，避免频繁切窗重复请求。
+    const readyAt = Date.now() + 30_000;
+    /** 后台检查不清除已有新版；手动请求也计入一小时冷却。 */
+    const checkInBackground = () => {
+      if (Date.now() >= readyAt) void controller.check(60 * 60 * 1000);
+    };
+    /** 只响应主窗口，排除 Edge 等辅助窗口的焦点变化。 */
+    const onFocus = (_event: Electron.Event, window: BrowserWindow) => {
+      if (window === getWindow()) checkInBackground();
+    };
+    const initial = setTimeout(checkInBackground, 30_000);
+    const interval = setInterval(checkInBackground, 6 * 60 * 60 * 1000);
+    app.on('browser-window-focus', onFocus);
+    powerMonitor.on('resume', checkInBackground);
     app.once('before-quit', () => {
       clearTimeout(initial);
       clearInterval(interval);
+      app.removeListener('browser-window-focus', onFocus);
+      powerMonitor.removeListener('resume', checkInBackground);
     });
   }
 }

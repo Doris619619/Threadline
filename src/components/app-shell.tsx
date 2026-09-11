@@ -32,6 +32,7 @@ import { cn } from '@/lib/cn';
 import { ThemeIllustration } from '@/features/appearance/theme-illustration';
 import { CottageNavIcon } from '@/features/appearance/cottage-sprite';
 import { CottageCompanion } from '@/features/appearance/cottage-companion';
+import { DesktopUpdateEntry } from '@/features/desktop-update/update-entry';
 
 /** Open the native date popup for the full visible control; unsupported/restricted browsers keep their native input behavior. */
 function openWorkspaceDatePicker(input: HTMLInputElement): boolean {
@@ -93,7 +94,7 @@ const WorkspaceViewContext = createContext<WorkspaceView>({
 /** 读取完整工作台导航状态与当前工作日期。 */
 export const useWorkspaceView = () => useContext(WorkspaceViewContext);
 
-/** 渲染无边框紧凑窗口的唯一标题栏，并把清空控制限制在工作站模式。 */
+/** 渲染紧凑标题栏与轻量更新入口，并把清空控制限制在工作站模式。 */
 export function CompactWindowHeader({
   onClearWorkstation,
 }: {
@@ -106,6 +107,7 @@ export function CompactWindowHeader({
         <CalendarDays size={12} />
         工作站
       </span>
+      <DesktopUpdateEntry />
       <div className="compact-window-actions">
         <button type="button" onClick={onClearWorkstation}>
           清空
@@ -131,7 +133,7 @@ export function CompactWindowHeader({
   );
 }
 
-/** 渲染 Full 无边框窗口的连续拖拽区与独立的模式、最小化、关闭控制。 */
+/** 渲染 Full 标题栏的拖拽区、小型更新入口与独立窗口控制。 */
 function FullWindowChrome() {
   const {
     isNativeDesktop,
@@ -146,6 +148,7 @@ function FullWindowChrome() {
     <header className="full-window-chrome">
       <span className="full-window-caption">Threadline</span>
       <div className="full-window-entries">
+        <DesktopUpdateEntry />
         <button type="button" onClick={() => void setMode('workstation')}>
           工作站
         </button>

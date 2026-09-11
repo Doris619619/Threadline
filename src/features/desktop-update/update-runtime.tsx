@@ -1,4 +1,4 @@
-/** @fileoverview 订阅 Main 更新状态，在任何页面显示非模态新版提示，并提供设置页更新操作。 */
+/** @fileoverview 订阅 Main 更新状态并共享操作，统一安装确认、保存保护与 IPC 错误反馈。 */
 'use client';
 
 import {
@@ -23,23 +23,17 @@ const UpdateContext = createContext<{
   state?: DesktopUpdateState;
   run: (action: 'check' | 'download' | 'install') => Promise<void>;
 }>({ run: async () => undefined });
-const labels: Record<DesktopUpdateState['status'], string> = {
-  unavailable: '此版本不支持自动更新',
-  idle: '可检查是否有新版本',
-  checking: '正在检查更新…',
-  available: '发现新版本',
-  current: '已是最新版本',
-  downloading: '正在下载更新',
-  downloaded: '更新已下载',
-  installing: '正在重启更新…',
-  error: '更新未完成',
-};
+/** 读取 Main 更新状态与受保存保护的操作入口。 */
+export function useDesktopUpdate() {
+  return useContext(UpdateContext);
+}
+
+export { UpdateControls } from './update-controls';
 
 /** 先订阅后读取，并用 revision 合并 IPC 返回和广播，避免快速状态被旧快照覆盖。 */
 export function DesktopUpdateRuntime({ children }: { children: ReactNode }) {
   const [state, setState] = useState<DesktopUpdateState>();
   const [notice, setNotice] = useState<string>();
-  const [dismissed, setDismissed] = useState<string>();
   const [confirming, setConfirming] = useState(false);
   const pending = useSyncExternalStore(
     subscribeCloudWrites,
@@ -111,10 +105,6 @@ export function DesktopUpdateRuntime({ children }: { children: ReactNode }) {
       unlock?.();
     }
   }
-  const banner =
-    state &&
-    ['available', 'downloading', 'downloaded', 'installing'].includes(state.status) &&
-    dismissed !== `${state.version}:${state.status}`;
   return (
     <UpdateContext.Provider value={{ state, run }}>
       {children}
@@ -149,20 +139,6 @@ export function DesktopUpdateRuntime({ children }: { children: ReactNode }) {
           </ManagementDialog>
         </div>
       )}
-      {banner && (
-        <aside className="desktop-update-notice" aria-label="软件更新">
-          <UpdateControls />
-          {!['downloading', 'installing'].includes(state.status) && (
-            <button
-              type="button"
-              className="tl-button tl-button--secondary"
-              onClick={() => setDismissed(`${state.version}:${state.status}`)}
-            >
-              稍后
-            </button>
-          )}
-        </aside>
-      )}
       {notice && (
         <aside className="desktop-update-notice" role="alert">
           <p>{notice}</p>
@@ -176,57 +152,5 @@ export function DesktopUpdateRuntime({ children }: { children: ReactNode }) {
         </aside>
       )}
     </UpdateContext.Provider>
-  );
-}
-
-/** Web 无 bridge 时不渲染；按钮和进度在设置页与全局提示中共享真实状态。 */
-export function UpdateControls() {
-  const { state, run } = useContext(UpdateContext);
-  const pending = useSyncExternalStore(
-    subscribeCloudWrites,
-    getPendingCloudWrites,
-    () => 0,
-  );
-  if (!state) return null;
-  const busy = ['checking', 'downloading', 'installing'].includes(state.status);
-  return (
-    <div className="desktop-update-controls">
-      <p role="status">
-        {labels[state.status]}
-        {state.version ? ` · ${state.version}` : ''}
-      </p>
-      {state.message && <p>{state.message}</p>}
-      {state.status === 'downloading' && (
-        <progress aria-label="更新下载进度" value={state.percent ?? 0} max={100} />
-      )}
-      {state.status === 'downloading' && <p>{Math.round(state.percent ?? 0)}%</p>}
-      {state.status !== 'unavailable' && (
-        <button
-          type="button"
-          className="tl-button tl-button--primary"
-          disabled={busy || (state.status === 'downloaded' && pending > 0)}
-          onClick={() =>
-            void run(
-              state.status === 'available'
-                ? 'download'
-                : state.status === 'downloaded'
-                  ? 'install'
-                  : 'check',
-            )
-          }
-        >
-          {state.status === 'available'
-            ? '下载更新'
-            : state.status === 'downloaded'
-              ? '重启并更新'
-              : busy
-                ? labels[state.status]
-                : '检查更新'}
-        </button>
-      )}
-      {state.status === 'downloaded' && pending > 0 && (
-        <p role="status">正在保存，完成后可重启更新。</p>
-      )}
-    </div>
   );
 }
