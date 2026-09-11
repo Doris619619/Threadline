@@ -313,19 +313,15 @@ test('does not offer incomplete-work transitions for a completed task', async ({
 }) => {
   const completed = page.locator('.timeline-row').filter({ hasText: '领域论文' });
   await completed.getByRole('button', { name: '领域论文更多操作' }).click();
+  const menu = page.getByRole('group', { name: '领域论文操作', exact: true });
+  await expect(menu).toBeVisible();
 
-  await expect(
-    completed.getByRole('button', { name: '移期', exact: true }),
-  ).toHaveCount(0);
-  await expect(
-    completed.getByRole('button', { name: '待安排', exact: true }),
-  ).toHaveCount(0);
-  await expect(
-    completed.getByRole('button', { name: '放弃', exact: true }),
-  ).toHaveCount(0);
-  await expect(
-    completed.getByRole('button', { name: '删除', exact: true }),
-  ).toBeVisible();
+  await expect(menu.getByRole('button', { name: '移期', exact: true })).toHaveCount(0);
+  await expect(menu.getByRole('button', { name: '待安排', exact: true })).toHaveCount(
+    0,
+  );
+  await expect(menu.getByRole('button', { name: '放弃', exact: true })).toHaveCount(0);
+  await expect(menu.getByRole('button', { name: '删除', exact: true })).toBeVisible();
 });
 
 test('persists task changes and navigates across dates', async ({ page }) => {
@@ -680,7 +676,10 @@ test('records rescheduling and waiting deletion in history', async ({ page }) =>
 
   const email = page.locator('.timeline-row').filter({ hasText: '邮件处理' });
   await email.getByRole('button', { name: '邮件处理更多操作' }).click();
-  await email.getByRole('button', { name: '移期', exact: true }).click();
+  await page
+    .getByRole('group', { name: '邮件处理操作', exact: true })
+    .getByRole('button', { name: '移期', exact: true })
+    .click();
   const reschedule = page.getByRole('dialog', { name: '改期任务' });
   await reschedule.getByRole('button', { name: '确认改期' }).click();
   await expect(email).not.toBeVisible();
@@ -689,7 +688,10 @@ test('records rescheduling and waiting deletion in history', async ({ page }) =>
 test('can choose a future date when rescheduling', async ({ page }) => {
   const email = page.locator('.timeline-row').filter({ hasText: '邮件处理' });
   await email.getByRole('button', { name: '邮件处理更多操作' }).click();
-  await email.getByRole('button', { name: '移期', exact: true }).click();
+  await page
+    .getByRole('group', { name: '邮件处理操作', exact: true })
+    .getByRole('button', { name: '移期', exact: true })
+    .click();
   const reschedule = page.getByRole('dialog', { name: '改期任务' });
   await reschedule.getByLabel('移期日期').fill('2026-08-26');
   await reschedule.getByRole('button', { name: '确认改期' }).click();

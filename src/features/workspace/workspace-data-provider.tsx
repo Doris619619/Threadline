@@ -27,6 +27,8 @@ import {
 } from '@/features/workspace/workspace-data-context';
 export { useWorkspaceData } from '@/features/workspace/workspace-data-context';
 import { LocalWorkspaceTestAdapter } from '@/features/workspace/workspace-test-adapter';
+import { useCloudWorkstation } from '@/features/workspace/use-cloud-workstation';
+import { createCloudTask } from '@/features/workspace/create-cloud-task';
 import { useCloudTaskUpdates } from '@/features/workspace/use-cloud-task-updates';
 import { usesLocalWorkspace } from '@/lib/workspace-runtime';
 import { useAnnotationStrokes } from '@/hooks/use-annotation-strokes';
@@ -113,10 +115,11 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     queryKey: ['workspace', ownerKey, 'close-records'],
     queryFn: () => repository.listCloseRecords(),
   });
-  const workstationQuery = useQuery({
-    queryKey: ['workspace', ownerKey, 'workstation'],
-    queryFn: () => repository.listWorkstationTaskIds(),
-  });
+  const {
+    query: workstationQuery,
+    workstationTaskIds,
+    updateWorkstationTaskIds,
+  } = useCloudWorkstation(ownerKey, repository, setMutationError);
 
   const taskTimeEntries = useMemo(
     () => taskTimeEntriesQuery.data ?? [],
@@ -139,10 +142,6 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
   const closeRecords = useMemo(
     () => closeRecordsQuery.data ?? [],
     [closeRecordsQuery.data],
-  );
-  const workstationTaskIds = useMemo(
-    () => workstationQuery.data ?? [],
-    [workstationQuery.data],
   );
 
   /** 拒绝离线写并把失败暴露到页面；第一版不建立离线队列。 */
@@ -390,65 +389,18 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       setMutationError('每日收尾必须通过 closeDay 原子命令提交。');
     }, []);
 
-  const updateWorkstationTaskIds: Dispatch<SetStateAction<string[]>> = useCallback(
-    (action) => {
-      void runMutation(async () => {
-        const current = workstationTaskIds;
-        const next = [...new Set(resolveState(current, action))];
-        const currentSet = new Set(current);
-        const nextSet = new Set(next);
-        for (const taskId of next.filter((id) => !currentSet.has(id)))
-          await repository.addWorkstationTask(taskId);
-        for (const taskId of current.filter((id) => !nextSet.has(id)))
-          await repository.removeWorkstationTask(taskId);
-        await repository.reorderWorkstation(next);
-        queryClient.setQueryData(['workspace', ownerKey, 'workstation'], next);
-      });
-    },
-    [ownerKey, queryClient, repository, runMutation, workstationTaskIds],
-  );
-
-  /** 顺序创建可能刚新建的项目、task 与 created history，避免 FK 写入竞态。 */
+  /** 任务本体确认即结束创建表单，记录同步由独立命令收尾。 */
   const createTask = useCallback(
-    async (task: Task) => {
-      try {
-        if (!navigator.onLine) throw new Error('当前离线，无法创建任务。');
-        setMutationError(undefined);
-        const project = projects.find((item) => item.id === task.projectId);
-        if (!project) throw new Error('任务项目不存在。');
-        if (!project.updatedAt) {
-          const savedProject = await repository.saveProject(project);
-          queryClient.setQueryData<Project[]>(
-            ['workspace', ownerKey, 'projects'],
-            (current = []) =>
-              current.map((item) =>
-                item.id === savedProject.id ? savedProject : item,
-              ),
-          );
-        }
-        const savedTask = await repository.saveTask(task);
-        await repository.appendHistory(
-          {
-            id: crypto.randomUUID(),
-            taskId: savedTask.id,
-            type: 'created',
-            occurredAt: new Date().toISOString(),
-            payload: { title: savedTask.title },
-          },
-          savedTask,
-        );
-        queryClient.setQueryData<Task[]>(
-          ['workspace', ownerKey, 'tasks'],
-          (current = []) => [...current, savedTask],
-        );
-        await queryClient.invalidateQueries({
-          queryKey: ['workspace', ownerKey, 'history'],
-        });
-        return savedTask;
-      } catch (error) {
-        setMutationError(error instanceof Error ? error.message : '任务创建失败');
-        throw error;
-      }
+    (task: Task) => {
+      setMutationError(undefined);
+      return createCloudTask(
+        task,
+        projects,
+        repository,
+        queryClient,
+        ownerKey,
+        setMutationError,
+      );
     },
     [ownerKey, projects, queryClient, repository],
   );

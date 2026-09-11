@@ -17,6 +17,8 @@
 
 ## 数据与交互约定
 
+日程菜单、长项目名、创建任务和工作站保存反馈的规则与回归范围见 [交互反馈与浮层](interaction-feedback.md)。
+
 前端结构约定见 [前端样式与模块归属](frontend-style-ownership.md)：`src/app/globals.css` 保留 Tailwind，`src/app/global-styles.ts` 管理有序 CSS 入口，任务首页由展示组件及 data/create/workflow/drag/resize 等职责 Hook 组成。桌面今日日程为七列网格，手机为同一数据源下的纵向任务列表。新增样式和任务交互前应先按该文档定位 owner，避免跨功能改动。
 
 - 待安排是跨日期持续的任务池，“重要 / 普通”两组常显，各有添加入口；从哪个入口添加就归入哪组，编辑重要性后同一任务移动到另一组。安排到具体日期前不计入任何日期统计。

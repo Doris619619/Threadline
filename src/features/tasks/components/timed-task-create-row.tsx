@@ -3,7 +3,7 @@
 'use client';
 
 import { Check, Clock, X } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { TimedTaskCreateDraft } from '@/features/tasks/hooks/use-task-create-drafts';
 import type { TimedTaskDraft } from '@/features/tasks/task-drafts';
@@ -37,6 +37,7 @@ export function TimedTaskCreateRow({
   onClose: () => void;
 }) {
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   /** 创建项目后只更新当前日程草稿的项目选择。 */
   const addProject = async () => {
     if (!draft.projectName.trim()) return;
@@ -45,7 +46,8 @@ export function TimedTaskCreateRow({
   };
   /** 委托动作层验证；输入错误保留行，取消保留字段，成功后才重置。 */
   const confirm = async () => {
-    if (saving) return;
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const result = await onCreate({
@@ -59,24 +61,33 @@ export function TimedTaskCreateRow({
       });
       if ('error' in result) return onChange({ timeError: result.error });
       if ('cancelled' in result) return onClose();
-      onReset();
       onClose();
+      onReset();
     } catch (error) {
       onChange({
         timeError: error instanceof Error ? error.message : '保存失败，请重试。',
       });
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
   const onKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter') confirm();
-    if (event.key === 'Escape') onClose();
+    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      void confirm();
+    }
+    if (event.key === 'Escape' && !savingRef.current) onClose();
   };
   if (!open) return null;
 
   return (
-    <div className="timeline-row timeline-row-adding timed-task-create-row">
+    <fieldset
+      disabled={saving}
+      aria-busy={saving}
+      aria-label="新增日程"
+      className="timeline-row timeline-row-adding timed-task-create-row"
+    >
       <div className="timed-create-primary">
         <div className="task-check-wrap timed-create-check-cell">
           <Checkbox
@@ -226,12 +237,17 @@ export function TimedTaskCreateRow({
           className="tl-inline-confirm-btn timed-create-confirm-btn"
           onClick={confirm}
           title="保存任务"
+          aria-label={saving ? '正在保存任务' : '保存任务'}
           disabled={saving}
         >
-          <span className="timed-create-btn-text">保存</span>
-          <Check size={14} className="timed-create-btn-icon" />
+          <span className="timed-create-btn-text">{saving ? '保存中…' : '保存'}</span>
+          <Check
+            style={{ opacity: saving ? 0.35 : 1 }}
+            size={14}
+            className="timed-create-btn-icon"
+          />
         </button>
       </div>
-    </div>
+    </fieldset>
   );
 }
