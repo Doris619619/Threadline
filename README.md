@@ -54,7 +54,7 @@
 
 ## 开始使用
 
-**Windows** — 前往 [最新版本](https://github.com/Doris619619/Threadline/releases/latest)，下载以 `x64-setup.exe` 结尾的安装包。安装后，在 **设置 → 关于 Threadline** 中检查、下载并确认重启更新。
+**Windows** — 前往 [最新版本](https://github.com/Doris619619/Threadline/releases/latest)，下载以 `x64-setup.exe` 结尾的安装包。安装版启动后自动检查更新，回到主窗口或电脑休眠恢复时也会在距离上次检查至少一小时后补查。发现新版时，标题栏显示小型 **更新** 入口，点击才展开下载详情；下载完成后入口显示 **重启更新**，由你确认重启。也可在 **设置 → 关于 Threadline** 中手动检查。
 
 **浏览器与 iPhone** — 打开你部署的 Threadline 网站；iPhone 可通过 Safari 的“添加到主屏幕”作为 PWA 使用。部署方式见 [云端与 Web 部署](docs/supabase-deployment.md)。
 

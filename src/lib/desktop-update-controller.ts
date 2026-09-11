@@ -6,12 +6,14 @@ import type { AppUpdater } from 'electron-updater';
 export class UpdateController {
   private state: DesktopUpdateState;
   private active = false;
+  private lastCheckAt = -Infinity;
   /** 固定安全更新策略，并将下载事件转为可订阅状态。 */
   constructor(
     private updater: AppUpdater,
     version: string,
     enabled: boolean,
     private publish: (state: DesktopUpdateState) => void,
+    private now: () => number = Date.now,
   ) {
     this.state = {
       revision: 0,
@@ -42,14 +44,21 @@ export class UpdateController {
     this.state = { ...this.state, ...patch, revision: this.state.revision + 1 };
     this.publish(this.getState());
   }
-  /** 检查与下载互斥；已下载版本必须保持可安装，不能被后台检查清除。 */
-  async check() {
+  /** 自动检查按实际请求时间节流，并保留已发现版本；手动检查可立即重试。 */
+  async check(minIntervalMs = 0) {
     if (
       this.active ||
       ['unavailable', 'downloaded', 'installing'].includes(this.state.status)
     )
       return this.getState();
+    if (
+      minIntervalMs > 0 &&
+      (this.state.status === 'available' ||
+        this.now() - this.lastCheckAt < minIntervalMs)
+    )
+      return this.getState();
     this.active = true;
+    this.lastCheckAt = this.now();
     this.set({
       status: 'checking',
       message: undefined,

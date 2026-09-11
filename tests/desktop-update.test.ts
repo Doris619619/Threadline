@@ -5,7 +5,7 @@ import type { AppUpdater } from 'electron-updater';
 import { UpdateController } from '@/lib/desktop-update-controller';
 
 /** 用可控 promise 和真实事件模拟 updater 边界。 */
-function setup(version = '0.1.2', enabled = true) {
+function setup(version = '0.1.2', enabled = true, now = Date.now) {
   const updater = Object.assign(new EventEmitter(), {
     checkForUpdates: vi.fn(async () => ({ updateInfo: { version } })),
     downloadUpdate: vi.fn(async () => ['installer.exe']),
@@ -16,10 +16,34 @@ function setup(version = '0.1.2', enabled = true) {
     '0.1.1',
     enabled,
     publish,
+    now,
   );
   return { updater, controller, publish };
 }
 describe('desktop updater', () => {
+  it('throttles automatic checks including after manual checks and preserves a discovered update', async () => {
+    let time = 0;
+    const hour = 60 * 60 * 1000;
+    const { controller, updater } = setup('0.1.1', true, () => time);
+    await controller.check(hour);
+    await controller.check(hour);
+    expect(updater.checkForUpdates).toHaveBeenCalledTimes(1);
+    time = hour - 1;
+    await controller.check();
+    time = hour;
+    await controller.check(hour);
+    expect(updater.checkForUpdates).toHaveBeenCalledTimes(2);
+    time += hour;
+    updater.checkForUpdates.mockResolvedValueOnce({ updateInfo: { version: '0.1.2' } });
+    await controller.check(hour);
+    time += 6 * hour;
+    await controller.check(hour);
+    expect(updater.checkForUpdates).toHaveBeenCalledTimes(3);
+    expect(controller.getState()).toMatchObject({
+      status: 'available',
+      version: '0.1.2',
+    });
+  });
   it.each(['0.1.0', '0.1.1', '0.0.99', '0.1.2-beta.1'])(
     'ignores non-upgrade %s',
     async (version) => {
