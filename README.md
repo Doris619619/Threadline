@@ -18,9 +18,9 @@
 
 <p align="center"><sub>桌面浏览器 · iPhone PWA · Windows</sub></p>
 
-![Threadline 桌面工作台：皮卡小屋主题下的今日日程、待安排与 Daily](docs/screenshots/cottage/desktop-preview.png)
+![Threadline 默认蓝色工作台：今日日程、待安排与 Daily](docs/screenshots/readme/blue-light.png)
 
-<p align="center"><sub>皮卡小屋主题 · 截图使用虚构演示数据</sub></p>
+<p align="center"><sub>默认蓝色 · 截图使用虚构演示数据</sub></p>
 
 ## 从今天开始
 
@@ -37,18 +37,22 @@
 
 四套主题，三种字体。主题、字体与明暗模式可以自由组合，选择会保存在当前设备。
 
-| 默认蓝色           | 安妮雅         | 皮卡小屋             | 皮卡经典                     |
-| :----------------- | :------------- | :------------------- | :--------------------------- |
-| 清爽蓝白，简洁日常 | 樱花粉与奶油白 | 像素家具、穿搭与白猫 | 奶油列表、金色页签与游戏按钮 |
+<table>
+<tr>
+  <td width="25%" align="center"><a href="docs/screenshots/readme/blue-light.png"><img src="docs/screenshots/readme/blue-light.png" width="220" alt="默认蓝色 · 浅色" /></a><br /><sub>默认蓝色 · 浅色</sub></td>
+  <td width="25%" align="center"><a href="docs/screenshots/readme/anya-light.png"><img src="docs/screenshots/readme/anya-light.png" width="220" alt="安妮雅 · 浅色" /></a><br /><sub>安妮雅 · 浅色</sub></td>
+  <td width="25%" align="center"><a href="docs/screenshots/readme/cottage-light.png"><img src="docs/screenshots/readme/cottage-light.png" width="220" alt="皮卡小屋 · 浅色" /></a><br /><sub>皮卡小屋 · 浅色</sub></td>
+  <td width="25%" align="center"><a href="docs/screenshots/readme/classic-light.png"><img src="docs/screenshots/readme/classic-light.png" width="220" alt="皮卡经典 · 浅色" /></a><br /><sub>皮卡经典 · 浅色</sub></td>
+</tr>
+<tr>
+  <td width="25%" align="center"><a href="docs/screenshots/readme/blue-dark.png"><img src="docs/screenshots/readme/blue-dark.png" width="220" alt="默认蓝色 · 深色" /></a><br /><sub>默认蓝色 · 深色</sub></td>
+  <td width="25%" align="center"><a href="docs/screenshots/readme/anya-dark.png"><img src="docs/screenshots/readme/anya-dark.png" width="220" alt="安妮雅 · 深色" /></a><br /><sub>安妮雅 · 深色</sub></td>
+  <td width="25%" align="center"><a href="docs/screenshots/readme/cottage-dark.png"><img src="docs/screenshots/readme/cottage-dark.png" width="220" alt="皮卡小屋 · 深色" /></a><br /><sub>皮卡小屋 · 深色</sub></td>
+  <td width="25%" align="center"><a href="docs/screenshots/readme/classic-dark.png"><img src="docs/screenshots/readme/classic-dark.png" width="220" alt="皮卡经典 · 深色" /></a><br /><sub>皮卡经典 · 深色</sub></td>
+</tr>
+</table>
 
-<details>
-<summary>看看皮卡经典的浅色与深色外观</summary>
-
-![皮卡经典浅色工作台](docs/screenshots/classic/desktop-preview-light.png)
-
-![皮卡经典深色工作台](docs/screenshots/classic/desktop-preview-dark.png)
-
-</details>
+八种外观一览，点击小图可查看原图。
 
 在 **设置 → 外观** 中切换主题和字体；皮卡主题还可以从 **我的装扮** 选择穿搭，和白猫互动。
 
