@@ -1,7 +1,7 @@
 -- 文件用途：账号时区初始化、并发版本、幂等和历史保留的回滚测试；不要求启动本地数据库。
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(10);
+select plan(12);
 insert into auth.users(id, email) values ('98000000-0000-0000-0000-000000000001', 'zone-one@example.test'), ('98000000-0000-0000-0000-000000000002', 'zone-two@example.test');
 select ok(not has_function_privilege('anon', 'public.set_account_timezone(text,integer,uuid)', 'EXECUTE'), 'Anonymous timezone write denied');
 set local role authenticated;
@@ -19,6 +19,11 @@ select throws_ok($$select public.set_account_timezone('UTC',0,gen_random_uuid())
 select public.apply_habit_entries(gen_random_uuid(), '[{"mode":"record","kind":"sleep","occurred_at":"2020-01-01T17:10:12.345Z"}]', 'Asia/Shanghai', 1);
 select is((select local_time from public.habit_entries), timestamp '2020-01-02 01:10:12.345', 'Raw instant records China wall clock');
 select is((select business_date from public.habit_entries), date '2020-01-01', 'China midnight belongs to previous evening');
+select public.set_account_timezone('Pacific/Kiritimati', 1, gen_random_uuid());
+insert into public.period_records(id, start_date) values ('98000000-0000-0000-0000-000000000020', (now() at time zone 'Pacific/Kiritimati')::date);
+select public.set_account_timezone('Pacific/Pago_Pago', 2, gen_random_uuid());
+select lives_ok($$update public.period_records set deleted_at = now() where id = '98000000-0000-0000-0000-000000000020'$$, 'Timezone change does not block clearing history');
+select throws_ok($$insert into public.period_records(start_date) values (((now() at time zone 'Pacific/Pago_Pago')::date + 1))$$, '23514', 'PERIOD_FUTURE_DATE', 'New future dates remain rejected');
 select set_config('request.jwt.claim.sub', '98000000-0000-0000-0000-000000000002', true);
 select is((select count(*) from public.habit_settings), 0::bigint, 'Account timezone is isolated');
 select * from finish();

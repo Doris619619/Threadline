@@ -12,3 +12,5 @@
 先部署 `202609120002_account_timezone.sql` 再发布客户端；新增 RPC 兼容 0.1.5。公开安装包和自动更新是否可用以 [GitHub Releases](https://github.com/Doris619619/Threadline/releases) 的发布状态为准。
 
 本轮不启动本地数据库。浏览器、单测及云端 SQL 验证说明见 [习惯布局与账号时区](habits-layout-timezone.md)。Windows 安装包沿用现有发布链路；没有配置代码签名证书。
+
+迁移 `202609120003_timezone_period_history.sql` 允许切换到较早时区后清除历史节律记录；不改变日期的更新保留原日期，新增或改动的未来日期继续拒绝。该边界已完成远端回滚验证。
