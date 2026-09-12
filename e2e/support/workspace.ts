@@ -24,6 +24,7 @@ const localStorageKeys = [
   'threadline.rhythm.v1',
   'threadline.test.rhythm.v1',
   'threadline.test.periods.v1',
+  'threadline.test.habits.v1',
   'threadline.desktop-mode.v2',
   'threadline.desktop-mode-before-floating.v2',
   'threadline.desktop-mode.v3',
@@ -79,7 +80,7 @@ export async function openWorkspaceSection(page: Page, label: string) {
     await desktopTarget.click();
     return;
   }
-  if (['首页', '规划', '项目', '洞察'].includes(label)) {
+  if (['首页', '规划', '项目', '习惯'].includes(label)) {
     await mobileNavigation.getByRole('button', { name: label, exact: true }).click();
     return;
   }

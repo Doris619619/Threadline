@@ -22,6 +22,7 @@ import '../features/feature-pages.css';
 import '../features/calendar/calendar.css';
 import '../features/insights/insights.css';
 import '../features/rhythm/rhythm.css';
+import '../features/habits/habits.css';
 import '../features/insights/insights-report.css';
 import '../features/settings/settings-page.css';
 import '../features/desktop-update/update.css';

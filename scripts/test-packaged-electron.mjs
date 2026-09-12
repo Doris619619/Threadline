@@ -231,6 +231,38 @@ async function runPackagedSmoke(executablePath) {
       if (process.env.THREADLINE_ENTRY_SCREENSHOT)
         await page.screenshot({ path: process.env.THREADLINE_ENTRY_SCREENSHOT });
     } else {
+      // 只有隔离 local adapter 能进入此分支；验证新栏目动态 chunk 和真实静态协议持久化。
+      await page
+        .getByLabel('主导航', { exact: true })
+        .getByRole('button', { name: '习惯', exact: true })
+        .click();
+      await page.getByRole('button', { name: '起床了', exact: true }).click();
+      await page
+        .getByTestId('habit-wake')
+        .getByRole('button', { name: '修改', exact: true })
+        .waitFor();
+      const wakeTime = await page
+        .getByTestId('habit-wake')
+        .locator('.habit-record-value strong')
+        .textContent();
+      assert.match(wakeTime ?? '', /^\d{2}:\d{2}$/);
+      await page.reload();
+      await page.getByRole('heading', { name: '我的工作台', exact: true }).waitFor();
+      await page
+        .getByLabel('主导航', { exact: true })
+        .getByRole('button', { name: '习惯', exact: true })
+        .click();
+      await page
+        .getByTestId('habit-wake')
+        .getByRole('button', { name: '修改', exact: true })
+        .waitFor();
+      assert.equal(
+        await page
+          .getByTestId('habit-wake')
+          .locator('.habit-record-value strong')
+          .textContent(),
+        wakeTime,
+      );
       await page.getByRole('button', { name: '工作站', exact: true }).click();
       await page.getByTestId('workstation-panel').waitFor();
       await page.getByRole('button', { name: '打开完整工作台' }).click();

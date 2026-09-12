@@ -17,6 +17,7 @@ const furnishings: Record<string, CottageFurnitureName> = {
   calendar: 'swing',
   projects: 'claw',
   insights: 'tv',
+  habits: 'bear',
   rhythm: 'bear',
   settings: 'desk',
 };

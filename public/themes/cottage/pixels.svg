@@ -1,6 +1,10 @@
 <!-- Original pixel furniture atlas: SVG symbols for React and view fragments for CSS ornaments. -->
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" shape-rendering="crispEdges">
   <defs>
+    <g id="habits" stroke="#735d65" stroke-width="1">
+      <path fill="#d7aa6c" d="M9 22h15v7H9z"/><path fill="#b0d9ce" d="M15 10h3v13h-3zM6 6h8v3h3v7h-6v-3H6zM19 3h8v8h-4v4h-6V7h2z"/>
+      <path fill="#fff9df" d="M11 24h11v2H11z"/>
+    </g>
     <g id="home" stroke="#735d65" stroke-width="1" stroke-linejoin="miter">
       <path fill="#fff8df" d="M5 14h22v15H5z"/><path fill="#eeafcf" d="M2 14v-3h4V8h4V5h12v3h4v3h4v3z"/>
       <path fill="#fff0fa" d="M8 10h16v2H8z" stroke="none"/><path fill="#b6a2df" d="M13 18h7v11h-7z"/>

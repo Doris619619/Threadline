@@ -6,6 +6,7 @@ export type CottageSpriteName =
   | 'calendar'
   | 'projects'
   | 'insights'
+  | 'habits'
   | 'rhythm'
   | 'settings'
   | 'flower'

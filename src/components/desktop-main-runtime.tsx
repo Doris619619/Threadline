@@ -8,7 +8,8 @@ import { AppShell } from '@/components/app-shell';
 import { PwaRegistrar } from '@/components/pwa-registrar';
 import { CloudRuntimeProvider } from '@/features/auth/cloud-runtime-provider';
 import { RhythmStateProvider } from '@/features/rhythm/rhythm-state';
-import { TaskDashboard } from '@/features/tasks/task-dashboard';
+import { WorkspaceContent } from '@/components/workspace-content';
+import { HabitsStateProvider } from '@/features/habits/habit-state';
 import { WorkspaceDataProvider } from '@/features/workspace/workspace-data-provider';
 import { DesktopWindowProvider } from '@/lib/desktop-window-context';
 import { usesLocalWorkspace } from '@/lib/workspace-runtime';
@@ -21,9 +22,11 @@ function WorkspaceRuntime() {
       <PwaRegistrar />
       <RhythmStateProvider>
         <AppShell>
-          <WorkspaceDataProvider>
-            <TaskDashboard />
-          </WorkspaceDataProvider>
+          <HabitsStateProvider>
+            <WorkspaceDataProvider>
+              <WorkspaceContent />
+            </WorkspaceDataProvider>
+          </HabitsStateProvider>
         </AppShell>
       </RhythmStateProvider>
     </DesktopWindowProvider>

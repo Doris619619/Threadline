@@ -10,6 +10,7 @@ import {
   ChevronRight,
   FolderKanban,
   Home,
+  Sprout,
   Minus,
   Maximize2,
   Minimize2,
@@ -66,6 +67,12 @@ const navigation = [
     description: '统一查看投入、估时与项目重心',
   },
   {
+    id: 'habits',
+    label: '习惯',
+    icon: Sprout,
+    description: '记录作息与当天工作效率',
+  },
+  {
     id: 'rhythm',
     label: '节律',
     icon: Orbit,
@@ -78,6 +85,9 @@ const navigation = [
     description: '账户、同步与数据边界',
   },
 ] as const;
+const mobilePrimaryIds = new Set(['home', 'calendar', 'projects', 'habits']);
+const mobilePrimary = navigation.filter((item) => mobilePrimaryIds.has(item.id));
+const mobileSecondary = navigation.filter((item) => !mobilePrimaryIds.has(item.id));
 export type WorkspaceViewId = (typeof navigation)[number]['id'];
 type WorkspaceView = {
   active: WorkspaceViewId;
@@ -248,7 +258,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               ))}
             </nav>
             <nav className="tl-mobile-nav" aria-label="移动端主导航">
-              {navigation.slice(0, 4).map(({ id, label, icon: Icon }) => (
+              {mobilePrimary.map(({ id, label, icon: Icon }) => (
                 <SidebarItem
                   key={id}
                   active={active === id}
@@ -268,8 +278,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   type="button"
                   className={cn(
                     'tl-sidebar-item',
-                    navigation.slice(4).some((item) => item.id === active) &&
-                      'is-active',
+                    mobileSecondary.some((item) => item.id === active) && 'is-active',
                   )}
                   aria-expanded={mobileMoreOpen}
                   aria-controls="mobile-more-navigation"
@@ -280,7 +289,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </button>
                 {mobileMoreOpen && (
                   <div id="mobile-more-navigation" className="tl-mobile-more-menu">
-                    {navigation.slice(4).map(({ id, label, icon: Icon }) => (
+                    {mobileSecondary.map(({ id, label, icon: Icon }) => (
                       <button
                         type="button"
                         key={id}
@@ -318,6 +327,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {!isCompact &&
             !usesDedicatedProjectHeader &&
             active !== 'calendar' &&
+            active !== 'habits' &&
             active !== 'settings' && (
               <header className="tl-header" data-home={active === 'home'}>
                 <div>
