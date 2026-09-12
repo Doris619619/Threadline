@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import {
   bootstrapLocalAdapterWorkspace,
   openWorkspaceSection,
+  reloadLocalAdapterWorkspace,
 } from './support/workspace';
 
 /** 失败时只记录隔离适配器的数据和页面日期，区分写入丢失、日期漂移与加载未完成。 */
@@ -42,7 +43,7 @@ test('menus and project picker escape a one-row list without changing its width'
       JSON.stringify({ theme: 'blue', font: 'source-han-serif' }),
     );
   });
-  await page.reload();
+  await reloadLocalAdapterWorkspace(page);
   const row = page.locator('.timeline-row');
   await expect(row).toHaveCount(1);
   const before = await row.boundingBox();
@@ -79,7 +80,14 @@ test('menus and project picker escape a one-row list without changing its width'
     .getByRole('button', { name: '【课程】', exact: true })
     .click();
   await expect(project).toHaveAccessibleName('邮件处理所属项目：课程');
-  await page.reload();
+  // 界面变化不能替代持久化确认；刷新前直接核验已写入的项目身份。
+  expect(
+    await page.evaluate(() => {
+      const tasks = JSON.parse(localStorage.getItem('threadline.tasks.v1')!);
+      return tasks.find((task: { id: string }) => task.id === 'email')?.projectId;
+    }),
+  ).toBe('course');
+  await reloadLocalAdapterWorkspace(page);
   await expect(
     page.getByRole('button', { name: '邮件处理所属项目：课程' }),
   ).toBeVisible();
@@ -175,7 +183,7 @@ test('waiting menu remains clickable outside a clipped panel and schedules exact
     page.locator('.waiting-task-row').filter({ hasText: title }),
   ).toHaveCount(0);
   await expect(page.locator('.timeline-row').filter({ hasText: title })).toHaveCount(1);
-  await page.reload();
+  await reloadLocalAdapterWorkspace(page);
   await expect(page.locator('.timeline-row').filter({ hasText: title })).toHaveCount(1);
 });
 
