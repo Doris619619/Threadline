@@ -160,6 +160,18 @@ async function fillMonth(page: Page) {
 
 /** 同时检查整页水平边界与 serious/critical 可访问性债务，包含实际热力文字对比。 */
 async function checkAccessible(page: Page) {
+  // 媒体变化由异步事件送达；先跨过布局帧，再等待有限过渡，避免扫描浅深色中间值。
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+    await Promise.allSettled(
+      document
+        .getAnimations()
+        .filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
+        .map((animation) => animation.finished),
+    );
+  });
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
   ).toBe(true);

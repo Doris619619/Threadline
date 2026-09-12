@@ -21,7 +21,7 @@ type RhythmContext = {
 };
 const Context = createContext<RhythmContext | null>(null);
 
-/** 云端读取失败不伪装空数据；写入成功再刷新，Realtime 仅使账号查询失效。 */
+/** 云端读取失败不伪装空数据；直接采用保存结果，Realtime 仅使账号查询失效。 */
 function CloudRhythmStateProvider({ children }: { children: ReactNode }) {
   const { client, repository, user } = useCloudRuntime();
   const queryClient = useQueryClient();
@@ -45,15 +45,33 @@ function CloudRhythmStateProvider({ children }: { children: ReactNode }) {
       if (!navigator.onLine) throw new Error('当前离线，输入已保留，请联网后重试');
       if ('draft' in action) {
         validatePeriod(action.draft, query.data?.periods ?? [], getLocalDateKey());
-        await savePeriod(
+        const saved = await savePeriod(
           client,
           action.draft,
           Boolean(query.data?.periods.some((p) => p.id === action.draft.id)),
         );
-      } else await deletePeriod(client, action.id);
+        return { saved };
+      } else {
+        await deletePeriod(client, action.id);
+        return { deletedId: action.id };
+      }
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: key });
+    onSuccess: async (result) => {
+      await queryClient.cancelQueries({ queryKey: key, exact: true });
+      queryClient.setQueryData<{
+        marks: Record<string, boolean>;
+        periods: PeriodRecord[];
+      }>(key, (current) => {
+        if (!current) return current;
+        const periods = current.periods.filter(
+          (period) => period.id !== (result.saved?.id ?? result.deletedId),
+        );
+        if (result.saved) periods.push(result.saved);
+        return {
+          ...current,
+          periods: periods.sort((a, b) => b.startDate.localeCompare(a.startDate)),
+        };
+      });
     },
   });
   useEffect(() => {

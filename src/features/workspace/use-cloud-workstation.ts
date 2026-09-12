@@ -1,5 +1,12 @@
 /** @fileoverview 工作站成员立即反馈、串行落库，并用待保存意图隔离后台旧读。 */
-import { useCallback, useMemo, useState, type SetStateAction } from 'react';
+import {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type SetStateAction,
+} from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { beginCloudWrite } from '@/lib/cloud-write-guard';
 import type { SupabaseWorkspaceRepository } from '@/lib/supabase/workspace-repository';
@@ -34,6 +41,10 @@ export function useCloudWorkstation(
     scope: typeof scope;
     ids: string[];
   }>();
+  const activeScope = useRef(scope);
+  useLayoutEffect(() => {
+    activeScope.current = scope;
+  }, [scope]);
   const query = useQuery({
     queryKey: scope.key,
     queryFn: () => repository.listWorkstationTaskIds(),
@@ -100,7 +111,8 @@ export function useCloudWorkstation(
           await client.cancelQueries({ queryKey: scope.key, exact: true });
           client.setQueryData(scope.key, confirmed);
           queue.pending--;
-          if (queue.revision === revision) setOptimistic({ scope, ids: confirmed });
+          if (activeScope.current === scope && queue.revision === revision)
+            setOptimistic({ scope, ids: confirmed });
           endWrite();
         }
       };

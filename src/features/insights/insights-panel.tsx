@@ -14,6 +14,7 @@ import {
   YAxis,
 } from 'recharts';
 import { Surface } from '@/components/ui/surface';
+import { useGuardedAction } from '@/hooks/use-guarded-action';
 import { getMainDesktopBridge } from '@/lib/desktop-bridge';
 import { type AnalyticsInput, createAnalyticsResult } from '@/lib/analytics';
 import { buildInsightSummary } from './insight-summary';
@@ -50,6 +51,7 @@ export function InsightsPanel({
   analyticsInput: Omit<AnalyticsInput, 'range'>;
   selectedDate: string;
 }) {
+  const exportAction = useGuardedAction();
   const [preset, setPreset] = useState<DateRangePreset>('week');
   const [customStart, setCustomStart] = useState(selectedDate);
   const [customEnd, setCustomEnd] = useState(selectedDate);
@@ -144,12 +146,20 @@ export function InsightsPanel({
           <button
             type="button"
             className="tl-button tl-button--secondary"
-            onClick={() => void exportReport()}
+            disabled={exportAction.busy}
+            aria-busy={exportAction.busy}
+            onClick={() => void exportAction.run(exportReport)}
           >
-            <Printer size={16} aria-hidden="true" /> 导出报告
+            <Printer size={16} aria-hidden="true" />{' '}
+            {exportAction.busy ? '正在导出…' : '导出报告'}
           </button>
         </div>
       </header>
+      {exportAction.error && (
+        <p className="form-error" role="alert">
+          {exportAction.error}
+        </p>
+      )}
       <p className="insights-range-label">{title}</p>
       <div className="insights-summary">
         <Surface className="insight-primary">

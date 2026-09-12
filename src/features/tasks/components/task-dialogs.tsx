@@ -7,7 +7,7 @@ import { ManagementDialog } from '@/components/ui/management-dialog';
 import { getLocalDateKey } from '@/lib/local-date';
 import { PlannedMinutesField } from './planned-minutes-field';
 
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { formatMinutes } from '@/features/tasks/task-time';
@@ -76,6 +76,7 @@ export function CloseDialog({
   const titleId = useId();
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   return (
     <dialog
       className="task-dialog close-dialog"
@@ -88,7 +89,8 @@ export function CloseDialog({
       <form
         className="task-editor-form"
         action={async (data) => {
-          if (saving) return;
+          if (savingRef.current) return;
+          savingRef.current = true;
           setSaving(true);
           setError(undefined);
           try {
@@ -101,6 +103,7 @@ export function CloseDialog({
                 : '收尾保存失败，请重试。',
             );
           } finally {
+            savingRef.current = false;
             setSaving(false);
           }
         }}
@@ -191,9 +194,11 @@ export function RescheduleDialog({
 }) {
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   if (!task) return null;
   return (
     <ManagementDialog
+      busy={saving}
       title="改期任务"
       onClose={() => {
         if (!saving) onClose();
@@ -202,7 +207,8 @@ export function RescheduleDialog({
       <form
         onSubmit={async (event) => {
           event.preventDefault();
-          if (saving) return;
+          if (savingRef.current) return;
+          savingRef.current = true;
           const date = String(new FormData(event.currentTarget).get('date') ?? '');
           setSaving(true);
           try {
@@ -210,6 +216,7 @@ export function RescheduleDialog({
           } catch (error) {
             setError(error instanceof Error ? error.message : '改期失败，请重试。');
           } finally {
+            savingRef.current = false;
             setSaving(false);
           }
         }}
@@ -273,6 +280,7 @@ export function TaskDialog({
 }) {
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   if (!open) return null;
   const isWaiting = mode === 'waiting';
   const defaultProjectId =
@@ -280,6 +288,7 @@ export function TaskDialog({
 
   return (
     <ManagementDialog
+      busy={saving}
       title={
         isWaiting
           ? editing
@@ -299,13 +308,15 @@ export function TaskDialog({
         onSubmit={async (event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
-          if (saving) return;
+          if (savingRef.current) return;
+          savingRef.current = true;
           setSaving(true);
           try {
             setError(await onSave(data));
           } catch (error) {
             setError(error instanceof Error ? error.message : '保存失败，请重试。');
           } finally {
+            savingRef.current = false;
             setSaving(false);
           }
         }}

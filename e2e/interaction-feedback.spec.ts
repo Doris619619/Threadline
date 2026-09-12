@@ -129,3 +129,59 @@ test('wardrobe closes repeatedly after changing outfits and scrolling', async ({
     }
   }
 });
+
+test('waiting menu remains clickable outside a clipped panel and schedules exactly one task', async ({
+  page,
+}) => {
+  await bootstrapLocalAdapterWorkspace(page, 'waiting-menu-boundary');
+  await page.clock.resume();
+  const row = page.locator('.waiting-task-row').first();
+  const title = (await row.locator('.waiting-task-title > span').innerText()).trim();
+  await row.scrollIntoViewIfNeeded();
+  await row.evaluate((el) => {
+    el.style.overflow = 'hidden';
+    el.style.maxHeight = '44px';
+  });
+  await row.getByRole('button', { name: /更多操作/ }).click();
+  const menu = page.getByRole('menu', { name: `${title}待安排操作` });
+  const remove = menu.getByRole('menuitem', { name: '删除', exact: true });
+  expect(
+    await remove.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return el.contains(
+        document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2),
+      );
+    }),
+  ).toBe(true);
+  await menu.getByRole('menuitem', { name: '安排到今天', exact: true }).click();
+  await expect(
+    page.locator('.waiting-task-row').filter({ hasText: title }),
+  ).toHaveCount(0);
+  await expect(page.locator('.timeline-row').filter({ hasText: title })).toHaveCount(1);
+  await page.reload();
+  await expect(page.locator('.timeline-row').filter({ hasText: title })).toHaveCount(1);
+});
+
+test('new project from the schedule draft is visible and usable beyond the list', async ({
+  page,
+}) => {
+  await bootstrapLocalAdapterWorkspace(page, 'draft-project-boundary');
+  await page.clock.resume();
+  await page
+    .locator('.schedule-panel')
+    .getByRole('button', { name: '添加', exact: true })
+    .click();
+  const draft = page.getByRole('group', { name: '新增日程', exact: true });
+  await draft.locator('select.project-inline-select').selectOption('__new__');
+  const popup = page.getByRole('group', { name: '创建项目', exact: true });
+  await expect(popup).toBeVisible();
+  await popup.getByPlaceholder('新项目名称').fill('行内项目验收');
+  await popup.getByPlaceholder('新项目名称').press('Enter');
+  await expect(popup).toHaveCount(0);
+  await expect(draft.locator('select option:checked')).toHaveText('行内项目验收');
+  await page.getByPlaceholder('任务名称（按 Enter 保存）').fill('新项目中的日程');
+  await page.getByTitle('保存任务', { exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: '新项目中的日程所属项目：行内项目验收' }),
+  ).toBeVisible();
+});

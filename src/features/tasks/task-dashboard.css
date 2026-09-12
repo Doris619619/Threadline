@@ -121,17 +121,25 @@
   color: var(--text-secondary);
 }
 .waiting-task-menu {
-  position: absolute;
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 16px);
+  overflow-y: auto;
   z-index: 10;
-  right: 0;
-  top: 42px;
-  display: grid;
   min-width: 172px;
   padding: 6px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+}
+.waiting-task-menu:popover-open {
+  display: grid;
+}
+.waiting-task-row > :is([role='status'], [role='alert']) {
+  grid-column: 1 / -1;
 }
 .waiting-task-menu button {
   display: flex;
@@ -919,6 +927,9 @@
 }
 
 .project-picker-new-form {
+  min-width: 0;
+  margin: 0;
+  border: 0;
   display: flex;
   align-items: center;
   gap: 4px;

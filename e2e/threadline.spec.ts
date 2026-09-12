@@ -151,7 +151,8 @@ test.describe('desktop task drag scheduling', () => {
     const schedulePanel = page.locator('.schedule-panel');
 
     await waitingTask.getByRole('button', { name: '取快递更多操作' }).click();
-    await waitingTask
+    await page
+      .getByRole('menu', { name: '取快递待安排操作' })
       .getByRole('menuitem', { name: '安排到今天', exact: true })
       .click();
 
@@ -630,7 +631,10 @@ test('moves an item to waiting then schedules it for today', async ({ page }) =>
   const waiting = page.locator('.waiting-task-row').filter({ hasText: '邮件处理' });
   await expect(waiting).toBeVisible();
   await waiting.getByRole('button', { name: '邮件处理更多操作' }).click();
-  await waiting.getByRole('menuitem', { name: '安排到今天', exact: true }).click();
+  await page
+    .getByRole('menu', { name: '邮件处理待安排操作' })
+    .getByRole('menuitem', { name: '安排到今天', exact: true })
+    .click();
   await expect(page.getByRole('checkbox', { name: '完成邮件处理' })).toBeVisible();
 });
 
@@ -671,7 +675,10 @@ test('manages Daily independently with planned checklist items', async ({ page }
 test('records rescheduling and waiting deletion in history', async ({ page }) => {
   const pickup = page.locator('.waiting-task-row').filter({ hasText: '取快递' });
   await pickup.getByRole('button', { name: '取快递更多操作' }).click();
-  await pickup.getByRole('menuitem', { name: '删除', exact: true }).click();
+  await page
+    .getByRole('menu', { name: '取快递待安排操作' })
+    .getByRole('menuitem', { name: '删除', exact: true })
+    .click();
   await expect(pickup).not.toBeVisible();
 
   const email = page.locator('.timeline-row').filter({ hasText: '邮件处理' });
@@ -706,7 +713,10 @@ test('can choose a future date when rescheduling', async ({ page }) => {
 test('deletes a task and restores it from trash', async ({ page }) => {
   const pickup = page.locator('.waiting-task-row').filter({ hasText: '取快递' });
   await pickup.getByRole('button', { name: '取快递更多操作' }).click();
-  await pickup.getByRole('menuitem', { name: '删除', exact: true }).click();
+  await page
+    .getByRole('menu', { name: '取快递待安排操作' })
+    .getByRole('menuitem', { name: '删除', exact: true })
+    .click();
   await openSettingsData(page);
   await expect(
     page.locator('.trash-panel').getByText('取快递', { exact: true }),

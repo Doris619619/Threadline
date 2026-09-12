@@ -5,6 +5,7 @@
 import { PlannedMinutesField } from './planned-minutes-field';
 import { Check, X } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { TaskActionsPopover } from './task-actions-popover';
 import type { QuickTaskCreateDraft } from '@/features/tasks/hooks/use-task-create-drafts';
 import type { QuickTaskDraft } from '@/features/tasks/task-drafts';
 import type { Project } from '@/types/domain';
@@ -37,12 +38,22 @@ export function WaitingTaskCreateRow({
 }) {
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
+  const projectAnchor = useRef<HTMLSelectElement>(null);
   const [saveError, setSaveError] = useState<string>();
   /** 创建项目后将其选入本行草稿，而不影响日程草稿。 */
   const addProject = async () => {
-    if (!draft.projectName.trim()) return;
-    const created = await onCreateProject(draft.projectName.trim());
-    onChange({ projectId: created.id, projectName: '', isAddingProject: false });
+    if (!draft.projectName.trim() || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      const created = await onCreateProject(draft.projectName.trim());
+      onChange({ projectId: created.id, projectName: '', isAddingProject: false });
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : '项目创建失败，请重试。');
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
   /** 空标题沿用动作层的取消结果；待安排始终以未完成状态创建。 */
   const confirm = async () => {
@@ -81,6 +92,7 @@ export function WaitingTaskCreateRow({
         style={{ position: 'relative' }}
       >
         <select
+          ref={projectAnchor}
           className="tl-inline-select project-inline-select"
           value={draft.projectId}
           onChange={(event) =>
@@ -99,19 +111,26 @@ export function WaitingTaskCreateRow({
           <option value="__new__">+ 新增项目…</option>
         </select>
         {draft.isAddingProject && (
-          <div className="project-picker-popover">
-            <div className="project-picker-new-form">
+          <TaskActionsPopover
+            anchor={projectAnchor}
+            label="创建项目"
+            align="start"
+            className="project-picker-popover task-project-popover"
+            onClose={() => onChange({ isAddingProject: false })}
+          >
+            <fieldset disabled={saving} className="project-picker-new-form">
               <input
                 placeholder="新项目名称"
                 value={draft.projectName}
                 autoFocus
                 onChange={(event) => onChange({ projectName: event.target.value })}
                 onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
+                  if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
                     event.preventDefault();
                     addProject();
                   }
-                  if (event.key === 'Escape') onChange({ isAddingProject: false });
+                  if (event.key === 'Escape' && !savingRef.current)
+                    onChange({ isAddingProject: false });
                 }}
               />
               <button
@@ -128,8 +147,8 @@ export function WaitingTaskCreateRow({
               >
                 <X size={13} />
               </button>
-            </div>
-          </div>
+            </fieldset>
+          </TaskActionsPopover>
         )}
       </div>
       <input

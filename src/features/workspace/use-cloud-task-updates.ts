@@ -1,6 +1,13 @@
 /** @fileoverview 让云端任务字段立即反馈，按任务串行保存，并隔离同步刷新与失败回滚。 */
 
-import { useCallback, useMemo, useState, type SetStateAction } from 'react';
+import {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type SetStateAction,
+} from 'react';
 import { isCancelledError, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SupabaseWorkspaceRepository } from '@/lib/supabase/workspace-repository';
 import type { Task } from '@/types/domain';
@@ -44,6 +51,10 @@ export function useCloudTaskUpdates(
     scope: typeof scope;
     rows: Map<string, Task>;
   }>();
+  const activeScope = useRef(scope);
+  useLayoutEffect(() => {
+    activeScope.current = scope;
+  }, [scope]);
   const query = useQuery({
     queryKey: scope.key,
     queryFn: () => repository.listTasks(),
@@ -51,14 +62,15 @@ export function useCloudTaskUpdates(
   const tasks = useMemo(
     () =>
       overlayTasks(
-        query.data ?? [],
+        queryClient.getQueryData<Task[]>(scope.key) ?? query.data ?? [],
         optimistic?.scope === scope ? optimistic.rows : new Map(),
       ),
-    [optimistic, query.data, scope],
+    [optimistic, query.data, queryClient, scope],
   );
 
   /** 同步发布 React 状态，受控复选框无需等待网络或 Query 的批量通知。 */
   const publishPending = useCallback(() => {
+    if (activeScope.current !== scope) return;
     setOptimistic({
       scope,
       rows: new Map([...scope.pending].map(([id, entry]) => [id, entry.latest])),
@@ -86,10 +98,19 @@ export function useCloudTaskUpdates(
 
   /** 只回写当前任务，避免较早的整表快照覆盖其他任务；失败恢复最后一次已确认值。 */
   const save = useCallback(
-    async (task: Task, entry: PendingTask) => {
+    async (task: Task, previous: Task | undefined, entry: PendingTask) => {
       let committed = false;
       try {
-        entry.confirmed = await repository.saveTask(task);
+        // 只应用本次编辑的字段，前一个流转失败时不能把其乐观状态再次写回。
+        const patch = Object.fromEntries(
+          Object.entries(task).filter(
+            ([key, value]) => value !== previous?.[key as keyof Task],
+          ),
+        );
+        entry.confirmed = await repository.saveTask({
+          ...entry.confirmed,
+          ...patch,
+        } as Task);
         committed = true;
       } catch (error) {
         onError(
@@ -142,12 +163,64 @@ export function useCloudTaskUpdates(
         };
         entry.latest = task;
         scope.pending.set(task.id, entry);
-        entry.tail = entry.tail.then(() => save(task, entry)).finally(endWrite);
+        entry.tail = entry.tail
+          .then(() => save(task, previous, entry))
+          .finally(endWrite);
       }
       publishPending();
     },
     [onError, publishPending, queryClient, save, scope],
   );
 
-  return { query, tasks, updateTasks };
+  /** 原子命令与普通编辑共用每任务队列；立即展示意图，失败恢复最后确认值。 */
+  const commitTask = useCallback(
+    (taskId: string, preview: (task: Task) => Task, operation: () => Promise<Task>) => {
+      if (!navigator.onLine) return Promise.reject(new Error('当前离线，任务未保存。'));
+      const previous =
+        scope.pending.get(taskId)?.latest ??
+        queryClient.getQueryData<Task[]>(scope.key)?.find((task) => task.id === taskId);
+      if (!previous) return Promise.reject(new Error('未找到任务，请刷新后重试。'));
+      const next = preview(previous);
+      const endWrite = beginCloudWrite();
+      const entry = scope.pending.get(taskId) ?? {
+        latest: next,
+        confirmed: previous,
+        tail: Promise.resolve(),
+      };
+      entry.latest = next;
+      scope.pending.set(taskId, entry);
+      onError(undefined);
+      publishPending();
+      const result = entry.tail.then(async () => {
+        try {
+          const saved = await operation();
+          entry.confirmed = saved;
+          return saved;
+        } catch (error) {
+          onError(error instanceof Error ? error.message : '任务操作失败，请重试。');
+          throw error;
+        } finally {
+          await queryClient.cancelQueries({ queryKey: scope.key, exact: true });
+          if (entry.latest === next) {
+            const confirmed = entry.confirmed;
+            queryClient.setQueryData<Task[]>(scope.key, (rows = []) =>
+              confirmed ? overlayTasks(rows, new Map([[taskId, confirmed]])) : rows,
+            );
+            scope.pending.delete(taskId);
+            publishPending();
+          }
+          endWrite();
+        }
+      });
+      // 调用者仍收到失败，队列本身保持可继续执行，下一次编辑可以重试。
+      entry.tail = result.then(
+        () => undefined,
+        () => undefined,
+      );
+      return result;
+    },
+    [onError, publishPending, queryClient, scope],
+  );
+
+  return { query, tasks, updateTasks, commitTask };
 }

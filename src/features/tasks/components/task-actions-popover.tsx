@@ -11,13 +11,15 @@ export function TaskActionsPopover({
   label,
   className = 'task-actions-menu',
   align = 'end',
+  role = 'group',
 }: {
-  anchor: RefObject<HTMLButtonElement | null>;
+  anchor: RefObject<HTMLElement | null>;
   children: ReactNode;
   onClose: () => void;
   label: string;
   className?: string;
   align?: 'start' | 'end';
+  role?: 'group' | 'menu';
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
@@ -47,7 +49,9 @@ export function TaskActionsPopover({
     menu.addEventListener('toggle', toggle);
     menu.showPopover();
     position();
-    menu.querySelector('button')?.focus({ preventScroll: true });
+    menu
+      .querySelector<HTMLElement>('input, button, select')
+      ?.focus({ preventScroll: true });
     window.addEventListener('resize', position);
     window.addEventListener('scroll', position, true);
     const observer = new ResizeObserver(position);
@@ -61,7 +65,7 @@ export function TaskActionsPopover({
     };
   }, [anchor, align]);
   return createPortal(
-    <div ref={ref} popover="auto" className={className} role="group" aria-label={label}>
+    <div ref={ref} popover="auto" className={className} role={role} aria-label={label}>
       {children}
     </div>,
     document.body,

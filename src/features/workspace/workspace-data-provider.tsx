@@ -29,6 +29,7 @@ export { useWorkspaceData } from '@/features/workspace/workspace-data-context';
 import { LocalWorkspaceTestAdapter } from '@/features/workspace/workspace-test-adapter';
 import { useCloudWorkstation } from '@/features/workspace/use-cloud-workstation';
 import { createCloudTask } from '@/features/workspace/create-cloud-task';
+import { createWorkspaceRealtimeRefresh } from './workspace-realtime-refresh';
 import { useCloudTaskUpdates } from '@/features/workspace/use-cloud-task-updates';
 import { usesLocalWorkspace } from '@/lib/workspace-runtime';
 import { useAnnotationStrokes } from '@/hooks/use-annotation-strokes';
@@ -94,6 +95,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     query: tasksQuery,
     tasks,
     updateTasks,
+    commitTask,
   } = useCloudTaskUpdates(ownerKey, repository, setMutationError);
   const taskTimeEntriesQuery = useQuery({
     queryKey: ['workspace', ownerKey, 'task-time-entries'],
@@ -189,7 +191,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
   }, [tasks, tasksQuery.isSuccess, updateAnnotationStrokes]);
 
   useEffect(() => {
-    const invalidate = () => void invalidateWorkspace();
+    const refresh = createWorkspaceRealtimeRefresh(queryClient, ownerKey);
     const tables = [
       'projects',
       'tasks',
@@ -207,6 +209,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     let active = true;
     let channel = client.channel(`workspace:${ownerKey}`);
     for (const table of tables) {
+      const invalidate = () => refresh.notify(table);
       channel = channel
         .on(
           'postgres_changes',
@@ -250,9 +253,10 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     });
     return () => {
       active = false;
+      refresh.dispose();
       void client.removeChannel(channel);
     };
-  }, [client, invalidateWorkspace, ownerKey, setRealtimeStatus]);
+  }, [client, invalidateWorkspace, ownerKey, queryClient, setRealtimeStatus]);
 
   const updateProjects: Dispatch<SetStateAction<Project[]>> = useCallback(
     (action) => {
@@ -433,10 +437,36 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       try {
         if (!navigator.onLine) throw new Error('当前离线，无法提交任务流转。');
         setMutationError(undefined);
-        const task = await repository.transitionTask(taskId, transition, targetDate);
-        queryClient.setQueryData<Task[]>(
-          ['workspace', ownerKey, 'tasks'],
-          (current = []) => current.map((item) => (item.id === task.id ? task : item)),
+        const task = await commitTask(
+          taskId,
+          (current) => ({
+            ...current,
+            status:
+              transition === 'scheduled' || transition === 'rescheduled'
+                ? 'active'
+                : transition,
+            date:
+              transition === 'scheduled' || transition === 'rescheduled'
+                ? targetDate
+                : transition === 'waiting'
+                  ? undefined
+                  : current.date,
+            schedulePendingTime:
+              transition === 'scheduled'
+                ? true
+                : transition === 'waiting'
+                  ? false
+                  : current.schedulePendingTime,
+            plannedStartTime:
+              transition === 'scheduled' || transition === 'waiting'
+                ? undefined
+                : current.plannedStartTime,
+            plannedEndTime:
+              transition === 'scheduled' || transition === 'waiting'
+                ? undefined
+                : current.plannedEndTime,
+          }),
+          () => repository.transitionTask(taskId, transition, targetDate),
         );
         if (transition === 'trashed') {
           updateAnnotationStrokes((current) =>
@@ -447,38 +477,50 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
             (current = []) => current.filter((id) => id !== taskId),
           );
         }
-        await Promise.all([
+        void Promise.all([
           queryClient.invalidateQueries({
             queryKey: ['workspace', ownerKey, 'history'],
           }),
           queryClient.invalidateQueries({
             queryKey: ['workspace', ownerKey, 'workstation'],
           }),
-        ]);
+        ]).catch(() =>
+          setMutationError('任务已更新，但关联记录刷新失败，请重新加载。'),
+        );
         return task;
       } catch (error) {
         setMutationError(error instanceof Error ? error.message : '任务流转失败');
         throw error;
       }
     },
-    [ownerKey, queryClient, repository, updateAnnotationStrokes],
+    [commitTask, ownerKey, queryClient, repository, updateAnnotationStrokes],
   );
 
   /** 完成待安排任务时由数据库先补齐本地业务日，再触发完成历史写入。 */
   const completeWaitingTask = useCallback(
     async (taskId: string, completedDate: string) => {
       if (!navigator.onLine) throw new Error('当前离线，无法完成待安排任务。');
-      const task = await repository.completeWaitingTask(taskId, completedDate);
-      queryClient.setQueryData<Task[]>(
-        ['workspace', ownerKey, 'tasks'],
-        (current = []) => current.map((item) => (item.id === task.id ? task : item)),
+      const task = await commitTask(
+        taskId,
+        (current) => ({
+          ...current,
+          status: 'active',
+          completed: true,
+          date: completedDate,
+          schedulePendingTime: false,
+          plannedStartTime: undefined,
+          plannedEndTime: undefined,
+        }),
+        () => repository.completeWaitingTask(taskId, completedDate),
       );
-      await queryClient.invalidateQueries({
-        queryKey: ['workspace', ownerKey, 'history'],
-      });
+      void queryClient
+        .invalidateQueries({
+          queryKey: ['workspace', ownerKey, 'history'],
+        })
+        .catch(() => setMutationError('任务已完成，但历史刷新失败，请重新加载。'));
       return task;
     },
-    [ownerKey, queryClient, repository],
+    [commitTask, ownerKey, queryClient, repository],
   );
 
   const recordDaily = useCallback(

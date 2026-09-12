@@ -283,3 +283,110 @@ describe('cloud task save feedback', () => {
     ).toBe(true);
   });
 });
+
+it('moves a task before the command resolves, isolates stale reads and rolls back on failure', async () => {
+  const waiting = { ...task(), status: 'waiting' as const, date: undefined };
+  const ctx = setup([waiting]);
+  const hook = renderHook(
+    () => useCloudTaskUpdates('owner', ctx.repository, ctx.onError),
+    { wrapper: ctx.wrapper },
+  );
+  const request = deferred<Task>();
+  let result!: Promise<Task>;
+  act(() => {
+    result = hook.result.current.commitTask(
+      waiting.id,
+      (row) => ({ ...row, status: 'active', date: '2026-09-12' }),
+      () => request.promise,
+    );
+  });
+  const failure = result.catch(() => undefined);
+  expect(hook.result.current.tasks[0].status).toBe('active');
+  await act(() =>
+    ctx.client.invalidateQueries({ queryKey: ['workspace', 'owner', 'tasks'] }),
+  );
+  expect(hook.result.current.tasks[0].status).toBe('active');
+  await act(async () => {
+    request.reject(new Error('拒绝安排'));
+    await failure;
+  });
+  expect(hook.result.current.tasks[0].status).toBe('waiting');
+  const confirmed = { ...waiting, status: 'active' as const, date: '2026-09-12' };
+  await act(async () => {
+    await hook.result.current.commitTask(
+      waiting.id,
+      () => confirmed,
+      async () => confirmed,
+    );
+  });
+  expect(hook.result.current.tasks[0]).toEqual(confirmed);
+});
+
+it('serializes field edits behind a failed command without saving its rejected status', async () => {
+  const waiting = { ...task(), status: 'waiting' as const, date: undefined };
+  const ctx = setup([waiting]);
+  const hook = renderHook(
+    () => useCloudTaskUpdates('owner', ctx.repository, ctx.onError),
+    { wrapper: ctx.wrapper },
+  );
+  const request = deferred<Task>();
+  let failure!: Promise<unknown>;
+  act(() => {
+    failure = hook.result.current
+      .commitTask(
+        waiting.id,
+        (row) => ({ ...row, status: 'active', date: '2026-09-12' }),
+        () => request.promise,
+      )
+      .catch(() => undefined);
+  });
+  act(() =>
+    hook.result.current.updateTasks((rows) =>
+      rows.map((row) => ({ ...row, title: '后续修改' })),
+    ),
+  );
+  expect(ctx.repository.saveTask).not.toHaveBeenCalled();
+  await act(async () => {
+    request.reject(new Error('失败'));
+    await failure;
+  });
+  await waitFor(() => expect(ctx.writes).toHaveLength(1));
+  expect(ctx.repository.saveTask.mock.calls[0][0]).toMatchObject({
+    title: '后续修改',
+    status: 'waiting',
+    date: undefined,
+  });
+  await act(async () =>
+    ctx.writes[0].resolve(ctx.repository.saveTask.mock.calls[0][0]),
+  );
+  expect(hook.result.current.tasks[0]).toMatchObject({
+    title: '后续修改',
+    status: 'waiting',
+  });
+});
+
+it('a previous account response cannot clear the current account pending edit', async () => {
+  const ctx = setup();
+  const hook = renderHook(
+    ({ owner }) => useCloudTaskUpdates(owner, ctx.repository, ctx.onError),
+    { wrapper: ctx.wrapper, initialProps: { owner: 'owner' } },
+  );
+  act(() =>
+    hook.result.current.updateTasks((rows) =>
+      rows.map((row) => ({ ...row, completed: true })),
+    ),
+  );
+  await waitFor(() => expect(ctx.writes).toHaveLength(1));
+  ctx.client.setQueryDefaults(['workspace', 'other', 'tasks'], { staleTime: Infinity });
+  ctx.client.setQueryData(['workspace', 'other', 'tasks'], [task('two')]);
+  hook.rerender({ owner: 'other' });
+  act(() =>
+    hook.result.current.updateTasks((rows) =>
+      rows.map((row) => ({ ...row, title: '新账号草稿' })),
+    ),
+  );
+  await waitFor(() => expect(ctx.writes).toHaveLength(2));
+  await act(async () => ctx.writes[0].resolve({ ...task(), completed: true }));
+  expect(hook.result.current.tasks[0].title).toBe('新账号草稿');
+  await act(async () => ctx.writes[1].resolve({ ...task('two'), title: '新账号草稿' }));
+});

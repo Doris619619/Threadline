@@ -6,7 +6,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { RhythmStateProvider, useRhythmState } from '@/features/rhythm/rhythm-state';
 
 const mocks = vi.hoisted(() => ({
-  listPeriods: vi.fn(async () => []),
+  listPeriods: vi.fn(
+    async (): Promise<import('@/features/rhythm/period-rules').PeriodRecord[]> => [],
+  ),
   savePeriod: vi.fn(),
   deletePeriod: vi.fn(),
   listRhythmMarks: vi.fn(async () => ({})),
@@ -66,4 +68,23 @@ describe('cloud period offline recovery', () => {
     await waitFor(() => expect(result.current.error).toBeUndefined());
     expect(mocks.listPeriods).toHaveBeenCalled();
   });
+});
+
+it('finishes a confirmed period save without waiting for another list request', async () => {
+  const saved = {
+    id: 'period',
+    startDate: '2026-01-02',
+    createdAt: '2026-01-02',
+    updatedAt: '2026-01-02',
+  };
+  mocks.savePeriod.mockResolvedValueOnce(saved);
+  const { result } = setup();
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  const reads = mocks.listPeriods.mock.calls.length;
+  mocks.listPeriods.mockImplementationOnce(() => new Promise(() => {}));
+  await act(async () =>
+    result.current.save({ id: saved.id, startDate: saved.startDate }),
+  );
+  await waitFor(() => expect(result.current.periods).toEqual([saved]));
+  expect(mocks.listPeriods).toHaveBeenCalledTimes(reads);
 });
