@@ -48,6 +48,7 @@
     "test:sql:static": "node scripts/verify-supabase-contract.mjs"
   },
   "dependencies": {
+    "@js-temporal/polyfill": "^0.5.1",
     "@supabase/supabase-js": "^2.112.3",
     "@tanstack/react-query": "^5.101.4",
     "date-fns": "^4.4.0",

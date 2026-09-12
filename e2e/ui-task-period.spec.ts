@@ -33,6 +33,13 @@ for (const [label, selector, image] of [
     await openWorkspaceSection(page, label);
     await expect(page.locator(selector)).toBeVisible();
     await expectNoUnexpectedHorizontalOverflow(page);
+    if (image === 'insights') {
+      await page
+        .locator('.recharts-wrapper')
+        .first()
+        .hover({ position: { x: 80, y: 80 } });
+      await expect(page.locator('.recharts-default-tooltip')).toBeVisible();
+    }
     expect(
       (await new AxeBuilder({ page }).include(selector).analyze()).violations,
     ).toEqual([]);

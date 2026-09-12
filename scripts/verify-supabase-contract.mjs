@@ -237,11 +237,27 @@ requirePattern(
   /set constraints workstation_owner_position_key deferred/i,
   'atomic reorder defer',
 );
-if (!/tasks_state_shape_check[\s\S]*?status <> 'waiting'[\s\S]*?scheduled_date is null[\s\S]*?status <> 'active'[\s\S]*?scheduled_date is not null/is.test(waitingTaskMigration))
-  throw new Error('Supabase contract missing: waiting and active state shape constraints');
-if (!/p_transition not in \('scheduled', 'rescheduled', 'waiting', 'abandoned', 'trashed'\)[\s\S]*?update public\.tasks as tasks set[\s\S]*?schedule_pending_time[\s\S]*?planned_start_time[\s\S]*?planned_end_time[\s\S]*?planned_duration_minutes/is.test(waitingTaskMigration))
-  throw new Error('Supabase contract missing: atomic waiting and scheduled transition shape');
-if (!/create or replace function public\.complete_waiting_task[\s\S]*?update public\.tasks set status = 'active', scheduled_date = p_completed_date[\s\S]*?completed = true/is.test(waitingTaskMigration))
+if (
+  !/tasks_state_shape_check[\s\S]*?status <> 'waiting'[\s\S]*?scheduled_date is null[\s\S]*?status <> 'active'[\s\S]*?scheduled_date is not null/is.test(
+    waitingTaskMigration,
+  )
+)
+  throw new Error(
+    'Supabase contract missing: waiting and active state shape constraints',
+  );
+if (
+  !/p_transition not in \('scheduled', 'rescheduled', 'waiting', 'abandoned', 'trashed'\)[\s\S]*?update public\.tasks as tasks set[\s\S]*?schedule_pending_time[\s\S]*?planned_start_time[\s\S]*?planned_end_time[\s\S]*?planned_duration_minutes/is.test(
+    waitingTaskMigration,
+  )
+)
+  throw new Error(
+    'Supabase contract missing: atomic waiting and scheduled transition shape',
+  );
+if (
+  !/create or replace function public\.complete_waiting_task[\s\S]*?update public\.tasks set status = 'active', scheduled_date = p_completed_date[\s\S]*?completed = true/is.test(
+    waitingTaskMigration,
+  )
+)
   throw new Error('Supabase contract missing: atomic waiting completion attribution');
 requirePattern(
   /security definer\s+set search_path = pg_catalog/is,
@@ -337,9 +353,50 @@ if (
   );
 rejectPattern(/annotation_strokes/i, 'Annotation must remain local-only');
 rejectPattern(/status\s*=\s*'purged'|\b'purged'\b/i, 'purged is not a TaskStatus');
-rejectPattern(
-  /expected_?version|\bversion\s+(?:integer|bigint)/i,
-  'version conflicts are out of scope',
+// 旧工作区继续 last-write-wins；仅独立习惯领域采用显式版本冲突，不扩大旧模型边界。
+const legacyMigrations = (
+  await Promise.all(
+    migrationFiles
+      .filter((name) => !name.endsWith('_habits.sql'))
+      .map((name) => readFile(join(migrationsDirectory, name), 'utf8')),
+  )
+).join('\n');
+if (/expected_?version|\bversion\s+(?:integer|bigint)/i.test(legacyMigrations))
+  throw new Error(
+    'Supabase contract violation: version conflicts remain out of scope for the legacy workspace',
+  );
+const habitMigration = await readFile(
+  join(migrationsDirectory, '202609120001_habits.sql'),
+  'utf8',
 );
+for (const table of [
+  'habit_settings',
+  'habit_rule_versions',
+  'habit_entries',
+  'habit_entry_revisions',
+]) {
+  requireDefinitionPattern(
+    habitMigration,
+    new RegExp(`alter table public\\.${table} enable row level security`, 'i'),
+    `${table} has owner RLS`,
+  );
+}
+requireDefinitionPattern(
+  habitMigration,
+  /foreign key \(owner_id, rule_id\)/i,
+  'habit rules belong to the same account',
+);
+requireDefinitionPattern(
+  habitMigration,
+  /pg_advisory_xact_lock[\s\S]*HABIT_CONFLICT_ENTRY/i,
+  'habit writes serialize and reject stale versions',
+);
+requireDefinitionPattern(
+  habitMigration,
+  /insert into public\.habit_entry_revisions[\s\S]*to_jsonb\(saved\)/i,
+  'habit writes retain revision snapshots',
+);
+if (/grant\s+(?:insert|update|delete)[^;]*to authenticated/i.test(habitMigration))
+  throw new Error('Habit tables cannot grant direct client writes');
 
 console.log('Verified static Supabase architecture contract.');

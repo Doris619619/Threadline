@@ -2,6 +2,14 @@
 
 # 测试架构
 
+## 习惯 V1
+
+`tests/habit-rules.test.ts` 覆盖跨午夜、04:00、DST、历史目标、缺失分母与平均值；`habit-local-repository.test.ts` 覆盖事务、精度、冲突及恢复；`habit-state.test.tsx` 覆盖首次反馈、稳定重试、陈旧读取、离线和账号离开；`habit-repository.test.ts` 验证云读取分页、账号过滤和 RPC 参数。纯规则与两个仓储均纳入业务 coverage gate。
+
+`e2e/habits.spec.ts` 在桌面、手机和 iPhone WebKit 验证直接导航、三项记录、历史补录、独立分界、刷新恢复及 axe。`supabase/tests/habits.test.sql` 为后续数据库环境保留 pgTAP 契约；本次用户明确跳过本地数据库启动与验证，SQL 静态检查不能被写作数据库实测通过。
+
+`ui-habits.spec.ts` 只在布局项目中执行，检查四主题明暗切换、输入字号、焦点和横向溢出。使用固定时钟推进主题刷新，不等待无限装饰动画；Safari 焦点恢复通过键盘打开弹窗验证。`test-packaged-electron.mjs` 在隔离适配器分支验证习惯页动态 chunk、打卡刷新和工作站切换，真实云登录分支不写数据。当前实际结果与未测范围见 [习惯验收记录](habits.md#本次验收记录)。
+
 Threadline 的测试目标是阻止功能、云端边界、桌面壳和明显布局回归，同时不把尚未定稿的视觉设计冻结成 screenshot baseline。本文件描述每层负责什么；同一行为不应为了提高测试数量而在所有层重复。
 
 ## 分层与命令

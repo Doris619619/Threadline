@@ -22,7 +22,11 @@ const defaultWebTestIgnore = [
 function desktopLayoutProject(name: string, width: number, height: number) {
   return {
     name,
-    testMatch: ['**/ui-layout-matrix.spec.ts', '**/ui-task-period.spec.ts'],
+    testMatch: [
+      '**/ui-layout-matrix.spec.ts',
+      '**/ui-task-period.spec.ts',
+      '**/ui-habits.spec.ts',
+    ],
     use: {
       ...devices['Desktop Chrome'],
       channel: 'chrome',
@@ -35,7 +39,11 @@ function desktopLayoutProject(name: string, width: number, height: number) {
 function mobileLayoutProject(name: string, width: number, height: number) {
   return {
     name,
-    testMatch: ['**/ui-layout-matrix.spec.ts', '**/ui-task-period.spec.ts'],
+    testMatch: [
+      '**/ui-layout-matrix.spec.ts',
+      '**/ui-task-period.spec.ts',
+      '**/ui-habits.spec.ts',
+    ],
     use: {
       ...devices['iPhone 13'],
       browserName: 'chromium',
@@ -78,6 +86,7 @@ export default defineConfig({
         '**/cottage.spec.ts',
         '**/classic.spec.ts',
         '**/interaction-feedback.spec.ts',
+        '**/habits.spec.ts',
       ],
       use: { ...devices['iPhone 13'], browserName: 'webkit' },
     },
@@ -126,7 +135,11 @@ export default defineConfig({
     mobileFormControlsProject(),
     {
       name: 'ui-layout-iphone-webkit',
-      testMatch: ['**/ui-layout-matrix.spec.ts', '**/ui-task-period.spec.ts'],
+      testMatch: [
+        '**/ui-layout-matrix.spec.ts',
+        '**/ui-task-period.spec.ts',
+        '**/ui-habits.spec.ts',
+      ],
       use: { ...devices['iPhone 13'], browserName: 'webkit' },
     },
   ],

@@ -1,0 +1,439 @@
+/* 文件用途：习惯页的紧凑打卡、时间趋势、月历及表单响应式样式；颜色继承所有外观主题。 */
+.habits-panel {
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px;
+  color: var(--text-primary);
+}
+/* WebKit 切换根主题时直接解析文本 token，避免深层继承保留上一明暗模式的颜色。 */
+.habits-panel :where(h1, h2, h3, p, strong, span, time, summary) {
+  color: var(--text-primary);
+}
+.habit-page-header,
+.habit-today > header,
+.habit-trend > header,
+.habit-efficiency-trend > header,
+.habit-history > header,
+.habit-editor-section > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.habit-page-header {
+  margin-bottom: 24px;
+}
+.habit-page-header h1 {
+  margin: 0;
+  font-size: var(--font-size-page, 26px);
+}
+.habits-panel h2,
+.habit-editor h3,
+.habit-settings-form h3 {
+  color: var(--text-primary);
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+.habits-panel button,
+.habit-editor button,
+.habit-settings-form button {
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.habits-panel button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.habit-page-header > button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.habit-caption,
+.habit-check-label small,
+.habit-record-value small,
+.habit-efficiency-row small {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.habit-today {
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 20px;
+  background: var(--surface);
+}
+.habit-today > header {
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.habit-today h2 time {
+  margin-left: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 400;
+}
+.habit-check-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto 80px;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.habit-check-row > svg {
+  color: var(--accent);
+}
+.habit-check-label,
+.habit-record-value,
+.habit-efficiency-row > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.habit-record-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.habit-record-value > strong {
+  font-size: 21px;
+  white-space: nowrap;
+}
+.habit-check-row .habit-record-button {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border-color: var(--accent);
+}
+.habit-efficiency-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 16px;
+}
+.habit-segments {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 3px;
+  border: 1px solid var(--border);
+}
+.habit-segments button {
+  border: 0;
+  background: transparent;
+  min-width: 44px;
+}
+.habit-segments button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+.habit-statistics,
+.habit-history {
+  margin-top: 32px;
+}
+.habit-range-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.habit-range-header h2 {
+  margin-right: auto;
+}
+.habit-range-navigation {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.habit-range-navigation button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 8px;
+}
+.habit-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 22px 0 10px;
+}
+.habit-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px;
+  border-left: 1px solid var(--border);
+}
+.habit-summary > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+.habit-summary > div > span,
+.habit-summary small {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.habit-summary strong {
+  font-size: 30px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.habit-summary strong small {
+  margin-left: 4px;
+}
+.habit-trends {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+.habit-trend {
+  min-width: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.habit-average {
+  font-size: 26px;
+  margin: 12px 0;
+  font-variant-numeric: tabular-nums;
+}
+.habit-average small {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.habit-chart {
+  min-width: 0;
+  width: 100%;
+}
+.habit-tooltip {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: var(--surface);
+  color: var(--text-primary);
+}
+.habit-tooltip p {
+  margin: 4px 0;
+}
+.habit-values summary,
+.habit-editor summary {
+  min-height: 44px;
+  padding: 12px 0;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.habit-values ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.habit-values button {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+.habit-efficiency-trend,
+.habit-regularity {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.habit-status-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 14px;
+}
+.habit-status-days button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 2px;
+}
+.habit-status-days small {
+  color: var(--text-primary);
+  font-size: 11px;
+}
+.habit-status-days [data-status='good'],
+.habit-calendar [data-status='好'],
+.habit-calendar [data-status='达标'] {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+}
+.habit-status-days [data-status='poor'],
+.habit-calendar [data-status='差'],
+.habit-calendar [data-status='很晚'] {
+  border-style: dashed;
+  border-width: 2px;
+}
+.habit-regularity p {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  font-size: 13px;
+}
+.habit-history > .habit-segments {
+  margin: 12px 0;
+}
+.habit-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.habit-weekday {
+  padding: 8px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.habit-calendar button {
+  min-width: 0;
+  min-height: 62px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+}
+.habit-calendar button[data-outside='true'] {
+  border-style: dashed;
+  background: transparent;
+}
+.habit-calendar button[data-today='true'] {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.habit-calendar small {
+  font-size: 11px;
+  color: var(--text-primary);
+}
+.habit-message {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+.habit-message p {
+  margin-top: 0;
+}
+.habit-editor,
+.habit-settings-form {
+  width: 100%;
+  min-width: 0;
+}
+.habit-editor-section {
+  padding: 12px 0 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+.habit-editor label,
+.habit-settings-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+.habit-editor input,
+.habit-editor select,
+.habit-settings-form input,
+.habit-settings-form select {
+  min-height: 44px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 16px;
+  background: var(--surface);
+  color: var(--text-primary);
+}
+.habit-boundary > div {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) minmax(100px, 1fr);
+  gap: 8px;
+}
+.habit-boundary > div > input:only-child {
+  grid-column: 1 / -1;
+}
+.habit-rule-preview {
+  padding-left: 20px;
+  line-height: 1.9;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.habit-recovery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+@media (max-width: 760px) {
+  .habits-panel {
+    padding: 16px 12px 28px;
+  }
+  .habit-page-header {
+    margin-bottom: 16px;
+  }
+  .habit-today {
+    padding: 14px 12px;
+  }
+  .habit-check-row {
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  .habit-check-row > button {
+    grid-column: 2 / -1;
+  }
+  .habit-check-label small {
+    font-size: 11px;
+  }
+  .habit-record-value > strong {
+    font-size: 19px;
+  }
+  .habit-efficiency-row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .habit-range-navigation {
+    flex-wrap: wrap;
+  }
+  .habit-range-header > .habit-range-navigation {
+    flex-basis: 100%;
+    justify-content: space-between;
+  }
+  .habit-summary > div {
+    padding: 0 8px;
+  }
+  .habit-summary strong {
+    font-size: 26px;
+  }
+  .habit-summary small {
+    font-size: 11px;
+  }
+  .habit-trends {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .habit-calendar,
+  .habit-status-days {
+    gap: 3px;
+  }
+  .habit-calendar button {
+    min-height: 54px;
+  }
+}
