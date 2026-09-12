@@ -400,19 +400,14 @@ export function TaskDashboard() {
                         task={task}
                         projects={workspaceProjects}
                         onEdit={() => open(task, 'waiting')}
-                        onDelete={(id) => move(id, 'trashed')}
+                        onDelete={(id) => transitionTask(id, 'trashed')}
                         onSchedule={(id, date) => {
-                          void transitionTask(id, 'scheduled', date)
-                            .then(() => {
-                              if (date === getLocalDateKey())
-                                setAutoFocusTimeTaskId(id);
-                            })
-                            .catch(() => undefined);
+                          const pending = transitionTask(id, 'scheduled', date);
+                          if (date === getLocalDateKey()) setAutoFocusTimeTaskId(id);
+                          return pending;
                         }}
                         onComplete={(id) => {
-                          void completeWaitingTask(id, getLocalDateKey()).catch(
-                            () => undefined,
-                          );
+                          return completeWaitingTask(id, getLocalDateKey());
                         }}
                       />
                     ))}

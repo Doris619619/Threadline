@@ -5,9 +5,11 @@
 'use client';
 
 import { Check, Plus, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useGuardedAction } from '@/hooks/use-guarded-action';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ProjectTag } from '@/components/ui/project-tag';
+import { TaskActionsPopover } from './task-actions-popover';
 import { TaskRowActions } from '@/features/tasks/components/task-row-actions';
 import {
   formatMinutes,
@@ -76,7 +78,12 @@ export function TaskLine({
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [timeError, setTimeError] = useState<string>();
-  const projectPickerRef = useRef<HTMLDivElement>(null);
+  const projectPickerRef = useRef<HTMLButtonElement>(null);
+  const projectAction = useGuardedAction();
+  const latestTask = useRef(task);
+  useLayoutEffect(() => {
+    latestTask.current = task;
+  }, [task]);
 
   useEffect(() => {
     if (!autoFocusTime) return;
@@ -87,36 +94,22 @@ export function TaskLine({
     return () => window.cancelAnimationFrame(frame);
   }, [autoFocusTime, onTimeFocused]);
 
-  useEffect(() => {
-    if (editingField !== 'project') return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        projectPickerRef.current &&
-        !projectPickerRef.current.contains(e.target as Node)
-      ) {
-        setEditingField(undefined);
-        setIsAddingProject(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [editingField]);
-
   /** 根据名称创建项目并写回当前任务归属。 */
-  const handleCreateProject = async () => {
-    if (!newProjectName.trim() || !onAddProject) return;
-    const created = await onAddProject(newProjectName.trim());
-    if (created) {
-      onUpdate({
-        ...task,
-        projectId: created.id,
-        updatedAt: new Date().toISOString(),
-      });
-    }
-    setNewProjectName('');
-    setIsAddingProject(false);
-    setEditingField(undefined);
-  };
+  const handleCreateProject = () =>
+    projectAction.run(async () => {
+      if (!newProjectName.trim() || !onAddProject) return;
+      const created = await onAddProject(newProjectName.trim());
+      if (created) {
+        onUpdate({
+          ...latestTask.current,
+          projectId: created.id,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      setNewProjectName('');
+      setIsAddingProject(false);
+      setEditingField(undefined);
+    });
 
   /**
    * 保存时间输入；非法值绝不写库，主动清空也保留在日程的待填时间状态。
@@ -322,15 +315,25 @@ export function TaskLine({
     ));
 
   const projectNode = (
-    <div className="task-project-cell" ref={projectPickerRef}>
+    <div className="task-project-cell">
       {editingField === 'project' ? (
-        <div className="project-picker-popover">
+        <TaskActionsPopover
+          anchor={projectPickerRef}
+          className="project-picker-popover task-project-popover"
+          align="start"
+          label={`${task.title}选择项目`}
+          onClose={() => {
+            setEditingField(undefined);
+            setIsAddingProject(false);
+          }}
+        >
           <div className="project-picker-list">
             {projects
               .filter((p) => p.status === 'active' || p.id === task.projectId)
               .map((p) => (
                 <button
                   key={p.id}
+                  disabled={projectAction.busy}
                   type="button"
                   className={cn(
                     'project-picker-item',
@@ -353,14 +356,17 @@ export function TaskLine({
             <>
               <div className="project-picker-divider" />
               {isAddingProject ? (
-                <div className="project-picker-new-form">
+                <fieldset
+                  className="project-picker-new-form"
+                  disabled={projectAction.busy}
+                >
                   <input
                     placeholder="新项目名称"
                     value={newProjectName}
                     autoFocus
                     onChange={(e) => setNewProjectName(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                         e.preventDefault();
                         handleCreateProject();
                       }
@@ -385,7 +391,7 @@ export function TaskLine({
                   >
                     <X size={13} />
                   </button>
-                </div>
+                </fieldset>
               ) : (
                 <button
                   type="button"
@@ -397,18 +403,31 @@ export function TaskLine({
               )}
             </>
           )}
-        </div>
+          {projectAction.busy && <small role="status">正在创建项目…</small>}
+          {projectAction.error && (
+            <p className="form-error" role="alert">
+              {projectAction.error}
+            </p>
+          )}
+        </TaskActionsPopover>
       ) : null}
-      <span
-        className="tl-clickable-cell"
-        onClick={() => setEditingField('project')}
-        title="点击切换所属项目或新增项目"
+      <button
+        type="button"
+        ref={projectPickerRef}
+        className="tl-clickable-cell task-project-trigger"
+        disabled={interactionLocked}
+        aria-label={`${task.title}所属项目：${project?.name ?? '未配置项目'}`}
+        aria-expanded={editingField === 'project'}
+        onClick={() =>
+          setEditingField(editingField === 'project' ? undefined : 'project')
+        }
+        title={`所属项目：${project?.name ?? '未配置项目'}，点击切换`}
       >
         <ProjectTag
           name={project?.name ?? '未配置项目'}
           color={project?.color ?? '#8793a7'}
         />
-      </span>
+      </button>
     </div>
   );
 

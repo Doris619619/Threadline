@@ -2,13 +2,16 @@
 
 'use client';
 
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useId, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 type ManagementDialogProps = {
   title: string;
   children: ReactNode;
   onClose: () => void;
   initialFocusSelector?: string;
+  busy?: boolean;
+  error?: string;
 };
 
 /** 返回 Dialog 内可通过键盘获得焦点的启用控件，供初始聚焦与 Tab 环绕共用。 */
@@ -17,7 +20,9 @@ function getFocusableElements(container: HTMLElement): HTMLElement[] {
     ...container.querySelectorAll<HTMLElement>(
       'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
     ),
-  ].filter((element) => !element.hasAttribute('aria-hidden'));
+  ].filter(
+    (element) => !element.hasAttribute('aria-hidden') && !element.matches(':disabled'),
+  );
 }
 
 /**
@@ -29,15 +34,19 @@ export function ManagementDialog({
   children,
   onClose,
   initialFocusSelector = '[data-management-initial-focus]',
+  busy = false,
+  error,
 }: ManagementDialogProps) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
 
-  useEffect(() => {
-    closeRef.current = onClose;
-  }, [onClose]);
+  useLayoutEffect(() => {
+    closeRef.current = () => {
+      if (!busy) onClose();
+    };
+  }, [busy, onClose]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -82,11 +91,12 @@ export function ManagementDialog({
     };
   }, [initialFocusSelector]);
 
-  return (
+  return createPortal(
     <div className="manager-dialog-backdrop">
       <section
         aria-labelledby={titleId}
         aria-modal="true"
+        aria-busy={busy}
         className="manager-dialog"
         ref={dialogRef}
         role="dialog"
@@ -94,12 +104,21 @@ export function ManagementDialog({
       >
         <header>
           <h2 id={titleId}>{title}</h2>
-          <button aria-label="关闭" onClick={onClose} type="button">
+          <button aria-label="关闭" disabled={busy} onClick={onClose} type="button">
             ×
           </button>
         </header>
-        {children}
+        <fieldset className="manager-dialog-fields" disabled={busy}>
+          {children}
+        </fieldset>
+        {busy && <p role="status">正在保存…</p>}
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        )}
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }

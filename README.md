@@ -86,7 +86,7 @@ pnpm dev
 | 想了解什么               | 从这里开始                                                                                                          |
 | :----------------------- | :------------------------------------------------------------------------------------------------------------------ |
 | 本地启动、命令与目录结构 | [开发与运行指南](docs/development.md)                                                                               |
-| 任务、Daily 与交互规则   | [产品与交互参考](docs/interaction-reference.md)                                                                     |
+| 任务、Daily 与交互规则   | [产品与交互参考](docs/interaction-reference.md) · [交互反馈](docs/interaction-feedback.md)                                                                     |
 | 主题与字体               | [外观说明](docs/appearance.md) · [皮卡小屋](docs/pixel-cottage.md) · [皮卡经典](docs/pika-classic.md)               |
 | Windows 构建与发布       | [本地打包](docs/WINDOWS_BUILD.md) · [自动更新](docs/desktop-auto-update.md)                                         |
 | 云端部署与数据           | [Supabase / Vercel](docs/supabase-deployment.md) · [数据完整性](docs/data-integrity.md)                             |

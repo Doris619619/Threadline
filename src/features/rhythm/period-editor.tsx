@@ -1,6 +1,6 @@
 /** @fileoverview 生理期短表单：补录、结束和修改共用可访问对话框，失败时保留输入。 */
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ManagementDialog } from '@/components/ui/management-dialog';
 import type { PeriodDraft } from './period-rules';
 
@@ -25,11 +25,13 @@ export function PeriodEditor({
   const [start, setStart] = useState(initial.startDate);
   const [end, setEnd] = useState(initial.endDate ?? '');
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const [error, setError] = useState<string>();
   const [deleting, setDeleting] = useState(false);
   /** 不关闭失败表单，以便网络恢复或更正日期后重试。 */
   const commit = async () => {
-    if (busy) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     setError(undefined);
     try {
@@ -40,11 +42,13 @@ export function PeriodEditor({
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '保存失败，请重试');
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
   return (
     <ManagementDialog
+      busy={busy}
       title={deleting ? '删除这次记录？' : title}
       onClose={() => {
         if (!busy) onClose();

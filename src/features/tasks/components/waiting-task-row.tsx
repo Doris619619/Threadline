@@ -4,7 +4,10 @@
 
 import { CalendarDays, MoreHorizontal, Trash2 } from 'lucide-react';
 import { formatEstimate } from '../task-time';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useGuardedAction } from '@/hooks/use-guarded-action';
+import { ManagementDialog } from '@/components/ui/management-dialog';
+import { TaskActionsPopover } from './task-actions-popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ProjectTag } from '@/components/ui/project-tag';
 import { addLocalDateDays, getLocalDateKey } from '@/lib/local-date';
@@ -21,24 +24,40 @@ export function WaitingTaskRow({
 }: {
   projects: Project[];
   task: Task;
-  onComplete: (taskId: string) => void;
-  onDelete: (taskId: string) => void;
+  onComplete: (taskId: string) => Promise<unknown> | void;
+  onDelete: (taskId: string) => Promise<unknown> | void;
   onEdit: () => void;
-  onSchedule: (taskId: string, date: string) => void;
+  onSchedule: (taskId: string, date: string) => Promise<unknown> | void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
+  const anchor = useRef<HTMLButtonElement>(null);
+  const { busy, error, run } = useGuardedAction();
+  /** 动作启动即收起菜单；失败保留任务和日期，允许明确重试。 */
+  const submit = (action: () => Promise<unknown> | void) => {
+    setMenuOpen(false);
+    void run(async () => {
+      await action();
+      setDateOpen(false);
+    });
+  };
   const project = projects.find((item) => item.id === task.projectId);
   const today = getLocalDateKey();
   const tomorrow = addLocalDateDays(today, 1);
   return (
-    <div className="waiting-task-row">
+    <div className="waiting-task-row" aria-busy={busy}>
       <Checkbox
         aria-label={`完成${task.title}`}
         checked={false}
-        onChange={() => onComplete(task.id)}
+        disabled={busy}
+        onChange={() => submit(() => onComplete(task.id))}
       />
-      <button type="button" className="waiting-task-main" onClick={onEdit}>
+      <button
+        type="button"
+        disabled={busy}
+        className="waiting-task-main"
+        onClick={onEdit}
+      >
         {project && <ProjectTag name={project.name} color={project.color} />}
         <span className="waiting-task-title">
           <span>{task.title}</span>
@@ -51,6 +70,8 @@ export function WaitingTaskRow({
       <div className="waiting-task-actions">
         <button
           type="button"
+          ref={anchor}
+          disabled={busy}
           aria-label={`${task.title}更多操作`}
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((value) => !value)}
@@ -58,15 +79,28 @@ export function WaitingTaskRow({
           <MoreHorizontal size={18} />
         </button>
         {menuOpen && (
-          <div className="waiting-task-menu" role="menu">
+          <TaskActionsPopover
+            anchor={anchor}
+            label={`${task.title}待安排操作`}
+            className="waiting-task-menu"
+            role="menu"
+            onClose={() => setMenuOpen(false)}
+          >
             <button
               type="button"
               role="menuitem"
-              onClick={() => onSchedule(task.id, today)}
+              onClick={() => submit(() => onSchedule(task.id, today))}
             >
               <CalendarDays size={15} /> 安排到今天
             </button>
-            <button type="button" role="menuitem" onClick={() => setDateOpen(true)}>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                setDateOpen(true);
+              }}
+            >
               <CalendarDays size={15} /> 安排到其他日期…
             </button>
             <hr />
@@ -74,28 +108,31 @@ export function WaitingTaskRow({
               type="button"
               role="menuitem"
               className="is-danger"
-              onClick={() => onDelete(task.id)}
+              onClick={() => submit(() => onDelete(task.id))}
             >
               <Trash2 size={15} /> 删除
             </button>
-          </div>
+          </TaskActionsPopover>
         )}
       </div>
       {dateOpen && (
-        <div className="waiting-date-backdrop" role="presentation">
+        <ManagementDialog
+          title="安排到其他日期"
+          busy={busy}
+          error={error}
+          onClose={() => setDateOpen(false)}
+        >
           <form
             className="waiting-date-sheet"
             onSubmit={(event) => {
               event.preventDefault();
               const date = String(new FormData(event.currentTarget).get('date') ?? '');
-              if (date) onSchedule(task.id, date);
-              setDateOpen(false);
-              setMenuOpen(false);
+              if (date) submit(() => onSchedule(task.id, date));
             }}
           >
-            <h3>安排到其他日期</h3>
             <input
               aria-label="安排日期"
+              data-management-initial-focus
               name="date"
               type="date"
               min={tomorrow}
@@ -108,7 +145,13 @@ export function WaitingTaskRow({
               <button type="submit">安排</button>
             </footer>
           </form>
-        </div>
+        </ManagementDialog>
+      )}
+      {busy && !dateOpen && <small role="status">正在保存…</small>}
+      {error && !dateOpen && (
+        <small className="form-error" role="alert">
+          {error}
+        </small>
       )}
     </div>
   );

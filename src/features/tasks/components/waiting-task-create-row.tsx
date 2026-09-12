@@ -4,7 +4,8 @@
 
 import { PlannedMinutesField } from './planned-minutes-field';
 import { Check, X } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { TaskActionsPopover } from './task-actions-popover';
 import type { QuickTaskCreateDraft } from '@/features/tasks/hooks/use-task-create-drafts';
 import type { QuickTaskDraft } from '@/features/tasks/task-drafts';
 import type { Project } from '@/types/domain';
@@ -36,16 +37,28 @@ export function WaitingTaskCreateRow({
   onClose: () => void;
 }) {
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const projectAnchor = useRef<HTMLSelectElement>(null);
   const [saveError, setSaveError] = useState<string>();
   /** 创建项目后将其选入本行草稿，而不影响日程草稿。 */
   const addProject = async () => {
-    if (!draft.projectName.trim()) return;
-    const created = await onCreateProject(draft.projectName.trim());
-    onChange({ projectId: created.id, projectName: '', isAddingProject: false });
+    if (!draft.projectName.trim() || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      const created = await onCreateProject(draft.projectName.trim());
+      onChange({ projectId: created.id, projectName: '', isAddingProject: false });
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : '项目创建失败，请重试。');
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
   /** 空标题沿用动作层的取消结果；待安排始终以未完成状态创建。 */
   const confirm = async () => {
-    if (saving) return;
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const result = await onCreate({
@@ -56,23 +69,30 @@ export function WaitingTaskCreateRow({
       });
       if ('cancelled' in result) return onClose();
       if ('error' in result) throw new Error(result.error);
-      onReset();
       onClose();
+      onReset();
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : '保存失败，请重试。');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
   if (!open) return null;
   return (
-    <div className="quick-task-row quick-task-row-adding quick-task-create-row">
+    <fieldset
+      disabled={saving}
+      aria-busy={saving}
+      aria-label="新增待安排"
+      className="quick-task-row quick-task-row-adding quick-task-create-row"
+    >
       <div className="task-check-wrap quick-create-check-cell" aria-hidden="true" />
       <div
         className="task-project-cell quick-create-project"
         style={{ position: 'relative' }}
       >
         <select
+          ref={projectAnchor}
           className="tl-inline-select project-inline-select"
           value={draft.projectId}
           onChange={(event) =>
@@ -91,19 +111,26 @@ export function WaitingTaskCreateRow({
           <option value="__new__">+ 新增项目…</option>
         </select>
         {draft.isAddingProject && (
-          <div className="project-picker-popover">
-            <div className="project-picker-new-form">
+          <TaskActionsPopover
+            anchor={projectAnchor}
+            label="创建项目"
+            align="start"
+            className="project-picker-popover task-project-popover"
+            onClose={() => onChange({ isAddingProject: false })}
+          >
+            <fieldset disabled={saving} className="project-picker-new-form">
               <input
                 placeholder="新项目名称"
                 value={draft.projectName}
                 autoFocus
                 onChange={(event) => onChange({ projectName: event.target.value })}
                 onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
+                  if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
                     event.preventDefault();
                     addProject();
                   }
-                  if (event.key === 'Escape') onChange({ isAddingProject: false });
+                  if (event.key === 'Escape' && !savingRef.current)
+                    onChange({ isAddingProject: false });
                 }}
               />
               <button
@@ -120,8 +147,8 @@ export function WaitingTaskCreateRow({
               >
                 <X size={13} />
               </button>
-            </div>
-          </div>
+            </fieldset>
+          </TaskActionsPopover>
         )}
       </div>
       <input
@@ -132,8 +159,11 @@ export function WaitingTaskCreateRow({
         autoFocus
         onChange={(event) => onChange({ title: event.target.value })}
         onKeyDown={(event) => {
-          if (event.key === 'Enter') confirm();
-          if (event.key === 'Escape') onClose();
+          if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+            event.preventDefault();
+            void confirm();
+          }
+          if (event.key === 'Escape' && !savingRef.current) onClose();
         }}
       />
       <PlannedMinutesField
@@ -154,6 +184,7 @@ export function WaitingTaskCreateRow({
           className="tl-inline-confirm-btn quick-create-confirm-btn"
           onClick={confirm}
           title="保存待办"
+          aria-label={saving ? '正在保存任务' : '保存待办'}
           disabled={saving}
         >
           <Check size={15} />
@@ -164,6 +195,6 @@ export function WaitingTaskCreateRow({
           {saveError}
         </span>
       )}
-    </div>
+    </fieldset>
   );
 }

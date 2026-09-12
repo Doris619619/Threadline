@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { _electron as electron } from 'playwright';
 
 import { terminateOwnedProcess } from './desktop-build-runtime.mjs';
+import { testElectronInteractionFeedback } from './test-electron-interaction-feedback.mjs';
 
 const rendererPort = process.env.THREADLINE_ELECTRON_E2E_PORT ?? '3123';
 const rendererUrl = `http://127.0.0.1:${rendererPort}`;
@@ -185,6 +186,7 @@ try {
     normalBounds,
     'maximize and restore must retain the normal window geometry',
   );
+  await testElectronInteractionFeedback(application, page);
   await page.getByRole('button', { name: '工作站', exact: true }).click();
   await page.getByTestId('workstation-panel').waitFor();
   assert.equal(

@@ -169,6 +169,16 @@
 .tl-header input {
   -webkit-app-region: no-drag;
 }
+
+/* 原生拖拽区域不遵循 DOM 顶层遮挡；弹窗出现时暂停背景拖拽，避免关闭按钮失去点击。 */
+body:has(dialog[open], [aria-modal='true'], :popover-open)
+  :is(.tl-header, .compact-window-header, .full-window-chrome, .desktop-entry-chrome) {
+  -webkit-app-region: no-drag;
+}
+
+:is(dialog, [aria-modal='true'], .task-actions-menu) {
+  -webkit-app-region: no-drag;
+}
 .full-window-entries {
   display: flex;
   gap: 7px;

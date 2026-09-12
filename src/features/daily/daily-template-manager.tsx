@@ -5,6 +5,7 @@
 import { Circle, Plus, Trash2 } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useGuardedAction } from '@/hooks/use-guarded-action';
 import { Input } from '@/components/ui/input';
 import { ManagementDialog } from '@/components/ui/management-dialog';
 import type { Daily } from '@/features/daily/types';
@@ -124,7 +125,7 @@ export const DailyTemplateManager = forwardRef<
   const [targetItemId, setTargetItemId] = useState('');
   const [title, setTitle] = useState('');
   const [draftItems, setDraftItems] = useState<DraftItem[]>([]);
-  const [error, setError] = useState<string>();
+  const { busy, error, setError, run } = useGuardedAction();
   const visible = items.filter((item) => !item.deletedAt);
   const activeTemplates = visible.filter((item) => item.active !== false);
   // 编辑既有模板/清单项只要求未删除；追加新清单项必须限制在 active 模板。
@@ -133,15 +134,6 @@ export const DailyTemplateManager = forwardRef<
   const managedItem = editableTarget?.children.find(
     (item) => !item.deletedAt && (item.templateItemId ?? item.id) === targetItemId,
   );
-  /** 运行异步生命周期或保存命令并保留错误给用户。 */
-  const run = async (action: () => Promise<void>) => {
-    try {
-      setError(undefined);
-      await action();
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '保存失败，请重试。');
-    }
-  };
   /** 清理草稿并关闭当前对话框。 */
   const close = () => {
     setMode(undefined);
@@ -152,12 +144,14 @@ export const DailyTemplateManager = forwardRef<
   };
   /** 打开新建模式；空数组明确代表允许 0 项清单。 */
   const openCreate = () => {
+    setError(undefined);
     setMode('create');
     setTitle('');
     setDraftItems([]);
   };
   /** 打开“添加到已有 Daily”模式并预选触发来源。 */
   const openAppend = (dailyId = activeTemplates[0]?.id ?? '') => {
+    setError(undefined);
     if (!dailyId) {
       setError('没有可添加清单项的 Daily，请先新建或恢复一个 Daily。');
       return;
@@ -169,6 +163,7 @@ export const DailyTemplateManager = forwardRef<
   };
   /** 打开模板编辑模式，保留非删除清单项以免编辑时误删除归档项。 */
   const openTemplateEdit = (daily: Daily) => {
+    setError(undefined);
     setMode('edit-template');
     setTargetId(daily.id);
     setTitle(daily.title);
@@ -176,12 +171,14 @@ export const DailyTemplateManager = forwardRef<
   };
   /** 打开 Daily 生命周期 sheet；默认列表不再为低频操作预留省略号列。 */
   const openTemplateManage = (daily: Daily) => {
+    setError(undefined);
     setMode('manage-template');
     setTargetId(daily.id);
     setTargetItemId('');
   };
   /** 打开单个清单项编辑模式。 */
   const openItemEdit = (daily: Daily, item: Daily['children'][number]) => {
+    setError(undefined);
     setMode('edit-item');
     setTargetId(daily.id);
     setTitle(item.title);
@@ -195,6 +192,7 @@ export const DailyTemplateManager = forwardRef<
   };
   /** 打开清单项生命周期 sheet；清单主行保持类似 iOS inset list 的干净信息层级。 */
   const openItemManage = (daily: Daily, itemId: string) => {
+    setError(undefined);
     setMode('manage-item');
     setTargetId(daily.id);
     setTargetItemId(itemId);
@@ -360,6 +358,8 @@ export const DailyTemplateManager = forwardRef<
       )}
       {mode && (
         <ManagementDialog
+          busy={busy}
+          error={error}
           key={mode}
           onClose={close}
           title={
@@ -528,7 +528,7 @@ export const DailyTemplateManager = forwardRef<
           )}
         </ManagementDialog>
       )}
-      {error && (
+      {error && !mode && (
         <p className="workspace-sync-error" role="alert">
           {error}
         </p>

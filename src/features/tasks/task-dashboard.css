@@ -121,17 +121,25 @@
   color: var(--text-secondary);
 }
 .waiting-task-menu {
-  position: absolute;
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 16px);
+  overflow-y: auto;
   z-index: 10;
-  right: 0;
-  top: 42px;
-  display: grid;
   min-width: 172px;
   padding: 6px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+}
+.waiting-task-menu:popover-open {
+  display: grid;
+}
+.waiting-task-row > :is([role='status'], [role='alert']) {
+  grid-column: 1 / -1;
 }
 .waiting-task-menu button {
   display: flex;
@@ -262,6 +270,8 @@
 }
 
 .quick-task-row-adding {
+  margin: 0;
+  border: 0;
   background: color-mix(in srgb, var(--accent) 4%, var(--surface));
   border-radius: var(--radius-sm);
   animation: tl-fade-in 180ms ease;
@@ -451,13 +461,13 @@
   transform: rotate(45deg);
 }
 
-.task-actions > div {
-  position: absolute;
-  z-index: 10;
-  right: 0;
-  top: 100%;
-  display: none;
-  width: 96px;
+.task-actions-menu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  width: 152px;
+  max-height: calc(100dvh - 16px);
+  overflow-y: auto;
   padding: 4px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -465,13 +475,11 @@
   box-shadow: var(--shadow-card);
 }
 
-.task-actions:hover > div,
-.task-actions:focus-within > div,
-.task-actions.is-open > div {
+.task-actions-menu:popover-open {
   display: grid;
 }
 
-.task-actions > div button {
+.task-actions-menu button {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -483,9 +491,10 @@
   text-align: left;
   font-size: 0.75rem;
   cursor: pointer;
+  min-height: 36px;
 }
 
-.task-actions > div button:hover {
+.task-actions-menu button:hover {
   color: var(--text-primary);
   background: var(--surface-secondary);
 }
@@ -625,6 +634,8 @@
 }
 
 .timeline-row-adding {
+  margin: 0;
+  border: 0;
   grid-template-columns: var(--timeline-grid-columns);
   gap: var(--timeline-grid-gap);
   position: relative;
@@ -825,6 +836,41 @@
   animation: tl-fade-in 140ms ease;
 }
 
+/* 项目列固定占位，长名称省略但可从按钮名称或选择器读取完整文本。 */
+.task-project-cell {
+  min-width: 0;
+}
+.task-project-trigger {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+.task-project-trigger .tl-project-tag {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.task-project-popover {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  width: min(260px, calc(100vw - 16px));
+  max-height: calc(100dvh - 16px);
+  overflow-y: auto;
+  animation: none;
+}
+.task-project-popover .project-picker-item {
+  min-height: 36px;
+}
+
 .project-picker-list {
   display: flex;
   flex-direction: column;
@@ -881,6 +927,9 @@
 }
 
 .project-picker-new-form {
+  min-width: 0;
+  margin: 0;
+  border: 0;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1161,11 +1210,12 @@
     background: transparent;
   }
 
-  .task-actions > div {
-    right: 0;
-    top: calc(100% + 4px);
-    width: 130px;
-    z-index: 50;
+  .task-actions-menu {
+    width: 160px;
+  }
+  .task-actions-menu button,
+  .task-project-popover .project-picker-item {
+    min-height: 44px;
   }
 
   /* ================= 移动端：今日日程独立新增态 (P2) ================= */

@@ -567,6 +567,19 @@ export class SupabaseWorkspaceRepository {
     assertResponse('remove workstation task', response);
   }
 
+  /** 一次请求软移除已知成员集合；RLS 保持账号隔离，不删除原任务。 */
+  async removeWorkstationTasks(taskIds: string[]): Promise<void> {
+    if (!taskIds.length) return;
+    assertResponse(
+      'remove workstation tasks',
+      await this.client
+        .from('workstation_entries')
+        .update({ removed_at: new Date().toISOString(), position: null })
+        .in('task_id', taskIds)
+        .select(),
+    );
+  }
+
   /** 原子提交完整工作站顺序。 */
   async reorderWorkstation(taskIds: string[]): Promise<void> {
     assertResponse(

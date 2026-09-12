@@ -5,6 +5,7 @@
 import { ChevronRight } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useGuardedAction } from '@/hooks/use-guarded-action';
 import { Input } from '@/components/ui/input';
 import { ManagementDialog } from '@/components/ui/management-dialog';
 import { getLocalDateKey } from '@/lib/local-date';
@@ -35,16 +36,7 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
     const [dialog, setDialog] = useState<ProjectDialog>();
     const [dialogName, setDialogName] = useState('');
     const [dialogColor, setDialogColor] = useState('#3979e8');
-    const [error, setError] = useState<string>();
-    /** 执行云端写入并将失败原因保留在管理页。 */
-    const run = async (action: () => Promise<void>) => {
-      try {
-        setError(undefined);
-        await action();
-      } catch (reason) {
-        setError(reason instanceof Error ? reason.message : '保存失败，请重试。');
-      }
-    };
+    const { busy, error, setError, run } = useGuardedAction();
     /** 关闭项目 Dialog 并清理草稿；共享 Dialog 会把焦点还给触发按钮。 */
     const closeDialog = () => {
       setDialog(undefined);
@@ -53,6 +45,7 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
     };
     /** 打开新建项目 Dialog，并以稳定的蓝色作为未选择颜色时的默认值。 */
     const openCreate = () => {
+      setError(undefined);
       setDialog({ mode: 'create' });
       setDialogName('');
       setDialogColor('#3979e8');
@@ -73,6 +66,7 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
       });
     /** 打开项目修改对话框并复制当前元数据到草稿。 */
     const openEdit = (project: Project) => {
+      setError(undefined);
       setDialog({ mode: 'edit', project });
       setDialogName(project.name);
       setDialogColor(project.color);
@@ -109,7 +103,10 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
                 aria-label={`管理项目 ${project.name}`}
                 className="manager-row"
                 key={project.id}
-                onClick={() => setDialog({ mode: 'manage', project })}
+                onClick={() => {
+                  setError(undefined);
+                  setDialog({ mode: 'manage', project });
+                }}
                 type="button"
               >
                 <span
@@ -131,6 +128,8 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
         </div>
         {dialog && (
           <ManagementDialog
+            busy={busy}
+            error={error}
             key={dialog.mode}
             onClose={closeDialog}
             title={
@@ -208,7 +207,7 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
             )}
           </ManagementDialog>
         )}
-        {error && (
+        {error && !dialog && (
           <p className="workspace-sync-error" role="alert">
             {error}
           </p>

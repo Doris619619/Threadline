@@ -76,6 +76,7 @@ export default defineConfig({
         '**/appearance.spec.ts',
         '**/cottage.spec.ts',
         '**/classic.spec.ts',
+        '**/interaction-feedback.spec.ts',
       ],
       use: { ...devices['iPhone 13'], browserName: 'webkit' },
     },

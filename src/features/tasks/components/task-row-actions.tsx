@@ -1,11 +1,12 @@
 /**
- * @fileoverview 任务行操作菜单与拖拽柄；桌面靠精确指针悬停，移动端收敛为纯净更多菜单。
+ * @fileoverview 任务行操作按钮与拖拽柄；点击打开顶层菜单，悬停只显示入口、不改变列表尺寸。
  */
 
 'use client';
 
 import { GripVertical, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
+import { TaskActionsPopover } from './task-actions-popover';
 import { cn } from '@/lib/cn';
 import type { TaskStatus } from '@/types/domain';
 
@@ -42,22 +43,11 @@ export function TaskRowActions({
   onPointerDragEnd?: (event: React.PointerEvent<HTMLButtonElement>) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const close = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [menuOpen]);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   return (
     <div className="task-actions-cell">
-      <div className={cn('task-actions', menuOpen && 'is-open')} ref={rootRef}>
+      <div className={cn('task-actions', menuOpen && 'is-open')}>
         {onToggleWorkstation && (
           <button
             type="button"
@@ -72,66 +62,73 @@ export function TaskRowActions({
         <button
           type="button"
           aria-label={`${title}更多操作`}
+          ref={triggerRef}
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((open) => !open)}
         >
           <MoreHorizontal size={17} />
         </button>
-        <div>
-          <button
-            type="button"
-            onClick={() => {
-              setMenuOpen(false);
-              onEdit();
-            }}
+        {menuOpen && (
+          <TaskActionsPopover
+            anchor={triggerRef}
+            onClose={() => setMenuOpen(false)}
+            label={`${title}操作`}
           >
-            <Pencil size={13} />
-            详细编辑
-          </button>
-          {canChangeWorkflow && (
             <button
               type="button"
               onClick={() => {
                 setMenuOpen(false);
-                onReschedule();
+                onEdit();
               }}
             >
-              移期
+              <Pencil size={13} />
+              详细编辑
             </button>
-          )}
-          {canChangeWorkflow && (
+            {canChangeWorkflow && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onReschedule();
+                }}
+              >
+                移期
+              </button>
+            )}
+            {canChangeWorkflow && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onMove(taskId, 'waiting');
+                }}
+              >
+                待安排
+              </button>
+            )}
+            {canChangeWorkflow && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onMove(taskId, 'abandoned');
+                }}
+              >
+                放弃
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
                 setMenuOpen(false);
-                onMove(taskId, 'waiting');
+                onMove(taskId, 'trashed');
               }}
             >
-              待安排
+              <Trash2 size={13} />
+              删除
             </button>
-          )}
-          {canChangeWorkflow && (
-            <button
-              type="button"
-              onClick={() => {
-                setMenuOpen(false);
-                onMove(taskId, 'abandoned');
-              }}
-            >
-              放弃
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              setMenuOpen(false);
-              onMove(taskId, 'trashed');
-            }}
-          >
-            <Trash2 size={13} />
-            删除
-          </button>
-        </div>
+          </TaskActionsPopover>
+        )}
       </div>
       <button
         type="button"

@@ -3,7 +3,8 @@
 'use client';
 
 import { Check, Clock, X } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { TaskActionsPopover } from './task-actions-popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { TimedTaskCreateDraft } from '@/features/tasks/hooks/use-task-create-drafts';
 import type { TimedTaskDraft } from '@/features/tasks/task-drafts';
@@ -37,15 +38,29 @@ export function TimedTaskCreateRow({
   onClose: () => void;
 }) {
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const projectAnchor = useRef<HTMLSelectElement>(null);
   /** 创建项目后只更新当前日程草稿的项目选择。 */
   const addProject = async () => {
-    if (!draft.projectName.trim()) return;
-    const created = await onCreateProject(draft.projectName.trim());
-    onChange({ projectId: created.id, projectName: '', isAddingProject: false });
+    if (!draft.projectName.trim() || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      const created = await onCreateProject(draft.projectName.trim());
+      onChange({ projectId: created.id, projectName: '', isAddingProject: false });
+    } catch (error) {
+      onChange({
+        timeError: error instanceof Error ? error.message : '项目创建失败，请重试。',
+      });
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
   /** 委托动作层验证；输入错误保留行，取消保留字段，成功后才重置。 */
   const confirm = async () => {
-    if (saving) return;
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const result = await onCreate({
@@ -59,24 +74,33 @@ export function TimedTaskCreateRow({
       });
       if ('error' in result) return onChange({ timeError: result.error });
       if ('cancelled' in result) return onClose();
-      onReset();
       onClose();
+      onReset();
     } catch (error) {
       onChange({
         timeError: error instanceof Error ? error.message : '保存失败，请重试。',
       });
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
   const onKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter') confirm();
-    if (event.key === 'Escape') onClose();
+    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      void confirm();
+    }
+    if (event.key === 'Escape' && !savingRef.current) onClose();
   };
   if (!open) return null;
 
   return (
-    <div className="timeline-row timeline-row-adding timed-task-create-row">
+    <fieldset
+      disabled={saving}
+      aria-busy={saving}
+      aria-label="新增日程"
+      className="timeline-row timeline-row-adding timed-task-create-row"
+    >
       <div className="timed-create-primary">
         <div className="task-check-wrap timed-create-check-cell">
           <Checkbox
@@ -89,6 +113,7 @@ export function TimedTaskCreateRow({
           style={{ position: 'relative' }}
         >
           <select
+            ref={projectAnchor}
             className="tl-inline-select project-inline-select"
             value={draft.projectId}
             onChange={(event) =>
@@ -107,19 +132,26 @@ export function TimedTaskCreateRow({
             <option value="__new__">+ 新增项目…</option>
           </select>
           {draft.isAddingProject && (
-            <div className="project-picker-popover">
-              <div className="project-picker-new-form">
+            <TaskActionsPopover
+              anchor={projectAnchor}
+              label="创建项目"
+              align="start"
+              className="project-picker-popover task-project-popover"
+              onClose={() => onChange({ isAddingProject: false })}
+            >
+              <fieldset disabled={saving} className="project-picker-new-form">
                 <input
                   placeholder="新项目名称"
                   value={draft.projectName}
                   autoFocus
                   onChange={(event) => onChange({ projectName: event.target.value })}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
                       event.preventDefault();
                       addProject();
                     }
-                    if (event.key === 'Escape') onChange({ isAddingProject: false });
+                    if (event.key === 'Escape' && !savingRef.current)
+                      onChange({ isAddingProject: false });
                   }}
                 />
                 <button
@@ -136,8 +168,8 @@ export function TimedTaskCreateRow({
                 >
                   <X size={13} />
                 </button>
-              </div>
-            </div>
+              </fieldset>
+            </TaskActionsPopover>
           )}
         </div>
         <input
@@ -226,12 +258,17 @@ export function TimedTaskCreateRow({
           className="tl-inline-confirm-btn timed-create-confirm-btn"
           onClick={confirm}
           title="保存任务"
+          aria-label={saving ? '正在保存任务' : '保存任务'}
           disabled={saving}
         >
-          <span className="timed-create-btn-text">保存</span>
-          <Check size={14} className="timed-create-btn-icon" />
+          <span className="timed-create-btn-text">{saving ? '保存中…' : '保存'}</span>
+          <Check
+            style={{ opacity: saving ? 0.35 : 1 }}
+            size={14}
+            className="timed-create-btn-icon"
+          />
         </button>
       </div>
-    </div>
+    </fieldset>
   );
 }

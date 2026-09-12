@@ -365,11 +365,23 @@
 
 .manager-dialog h2 {
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: var(--text-section-size);
+}
+
+.manager-dialog-fields {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
 .manager-dialog header button {
   display: grid;
+  flex: 0 0 var(--touch-target);
   width: var(--touch-target);
   height: var(--touch-target);
   place-items: center;

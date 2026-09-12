@@ -385,7 +385,7 @@ test.describe('compact viewport layout matrix', () => {
     expect(moreBtnBox.height).toBeGreaterThanOrEqual(44 - 0.001);
 
     await moreBtn.click();
-    const moreMenu = seededTimelineRow.locator('.task-actions > div');
+    const moreMenu = page.getByRole('group', { name: '邮件处理操作', exact: true });
     await expect(moreMenu).toBeVisible();
     await expect(moreMenu.getByText('加入工作站')).toHaveCount(0);
     await expect(moreMenu.getByText('从工作站移除')).toHaveCount(0);
