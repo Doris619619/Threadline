@@ -128,6 +128,45 @@ it('does not roll back confirmation when statistics refresh fails', async () => 
   expect(task.result.current.data.entries).toEqual(saved);
   expect(task.result.current.pending).toBeNull();
 });
+it('allows an explicit corrected date and adopted identity after a conflict', async () => {
+  const apply = vi
+    .fn<HabitRepository['apply']>()
+    .mockRejectedValueOnce(new Error('conflict'))
+    .mockResolvedValue(saved);
+  const task = setup(apply);
+  await waitFor(() => expect(task.result.current.ready).toBe(true));
+  const original: HabitRequest = {
+    ...request,
+    changes: [
+      {
+        mode: 'edit',
+        kind: 'wake',
+        business_date: '2026-09-11',
+        occurred_at: request.changes[0].occurred_at,
+      },
+    ],
+  };
+  await act(async () => {
+    await expect(task.result.current.save(original)).rejects.toThrow('conflict');
+  });
+  const corrected: HabitRequest = {
+    ...original,
+    requestId: 'corrected',
+    changes: [
+      {
+        ...original.changes[0],
+        id: 'adopted',
+        expected_version: 2,
+        business_date: '2026-09-12',
+      },
+    ],
+  };
+  await act(async () => {
+    await task.result.current.save(corrected);
+  });
+  expect(apply).toHaveBeenLastCalledWith(corrected);
+  expect(task.result.current.pending).toBeNull();
+});
 it('keeps an offline draft without calling the transport', async () => {
   const task = setup();
   await waitFor(() => expect(task.result.current.ready).toBe(true));

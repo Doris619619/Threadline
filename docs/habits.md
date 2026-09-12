@@ -49,14 +49,16 @@ Preview/测试采用相同接口及纯事务校验，使用独立 `threadline.te
 
 迁移 `202609120001_habits.sql` 只新增四张表、索引、权限和函数，不回填或重算任务、Daily、收尾记录。先核对实际待迁移列表和 dry-run，再部署数据库，最后发布客户端；旧客户端兼容。回退客户端时保留习惯表和已产生记录。
 
-本轮按用户要求不启动本地数据库，不执行数据库、真实云端双账号/双设备验收，也没有部署生产迁移。SQL 静态检查只能验证结构文本，不能代替 PostgreSQL 执行。`supabase/tests/habits.test.sql` 保留权限、幂等、归日、版本与修订测试供后续环境执行。上线前仍需验证实际迁移、RPC、RLS、并发首次打卡与跨设备冲突。
+首轮实施按用户要求不启动本地数据库，不执行数据库、真实云端双账号/双设备验收，也没有部署生产迁移。SQL 静态检查只能验证结构文本，不能代替 PostgreSQL 执行。`supabase/tests/habits.test.sql` 保留权限、幂等、归日、版本与修订测试供后续环境执行。上线前仍需验证实际迁移、RPC、RLS、并发首次打卡与跨设备冲突。
 
 定向检查：`pnpm exec vitest run tests/habit-*.test.*`；`pnpm test:sql:static`；`pnpm test:e2e habits.spec.ts --project=desktop --project=mobile --project=planning-webkit`。完整验收记录见 [测试架构](testing-architecture.md)。传感器检测、睡眠时长、提醒、健康评分、效率因果分析、自定义其他习惯与通用离线同步不属于 V1。
 
 ## 本次验收记录
 
-- 整仓 lint、typecheck、SQL 静态契约和业务 coverage gate 通过；64 个 Vitest 文件、303 项测试通过，习惯核心模块行覆盖率 93.18%。最后的重试入口保护另经状态回归复核。
+合并前复核补充：规则尚未读回的已保存记录展示“分档读取中”和空达标率，避免暂时误报0%；历史冲突后的同项目修正允许改日期并采用服务端身份，失败保护不再误拦截该恢复路径。两项均有回归测试。
+
+- 整仓 lint、typecheck、SQL 静态契约和业务 coverage gate 通过；64 个 Vitest 文件、305 项测试通过，习惯核心模块行覆盖率 93.25%。最后的重试入口保护另经状态回归复核。
 - Web 构建通过；桌面 Chrome、390px 手机 Chrome、iPhone WebKit 各两条习惯流程通过，覆盖三项记录、跨午夜/04:00、补录、独立边界、刷新恢复及洞察更多入口。
 - 六个专用布局用例通过：1440px 桌面、320/375/390/430px 手机及 iPhone WebKit；逐项扫描四主题 × 明暗模式，无新增 serious/critical axe 问题，检查无横向溢出、输入16px、键盘焦点和200%根字号。截图由 Playwright 保存在忽略的 test-results 中，数据来自隔离适配器。
 - Electron 静态导出及 unpacked EXE smoke 验证包含习惯导航、真实点击、刷新恢复、工作站切换、CSP、preload、单实例和退出。构建采用隔离测试适配器，不是生产云端客户端发布。
-- 未执行：本地数据库启动、pgTAP、真实云端跨账号/跨设备并发，生产迁移及部署；真实 iPhone 软键盘/Dynamic Type 和 NSIS 安装升级仍需设备验收。没有把模拟仓储和 SQL 文本检查计为数据库通过。
+- 首轮本地验收未执行：本地数据库启动、pgTAP、真实云端跨账号/跨设备并发，生产迁移及部署；真实 iPhone 软键盘/Dynamic Type 和 NSIS 安装升级仍需设备验收。没有把模拟仓储和 SQL 文本检查计为数据库通过。

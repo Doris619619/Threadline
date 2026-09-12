@@ -339,7 +339,10 @@ export function HabitsPanel() {
                     {summary[kind].rate === null ? '—' : `${summary[kind].rate}%`}
                   </strong>
                   <small>
-                    达标 {summary[kind].achieved} / 已记录 {summary[kind].count}
+                    {summary[kind].awaitingRules
+                      ? '分档读取中'
+                      : `达标 ${summary[kind].achieved}`}{' '}
+                    / 已记录 {summary[kind].count}
                   </small>
                 </div>
               ))}

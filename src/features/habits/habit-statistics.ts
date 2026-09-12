@@ -50,13 +50,17 @@ export function summarizeHabits(
   const timeSummary = (kind: HabitKind) => {
     const matching = rows.filter((item) => item.kind === kind && item.local_time);
     const count = matching.length;
+    const awaitingRules = matching.some(
+      (item) => !rules.some((rule) => rule.id === item.rule_id),
+    );
     const achieved = matching.filter(
       (item) => habitGrade(item, rules) === '达标',
     ).length;
     return {
       count,
       achieved,
-      rate: count ? Math.round((100 * achieved) / count) : null,
+      awaitingRules,
+      rate: count && !awaitingRules ? Math.round((100 * achieved) / count) : null,
       average: count
         ? matching.reduce(
             (sum, item) =>

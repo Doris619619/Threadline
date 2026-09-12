@@ -40,12 +40,12 @@ export function HabitTimeTrend({
       (row) => !row.deleted_at && row.kind === kind && row.business_date === date,
     );
     const rule = entry
-      ? (rules.find((row) => row.id === entry.rule_id) ?? habitRuleForDate(rules, date))
+      ? rules.find((row) => row.id === entry.rule_id)
       : habitRuleForDate(rules, date);
     return {
       date,
       value: entry?.local_time ? habitMinutes(entry.local_time, date, kind) : null,
-      target: kind === 'sleep' ? rule.sleep_target : rule.wake_target,
+      target: rule ? (kind === 'sleep' ? rule.sleep_target : rule.wake_target) : null,
       entry,
     };
   });
@@ -106,7 +106,12 @@ export function HabitTimeTrend({
                             ? '未记录'
                             : formatHabitMinutes(point.value)}
                         </p>
-                        <p>目标 {formatHabitMinutes(point.target)}</p>
+                        <p>
+                          目标{' '}
+                          {point.target === null
+                            ? '读取中'
+                            : formatHabitMinutes(point.target)}
+                        </p>
                         {point.entry && (
                           <>
                             <p>{habitGrade(point.entry, rules)}</p>

@@ -175,13 +175,7 @@ export function HabitStore({
       pending &&
       pending.requestId !== request.requestId &&
       pending.changes.some(
-        (old) =>
-          !request.changes.some(
-            (next) =>
-              old.kind === next.kind &&
-              old.id === next.id &&
-              old.business_date === next.business_date,
-          ),
+        (old) => !request.changes.some((next) => old.kind === next.kind),
       )
     )
       throw new Error('请先重试或丢弃上一份待保存输入');

@@ -22,6 +22,24 @@ import {
 import { DEFAULT_RULES, type HabitRequest } from '@/features/habits/habit-types';
 
 const now = '2026-09-12T10:00:00Z';
+it('does not label a confirmed record as a failure before its rule arrives', () => {
+  const data = applyLocalHabitRequest(
+    emptyHabitData('Asia/Shanghai'),
+    request('2026-09-12T06:45:00+08:00', 'wake'),
+    now,
+  );
+  const summary = summarizeHabits(
+    data.entries,
+    [],
+    '2026-09-12',
+    '2026-09-12',
+    '2026-09-12',
+  );
+  expect(summary.wake.count).toBe(1);
+  expect(summary.wake.average).toBe(405);
+  expect(summary.wake.rate).toBeNull();
+  expect(summary.wake.awaitingRules).toBe(true);
+});
 it('validates persisted rules without interpreting their metadata as boundaries', () => {
   expect(() => validateHabitRules(emptyHabitData('UTC').rules[0])).not.toThrow();
   const initial = emptyHabitData('UTC');
