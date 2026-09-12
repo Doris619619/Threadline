@@ -10,6 +10,23 @@ import type {
 } from './habit-types';
 import { emptyHabitData } from './habit-local-repository';
 
+/** PostgREST 的复合行 RPC 默认可返回单元素数组；在仓储边界统一成设置对象并拒绝缺行。 */
+export function readHabitSettings(value: unknown): HabitSettings {
+  const row = Array.isArray(value) && value.length === 1 ? value[0] : value;
+  if (
+    !row ||
+    typeof row !== 'object' ||
+    Array.isArray(row) ||
+    typeof row.owner_id !== 'string' ||
+    typeof row.timezone !== 'string' ||
+    !Number.isInteger(row.version) ||
+    row.version < 0 ||
+    typeof row.updated_at !== 'string'
+  )
+    throw new Error('账号设置返回格式异常，请重新读取');
+  return row as HabitSettings;
+}
+
 /** 将数据库约束转换为用户可恢复的失败；保留其他错误的诊断信息。 */
 export function checkHabitError(
   error: { message: string; code?: string } | null,
@@ -102,7 +119,7 @@ export async function configureHabitAccount(
   rules: RuleValues,
   version: number,
   requestId: string,
-): Promise<void> {
+): Promise<HabitSettings> {
   const result = await client.rpc('configure_habits', {
     p_timezone: timezone,
     p_initial_timezone: initialTimezone,
@@ -111,4 +128,5 @@ export async function configureHabitAccount(
     p_request_id: requestId,
   });
   checkHabitError(result.error);
+  return readHabitSettings(result.data);
 }

@@ -28,6 +28,10 @@ import { AccountDisclosure } from '@/features/auth/account-disclosure';
 import { getUserIdentity } from '@/features/auth/user-identity';
 import { useOptionalCloudRuntime } from '@/features/auth/cloud-runtime-provider';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
+import {
+  useAccountToday,
+  useAccountTimezone,
+} from '@/features/settings/account-timezone-provider';
 import { addLocalDateDays, getLocalDateKey, parseLocalDateKey } from '@/lib/local-date';
 import { cn } from '@/lib/cn';
 import { ThemeIllustration } from '@/features/appearance/theme-illustration';
@@ -217,7 +221,17 @@ function EdgeTab() {
 /** 根据 desktop presentation 渲染完整壳层、compact 壳层或 edge tab。 */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [active, setActive] = useState<WorkspaceViewId>('home');
-  const [selectedDate, setSelectedDate] = useState<string>(getLocalDateKey);
+  const today = useAccountToday();
+  useAccountTimezone();
+  const [dateSelection, setDateSelection] = useState<string | null>(null);
+  const selectedDate = dateSelection ?? today;
+  /** 今天保持跟随账号时钟，手选历史日期保持原值。 */
+  const setSelectedDate: React.Dispatch<React.SetStateAction<string>> = (value) => {
+    setDateSelection((previous) => {
+      const next = typeof value === 'function' ? value(previous ?? today) : value;
+      return next === today ? null : next;
+    });
+  };
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const { isCompact, isEdgeCollapsed, isNativeDesktop } = useDesktopWindow();
   const cloudRuntime = useOptionalCloudRuntime();

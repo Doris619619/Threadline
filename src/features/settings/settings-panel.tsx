@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Cloud,
+  Globe,
   Database,
   Info,
   LogOut,
@@ -15,6 +16,9 @@ import {
   ShieldCheck,
   Trash2,
 } from 'lucide-react';
+import { AccountTimezoneSettings } from './account-timezone-settings';
+import { useAccountTimezone } from './account-timezone-provider';
+import { timezoneLabel } from '@/lib/account-clock';
 import { useState } from 'react';
 import { Surface } from '@/components/ui/surface';
 import { useOptionalCloudRuntime } from '@/features/auth/cloud-runtime-provider';
@@ -27,7 +31,14 @@ import { useDesktopWindow } from '@/lib/desktop-window-context';
 import type { Task } from '@/types/domain';
 
 type SettingsSection =
-  'overview' | 'appearance' | 'sync' | 'privacy' | 'desktop' | 'trash' | 'about';
+  | 'timezone'
+  | 'overview'
+  | 'appearance'
+  | 'sync'
+  | 'privacy'
+  | 'desktop'
+  | 'trash'
+  | 'about';
 
 /** 渲染有明确目标的设置行；仅在真实 section 可用时成为按钮。 */
 function SettingsRow({
@@ -88,6 +99,7 @@ export function SettingsPanel({
 }) {
   const { isNativeDesktop, mode, resetWindowStates } = useDesktopWindow();
   const cloudRuntime = useOptionalCloudRuntime();
+  const account = useAccountTimezone();
   const [section, setSection] = useState<SettingsSection>('overview');
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string>();
@@ -106,6 +118,12 @@ export function SettingsPanel({
       setSigningOut(false);
     }
   };
+  if (section === 'timezone')
+    return (
+      <SettingsDetail title="日期与时区" onBack={() => setSection('overview')}>
+        <AccountTimezoneSettings />
+      </SettingsDetail>
+    );
   if (section === 'appearance')
     return (
       <SettingsDetail title="外观" onBack={() => setSection('overview')}>
@@ -235,6 +253,15 @@ export function SettingsPanel({
             title="外观"
             description="选择主题与字体"
             onClick={() => setSection('appearance')}
+          />
+          <SettingsRow
+            icon={Globe}
+            title="日期与时区"
+            description="所有页面使用账号时区"
+            value={
+              account?.settings ? timezoneLabel(account.settings.timezone) : undefined
+            }
+            onClick={() => setSection('timezone')}
           />
           {isNativeDesktop && (
             <SettingsRow

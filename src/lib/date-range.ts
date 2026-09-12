@@ -4,7 +4,7 @@
 
 import {
   addLocalDateDays,
-  getLocalDateKey,
+  formatCalendarDate,
   parseLocalDateKey,
   type LocalDateKey,
 } from '@/lib/local-date';
@@ -17,8 +17,8 @@ export function createLocalDateRange(start: string, end: string): LocalDateRange
   const startDate = parseLocalDateKey(start);
   const endDate = parseLocalDateKey(end);
   return startDate <= endDate
-    ? { start: getLocalDateKey(startDate), end: getLocalDateKey(endDate) }
-    : { start: getLocalDateKey(endDate), end: getLocalDateKey(startDate) };
+    ? { start: formatCalendarDate(startDate), end: formatCalendarDate(endDate) }
+    : { start: formatCalendarDate(endDate), end: formatCalendarDate(startDate) };
 }
 
 /** 按本地日期逐日遍历包含首尾的范围，供 analytics 与报告使用。 */
@@ -41,8 +41,8 @@ export function getWeekRange(anchor: string): LocalDateRange {
 /** 返回锚点所在本地自然月的完整范围。 */
 export function getMonthRange(anchor: string): LocalDateRange {
   const date = parseLocalDateKey(anchor);
-  const start = getLocalDateKey(new Date(date.getFullYear(), date.getMonth(), 1));
-  const end = getLocalDateKey(new Date(date.getFullYear(), date.getMonth() + 1, 0));
+  const start = formatCalendarDate(new Date(date.getFullYear(), date.getMonth(), 1));
+  const end = formatCalendarDate(new Date(date.getFullYear(), date.getMonth() + 1, 0));
   return { start, end };
 }
 
@@ -54,8 +54,8 @@ export function getPresetDateRange(
 ): LocalDateRange {
   if (preset === 'day')
     return {
-      start: getLocalDateKey(parseLocalDateKey(anchor)),
-      end: getLocalDateKey(parseLocalDateKey(anchor)),
+      start: formatCalendarDate(parseLocalDateKey(anchor)),
+      end: formatCalendarDate(parseLocalDateKey(anchor)),
     };
   if (preset === 'week') return getWeekRange(anchor);
   if (preset === 'month') return getMonthRange(anchor);

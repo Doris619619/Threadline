@@ -12,7 +12,11 @@ import {
   applyLocalHabitRequest,
   emptyHabitData,
 } from '@/features/habits/habit-local-repository';
-import type { HabitEntry, HabitRequest } from '@/features/habits/habit-types';
+import {
+  DEFAULT_RULES,
+  type HabitEntry,
+  type HabitRequest,
+} from '@/features/habits/habit-types';
 vi.mock('@/components/app-shell', () => ({
   useWorkspaceView: () => ({ active: 'habits' }),
 }));
@@ -48,6 +52,27 @@ function setup(apply = vi.fn<HabitRepository['apply']>(async () => saved)) {
   return { ...hook, client, repository, apply };
 }
 afterEach(() => vi.restoreAllMocks());
+it('immediately retains confirmed timezone when the following read fails or is stale', async () => {
+  const task = setup();
+  await waitFor(() => expect(task.result.current.ready).toBe(true));
+  const settings = { ...emptyHabitData('Asia/Shanghai').settings, version: 1 };
+  vi.mocked(task.repository.configure).mockResolvedValue(settings);
+  vi.mocked(task.repository.list).mockRejectedValue(new Error('read failed'));
+  await act(async () => {
+    await task.result.current.configure(
+      'Asia/Shanghai',
+      DEFAULT_RULES,
+      0,
+      'settings-id',
+    );
+  });
+  expect(task.result.current.data.settings).toEqual(settings);
+  await waitFor(() => expect(task.result.current.notice).toContain('read failed'));
+  vi.mocked(task.repository.list).mockResolvedValue(emptyHabitData('UTC'));
+  await act(async () => task.result.current.retry());
+  await waitFor(() => expect(task.result.current.notice).toBeUndefined());
+  expect(task.result.current.data.settings.timezone).toBe('Asia/Shanghai');
+});
 it('shows the frozen first click immediately and never lets stale lists erase confirmation', async () => {
   let resolve!: (rows: HabitEntry[]) => void;
   const task = setup(

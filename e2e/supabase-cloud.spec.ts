@@ -3,6 +3,7 @@
  */
 
 import { expect, test } from '@playwright/test';
+import { openWorkspaceSection } from './support/workspace';
 
 /** 读取 runner 注入的一次性凭据；缺失时明确指出应通过专用 runner 启动。 */
 function readRequiredTestEnvironment(name: string): string {
@@ -17,6 +18,60 @@ function readRequiredTestEnvironment(name: string): string {
 const email = readRequiredTestEnvironment('THREADLINE_SUPABASE_E2E_EMAIL');
 const password = readRequiredTestEnvironment('THREADLINE_SUPABASE_E2E_PASSWORD');
 const taskTitle = 'Supabase browser persistence probe';
+
+test.describe('habits account timezone through real PostgREST', () => {
+  test.use({ timezoneId: 'America/New_York' });
+  test('confirms both settings RPCs and shares China check-ins with another device', async ({
+    page,
+    browser,
+  }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: '使用指定账号继续' }).click();
+    await page.getByLabel('邮箱').fill(email);
+    await page.locator('input#auth-password').fill(password);
+    await page.getByRole('button', { name: '登录', exact: true }).click();
+    await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();
+    await openWorkspaceSection(page, '习惯');
+    await page.getByRole('button', { name: '习惯设置', exact: true }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel('账号时区', { exact: true }).selectOption('UTC');
+    await dialog.getByRole('button', { name: '保存设置' }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByTestId('habit-clock')).toContainText('协调世界时');
+
+    const observerContext = await browser.newContext({
+      storageState: await page.context().storageState(),
+      timezoneId: 'Pacific/Honolulu',
+      serviceWorkers: 'block',
+    });
+    try {
+      const observer = await observerContext.newPage();
+      await observer.goto(page.url());
+      await openWorkspaceSection(observer, '习惯');
+      await expect(observer.getByTestId('habit-clock')).toContainText('协调世界时');
+      await openWorkspaceSection(page, '设置');
+      await page.getByRole('button', { name: /日期与时区/ }).click();
+      await page.getByLabel('账号时区', { exact: true }).selectOption('Asia/Shanghai');
+      await page.getByRole('button', { name: '保存时区' }).click();
+      await expect(page.getByRole('status')).toContainText('已保存');
+      await expect(observer.getByTestId('habit-clock')).toContainText('北京时间');
+      await openWorkspaceSection(page, '习惯');
+      await page.getByRole('button', { name: '起床了', exact: true }).click();
+      const recorded = page
+        .getByTestId('habit-wake')
+        .getByRole('button', { name: /编辑起床时间/ });
+      await expect(recorded).toBeVisible();
+      const value = (await recorded.innerText()).trim();
+      await expect(observer.getByTestId('habit-wake')).toContainText(value);
+      await page.reload();
+      await openWorkspaceSection(page, '习惯');
+      await expect(page.getByTestId('habit-clock')).toContainText('北京时间');
+      await expect(page.getByTestId('habit-wake')).toContainText(value);
+    } finally {
+      await observerContext.close();
+    }
+  });
+});
 
 test('uses local Supabase Auth and persists a task through a real browser session', async ({
   page,

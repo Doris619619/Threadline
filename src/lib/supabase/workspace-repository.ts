@@ -3,6 +3,7 @@
  */
 
 import { validatePlanningDate } from '@/lib/task-rules';
+import { getAccountTimezone } from '@/lib/account-clock';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 import { isDailyCompleted } from '@/features/daily/daily-rules';
@@ -286,7 +287,7 @@ export class SupabaseWorkspaceRepository {
       p_task_id: taskId,
       p_transition: transition,
       p_target_date: targetDate ?? null,
-      p_time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      p_time_zone: getAccountTimezone(),
     });
     return mapTask(assertResponse('transition task', response) as JsonRecord);
   }

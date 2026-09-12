@@ -1,9 +1,10 @@
 /* 文件用途：习惯页的紧凑打卡、时间趋势、月历及表单响应式样式；颜色继承所有外观主题。 */
 .habits-panel {
-  max-width: 1100px;
+  max-width: 1000px;
+  box-sizing: border-box;
   width: 100%;
   margin: 0 auto;
-  padding: 24px;
+  padding: 20px 28px;
   color: var(--text-primary);
 }
 /* WebKit 切换根主题时直接解析文本 token，避免深层继承保留上一明暗模式的颜色。 */
@@ -22,7 +23,7 @@
   gap: 12px;
 }
 .habit-page-header {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 .habit-page-header h1 {
   margin: 0;
@@ -40,10 +41,10 @@
 .habit-editor button,
 .habit-settings-form button {
   min-height: 44px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px 12px;
-  background: var(--surface);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: transparent;
   color: var(--text-primary);
   cursor: pointer;
 }
@@ -55,6 +56,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.habit-page-header > div {
+  min-width: 0;
 }
 .habit-caption,
 .habit-check-label small,
@@ -66,10 +72,9 @@
 }
 .habit-today {
   color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 18px 20px;
-  background: var(--surface);
+  border-block: 1px solid var(--border-subtle);
+  padding: 0;
+  background: transparent;
 }
 .habit-today > header {
   margin-bottom: 12px;
@@ -83,10 +88,10 @@
 }
 .habit-check-row {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto 80px;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
-  padding: 16px 0;
+  padding: 10px 0;
   border-bottom: 1px solid var(--border-subtle);
 }
 .habit-check-row > svg {
@@ -117,15 +122,15 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding-top: 16px;
+  padding: 10px 0;
 }
 .habit-segments {
   display: inline-flex;
   gap: 4px;
   background: var(--surface);
-  border-radius: 12px;
-  padding: 3px;
-  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 2px;
+  border: 0;
 }
 .habit-segments button {
   border: 0;
@@ -138,7 +143,7 @@
 }
 .habit-statistics,
 .habit-history {
-  margin-top: 32px;
+  margin-top: 24px;
 }
 .habit-range-header {
   display: flex;
@@ -165,7 +170,7 @@
 .habit-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  padding: 22px 0 10px;
+  padding: 16px 0 4px;
 }
 .habit-summary > div {
   display: flex;
@@ -184,7 +189,7 @@
   font-size: 12px;
 }
 .habit-summary strong {
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -195,7 +200,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 24px;
-  margin-top: 24px;
+  margin-top: 16px;
 }
 .habit-trend {
   min-width: 0;
@@ -203,8 +208,8 @@
   border-top: 1px solid var(--border);
 }
 .habit-average {
-  font-size: 26px;
-  margin: 12px 0;
+  font-size: 22px;
+  margin: 8px 0;
   font-variant-numeric: tabular-nums;
 }
 .habit-average small {
@@ -267,7 +272,7 @@
 }
 .habit-status-days small {
   color: var(--text-primary);
-  font-size: 11px;
+  font-size: 12px;
 }
 .habit-status-days [data-status='good'],
 .habit-calendar [data-status='好'],
@@ -317,7 +322,7 @@
   outline-offset: -2px;
 }
 .habit-calendar small {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-primary);
 }
 .habit-message {
@@ -390,17 +395,15 @@
     margin-bottom: 16px;
   }
   .habit-today {
-    padding: 14px 12px;
+    padding: 0;
   }
   .habit-check-row {
     grid-template-columns: 20px minmax(0, 1fr) auto;
     gap: 8px;
   }
-  .habit-check-row > button {
-    grid-column: 2 / -1;
-  }
+
   .habit-check-label small {
-    font-size: 11px;
+    font-size: 12px;
   }
   .habit-record-value > strong {
     font-size: 19px;
@@ -423,7 +426,7 @@
     font-size: 26px;
   }
   .habit-summary small {
-    font-size: 11px;
+    font-size: 12px;
   }
   .habit-trends {
     grid-template-columns: minmax(0, 1fr);
@@ -435,5 +438,98 @@
   }
   .habit-calendar button {
     min-height: 54px;
+  }
+}
+
+/* 时间即编辑入口；以排版表达主次，避免为每个值增加操作框。 */
+.habits-panel .habit-time-button {
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 0 4px;
+  line-height: 1.2;
+}
+.habit-time-button:hover,
+.habit-time-button:focus-visible {
+  background: var(--surface);
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+.habit-live-clock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+.habit-live-clock time {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: baseline;
+}
+.habit-live-clock b {
+  font-size: 19px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.habit-live-clock > span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.habit-record-value {
+  align-items: flex-end;
+  gap: 0;
+}
+.habit-regularity > summary,
+.habit-history > summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 12px 0;
+  box-sizing: border-box;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.habit-history[open] > header {
+  margin: 12px 0;
+}
+.habit-message {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 13px;
+}
+.habit-message p {
+  flex: 1 1 240px;
+  margin: 0;
+}
+.habits-panel button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (max-width: 760px) {
+  .habit-page-header {
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .habit-live-clock {
+    gap: 4px;
+  }
+  .habit-live-clock > span {
+    flex-basis: 100%;
+  }
+  .habit-range-header {
+    gap: 6px;
+  }
+  .habit-summary > div {
+    gap: 6px;
+  }
+  .habit-record-value .habit-time-button {
+    font-size: 22px;
   }
 }

@@ -4,6 +4,7 @@
 
 'use client';
 
+import { AccountTimezoneProvider } from '@/features/settings/account-timezone-provider';
 import { AppShell } from '@/components/app-shell';
 import { PwaRegistrar } from '@/components/pwa-registrar';
 import { CloudRuntimeProvider } from '@/features/auth/cloud-runtime-provider';
@@ -18,18 +19,20 @@ import { DesktopUpdateRuntime } from '@/features/desktop-update/update-runtime';
 /** 挂载与数据来源无关的完整业务树和桌面视图状态。 */
 function WorkspaceRuntime() {
   return (
-    <DesktopWindowProvider>
-      <PwaRegistrar />
-      <RhythmStateProvider>
-        <AppShell>
-          <HabitsStateProvider>
-            <WorkspaceDataProvider>
-              <WorkspaceContent />
-            </WorkspaceDataProvider>
-          </HabitsStateProvider>
-        </AppShell>
-      </RhythmStateProvider>
-    </DesktopWindowProvider>
+    <AccountTimezoneProvider>
+      <DesktopWindowProvider>
+        <PwaRegistrar />
+        <RhythmStateProvider>
+          <AppShell>
+            <HabitsStateProvider>
+              <WorkspaceDataProvider>
+                <WorkspaceContent />
+              </WorkspaceDataProvider>
+            </HabitsStateProvider>
+          </AppShell>
+        </RhythmStateProvider>
+      </DesktopWindowProvider>
+    </AccountTimezoneProvider>
   );
 }
 

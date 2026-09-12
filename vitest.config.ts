@@ -29,6 +29,7 @@ export default defineConfig({
         'src/lib/task-factory.ts',
         'src/lib/project-rules.ts',
         'src/lib/local-date.ts',
+        'src/lib/account-clock.ts',
         'src/lib/date-range.ts',
         'src/lib/repository.ts',
         'src/lib/supabase/config.ts',

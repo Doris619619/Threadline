@@ -2,7 +2,7 @@
 
 # 运行时数据语义
 
-## 习惯领域例外
+## 账号时区与习惯分日
 
 习惯采用账号 IANA 时区：起床按自然日期，睡觉和工作效率以 04:00 分日。`habit_entries` 保留原始瞬间、本地时间快照和规则引用，独立修订表保留首次值与每次变更。新规则从下一业务日期生效，历史不被新时区或目标移动。该领域使用 expectedVersion 拒绝冲突和稳定请求 ID 幂等重试；下文旧任务模型的 last-write-wins 边界不适用于习惯。详见 [习惯数据与接口](habits.md)。
 
@@ -12,7 +12,7 @@
 
 Insights 与报告不分别计算统计，而是通过 `src/lib/analytics.ts` 的纯函数结果读取；日期范围、周一周起点和月历网格由 `src/lib/date-range.ts` 负责。旧 CloseRecord 只能作为项目级 `legacy-aggregate`，不得由当前任务状态、更新时间或移期字段反推任务级历史。完整质量规则见 [工作台信息架构与分析口径](workspace-information-architecture.md)。
 
-- `getLocalDateKey()` 读取用户本地的年、月、日，不能用 `toISOString().slice(0, 10)` 生成业务日期。
+- `getLocalDateKey()` 从绝对时刻读取账号所选时区的年、月、日；`formatCalendarDate()` 仅序列化日历运算的 Date 字段，不能用 `toISOString().slice(0, 10)` 生成业务日期。
 - 相邻日期必须经 `addLocalDateDays()` 计算，避免 UTC 和本地午夜边界混用。
 - 时间戳字段（例如 `updatedAt`）仍可使用 ISO instant；只有业务日键必须使用本地日期 helper。
 - Records 与 History 从 timestamp 展示日期时使用 `getLocalDateKeyFromTimestamp()`；不得以字符串截取 ISO 的 UTC 日期。
@@ -20,12 +20,12 @@ Insights 与报告不分别计算统计，而是通过 `src/lib/analytics.ts` �
 数据库类型边界：
 
 - 业务日期使用 PostgreSQL `date`。
-- 计划开始/结束使用 `time`，按用户本地墙钟解释。
+- 计划开始/结束使用 `time`，按账号时区的墙钟解释。
 - 待安排任务以 `status=waiting` 和 `importance=important|normal` 持久化；它们没有旧到期字段、日期或起止时间，但允许独立可空的 `planned_duration_minutes`，所有任务流转都保留它。
 - created/updated/completed/deleted/abandoned/recorded 等审计时间使用 `timestamptz`。
 - `src/lib/supabase/time-mapper.ts` 显式映射以上类型；业务 date/time 不调用 `Date`。
 
-生理期起止使用独立的 `period_records` 日期字段；天数包含起止当天，允许同日、跨月和跨年。数据库按 Asia/Shanghai 的业务日拒绝未来记录，通过账号与闭区间的 GiST 排他约束阻止重叠和双进行中记录。
+生理期起止使用独立的 `period_records` 日期字段；天数包含起止当天，允许同日、跨月和跨年。数据库按账号 habit_settings.timezone 的自然日拒绝未来记录（未初始化的旧账号保持 Asia/Shanghai），通过账号与闭区间的 GiST 排他约束阻止重叠和双进行中记录。
 
 ## 云端与本地状态
 
@@ -54,4 +54,4 @@ Daily 完全不属于 Project，旧 `legacy_project_id` 只用于历史兼容，
 
 任务进入 `trashed` 时立即清除本设备关联 stroke。设备重连后用 owner 的 authoritative all-task identity set 对账：task 已是 trashed 或已被 30 天物理 purge 时删除 stroke；绝不能用单日或单状态局部查询判断“不存在”。
 
-规划使用普通任务的当前日期与完成状态，不使用投入热力口径；改期以客户端 IANA 时区校验今天及未来目标，三参数旧入口按 UTC 兼容。历史与投入账本保持原归属。
+规划使用普通任务的当前日期与完成状态，不使用投入热力口径；改期以账号选择的 IANA 时区校验今天及未来目标，三参数旧入口按 UTC 兼容。历史与投入账本保持原归属。

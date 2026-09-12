@@ -1,5 +1,6 @@
 /** @fileoverview 账号时区和独立睡觉分界表单；草稿失败保留，规则生效日期明确可见。 */
 'use client';
+import { TimezoneSelect } from '@/features/settings/timezone-select';
 import { useState } from 'react';
 import { ManagementDialog } from '@/components/ui/management-dialog';
 import { useHabits } from './habit-state';
@@ -70,14 +71,6 @@ export function HabitSettingsDialog({ onClose }: { onClose: () => void }) {
   const [version, setVersion] = useState(data.settings.version);
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   const [error, setError] = useState<string>();
-  const zones = [
-    ...new Set([
-      timezone,
-      'UTC',
-      'Asia/Shanghai',
-      ...Intl.supportedValuesOf('timeZone'),
-    ]),
-  ];
   /** 修改草稿就是新意图；网络失败不修改 ID，重试可以幂等返回。 */
   const update = (patch: Partial<RuleValues>) => {
     setRules((old) => ({ ...old, ...patch }));
@@ -97,24 +90,17 @@ export function HabitSettingsDialog({ onClose }: { onClose: () => void }) {
   return (
     <ManagementDialog title="习惯设置" onClose={onClose} busy={busy} error={error}>
       <div className="habit-settings-form">
-        <label>
-          账号时区
-          <select
-            data-management-initial-focus
-            value={timezone}
-            onChange={(event) => {
-              setTimezone(event.target.value);
-              setRequestId(crypto.randomUUID());
-            }}
-          >
-            {zones.map((zone) => (
-              <option key={zone} value={zone}>
-                {zone}
-              </option>
-            ))}
-          </select>
-        </label>
-        <p className="habit-caption">所有设备使用此时区。改变时区不会移动已有记录。</p>
+        <TimezoneSelect
+          autoFocus
+          value={timezone}
+          onChange={(zone) => {
+            setTimezone(zone);
+            setRequestId(crypto.randomUUID());
+          }}
+        />
+        <p className="habit-caption">
+          全 App 使用此时区，不跟随电脑。已有记录保持原时间。
+        </p>
         <BoundaryInput
           label="起床目标"
           value={rules.wake_target}

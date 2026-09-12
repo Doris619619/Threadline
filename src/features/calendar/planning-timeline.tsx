@@ -1,5 +1,7 @@
 /** @fileoverview 单日小时画布：真实时间块、短任务刻线及重叠任务入口，点击后查看完整任务操作。 */
 import { useEffect, useState, type CSSProperties } from 'react';
+import { accountClockParts } from '@/lib/account-clock';
+import { useAccountTimezone } from '@/features/settings/account-timezone-provider';
 import { getLocalDateKey } from '@/lib/local-date';
 import type { Project, Task } from '@/types/domain';
 import { layoutPlanningTimeline, planningTimeLabel } from './planning-timeline-layout';
@@ -11,6 +13,7 @@ function offset(minutes: number): string {
 
 /** 当前时间来自真实时钟，每分钟及页面重新可见时校准；其他日期不显示现在指示。 */
 function usePlanningNow(date: string) {
+  useAccountTimezone();
   const [now, setNow] = useState<Date>();
   useEffect(() => {
     const update = () => setNow(new Date());
@@ -23,7 +26,7 @@ function usePlanningNow(date: string) {
     };
   }, []);
   return now && getLocalDateKey(now) === date
-    ? now.getHours() * 60 + now.getMinutes()
+    ? accountClockParts(now).minutes
     : undefined;
 }
 

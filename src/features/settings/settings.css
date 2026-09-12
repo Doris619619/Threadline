@@ -212,3 +212,25 @@
 .settings-row:active {
   background: var(--surface-secondary);
 }
+
+/* 账号时区输入继承主题，手机保持 16px 避免键盘弹出时页面缩放。 */
+.account-timezone-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.account-timezone-field select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 8px;
+  font-size: 16px;
+  background: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.account-timezone-settings {
+  max-width: 560px;
+}

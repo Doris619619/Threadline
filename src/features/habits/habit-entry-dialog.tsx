@@ -80,9 +80,11 @@ export function habitDraftChange(draft: Draft): HabitChange {
 /** 草稿独立于后台更新；遇到版本冲突，显式重新载入后才能基于新记录编辑。 */
 export function HabitEntryDialog({
   date,
+  focusKind,
   onClose,
 }: {
   date: string;
+  focusKind?: HabitKind;
   onClose: () => void;
 }) {
   const { data, save, busy, retry } = useHabits();
@@ -131,135 +133,163 @@ export function HabitEntryDialog({
       error={error}
     >
       <div className="habit-editor">
-        {drafts.map((draft) => (
-          <section key={draft.kind} className="habit-editor-section">
-            <header>
-              <h3>{KIND_LABELS[draft.kind]}</h3>
-              <span>
-                {draft.entry
-                  ? draft.entry.deleted_at
-                    ? '已清除'
-                    : habitGrade(draft.entry, data.rules)
-                  : '未记录'}
-              </span>
-            </header>
-            {draft.entry && (
-              <p className="habit-caption">
-                {draft.entry.source === 'automatic' ? '自动记录' : '手动补录/修改'} ·{' '}
-                {draft.entry.timezone}
-                {draft.entry.local_time
-                  ? ` · ${draft.entry.local_time.replace('T', ' ')}`
-                  : ''}
-              </p>
-            )}
-            {!draft.entry?.deleted_at && (
-              <>
-                <label>
-                  归属日期
-                  <input
-                    aria-label={`${KIND_LABELS[draft.kind]}归属日期`}
-                    type="date"
-                    value={draft.date}
-                    onChange={(event) =>
-                      update(draft.kind, { date: event.target.value })
-                    }
-                  />
-                </label>
-                {draft.kind === 'efficiency' ? (
-                  <label>
-                    当天工作效率
-                    <select
-                      aria-label="补录工作效率"
-                      value={draft.efficiency}
-                      onChange={(event) =>
-                        update(draft.kind, {
-                          efficiency: event.target.value as Efficiency,
-                        })
-                      }
-                    >
-                      <option value="">未记录</option>
-                      {Object.entries(EFFICIENCY_LABELS).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : (
-                  <>
+        {drafts
+          .filter((draft) => !focusKind || draft.kind === focusKind)
+          .map((draft) => (
+            <section key={draft.kind} className="habit-editor-section">
+              <header>
+                <h3>{KIND_LABELS[draft.kind]}</h3>
+                <span>
+                  {draft.entry
+                    ? draft.entry.deleted_at
+                      ? '已清除'
+                      : habitGrade(draft.entry, data.rules)
+                    : '未记录'}
+                </span>
+              </header>
+              {draft.entry && !focusKind && (
+                <p className="habit-caption">
+                  {draft.entry.source === 'automatic' ? '自动记录' : '手动补录/修改'} ·{' '}
+                  {draft.entry.timezone}
+                  {draft.entry.local_time
+                    ? ` · ${draft.entry.local_time.replace('T', ' ')}`
+                    : ''}
+                </p>
+              )}
+              {!draft.entry?.deleted_at && (
+                <>
+                  <details open={!focusKind} className="habit-date-details">
+                    <summary>归属日期</summary>
                     <label>
-                      实际日期与时间
+                      归属日期
                       <input
-                        aria-label={`${KIND_LABELS[draft.kind]}实际时间`}
-                        type="datetime-local"
-                        step="60"
-                        value={draft.local}
+                        aria-label={`${KIND_LABELS[draft.kind]}归属日期`}
+                        type="date"
+                        value={draft.date}
                         onChange={(event) =>
-                          update(draft.kind, { local: event.target.value })
+                          update(draft.kind, { date: event.target.value })
                         }
                       />
                     </label>
+                  </details>
+                  {draft.kind === 'efficiency' ? (
                     <label>
-                      记录时区
-                      <input
-                        aria-label={`${KIND_LABELS[draft.kind]}时区`}
-                        value={draft.timezone}
-                        onChange={(event) =>
-                          update(draft.kind, { timezone: event.target.value })
-                        }
-                      />
-                    </label>
-                    {draft.local && draft.date && (
-                      <p className="habit-caption">
-                        {draft.local.slice(0, 10) === draft.date
-                          ? '当天'
-                          : draft.local.slice(0, 10) === habitAddDays(draft.date, 1)
-                            ? '次日'
-                            : '请核对实际日期'}{' '}
-                        {draft.local.slice(11)} → 归属 {draft.date}
-                      </p>
-                    )}
-                    <details>
-                      <summary>夏令时重复时间</summary>
+                      当天工作效率
                       <select
-                        aria-label={`${KIND_LABELS[draft.kind]}重复时间选择`}
-                        value={draft.choice ?? ''}
+                        aria-label="补录工作效率"
+                        value={draft.efficiency}
                         onChange={(event) =>
                           update(draft.kind, {
-                            choice: (event.target.value ||
-                              undefined) as Draft['choice'],
+                            efficiency: event.target.value as Efficiency,
                           })
                         }
                       >
-                        <option value="">无重复时自动处理</option>
-                        <option value="earlier">第一次</option>
-                        <option value="later">第二次</option>
+                        <option value="">未记录</option>
+                        {Object.entries(EFFICIENCY_LABELS).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
                       </select>
-                    </details>
-                  </>
-                )}
-              </>
-            )}
-            {draft.entry && (
-              <button
-                type="button"
-                onClick={() =>
-                  update(draft.kind, {
-                    mode: draft.entry!.deleted_at ? 'restore' : 'clear',
-                  })
-                }
-              >
-                {draft.dirty && draft.mode !== 'edit'
-                  ? draft.mode === 'clear'
-                    ? '保存后清除'
-                    : '保存后恢复'
-                  : draft.entry.deleted_at
-                    ? '恢复最近一次值'
-                    : '清除这一项'}
-              </button>
-            )}
-          </section>
-        ))}
+                    </label>
+                  ) : (
+                    <>
+                      {focusKind && (
+                        <label>
+                          时间
+                          <input
+                            type="time"
+                            aria-label={`${KIND_LABELS[draft.kind]}时间`}
+                            data-management-initial-focus
+                            step="60"
+                            value={draft.local.slice(11, 16)}
+                            onChange={(event) => {
+                              const time = event.target.value;
+                              const actualDate =
+                                draft.kind === 'sleep' && time < '04:00'
+                                  ? habitAddDays(draft.date, 1)
+                                  : draft.date;
+                              update(draft.kind, { local: `${actualDate}T${time}` });
+                            }}
+                          />
+                        </label>
+                      )}
+                      <details open={focusKind ? undefined : true}>
+                        <summary>日期与时区</summary>
+                        <label>
+                          实际日期与时间
+                          <input
+                            aria-label={`${KIND_LABELS[draft.kind]}实际时间`}
+                            type="datetime-local"
+                            step="60"
+                            value={draft.local}
+                            onChange={(event) =>
+                              update(draft.kind, { local: event.target.value })
+                            }
+                          />
+                        </label>
+                        <label>
+                          记录时区
+                          <input
+                            aria-label={`${KIND_LABELS[draft.kind]}时区`}
+                            value={draft.timezone}
+                            onChange={(event) =>
+                              update(draft.kind, { timezone: event.target.value })
+                            }
+                          />
+                        </label>
+                      </details>
+                      {draft.local && draft.date && (
+                        <p className="habit-caption">
+                          {draft.local.slice(0, 10) === draft.date
+                            ? '当天'
+                            : draft.local.slice(0, 10) === habitAddDays(draft.date, 1)
+                              ? '次日'
+                              : '请核对实际日期'}{' '}
+                          {draft.local.slice(11)} → 归属 {draft.date}
+                        </p>
+                      )}
+                      <details>
+                        <summary>夏令时重复时间</summary>
+                        <select
+                          aria-label={`${KIND_LABELS[draft.kind]}重复时间选择`}
+                          value={draft.choice ?? ''}
+                          onChange={(event) =>
+                            update(draft.kind, {
+                              choice: (event.target.value ||
+                                undefined) as Draft['choice'],
+                            })
+                          }
+                        >
+                          <option value="">无重复时自动处理</option>
+                          <option value="earlier">第一次</option>
+                          <option value="later">第二次</option>
+                        </select>
+                      </details>
+                    </>
+                  )}
+                </>
+              )}
+              {draft.entry && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    update(draft.kind, {
+                      mode: draft.entry!.deleted_at ? 'restore' : 'clear',
+                    })
+                  }
+                >
+                  {draft.dirty && draft.mode !== 'edit'
+                    ? draft.mode === 'clear'
+                      ? '保存后清除'
+                      : '保存后恢复'
+                    : draft.entry.deleted_at
+                      ? '恢复最近一次值'
+                      : '清除这一项'}
+                </button>
+              )}
+            </section>
+          ))}
         {error && (
           <div className="habit-recovery">
             <button type="button" onClick={retry}>

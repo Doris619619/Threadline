@@ -8,12 +8,13 @@ import { useRhythmState } from './rhythm-state';
 import { periodDays, summarizePeriods, type PeriodDraft } from './period-rules';
 import { PeriodEditor } from './period-editor';
 import { getMonthGrid } from '@/lib/date-range';
-import { addLocalDateDays, getLocalDateKey } from '@/lib/local-date';
+import { useAccountToday } from '@/features/settings/account-timezone-provider';
+import { addLocalDateDays } from '@/lib/local-date';
 import { cn } from '@/lib/cn';
 
 /** 所有快捷动作使用今天，月历浏览独立于首页工作日期；历史记录可随时补录修改。 */
 export function RhythmPanel({ selectedDate }: { selectedDate: string }) {
-  const today = getLocalDateKey();
+  const today = useAccountToday();
   const [anchor, setAnchor] = useState(selectedDate.slice(0, 7));
   const [editor, setEditor] = useState<{
     draft: PeriodDraft;

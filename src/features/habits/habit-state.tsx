@@ -11,12 +11,15 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  isCancelledError,
   QueryClient,
   QueryClientProvider,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
 import { useCloudRuntime } from '@/features/auth/cloud-runtime-provider';
+import { useAccountTimezone } from '@/features/settings/account-timezone-provider';
+import { getAccountTimezone } from '@/lib/account-clock';
 import { beginCloudWrite } from '@/lib/cloud-write-guard';
 import { usesLocalWorkspace } from '@/lib/workspace-runtime';
 import { useWorkspaceView } from '@/components/app-shell';
@@ -33,7 +36,13 @@ import {
   listHabitData,
   saveHabitRequest,
 } from './habit-repository';
-import type { HabitData, HabitEntry, HabitRequest, RuleValues } from './habit-types';
+import type {
+  HabitData,
+  HabitEntry,
+  HabitRequest,
+  HabitSettings,
+  RuleValues,
+} from './habit-types';
 
 export interface HabitRepository {
   owner: string;
@@ -50,7 +59,7 @@ export interface HabitRepository {
     rules: RuleValues,
     version: number,
     requestId: string,
-  ) => Promise<void>;
+  ) => Promise<HabitSettings>;
   subscribe: (refresh: () => void) => () => void;
 }
 type HabitsContext = {
@@ -94,11 +103,12 @@ export function HabitStore({
   children: ReactNode;
 }) {
   const { active } = useWorkspaceView();
-  const queryClient = useQueryClient();
-  const timezone = useMemo(
-    () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-    [],
+  const account = useAccountTimezone();
+  const [confirmedSettings, setConfirmedSettings] = useState<HabitSettings | null>(
+    null,
   );
+  const queryClient = useQueryClient();
+  const timezone = account?.settings?.timezone ?? getAccountTimezone();
   const [now, setNow] = useState(() => new Date().toISOString());
   const today = habitBusinessDate(now, timezone, 'wake');
   const [range, updateRange] = useState({
@@ -139,7 +149,16 @@ export function HabitStore({
     enabled: active === 'habits',
   });
   const fallback = useMemo(() => emptyHabitData(timezone), [timezone]);
-  const data = query.data ?? fallback;
+  const queried = query.data ?? fallback;
+  const settings = [queried.settings, account?.settings, confirmedSettings]
+    .filter((value): value is HabitSettings => Boolean(value))
+    .sort((a, b) => b.version - a.version)[0];
+  const data = { ...queried, settings };
+  useEffect(() => {
+    if (query.data) account?.accept(query.data.settings);
+    // 只在查询的设置版本变化时接收，避免上下文广播形成循环。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query.data?.settings.version, query.data?.settings.timezone]);
   const setRange = useCallback((start: string, end: string) => {
     updateRange((old) =>
       old.start === start && old.end === end ? old : { start, end },
@@ -171,8 +190,12 @@ export function HabitStore({
         { queryKey: ['habits', repository.owner] },
         { throwOnError: true },
       );
-    } catch {
-      setNotice('记录已保存，统计暂未更新，请重新读取。');
+      setNotice(undefined);
+    } catch (reason) {
+      if (isCancelledError(reason)) return;
+      setNotice(
+        `记录已保存。统计刷新失败：${reason instanceof Error ? reason.message : '请重新读取'}`,
+      );
     }
   };
   /** 保存前同步加锁，双击不生成并发写；失败保留冻结时间和稳定请求 ID。 */
@@ -238,7 +261,7 @@ export function HabitStore({
     try {
       if (!navigator.onLine) throw new Error('当前离线，输入已保留，请联网后重试');
       endWrite = beginCloudWrite();
-      await repository.configure(
+      const savedSettings = await repository.configure(
         zone,
         data.settings.timezone,
         rules,
@@ -247,7 +270,13 @@ export function HabitStore({
       );
       if (!mounted.current) return;
       await queryClient.cancelQueries({ queryKey: ['habits', repository.owner] });
-      await refresh();
+      setConfirmedSettings(savedSettings);
+      account?.accept(savedSettings);
+      queryClient.setQueriesData<HabitData>(
+        { queryKey: ['habits', repository.owner] },
+        (current) => (current ? { ...current, settings: savedSettings } : current),
+      );
+      void refresh();
     } finally {
       endWrite?.();
       locked.current = false;
@@ -295,7 +324,7 @@ function CloudHabits({ children }: { children: ReactNode }) {
         listHabitData(
           client,
           user.id,
-          Intl.DateTimeFormat().resolvedOptions().timeZone,
+          getAccountTimezone(),
           start,
           end,
           signal,
@@ -332,7 +361,7 @@ function LocalHabits({ children }: { children: ReactNode }) {
     () => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
   );
   const repository = useMemo<HabitRepository>(() => {
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const timezone = getAccountTimezone();
     return {
       owner: 'local',
       list: async () => readLocalHabits(timezone),
@@ -343,7 +372,7 @@ function LocalHabits({ children }: { children: ReactNode }) {
           )
         ).entries,
       configure: async (zone, _initial, rules, version, requestId) => {
-        await mutateLocalHabits(timezone, (data) =>
+        const next = await mutateLocalHabits(timezone, (data) =>
           configureLocalHabits(
             data,
             zone,
@@ -353,6 +382,7 @@ function LocalHabits({ children }: { children: ReactNode }) {
             new Date().toISOString(),
           ),
         );
+        return next.settings;
       },
       subscribe: (refresh) => {
         window.addEventListener('storage', refresh);
