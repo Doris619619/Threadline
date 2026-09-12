@@ -357,7 +357,10 @@ rejectPattern(/status\s*=\s*'purged'|\b'purged'\b/i, 'purged is not a TaskStatus
 const legacyMigrations = (
   await Promise.all(
     migrationFiles
-      .filter((name) => !name.endsWith('_habits.sql'))
+      .filter(
+        (name) =>
+          !name.endsWith('_habits.sql') && !name.endsWith('_account_timezone.sql'),
+      )
       .map((name) => readFile(join(migrationsDirectory, name), 'utf8')),
   )
 ).join('\n');
@@ -400,3 +403,24 @@ if (/grant\s+(?:insert|update|delete)[^;]*to authenticated/i.test(habitMigration
   throw new Error('Habit tables cannot grant direct client writes');
 
 console.log('Verified static Supabase architecture contract.');
+
+// 账号时区沿用独立版本与权限边界，不扩展旧任务的并发模型。
+const accountTimezoneMigration = await readFile(
+  join(migrationsDirectory, '202609120002_account_timezone.sql'),
+  'utf8',
+);
+requireDefinitionPattern(
+  accountTimezoneMigration,
+  /set_account_timezone[\s\S]*security definer[\s\S]*auth\.uid\(\)[\s\S]*pg_advisory_xact_lock/i,
+  'account timezone is authenticated and serialized',
+);
+requireDefinitionPattern(
+  accountTimezoneMigration,
+  /p_expected_version is null[\s\S]*return settings[\s\S]*HABIT_CONFLICT_SETTINGS/i,
+  'account timezone initialization cannot overwrite an existing preference',
+);
+requireDefinitionPattern(
+  accountTimezoneMigration,
+  /revoke all on function public\.set_account_timezone[\s\S]*from public, anon, authenticated/i,
+  'account timezone RPC is not anonymous',
+);

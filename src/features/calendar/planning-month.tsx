@@ -1,7 +1,11 @@
 /** @fileoverview 月历首页：主题热力与次要任务数量，月份浏览与当天详情分层。 */
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getMonthGrid } from '@/lib/date-range';
-import { getLocalDateKey, parseLocalDateKey } from '@/lib/local-date';
+import {
+  getLocalDateKey,
+  formatCalendarDate,
+  parseLocalDateKey,
+} from '@/lib/local-date';
 import { planningHeat } from './planning-rules';
 import type { Task } from '@/types/domain';
 
@@ -24,7 +28,7 @@ export function PlanningMonth({
   const shift = (amount: number) => {
     const next = parseLocalDateKey(`${month}-01`);
     next.setMonth(next.getMonth() + amount);
-    onMonth(getLocalDateKey(next).slice(0, 7));
+    onMonth(formatCalendarDate(next).slice(0, 7));
   };
   return (
     <section className="planning-month" aria-label="月份选日">

@@ -1,14 +1,9 @@
 /** @fileoverview 习惯一级栏目：当日真实时间打卡、周/月统计、效率分布和可编辑历史月历。 */
 'use client';
 import { useEffect, useState } from 'react';
+import { timezoneLabel } from '@/lib/account-clock';
 import { Temporal } from '@js-temporal/polyfill';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Moon,
-  SlidersHorizontal,
-  Sunrise,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import {
   getMonthGrid,
   getMonthRange,
@@ -16,25 +11,14 @@ import {
   iterateLocalDateRange,
 } from '@/lib/date-range';
 import { useHabits } from './habit-state';
+import { EFFICIENCY_LABELS, type HabitKind } from './habit-types';
 import {
-  EFFICIENCY_LABELS,
-  type Efficiency,
-  type HabitChange,
-  type HabitKind,
-} from './habit-types';
-import {
-  formatHabitMinutes,
   habitAddDays,
   habitBusinessDate,
   habitLocalTime,
-  habitMinutes,
 } from './habit-time';
-import {
-  habitGrade,
-  habitRegularity,
-  habitRuleForDate,
-  summarizeHabits,
-} from './habit-statistics';
+import { habitGrade, habitRegularity, summarizeHabits } from './habit-statistics';
+import { HabitToday } from './habit-today';
 import { HabitTimeTrend } from './habit-trends';
 import { HabitSettingsDialog } from './habit-settings-dialog';
 import { HabitEntryDialog } from './habit-entry-dialog';
@@ -55,7 +39,13 @@ export function HabitsPanel() {
   const [anchor, setAnchor] = useState<string | null>(null);
   const [month, setMonth] = useState<string | null>(null);
   const [historyKind, setHistoryKind] = useState<HabitKind>('sleep');
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [editingKind, setEditingKind] = useState<HabitKind | undefined>();
+  const [selectedDate, selectDate] = useState<string | null>(null);
+  /** 日期入口显示完整详情，时间入口只编辑所选项目。 */
+  const setSelectedDate = (date: string | null) => {
+    setEditingKind(undefined);
+    selectDate(date);
+  };
   const [settingsOpen, setSettingsOpen] = useState(false);
   const range =
     period === 'week' ? getWeekRange(anchor ?? today) : getMonthRange(anchor ?? today);
@@ -74,33 +64,24 @@ export function HabitsPanel() {
   );
   const activeEntries = data.entries.filter((entry) => !entry.deleted_at);
   const days = iterateLocalDateRange(range);
-  /** 一键时间在事件处理开始时冻结；效率已有记录使用版本化编辑，不产生重复行。 */
-  const record = (kind: HabitKind, efficiency?: Efficiency) => {
-    const capturedAt = new Date().toISOString();
-    const date = habitBusinessDate(capturedAt, data.settings.timezone, kind);
-    const existing = activeEntries.find(
-      (entry) => entry.kind === kind && entry.business_date === date,
-    );
-    const change: HabitChange = {
-      mode: 'record',
-      kind,
-      occurred_at: capturedAt,
-      efficiency,
-      ...(kind === 'efficiency' && existing
-        ? { id: existing.id, expected_version: existing.version }
-        : {}),
-    };
-    void save({
-      requestId: crypto.randomUUID(),
-      changes: [change],
-      timezone: data.settings.timezone,
-      settingsVersion: data.settings.version,
-    }).catch(() => undefined);
-  };
   return (
     <div className="habits-panel" data-testid="habits-panel">
       <header className="habit-page-header">
-        <h1>习惯</h1>
+        <div>
+          <h1>习惯</h1>
+          <div className="habit-live-clock" data-testid="habit-clock">
+            <time dateTime={now}>
+              {new Intl.DateTimeFormat('zh-CN', {
+                timeZone: data.settings.timezone,
+                month: 'long',
+                day: 'numeric',
+                weekday: 'long',
+              }).format(new Date(now))}
+              <b>{habitLocalTime(now, data.settings.timezone).slice(11, 19)}</b>
+            </time>
+            <span>{timezoneLabel(data.settings.timezone)}</span>
+          </div>
+        </div>
         <button
           type="button"
           aria-label="习惯设置"
@@ -166,114 +147,12 @@ export function HabitsPanel() {
               )}
             </div>
           )}
-          <section className="habit-today" aria-label="今天打卡">
-            <header>
-              <h2>
-                今天 <time>{today}</time>
-              </h2>
-              <span className="habit-caption">{data.settings.timezone}</span>
-            </header>
-            {(['wake', 'sleep'] as const).map((kind) => {
-              const pendingChange = pending?.changes.find(
-                (change) => change.kind === kind && change.mode === 'record',
-              );
-              const date = pendingChange?.occurred_at
-                ? habitBusinessDate(pendingChange.occurred_at, pending!.timezone, kind)
-                : habitBusinessDate(now, data.settings.timezone, kind);
-              const entry = activeEntries.find(
-                (item) => item.kind === kind && item.business_date === date,
-              );
-              const rule = habitRuleForDate(data.rules, date);
-              const value = pendingChange?.occurred_at
-                ? habitMinutes(
-                    habitLocalTime(pendingChange.occurred_at, pending!.timezone),
-                    date,
-                    kind,
-                  )
-                : entry?.local_time
-                  ? habitMinutes(entry.local_time, date, kind)
-                  : null;
-              return (
-                <div
-                  className="habit-check-row"
-                  key={kind}
-                  data-testid={`habit-${kind}`}
-                >
-                  {kind === 'wake' ? (
-                    <Sunrise aria-hidden="true" size={22} />
-                  ) : (
-                    <Moon aria-hidden="true" size={22} />
-                  )}
-                  <div className="habit-check-label">
-                    <strong>{kind === 'wake' ? '起床' : '睡觉'}</strong>
-                    <small>
-                      {date}
-                      {kind === 'sleep' ? ' 晚' : ''} · 目标{' '}
-                      {formatHabitMinutes(
-                        kind === 'sleep' ? rule.sleep_target : rule.wake_target,
-                      )}
-                    </small>
-                  </div>
-                  <div className="habit-record-value">
-                    <strong>
-                      {value === null ? '--:--' : formatHabitMinutes(value)}
-                    </strong>
-                    <small>
-                      {pendingChange
-                        ? busy
-                          ? '保存中…'
-                          : '尚未保存'
-                        : entry
-                          ? habitGrade(entry, data.rules)
-                          : '未记录'}
-                    </small>
-                  </div>
-                  <button
-                    type="button"
-                    className={entry ? 'habit-edit-button' : 'habit-record-button'}
-                    disabled={busy || Boolean(pending)}
-                    onClick={() => (entry ? setSelectedDate(date) : record(kind))}
-                  >
-                    {entry ? '修改' : kind === 'wake' ? '起床了' : '睡觉了'}
-                  </button>
-                </div>
-              );
-            })}
-            <div className="habit-efficiency-row">
-              <div>
-                <strong>每日状态</strong>
-                <small>{businessToday} · 当天工作效率</small>
-              </div>
-              <div className="habit-segments" aria-label="当天工作效率">
-                {Object.entries(EFFICIENCY_LABELS).map(([value, label]) => {
-                  const selected =
-                    pending?.changes.find((change) => change.kind === 'efficiency')
-                      ?.efficiency ??
-                    activeEntries.find(
-                      (entry) =>
-                        entry.kind === 'efficiency' &&
-                        entry.business_date === businessToday,
-                    )?.efficiency;
-                  return (
-                    <button
-                      type="button"
-                      key={value}
-                      aria-pressed={selected === value}
-                      disabled={busy || Boolean(pending)}
-                      onClick={() => record('efficiency', value as Efficiency)}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            {pending?.changes.some((change) => change.kind === 'efficiency') && (
-              <p role="status" className="habit-caption">
-                {busy ? '状态保存中…' : '状态尚未保存'}
-              </p>
-            )}
-          </section>
+          <HabitToday
+            onEdit={(date, kind) => {
+              setEditingKind(kind);
+              selectDate(date);
+            }}
+          />
           <section aria-label="习惯统计" className="habit-statistics">
             <header className="habit-range-header">
               <h2>{anchor ? '统计' : period === 'week' ? '本周' : '本月'}</h2>
@@ -308,7 +187,8 @@ export function HabitsPanel() {
                   <ChevronLeft size={18} />
                 </button>
                 <span>
-                  {range.start} — {range.end}
+                  {range.start.slice(0, 4)}年 {range.start.slice(5).replace('-', '/')} –{' '}
+                  {range.end.slice(5).replace('-', '/')}
                 </span>
                 <button
                   type="button"
@@ -396,7 +276,7 @@ export function HabitsPanel() {
                       aria-label={`${date} 工作效率 ${entry ? EFFICIENCY_LABELS[entry.efficiency!] : '未记录'}`}
                       onClick={() => setSelectedDate(date)}
                     >
-                      <small>{date.slice(5)}</small>
+                      <small>{Number(date.slice(8))}日</small>
                       <strong>
                         {entry ? EFFICIENCY_LABELS[entry.efficiency!] : '—'}
                       </strong>
@@ -406,16 +286,17 @@ export function HabitsPanel() {
               </div>
             </section>
           </section>
-          <section className="habit-regularity">
-            <h2>规律</h2>
+          <details className="habit-regularity">
+            <summary>作息规律</summary>
             {(['sleep', 'wake'] as const).map((kind) => (
               <p key={kind}>
                 {kind === 'wake' ? '起床：' : '睡觉：'}
                 {habitRegularity(data.entries, data.rules, businessToday, kind)}
               </p>
             ))}
-          </section>
-          <section className="habit-history">
+          </details>
+          <details className="habit-history">
+            <summary>历史与补录</summary>
             <header>
               <h2>历史</h2>
               <div className="habit-range-navigation">
@@ -484,7 +365,7 @@ export function HabitsPanel() {
               })}
             </div>
             <p className="habit-caption">点日期查看、补录或修改；— 表示未记录。</p>
-          </section>
+          </details>
         </>
       )}
       {settingsOpen && <HabitSettingsDialog onClose={() => setSettingsOpen(false)} />}
@@ -492,6 +373,7 @@ export function HabitsPanel() {
         <HabitEntryDialog
           key={selectedDate}
           date={selectedDate}
+          focusKind={editingKind}
           onClose={() => setSelectedDate(null)}
         />
       )}

@@ -6,6 +6,7 @@ import { ManagementDialog } from '@/components/ui/management-dialog';
 import { useWorkspaceData } from '@/features/workspace/workspace-data-provider';
 import { useTaskCreateAndEdit } from '@/features/tasks/hooks/use-task-create-and-edit';
 import { TaskDialog, RescheduleDialog } from '@/features/tasks/components/task-dialogs';
+import { useAccountToday } from '@/features/settings/account-timezone-provider';
 import { getLocalDateKey } from '@/lib/local-date';
 import { groupPlanningTasks } from './planning-rules';
 import { PlanningMonth } from './planning-month';
@@ -24,8 +25,15 @@ export function CalendarPanel() {
     saveTaskConfirmed,
     transitionTask,
   } = useWorkspaceData();
-  const [date, setDate] = useState<string>(() => getLocalDateKey());
-  const [month, setMonth] = useState(() => getLocalDateKey().slice(0, 7));
+  const today = useAccountToday();
+  const [chosenDate, chooseDate] = useState<string | null>(null);
+  const date = chosenDate ?? today;
+  /** 默认日期随账号午夜更新，手选日期保持稳定。 */
+  const setDate = (value: string) => chooseDate(value === today ? null : value);
+  const [chosenMonth, chooseMonth] = useState<string | null>(null);
+  const month = chosenMonth ?? today.slice(0, 7);
+  const setMonth = (value: string) =>
+    chooseMonth(value === today.slice(0, 7) ? null : value);
   const [view, setView] = useState<'month' | 'day'>('month');
   const panelRef = useRef<HTMLDivElement>(null);
   const returnDate = useRef<string | undefined>(undefined);
@@ -46,7 +54,6 @@ export function CalendarPanel() {
   const timeFocusTask = useRef<string | undefined>(undefined);
   const selectedTasks = tasks.filter((task) => selectedIds.includes(task.id));
   const waitingRef = useRef<HTMLDetailsElement>(null);
-  const today = getLocalDateKey();
   const days = useMemo(() => groupPlanningTasks(tasks), [tasks]);
   const waiting = tasks.filter((task) => task.status === 'waiting' && !task.completed);
   const { saveTask } = useTaskCreateAndEdit({

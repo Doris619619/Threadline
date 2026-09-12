@@ -44,3 +44,7 @@ Task 的 `abandoned` 是永久保留的业务历史状态；`purged` 不是 Task
 - Web/PWA 使用浏览器 `window.print()`。
 - Electron 仅给 Main Renderer 暴露 `exportReportPdf` bridge；Main 校验可信 sender 与 `main` role，弹出保存对话框，再对当前 document 的打印专用报告 DOM 调用 `webContents.printToPDF`。
 - Edge 窗口不暴露 PDF bridge。Main/Preload 保持 CommonJS，窗口 geometry、stateRevision、single-instance 与 CSP 边界不因报告导出而改变。
+
+## 账号日期与习惯布局
+
+全局日期使用账号时区，设备时区只作为未设置账号的首次默认值。习惯页头集中显示月日、星期、时间和所选地区；三行打卡中时间本身可点击编辑。周/月统计共用范围栏，规律和历史补录按需展开。具体边界见 [账号时区与习惯布局](habits-layout-timezone.md)。

@@ -1,0 +1,25 @@
+-- 文件用途：账号时区初始化、并发版本、幂等和历史保留的回滚测试；不要求启动本地数据库。
+begin;
+create extension if not exists pgtap with schema extensions;
+select plan(10);
+insert into auth.users(id, email) values ('98000000-0000-0000-0000-000000000001', 'zone-one@example.test'), ('98000000-0000-0000-0000-000000000002', 'zone-two@example.test');
+select ok(not has_function_privilege('anon', 'public.set_account_timezone(text,integer,uuid)', 'EXECUTE'), 'Anonymous timezone write denied');
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '98000000-0000-0000-0000-000000000001', true);
+select public.set_account_timezone('America/New_York', null, gen_random_uuid());
+select is((select timezone from public.habit_settings), 'America/New_York', 'Initial device zone stored once');
+select public.set_account_timezone('UTC', null, gen_random_uuid());
+select is((select timezone from public.habit_settings), 'America/New_York', 'Another device cannot overwrite initialization');
+select public.set_account_timezone('Asia/Shanghai', 0, '98000000-0000-0000-0000-000000000011');
+select is((select version from public.habit_settings), 1, 'Selection advances version');
+select public.set_account_timezone('Asia/Shanghai', 0, '98000000-0000-0000-0000-000000000011');
+select is((select version from public.habit_settings), 1, 'Retry is idempotent');
+select is((select count(*) from public.habit_rule_versions), 1::bigint, 'Timezone change does not add target rules');
+select throws_ok($$select public.set_account_timezone('UTC',0,gen_random_uuid())$$, 'P0001', 'HABIT_CONFLICT_SETTINGS', 'Stale device cannot overwrite selection');
+select public.apply_habit_entries(gen_random_uuid(), '[{"mode":"record","kind":"sleep","occurred_at":"2020-01-01T17:10:12.345Z"}]', 'Asia/Shanghai', 1);
+select is((select local_time from public.habit_entries), timestamp '2020-01-02 01:10:12.345', 'Raw instant records China wall clock');
+select is((select business_date from public.habit_entries), date '2020-01-01', 'China midnight belongs to previous evening');
+select set_config('request.jwt.claim.sub', '98000000-0000-0000-0000-000000000002', true);
+select is((select count(*) from public.habit_settings), 0::bigint, 'Account timezone is isolated');
+select * from finish();
+rollback;

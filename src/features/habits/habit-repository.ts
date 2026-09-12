@@ -102,7 +102,7 @@ export async function configureHabitAccount(
   rules: RuleValues,
   version: number,
   requestId: string,
-): Promise<void> {
+): Promise<HabitSettings> {
   const result = await client.rpc('configure_habits', {
     p_timezone: timezone,
     p_initial_timezone: initialTimezone,
@@ -111,4 +111,5 @@ export async function configureHabitAccount(
     p_request_id: requestId,
   });
   checkHabitError(result.error);
+  return result.data as HabitSettings;
 }
