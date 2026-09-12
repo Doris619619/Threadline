@@ -41,6 +41,10 @@ V8 覆盖率只纳入会改变业务数据或云端边界的模块：Daily 规�
 
 ## CI 与 release tier
 
+Web CI 失败时上传 `web-test-results`，保留七天，包含 Playwright trace、失败截图和错误上下文。交互用例还附带隔离 local adapter 的任务、项目及页面日期，用于区分刷新丢失、日期变化和页面未就绪；不采集生产账号数据。WebKit 项目刷新回归在完整矩阵前重复执行，优先定位该跨平台故障。
+
+local adapter 的首开与交互回归刷新统一等待 `.dashboard` 就绪，上限 10 秒；页面 `load` 不代表 React 已读取本地数据。项目归属仍在刷新前校验存储身份，刷新后保留原业务按钮断言，不依靠固定 sleep、全局延长断言或自动重试。Linux WebKit 的故障 trace 曾显示 `load` 后超过 5 秒仍在载入，而随后任务与 `course` 归属均正确恢复，因此启动等待与保存验证必须分开。
+
 PR CI 分为 `supabase`、`web`、`windows-electron` 三个 job。`supabase` 先启动 local Supabase，再运行数据库、Node integration 和真实 Chromium browser integration；`web` 执行 lint、typecheck、coverage、Web build 与 adapter E2E；`windows-electron` 顺序执行开发壳行为、package-dir 和 packaged EXE smoke。
 
 `desktop:verify:parity` 会构建 Preview 和 canonical package-dir 两份 unpacked app，成本不适合常规 PR，因此只在 tag/manual release workflow 的发布前 job 执行，并使用隔离 local adapter。NSIS 安装/卸载没有可靠、独立的 CI harness；它保持 release-tier 人工验收，不能被误写为 PR gate 已覆盖。

@@ -32,6 +32,18 @@ const localStorageKeys = [
   'threadline.desktop-compact-presentation.v3',
 ] as const;
 
+/** load 事件早于 React 的本地数据水合；首开与刷新共用有上限的页面就绪条件。 */
+export async function waitForLocalAdapterWorkspace(page: Page) {
+  await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();
+  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 10_000 });
+}
+
+/** 保留当前用例的数据刷新，先确认页面已载入，再由调用者验证业务结果。 */
+export async function reloadLocalAdapterWorkspace(page: Page) {
+  await page.reload();
+  await waitForLocalAdapterWorkspace(page);
+}
+
 /**
  * 以固定时间和空持久化状态打开 local adapter 首页。
  *
@@ -48,8 +60,7 @@ export async function bootstrapLocalAdapterWorkspace(page: Page, seedKey: string
     { cleanupKey: seedKey, keys: localStorageKeys },
   );
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();
-  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 10_000 });
+  await waitForLocalAdapterWorkspace(page);
   await page.waitForTimeout(100);
 }
 

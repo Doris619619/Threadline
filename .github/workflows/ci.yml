@@ -46,7 +46,15 @@ jobs:
       - run: pnpm test:coverage
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium webkit
+      - name: Verify WebKit project reload
+        run: pnpm test:e2e e2e/interaction-feedback.spec.ts --project=planning-webkit --grep 'menus and project picker' --repeat-each=3
       - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: web-test-results
+          path: test-results/
+          retention-days: 7
 
   preview-demo:
     runs-on: ubuntu-latest
