@@ -239,13 +239,19 @@ async function runPackagedSmoke(executablePath) {
       await page.getByRole('button', { name: '起床了', exact: true }).click();
       await page
         .getByTestId('habit-wake')
-        .getByRole('button', { name: '修改', exact: true })
+        .getByRole('button', { name: /编辑起床时间/ })
         .waitFor();
       const wakeTime = await page
         .getByTestId('habit-wake')
-        .locator('.habit-record-value strong')
+        .getByRole('button', { name: /编辑起床时间/ })
         .textContent();
       assert.match(wakeTime ?? '', /^\d{2}:\d{2}$/);
+      await page
+        .getByTestId('habit-wake')
+        .getByRole('button', { name: /编辑起床时间/ })
+        .click();
+      await page.getByRole('dialog').getByLabel('起床时间', { exact: true }).waitFor();
+      await page.keyboard.press('Escape');
       await page.reload();
       await page.getByRole('heading', { name: '我的工作台', exact: true }).waitFor();
       await page
@@ -254,12 +260,12 @@ async function runPackagedSmoke(executablePath) {
         .click();
       await page
         .getByTestId('habit-wake')
-        .getByRole('button', { name: '修改', exact: true })
+        .getByRole('button', { name: /编辑起床时间/ })
         .waitFor();
       assert.equal(
         await page
           .getByTestId('habit-wake')
-          .locator('.habit-record-value strong')
+          .getByRole('button', { name: /编辑起床时间/ })
           .textContent(),
         wakeTime,
       );

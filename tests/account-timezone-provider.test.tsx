@@ -41,10 +41,18 @@ it('loads the account choice before rendering business consumers', async () => {
   );
   expect(getAccountTimezone()).toBe('Asia/Shanghai');
 });
+it('accepts the PostgREST singleton array for first-login initialization', async () => {
+  mocks.read.mockResolvedValue({ data: null, error: null });
+  mocks.rpc.mockResolvedValue({ data: [settings('Asia/Shanghai')], error: null });
+  const hook = renderHook(useAccountTimezone, { wrapper: AccountTimezoneProvider });
+  await waitFor(() =>
+    expect(hook.result.current?.settings?.timezone).toBe('Asia/Shanghai'),
+  );
+});
 it('keeps a saved preference when a later focus refresh returns an older version', async () => {
   const hook = renderHook(useAccountTimezone, { wrapper: AccountTimezoneProvider });
   await waitFor(() => expect(hook.result.current).not.toBeNull());
-  mocks.rpc.mockResolvedValue({ data: settings('America/New_York', 1), error: null });
+  mocks.rpc.mockResolvedValue({ data: [settings('America/New_York', 1)], error: null });
   await act(async () =>
     hook.result.current!.saveTimezone('America/New_York', 0, 'stable-request'),
   );

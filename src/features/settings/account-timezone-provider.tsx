@@ -22,7 +22,7 @@ import {
   mutateLocalHabits,
   readLocalHabits,
 } from '@/features/habits/habit-local-repository';
-import { checkHabitError } from '@/features/habits/habit-repository';
+import { checkHabitError, readHabitSettings } from '@/features/habits/habit-repository';
 import type { HabitSettings } from '@/features/habits/habit-types';
 
 type AccountZone = {
@@ -89,7 +89,7 @@ function AccountTimezoneSession({ children }: { children: ReactNode }) {
                 p_request_id: crypto.randomUUID(),
               });
               checkHabitError(initialized.error);
-              next = initialized.data as HabitSettings;
+              next = readHabitSettings(initialized.data);
             } finally {
               endWrite();
             }
@@ -148,7 +148,7 @@ function AccountTimezoneSession({ children }: { children: ReactNode }) {
           p_request_id: requestId,
         });
         checkHabitError(result.error);
-        accept(result.data as HabitSettings);
+        accept(readHabitSettings(result.data));
       } else {
         const next = await mutateLocalHabits(getAccountTimezone(), (data) => {
           if (data.configurationRequests.includes(requestId)) return data;

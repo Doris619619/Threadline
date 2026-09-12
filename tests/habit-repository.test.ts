@@ -4,6 +4,7 @@ import { expect, it, vi } from 'vitest';
 import {
   checkHabitError,
   configureHabitAccount,
+  readHabitSettings,
   listHabitData,
   saveHabitRequest,
 } from '@/features/habits/habit-repository';
@@ -73,7 +74,16 @@ it('paginates without losing rows and scopes all reads to the account', async ()
   expect(aborts.every((value) => value === signal)).toBe(true);
 });
 it('sends stable operation identity and settings versions through RPC', async () => {
-  const rpc = vi.fn().mockResolvedValue({ data: [], error: null });
+  const settings = {
+    owner_id: 'account',
+    timezone: 'Asia/Shanghai',
+    version: 4,
+    updated_at: '',
+  };
+  const rpc = vi
+    .fn()
+    .mockResolvedValueOnce({ data: [], error: null })
+    .mockResolvedValue({ data: [settings], error: null });
   const client = { rpc } as unknown as SupabaseClient;
   const request = {
     requestId: 'same',
@@ -82,14 +92,16 @@ it('sends stable operation identity and settings versions through RPC', async ()
     timezone: 'UTC',
   };
   await saveHabitRequest(client, request);
-  await configureHabitAccount(
-    client,
-    'Asia/Shanghai',
-    'UTC',
-    DEFAULT_RULES,
-    3,
-    'config',
-  );
+  expect(
+    await configureHabitAccount(
+      client,
+      'Asia/Shanghai',
+      'UTC',
+      DEFAULT_RULES,
+      3,
+      'config',
+    ),
+  ).toEqual(settings);
   expect(rpc.mock.calls[0]).toEqual([
     'apply_habit_entries',
     { p_request_id: 'same', p_changes: [], p_timezone: 'UTC', p_settings_version: 3 },
@@ -99,6 +111,13 @@ it('sends stable operation identity and settings versions through RPC', async ()
     p_initial_timezone: 'UTC',
     p_rules: DEFAULT_RULES,
   });
+});
+it('normalizes settings rows and rejects invalid confirmations', () => {
+  const settings = { owner_id: 'account', timezone: 'UTC', version: 2, updated_at: '' };
+  expect(readHabitSettings(settings)).toEqual(settings);
+  expect(readHabitSettings([settings])).toEqual(settings);
+  for (const value of [null, [], [settings, settings], { ...settings, version: -1 }])
+    expect(() => readHabitSettings(value)).toThrow('返回格式');
 });
 it('keeps failures distinct from an empty successful response', () => {
   expect(() => checkHabitError(null)).not.toThrow();
