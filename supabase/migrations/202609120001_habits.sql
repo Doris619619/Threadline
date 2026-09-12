@@ -44,7 +44,7 @@ create table public.habit_entries (
 create unique index habit_one_active_entry on public.habit_entries(owner_id, business_date, kind) where deleted_at is null;
 create index habit_entries_by_date on public.habit_entries(owner_id, business_date);
 create table public.habit_entry_revisions (
-  id bigint generated always as identity primary key,
+  id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
   entry_id uuid not null,
   request_id uuid not null,
@@ -115,7 +115,7 @@ create function public.apply_habit_entries(p_request_id uuid, p_changes jsonb, p
 returns setof public.habit_entries language plpgsql security definer set search_path = pg_catalog, public as $$
 declare owner uuid := auth.uid(); settings public.habit_settings; change jsonb; previous public.habit_entries;
   saved public.habit_entries; duplicate public.habit_entries; mode text; kind_value text; zone text;
-  instant timestamptz; wall timestamp; day date; rule uuid; changed_id uuid; result_ids uuid[] := '{}';
+  instant timestamptz; wall timestamp; day date; rule uuid; changed_id uuid; result_ids uuid[] := '{}'::uuid[];
 begin
   if owner is null then raise exception 'HABIT_AUTH_REQUIRED' using errcode = '42501'; end if;
   if p_request_id is null or p_settings_version is null or p_changes is null or jsonb_typeof(p_changes) <> 'array'

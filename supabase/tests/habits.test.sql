@@ -20,7 +20,7 @@ select public.apply_habit_entries(gen_random_uuid(), jsonb_build_array(jsonb_bui
 select ok((select deleted_at is not null from public.habit_entries limit 1), 'Clear preserves tombstone');
 select public.apply_habit_entries(gen_random_uuid(), jsonb_build_array(jsonb_build_object('mode','restore','kind','sleep','id',(select id from public.habit_entries limit 1),'expected_version',2)), 'UTC', 0);
 select is((select version from public.habit_entries limit 1), 3, 'Restore advances version');
-select is((select snapshot->>'occurred_at' from public.habit_entry_revisions order by id limit 1)::timestamptz, timestamptz '2020-01-02T00:20:12.345Z', 'Original revision survives clear and restore');
+select is((select snapshot->>'occurred_at' from public.habit_entry_revisions where request_id = '97000000-0000-0000-0000-000000000011')::timestamptz, timestamptz '2020-01-02T00:20:12.345Z', 'Original revision survives clear and restore');
 select public.configure_habits('Asia/Shanghai', 'UTC', '{"wake_target":420,"sleep_target":1390,"sleep_late":1450,"sleep_very_late":1480}', 0, '97000000-0000-0000-0000-000000000013');
 select is((select timezone from public.habit_entries limit 1), 'UTC', 'Timezone setting does not move history');
 select is((select effective_from from public.habit_rule_versions where id = (select rule_id from public.habit_entries limit 1)), date '0001-01-01', 'History retains initial rule');
