@@ -5,6 +5,23 @@ import {
   openWorkspaceSection,
 } from './support/workspace';
 
+/** 失败时只记录隔离适配器的数据和页面日期，区分写入丢失、日期漂移与加载未完成。 */
+test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.status === testInfo.expectedStatus || page.isClosed()) return;
+  const state = await page.evaluate(() => ({
+    now: new Date().toISOString(),
+    dates: [...document.querySelectorAll('time')].map((el) => el.dateTime),
+    dashboard: Boolean(document.querySelector('.dashboard')),
+    tasks: localStorage.getItem('threadline.tasks.v1'),
+    projects: localStorage.getItem('threadline.projects.v1'),
+    text: document.body.innerText,
+  }));
+  await testInfo.attach('local-adapter-state', {
+    body: JSON.stringify(state, null, 2),
+    contentType: 'application/json',
+  });
+});
+
 test('menus and project picker escape a one-row list without changing its width', async ({
   page,
 }) => {
