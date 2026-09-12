@@ -30,6 +30,7 @@ export async function listHabitData(
   start: string,
   end: string,
   signal?: AbortSignal,
+  knownIds: string[] = [],
 ): Promise<HabitData> {
   const settingsQuery = client.from('habit_settings').select('*').eq('owner_id', owner);
   if (signal) settingsQuery.abortSignal(signal);
@@ -54,6 +55,20 @@ export async function listHabitData(
       else rules.push(...(result.data as HabitRule[]));
       if (result.data!.length < 500) break;
     }
+  }
+  // 其他设备可能把记录移出范围；按身份补查，防止单调缓存留下原日期的幽灵记录。
+  const returnedIds = new Set(entries.map((entry) => entry.id));
+  const missingIds = [...new Set(knownIds)].filter((id) => !returnedIds.has(id));
+  for (let offset = 0; offset < missingIds.length; offset += 100) {
+    const query = client
+      .from('habit_entries')
+      .select('*')
+      .eq('owner_id', owner)
+      .in('id', missingIds.slice(offset, offset + 100));
+    if (signal) query.abortSignal(signal);
+    const result = await query;
+    checkHabitError(result.error);
+    entries.push(...(result.data as HabitEntry[]));
   }
   const fallback = emptyHabitData(timezone);
   return {

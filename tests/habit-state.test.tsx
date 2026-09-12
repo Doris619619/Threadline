@@ -79,6 +79,12 @@ it('shows the frozen first click immediately and never lets stale lists erase co
   expect(task.result.current.data.entries[0].occurred_at).toBe(
     request.changes[0].occurred_at,
   );
+  expect(task.repository.list).toHaveBeenLastCalledWith(
+    expect.any(String),
+    expect.any(String),
+    expect.any(AbortSignal),
+    [saved[0].id],
+  );
 });
 it('retains the original ID and instant after a failed write', async () => {
   const apply = vi

@@ -37,7 +37,12 @@ import type { HabitData, HabitEntry, HabitRequest, RuleValues } from './habit-ty
 
 export interface HabitRepository {
   owner: string;
-  list: (start: string, end: string, signal?: AbortSignal) => Promise<HabitData>;
+  list: (
+    start: string,
+    end: string,
+    signal?: AbortSignal,
+    knownIds?: string[],
+  ) => Promise<HabitData>;
   apply: (request: HabitRequest) => Promise<HabitEntry[]>;
   configure: (
     timezone: string,
@@ -117,7 +122,9 @@ export function HabitStore({
   const query = useQuery({
     queryKey: key,
     queryFn: async ({ signal }) => {
-      const result = await repository.list(range.start, range.end, signal);
+      const result = await repository.list(range.start, range.end, signal, [
+        ...confirmed.current.keys(),
+      ]);
       if (!signal.aborted && mounted.current)
         for (const row of result.entries) {
           if ((confirmed.current.get(row.id)?.version ?? 0) < row.version)
@@ -284,7 +291,7 @@ function CloudHabits({ children }: { children: ReactNode }) {
   const repository = useMemo<HabitRepository>(
     () => ({
       owner: user.id,
-      list: (start, end, signal) =>
+      list: (start, end, signal, knownIds) =>
         listHabitData(
           client,
           user.id,
@@ -292,6 +299,7 @@ function CloudHabits({ children }: { children: ReactNode }) {
           start,
           end,
           signal,
+          knownIds,
         ),
       apply: (request) => saveHabitRequest(client, request),
       configure: (zone, initial, rules, version, requestId) =>

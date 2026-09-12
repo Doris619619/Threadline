@@ -111,3 +111,45 @@ it('keeps failures distinct from an empty successful response', () => {
   expect(() => checkHabitError({ message: 'HABIT_INVALID_DATE' })).toThrow('未来');
   expect(() => checkHabitError({ message: 'offline' })).toThrow('offline');
 });
+
+it('reconciles known records moved outside the range by another device', async () => {
+  const moved = { id: 'known', business_date: '2025-12-31', version: 2 };
+  const filters: unknown[][] = [];
+  const client = {
+    from: (table: string) => {
+      let byIdentity = false;
+      const query = {
+        select: () => query,
+        order: () => query,
+        range: () => query,
+        gte: () => query,
+        lte: () => query,
+        eq: (...args: unknown[]) => {
+          filters.push([table, ...args]);
+          return query;
+        },
+        in: (key: string, ids: string[]) => {
+          byIdentity = true;
+          filters.push([table, key, ids]);
+          return query;
+        },
+        maybeSingle: async () => ({ data: null, error: null }),
+        then: (resolve: (value: unknown) => unknown) =>
+          resolve({ data: byIdentity ? [moved] : [], error: null }),
+      };
+      return query;
+    },
+  } as unknown as SupabaseClient;
+  const data = await listHabitData(
+    client,
+    'account',
+    'UTC',
+    '2026-09-01',
+    '2026-09-30',
+    undefined,
+    ['known'],
+  );
+  expect(data.entries).toEqual([moved]);
+  expect(filters).toContainEqual(['habit_entries', 'id', ['known']]);
+  expect(filters.filter(([, key]) => key === 'owner_id')).toHaveLength(4);
+});

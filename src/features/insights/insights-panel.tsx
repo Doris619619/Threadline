@@ -215,6 +215,7 @@ export function InsightsPanel({
                   />
                   <Tooltip
                     formatter={(value) => formatMinutes(Number(value))}
+                    itemStyle={{ color: 'var(--text-primary)' }}
                     contentStyle={{
                       background: 'var(--surface)',
                       color: 'var(--text-primary)',
