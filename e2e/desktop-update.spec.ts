@@ -10,6 +10,7 @@ import type { DesktopUpdateState } from '../src/lib/desktop-update';
 test('keeps update actions visible across navigation, themes, download and compact mode', async ({
   page,
 }, testInfo) => {
+  test.setTimeout(60_000);
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.addInitScript(() => {
@@ -60,6 +61,16 @@ test('keeps update actions visible across navigation, themes, download and compa
         onPresentationRollback: () => () => undefined,
         onMainWindowMaximizeChanged: () => () => undefined,
         getMainWindowMaximized: async () => false,
+        minimizeMainWindow: async () => {
+          document.documentElement.dataset.testWindowAction = 'minimize';
+        },
+        closeMainWindow: async () => {
+          document.documentElement.dataset.testWindowAction = 'close';
+        },
+        toggleMainWindowMaximized: async () => {
+          document.documentElement.dataset.testWindowAction = 'maximize';
+          return true;
+        },
         resizeCompactContent: async () => undefined,
         setAppearanceTheme: async () => undefined,
       },
@@ -79,6 +90,50 @@ test('keeps update actions visible across navigation, themes, download and compa
   expect(box.width).toBeLessThanOrEqual(90);
   expect((await page.locator('.tl-window-body').boundingBox())!.y).toBe(40);
   await page.screenshot({ path: testInfo.outputPath('update-blue.png') });
+  // 没有更新提示时也必须固定标题栏，不能由更新入口的出现与否决定。
+  for (const status of ['current', 'available'] as const) {
+    await page.evaluate(
+      (value) =>
+        window.dispatchEvent(
+          new CustomEvent('test-update-state', { detail: { status: value } }),
+        ),
+      status,
+    );
+    await expect(entry).toHaveCount(status === 'current' ? 0 : 1);
+    for (const section of ['首页', '习惯']) {
+      await openWorkspaceSection(page, section);
+      await expect(
+        section === '习惯'
+          ? page.getByTestId('habit-sleep')
+          : page.locator('.dashboard'),
+      ).toBeVisible();
+      await page.evaluate(() =>
+        window.scrollTo(0, document.documentElement.scrollHeight),
+      );
+      await page.clock.runFor(100);
+      expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+      expect((await page.locator('.full-window-chrome').boundingBox())!.y).toBe(0);
+      await page.getByRole('button', { name: '最小化窗口', exact: true }).click();
+      await expect(page.locator('html')).toHaveAttribute(
+        'data-test-window-action',
+        'minimize',
+      );
+      await page.getByRole('button', { name: '关闭窗口', exact: true }).click();
+      await expect(page.locator('html')).toHaveAttribute(
+        'data-test-window-action',
+        'close',
+      );
+      // 点击控件没有偷偷滚回顶部，证明滚动后的按钮仍直接可达。
+      expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+    }
+  }
+  await page.getByRole('button', { name: '最大化窗口', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-test-window-action',
+    'maximize',
+  );
+  await page.screenshot({ path: testInfo.outputPath('titlebar-scrolled.png') });
+  await page.evaluate(() => window.scrollTo(0, 0));
   await openWorkspaceSection(page, '项目');
   await expect(entry).toBeVisible();
   await openWorkspaceSection(page, '设置');

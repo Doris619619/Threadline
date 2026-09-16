@@ -20,6 +20,11 @@
   flex-direction: column;
 }
 
+/* 原生标题栏必须始终跟随视口；clip 不创建滚动容器，避免 hidden 截断 sticky 的参照。 */
+.tl-window.mode-full:has(> .full-window-chrome) {
+  overflow: clip;
+}
+
 .tl-window-body {
   min-height: 0;
   flex: 1;
@@ -49,6 +54,10 @@
 }
 
 .full-window-chrome {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  flex-shrink: 0;
   display: flex;
   min-width: 0;
   height: 40px;
