@@ -15,6 +15,7 @@ test('habits themes, readable controls and contained dialogs', async ({
   await openWorkspaceSection(page, '习惯');
   await page.getByRole('button', { name: '起床了', exact: true }).click();
   await expect(page.getByTestId('habit-wake')).toContainText('未达标');
+  await page.getByRole('button', { name: '前一天记录' }).click();
   for (const theme of ['blue', 'anya', 'cottage', 'classic']) {
     await page.evaluate((value) => {
       document.documentElement.dataset.theme = value;
@@ -37,6 +38,24 @@ test('habits themes, readable controls and contained dialogs', async ({
     }
   }
   await page.screenshot({ path: info.outputPath('habits-dark.png'), fullPage: true });
+  const sleepTrigger = page.getByRole('button', { name: '补录睡觉时间' });
+  await sleepTrigger.focus();
+  await sleepTrigger.press('Enter');
+  const timeEditor = page.getByRole('dialog');
+  await expect(timeEditor.getByLabel('睡觉时间', { exact: true })).toBeFocused();
+  await expect(timeEditor.getByLabel('睡觉时区', { exact: true })).not.toBeVisible();
+  await timeEditor.getByLabel('睡觉时间', { exact: true }).fill('01:10');
+  await expectNoUnexpectedHorizontalOverflow(page);
+  await page.screenshot({
+    path: info.outputPath('habit-time-editor.png'),
+    fullPage: true,
+  });
+  await page.keyboard.press('Escape');
+  await expect(sleepTrigger).toBeFocused();
+  await page
+    .getByRole('navigation', { name: '打卡日期' })
+    .getByRole('button', { name: '今天', exact: true })
+    .click();
   // Safari 指针点击按钮不自动聚焦；通过键盘打开验证焦点返回原触发点。
   const settingsTrigger = page.getByRole('button', { name: '习惯设置', exact: true });
   await settingsTrigger.focus();

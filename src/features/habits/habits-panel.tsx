@@ -12,13 +12,10 @@ import {
 } from '@/lib/date-range';
 import { useHabits } from './habit-state';
 import { EFFICIENCY_LABELS, type HabitKind } from './habit-types';
-import {
-  habitAddDays,
-  habitBusinessDate,
-  habitLocalTime,
-} from './habit-time';
+import { habitAddDays, habitBusinessDate, habitLocalTime } from './habit-time';
 import { habitGrade, habitRegularity, summarizeHabits } from './habit-statistics';
 import { HabitToday } from './habit-today';
+import { HabitDayNavigation } from './habit-day-navigation';
 import { HabitTimeTrend } from './habit-trends';
 import { HabitSettingsDialog } from './habit-settings-dialog';
 import { HabitEntryDialog } from './habit-entry-dialog';
@@ -38,6 +35,9 @@ export function HabitsPanel() {
   const [period, setPeriod] = useState<'week' | 'month'>('week');
   const [anchor, setAnchor] = useState<string | null>(null);
   const [month, setMonth] = useState<string | null>(null);
+  const [recordDate, setRecordDate] = useState<string | null>(null);
+  // 返回今天后继续跟随时钟；切换时区造成所选日期在未来时也回到当前。
+  const historicalDate = recordDate && recordDate < today ? recordDate : null;
   const [historyKind, setHistoryKind] = useState<HabitKind>('sleep');
   const [editingKind, setEditingKind] = useState<HabitKind | undefined>();
   const [selectedDate, selectDate] = useState<string | null>(null);
@@ -50,7 +50,12 @@ export function HabitsPanel() {
   const range =
     period === 'week' ? getWeekRange(anchor ?? today) : getMonthRange(anchor ?? today);
   const grid = getMonthGrid(month ?? today);
-  const fetchStart = [range.start, grid[0], habitAddDays(businessToday, -28)].sort()[0];
+  const fetchStart = [
+    range.start,
+    grid[0],
+    habitAddDays(businessToday, -28),
+    historicalDate ?? today,
+  ].sort()[0];
   const fetchEnd = [range.end, grid.at(-1)!, today].sort().at(-1)!;
   useEffect(() => {
     setRange(fetchStart, fetchEnd);
@@ -147,7 +152,14 @@ export function HabitsPanel() {
               )}
             </div>
           )}
+          <HabitDayNavigation
+            date={historicalDate ?? today}
+            today={today}
+            disabled={busy || Boolean(pending)}
+            onChange={setRecordDate}
+          />
           <HabitToday
+            date={historicalDate}
             onEdit={(date, kind) => {
               setEditingKind(kind);
               selectDate(date);

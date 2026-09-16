@@ -127,7 +127,7 @@ export function HabitEntryDialog({
   };
   return (
     <ManagementDialog
-      title={`${date} 习惯记录`}
+      title={`${date} ${focusKind ? KIND_LABELS[focusKind] : '习惯记录'}`}
       onClose={onClose}
       busy={busy}
       error={error}
@@ -158,20 +158,6 @@ export function HabitEntryDialog({
               )}
               {!draft.entry?.deleted_at && (
                 <>
-                  <details open={!focusKind} className="habit-date-details">
-                    <summary>归属日期</summary>
-                    <label>
-                      归属日期
-                      <input
-                        aria-label={`${KIND_LABELS[draft.kind]}归属日期`}
-                        type="date"
-                        value={draft.date}
-                        onChange={(event) =>
-                          update(draft.kind, { date: event.target.value })
-                        }
-                      />
-                    </label>
-                  </details>
                   {draft.kind === 'efficiency' ? (
                     <label>
                       当天工作效率
@@ -209,13 +195,47 @@ export function HabitEntryDialog({
                                 draft.kind === 'sleep' && time < '04:00'
                                   ? habitAddDays(draft.date, 1)
                                   : draft.date;
-                              update(draft.kind, { local: `${actualDate}T${time}` });
+                              update(draft.kind, {
+                                local: time ? `${actualDate}T${time}` : '',
+                              });
                             }}
                           />
                         </label>
                       )}
-                      <details open={focusKind ? undefined : true}>
-                        <summary>日期与时区</summary>
+                      {draft.local && draft.date && (
+                        <p className="habit-caption">
+                          {draft.local.slice(0, 10) === draft.date
+                            ? '当天'
+                            : draft.local.slice(0, 10) === habitAddDays(draft.date, 1)
+                              ? '次日'
+                              : '请核对实际日期'}{' '}
+                          {draft.local.slice(11)} · 归属 {draft.date}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+              <details
+                open={!focusKind || Boolean(draft.entry?.deleted_at)}
+                className="habit-edit-more"
+              >
+                <summary>更多选项</summary>
+                {!draft.entry?.deleted_at && (
+                  <>
+                    <label>
+                      归属日期
+                      <input
+                        aria-label={`${KIND_LABELS[draft.kind]}归属日期`}
+                        type="date"
+                        value={draft.date}
+                        onChange={(event) =>
+                          update(draft.kind, { date: event.target.value })
+                        }
+                      />
+                    </label>
+                    {draft.kind !== 'efficiency' && (
+                      <>
                         <label>
                           实际日期与时间
                           <input
@@ -238,56 +258,46 @@ export function HabitEntryDialog({
                             }
                           />
                         </label>
-                      </details>
-                      {draft.local && draft.date && (
-                        <p className="habit-caption">
-                          {draft.local.slice(0, 10) === draft.date
-                            ? '当天'
-                            : draft.local.slice(0, 10) === habitAddDays(draft.date, 1)
-                              ? '次日'
-                              : '请核对实际日期'}{' '}
-                          {draft.local.slice(11)} → 归属 {draft.date}
-                        </p>
-                      )}
-                      <details>
-                        <summary>夏令时重复时间</summary>
-                        <select
-                          aria-label={`${KIND_LABELS[draft.kind]}重复时间选择`}
-                          value={draft.choice ?? ''}
-                          onChange={(event) =>
-                            update(draft.kind, {
-                              choice: (event.target.value ||
-                                undefined) as Draft['choice'],
-                            })
-                          }
-                        >
-                          <option value="">无重复时自动处理</option>
-                          <option value="earlier">第一次</option>
-                          <option value="later">第二次</option>
-                        </select>
-                      </details>
-                    </>
-                  )}
-                </>
-              )}
-              {draft.entry && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    update(draft.kind, {
-                      mode: draft.entry!.deleted_at ? 'restore' : 'clear',
-                    })
-                  }
-                >
-                  {draft.dirty && draft.mode !== 'edit'
-                    ? draft.mode === 'clear'
-                      ? '保存后清除'
-                      : '保存后恢复'
-                    : draft.entry.deleted_at
-                      ? '恢复最近一次值'
-                      : '清除这一项'}
-                </button>
-              )}
+                        <details>
+                          <summary>夏令时重复时间</summary>
+                          <select
+                            aria-label={`${KIND_LABELS[draft.kind]}重复时间选择`}
+                            value={draft.choice ?? ''}
+                            onChange={(event) =>
+                              update(draft.kind, {
+                                choice: (event.target.value ||
+                                  undefined) as Draft['choice'],
+                              })
+                            }
+                          >
+                            <option value="">无重复时自动处理</option>
+                            <option value="earlier">第一次</option>
+                            <option value="later">第二次</option>
+                          </select>
+                        </details>
+                      </>
+                    )}
+                  </>
+                )}
+                {draft.entry && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      update(draft.kind, {
+                        mode: draft.entry!.deleted_at ? 'restore' : 'clear',
+                      })
+                    }
+                  >
+                    {draft.dirty && draft.mode !== 'edit'
+                      ? draft.mode === 'clear'
+                        ? '保存后清除'
+                        : '保存后恢复'
+                      : draft.entry.deleted_at
+                        ? '恢复最近一次值'
+                        : '清除这一项'}
+                  </button>
+                )}
+              </details>
             </section>
           ))}
         {error && (
@@ -319,9 +329,11 @@ export function HabitEntryDialog({
             </button>
           </div>
         )}
-        <p className="habit-caption">
-          启用前的补录按初始目标统计。修改、清除和恢复均保留原始修订。
-        </p>
+        {!focusKind && (
+          <p className="habit-caption">
+            启用前的补录按初始目标统计。修改、清除和恢复均保留原始修订。
+          </p>
+        )}
         <button
           className="tl-button tl-button--primary"
           type="button"
