@@ -393,6 +393,28 @@
   border-bottom: 1px solid var(--border);
   margin-bottom: 12px;
 }
+/* 单项编辑只呈现一个输入，避免沿用整天管理表单的宽度、分隔线和重复标题。 */
+.manager-dialog:has(.habit-editor--single) {
+  width: min(100%, 360px);
+  gap: 12px;
+}
+.habit-editor--single .habit-editor-section {
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+.habit-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+.habit-editor-actions .tl-button--primary {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+.habit-editor-actions .tl-button--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
 .habit-editor label,
 .habit-settings-form label {
   display: flex;

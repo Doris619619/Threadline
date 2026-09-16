@@ -193,8 +193,12 @@ test('habits record, history, settings and accessible mobile navigation', async 
     .getByRole('button', { name: '2026-08-22 未记录', exact: true })
     .click();
   const editor = page.getByRole('dialog');
-  await editor.getByLabel('睡觉实际时间', { exact: true }).fill('2026-08-23T00:20');
-  await editor.getByLabel('补录工作效率', { exact: true }).selectOption('medium');
+  await expect(editor.getByLabel('睡觉时间', { exact: true })).toBeFocused();
+  await expect(editor.locator('input:visible')).toHaveCount(1);
+  await expect(editor.getByLabel('起床时间', { exact: true })).toHaveCount(0);
+  await expect(editor.getByLabel('睡觉实际时间', { exact: true })).not.toBeVisible();
+  expect((await editor.boundingBox())!.width).toBeLessThanOrEqual(400);
+  await editor.getByLabel('睡觉时间', { exact: true }).fill('00:20');
   await editor.getByRole('button', { name: '保存记录' }).click();
   await expect(editor).not.toBeVisible();
   await expect(
@@ -202,6 +206,42 @@ test('habits record, history, settings and accessible mobile navigation', async 
       .locator('.habit-calendar')
       .getByRole('button', { name: '2026-08-22 较晚', exact: true }),
   ).toBeVisible();
+  // 趋势明细也只编辑对应指标；Enter 保存不会触碰同日的起床和效率。
+  const sleepTrend = page.getByRole('region', { name: '睡觉时间', exact: true });
+  await sleepTrend.getByText('查看每日数值', { exact: true }).click();
+  await sleepTrend.getByRole('button', { name: /^2026-08-22/ }).click();
+  await expect(editor.locator('input:visible')).toHaveCount(1);
+  await expect(editor.getByLabel('睡觉时间', { exact: true })).toHaveValue('00:20');
+  await editor.getByLabel('睡觉时间', { exact: true }).fill('00:25');
+  await page.screenshot({ path: testInfo.outputPath('simple-sleep-editor.png') });
+  await editor.getByLabel('睡觉时间', { exact: true }).press('Enter');
+  await expect(editor).not.toBeVisible();
+  const wakeTrend = page.getByRole('region', { name: '起床时间', exact: true });
+  await wakeTrend.getByText('查看每日数值', { exact: true }).click();
+  await wakeTrend.getByRole('button', { name: /^2026-08-23/ }).click();
+  await expect(editor.getByLabel('起床时间', { exact: true })).toBeFocused();
+  await expect(editor.getByLabel('睡觉时间', { exact: true })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await page
+    .getByRole('button', { name: '2026-08-22 工作效率 未记录', exact: true })
+    .click();
+  await expect(editor.getByLabel('补录工作效率')).toBeFocused();
+  await expect(editor.locator('input:visible')).toHaveCount(0);
+  await editor.getByLabel('补录工作效率').selectOption('medium');
+  await editor.getByRole('button', { name: '保存记录' }).click();
+  await expect(editor).not.toBeVisible();
+  // 月历当前指标为效率时，只打开效率选择器，不再退回整天表单。
+  await page
+    .getByLabel('历史指标')
+    .getByRole('button', { name: '效率', exact: true })
+    .click();
+  await page
+    .locator('.habit-calendar')
+    .getByRole('button', { name: '2026-08-22 中', exact: true })
+    .click();
+  await expect(editor.getByLabel('补录工作效率')).toHaveValue('medium');
+  await expect(editor.locator('input:visible')).toHaveCount(0);
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: '习惯设置', exact: true }).click();
   await editor.getByLabel('起床目标', { exact: true }).fill('07:00');
   await editor.getByLabel('达标上限', { exact: true }).fill('23:10');

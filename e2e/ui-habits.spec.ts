@@ -38,6 +38,9 @@ test('habits themes, readable controls and contained dialogs', async ({
     }
   }
   await page.screenshot({ path: info.outputPath('habits-dark.png'), fullPage: true });
+  await page.evaluate(() => {
+    document.documentElement.dataset.theme = 'anya';
+  });
   const sleepTrigger = page.getByRole('button', { name: '补录睡觉时间' });
   await sleepTrigger.focus();
   await sleepTrigger.press('Enter');
@@ -45,6 +48,17 @@ test('habits themes, readable controls and contained dialogs', async ({
   await expect(timeEditor.getByLabel('睡觉时间', { exact: true })).toBeFocused();
   await expect(timeEditor.getByLabel('睡觉时区', { exact: true })).not.toBeVisible();
   await timeEditor.getByLabel('睡觉时间', { exact: true }).fill('01:10');
+  await expect(timeEditor.locator('input:visible')).toHaveCount(1);
+  expect(
+    await timeEditor.evaluate(
+      (element) => element.scrollHeight <= element.clientHeight,
+    ),
+  ).toBe(true);
+  expect(
+    (
+      await new AxeBuilder({ page }).include('[role="dialog"]').analyze()
+    ).violations.filter((item) => ['critical', 'serious'].includes(item.impact ?? '')),
+  ).toEqual([]);
   await expectNoUnexpectedHorizontalOverflow(page);
   await page.screenshot({
     path: info.outputPath('habit-time-editor.png'),
