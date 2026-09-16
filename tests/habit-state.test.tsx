@@ -17,9 +17,8 @@ import {
   type HabitEntry,
   type HabitRequest,
 } from '@/features/habits/habit-types';
-vi.mock('@/components/app-shell', () => ({
-  useWorkspaceView: () => ({ active: 'habits' }),
-}));
+const view = vi.hoisted(() => ({ active: 'home' }));
+vi.mock('@/components/app-shell', () => ({ useWorkspaceView: () => view }));
 vi.mock('@/lib/cloud-write-guard', () => ({ beginCloudWrite: () => vi.fn() }));
 const request: HabitRequest = {
   requestId: 'stable-id',
@@ -51,7 +50,41 @@ function setup(apply = vi.fn<HabitRepository['apply']>(async () => saved)) {
   });
   return { ...hook, client, repository, apply };
 }
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  view.active = 'home';
+});
+it('preloads before navigation and reuses covered ranges and cached remounts without a loading flash', async () => {
+  const task = setup();
+  await waitFor(() => expect(task.result.current.ready).toBe(true));
+  expect(view.active).toBe('home');
+  const [start, end] = vi.mocked(task.repository.list).mock.calls[0];
+  act(() => task.result.current.setRange(start, end));
+  view.active = 'habits';
+  task.rerender();
+  expect(task.result.current.loading).toBe(false);
+  expect(task.repository.list).toHaveBeenCalledTimes(1);
+  task.unmount();
+  const reopened = renderHook(() => useHabits(), {
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={task.client}>
+        <HabitStore repository={task.repository}>{children}</HabitStore>
+      </QueryClientProvider>
+    ),
+  });
+  expect(reopened.result.current.ready).toBe(true);
+  expect(reopened.result.current.loading).toBe(false);
+  expect(task.repository.list).toHaveBeenCalledTimes(1);
+  // 范围内切换周/月不会换查询键；后台失败仍保留原页面。
+  act(() => reopened.result.current.setRange(end, end));
+  expect(reopened.result.current.ready).toBe(true);
+  expect(task.repository.list).toHaveBeenCalledTimes(1);
+  vi.mocked(task.repository.list).mockRejectedValue(new Error('offline read'));
+  act(() => reopened.result.current.retry());
+  await waitFor(() => expect(reopened.result.current.error).toContain('offline read'));
+  expect(reopened.result.current.ready).toBe(true);
+  expect(reopened.result.current.loading).toBe(false);
+});
 it('immediately retains confirmed timezone when the following read fails or is stale', async () => {
   const task = setup();
   await waitFor(() => expect(task.result.current.ready).toBe(true));
@@ -72,6 +105,30 @@ it('immediately retains confirmed timezone when the following read fails or is s
   await act(async () => task.result.current.retry());
   await waitFor(() => expect(task.result.current.notice).toBeUndefined());
   expect(task.result.current.data.settings.timezone).toBe('Asia/Shanghai');
+});
+it('never reuses the previous account cache while a different account is loading', async () => {
+  const task = setup();
+  await waitFor(() => expect(task.result.current.ready).toBe(true));
+  await act(async () => {
+    await task.result.current.save(request);
+  });
+  expect(task.result.current.data.entries).toEqual(saved);
+  task.unmount();
+  const other = {
+    ...task.repository,
+    owner: 'second',
+    list: vi.fn(() => new Promise<ReturnType<typeof emptyHabitData>>(() => undefined)),
+  };
+  const next = renderHook(() => useHabits(), {
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={task.client}>
+        <HabitStore repository={other}>{children}</HabitStore>
+      </QueryClientProvider>
+    ),
+  });
+  expect(next.result.current.loading).toBe(true);
+  expect(next.result.current.ready).toBe(false);
+  expect(next.result.current.data.entries).toEqual([]);
 });
 it('shows the frozen first click immediately and never lets stale lists erase confirmation', async () => {
   let resolve!: (rows: HabitEntry[]) => void;

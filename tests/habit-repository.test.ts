@@ -10,6 +10,37 @@ import {
 } from '@/features/habits/habit-repository';
 import { DEFAULT_RULES } from '@/features/habits/habit-types';
 
+it('starts settings, rules and entries together instead of waiting for serial round trips', async () => {
+  const started: string[] = [];
+  const releases: (() => void)[] = [];
+  const read = (table: string) =>
+    new Promise((resolve) => {
+      started.push(table);
+      releases.push(() =>
+        resolve({ data: table === 'habit_settings' ? null : [], error: null }),
+      );
+    });
+  const client = {
+    from: (table: string) => {
+      const query = {
+        select: () => query,
+        eq: () => query,
+        order: () => query,
+        range: () => query,
+        gte: () => query,
+        lte: () => query,
+        maybeSingle: () => read(table),
+        then: (resolve: (value: unknown) => unknown) => read(table).then(resolve),
+      };
+      return query;
+    },
+  } as unknown as SupabaseClient;
+  const reading = listHabitData(client, 'account', 'UTC', '2026-09-01', '2026-09-30');
+  await vi.waitFor(() => expect(started).toHaveLength(3));
+  for (const release of releases) release();
+  expect((await reading).entries).toEqual([]);
+});
+
 it('paginates without losing rows and scopes all reads to the account', async () => {
   const filters: unknown[][] = [];
   const ranges: unknown[][] = [];

@@ -43,7 +43,7 @@
 
 RLS 只允许本人读取。客户端没有直接表写权限；`apply_habit_entries`（1–3项原子操作）和 `configure_habits` 是受控 SECURITY DEFINER RPC，固定 search_path，从 auth.uid() 取账号，以账号 advisory lock 序列化事务。时间自动打卡首次优先；编辑需 expected_version；旧请求重试返回当前记录，避免回滚较新版本。记录和规则用账号复合外键限制跨账号引用。
 
-`HabitsStateProvider` 复用云端 React Query，查询键含账号和范围，进入习惯时才查询；全局 AccountTimezoneProvider 先确认账号时区再挂载业务树，防止首次点击使用电脑日期；只有时区设置参与此读取，不预加载习惯历史。时区订阅独立于习惯范围查询，账号设置写入立即使用服务器返回值更新时钟，较旧读取不得覆盖已确认版本；Realtime 刷新对应表。确认结果按版本单调合并，待保存意图独立于查询。失败刷新不撤销已保存数据。账号切换拆除旧 Store 和订阅，迟到写响应不注入缓存。保存接入桌面 cloud-write guard。
+`HabitsStateProvider` 复用云端 React Query，查询键含账号和范围。账号时区就绪后在后台预读最近记录、当前月历及比较周期，不增加全局启动等待；设置、规则和记录并行读取，表内仍按顺序分页。会话中的查询范围只在需要更早或更晚数据时扩大，返回已覆盖日期不重复加载；缓存新鲜期为 60 秒，Realtime、焦点和重连保留后台刷新机制。已有结果刷新失败时仍显示原数据和错误提示；首次无数据的失败不能伪装成空记录。全局 AccountTimezoneProvider 先确认账号时区再挂载业务树，防止首次点击使用电脑日期。时区订阅独立于习惯范围查询，账号设置写入立即使用服务器返回值更新时钟，较旧读取不得覆盖已确认版本。确认结果按版本单调合并，待保存意图独立于查询。失败刷新不撤销已保存数据。账号切换拆除旧 Store 和订阅，迟到写响应不注入缓存。保存接入桌面 cloud-write guard。
 
 Preview/测试采用相同接口及纯事务校验，使用独立 `threadline.test.habits.v1` 命名空间（Preview 经 workspaceStorageKey 隔离）。Web Locks 序列化同源标签页操作；不具备 Web Locks 的旧浏览器只保证单标签同步事务。正式云端失败不会退回本地存储。
 

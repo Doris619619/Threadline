@@ -51,11 +51,9 @@ export async function listHabitData(
 ): Promise<HabitData> {
   const settingsQuery = client.from('habit_settings').select('*').eq('owner_id', owner);
   if (signal) settingsQuery.abortSignal(signal);
-  const settingsResult = await settingsQuery.maybeSingle();
-  checkHabitError(settingsResult.error);
-  const rules: HabitRule[] = [];
-  const entries: HabitEntry[] = [];
-  for (const table of ['habit_rule_versions', 'habit_entries'] as const) {
+  /** 各表独立读取，表内分页顺序不变；避免每次进入等待三次网络往返。 */
+  const readRows = async (table: 'habit_rule_versions' | 'habit_entries') => {
+    const rows: (HabitRule | HabitEntry)[] = [];
     for (let offset = 0; ; offset += 500) {
       let query = client
         .from(table)
@@ -68,11 +66,19 @@ export async function listHabitData(
       if (signal) query = query.abortSignal(signal);
       const result = await query;
       checkHabitError(result.error);
-      if (table === 'habit_entries') entries.push(...(result.data as HabitEntry[]));
-      else rules.push(...(result.data as HabitRule[]));
+      rows.push(...(result.data as (HabitRule | HabitEntry)[]));
       if (result.data!.length < 500) break;
     }
-  }
+    return rows;
+  };
+  const [settingsResult, ruleRows, entryRows] = await Promise.all([
+    settingsQuery.maybeSingle(),
+    readRows('habit_rule_versions'),
+    readRows('habit_entries'),
+  ]);
+  checkHabitError(settingsResult.error);
+  const rules = ruleRows as HabitRule[];
+  const entries = entryRows as HabitEntry[];
   // 其他设备可能把记录移出范围；按身份补查，防止单调缓存留下原日期的幽灵记录。
   const returnedIds = new Set(entries.map((entry) => entry.id));
   const missingIds = [...new Set(knownIds)].filter((id) => !returnedIds.has(id));
