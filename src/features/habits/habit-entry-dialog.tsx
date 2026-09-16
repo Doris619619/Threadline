@@ -12,13 +12,18 @@ import {
   type HabitKind,
   type HabitRequest,
 } from './habit-types';
-import { habitAddDays, resolveHabitLocalTime } from './habit-time';
+import {
+  habitActualTimeLabel,
+  habitLocalForClock,
+  resolveHabitLocalTime,
+} from './habit-time';
 
 type Draft = {
   kind: HabitKind;
   entry?: HabitEntry;
   date: string;
   local: string;
+  clock?: string;
   timezone: string;
   efficiency: Efficiency | '';
   mode: 'edit' | 'clear' | 'restore';
@@ -60,6 +65,8 @@ export function habitDraftChange(draft: Draft): HabitChange {
     expected_version: draft.entry?.version,
   };
   if (draft.mode !== 'edit') return base;
+  if (draft.kind !== 'efficiency' && !draft.local)
+    throw new Error('请输入有效时间，例如 23:48 或 00:12');
   const unchangedTime =
     draft.entry?.local_time?.slice(0, 16) === draft.local &&
     draft.timezone === draft.entry?.timezone;
@@ -160,37 +167,39 @@ export function HabitEntryDialog({
                     <label>
                       时间
                       <input
-                        type="time"
+                        type="text"
+                        inputMode="text"
+                        placeholder="23:48"
+                        autoComplete="off"
+                        spellCheck={false}
                         aria-label={`${KIND_LABELS[draft.kind]}时间`}
                         data-management-initial-focus
-                        step="60"
+                        onFocus={(event) => event.currentTarget.select()}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter') {
                             event.preventDefault();
                             void submit();
                           }
                         }}
-                        value={draft.local.slice(11, 16)}
+                        value={draft.clock ?? draft.local.slice(11, 16)}
                         onChange={(event) => {
-                          const time = event.target.value;
-                          const actualDate =
-                            draft.kind === 'sleep' && time < '04:00'
-                              ? habitAddDays(draft.date, 1)
-                              : draft.date;
+                          const clock = event.target.value;
+                          let local = '';
+                          try {
+                            local = habitLocalForClock(draft.date, draft.kind, clock);
+                          } catch {
+                            // 保留逐字输入的半成品，保存时才报告格式错误。
+                          }
                           update(draft.kind, {
-                            local: time ? `${actualDate}T${time}` : '',
+                            clock,
+                            local,
                           });
                         }}
                       />
                     </label>
                     {draft.local && draft.date && (
                       <p className="habit-caption">
-                        {draft.local.slice(0, 10) === draft.date
-                          ? '当天'
-                          : draft.local.slice(0, 10) === habitAddDays(draft.date, 1)
-                            ? '次日'
-                            : '请核对实际日期'}{' '}
-                        {draft.local.slice(11)} · 归属 {draft.date}
+                        {habitActualTimeLabel(draft.local)}
                       </p>
                     )}
                   </>
@@ -225,7 +234,10 @@ export function HabitEntryDialog({
                           step="60"
                           value={draft.local}
                           onChange={(event) =>
-                            update(draft.kind, { local: event.target.value })
+                            update(draft.kind, {
+                              local: event.target.value,
+                              clock: undefined,
+                            })
                           }
                         />
                       </label>
@@ -281,7 +293,7 @@ export function HabitEntryDialog({
             </details>
           </section>
         ))}
-        {error && (
+        {error && request && (
           <div className="habit-recovery">
             <button type="button" onClick={retry}>
               读取最新记录

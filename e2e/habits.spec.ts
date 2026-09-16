@@ -6,6 +6,49 @@ import {
   openWorkspaceSection,
 } from './support/workspace';
 
+test('whole clock text preserves the selected night across midnight and page navigation', async ({
+  page,
+}) => {
+  await bootstrapLocalAdapterWorkspace(page, 'habits-clock-text');
+  await openWorkspaceSection(page, '习惯');
+  await page.getByRole('button', { name: '前一天记录' }).click();
+  const sleep = page.getByTestId('habit-sleep');
+  for (const [input, date, label] of [
+    ['23:48', '2026-08-22', '8月22日晚 23:48'],
+    ['00:12', '2026-08-23', '8月23日凌晨 00:12'],
+    ['01:40', '2026-08-23', '8月23日凌晨 01:40'],
+  ]) {
+    await sleep.getByRole('button').click();
+    const editor = page.getByRole('dialog');
+    const field = editor.getByLabel('睡觉时间', { exact: true });
+    await field.fill('');
+    await field.pressSequentially(input);
+    await expect(field).toHaveValue(input);
+    await expect(editor).toContainText(label);
+    await field.press('Enter');
+    await expect(editor).not.toBeVisible();
+    const entry = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('threadline.test.habits.v1')!).entries.find(
+        (item: { kind: string }) => item.kind === 'sleep',
+      ),
+    );
+    expect(entry.business_date).toBe('2026-08-22');
+    expect(entry.local_time).toContain(`${date}T${input}`);
+  }
+  await sleep.getByRole('button').click();
+  const editor = page.getByRole('dialog');
+  await editor.getByLabel('睡觉时间', { exact: true }).fill('25:80');
+  await editor.getByRole('button', { name: '保存记录' }).click();
+  await expect(editor.getByRole('alert')).toContainText('请输入有效时间');
+  await expect(editor.getByLabel('睡觉时间', { exact: true })).toHaveValue('25:80');
+  await page.keyboard.press('Escape');
+  await openWorkspaceSection(page, '首页');
+  await openWorkspaceSection(page, '习惯');
+  await expect(page.getByText('正在读取习惯记录…', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: '前一天记录' }).click();
+  await expect(sleep).toContainText('01:40');
+});
+
 test('yesterday is directly editable without opening history and never records the current time', async ({
   page,
 }, testInfo) => {
@@ -31,7 +74,7 @@ test('yesterday is directly editable without opening history and never records t
   await expect(editor.getByLabel('睡觉时间', { exact: true })).toHaveValue('');
   await expect(editor.getByLabel('睡觉实际时间', { exact: true })).not.toBeVisible();
   await editor.getByLabel('睡觉时间', { exact: true }).fill('01:10');
-  await expect(editor).toContainText('次日 01:10');
+  await expect(editor).toContainText('8月23日凌晨 01:10');
   await editor.getByRole('button', { name: '保存记录', exact: true }).click();
   await expect(editor).not.toBeVisible();
   await sleep.getByRole('button', { name: '编辑睡觉时间 01:10' }).click();

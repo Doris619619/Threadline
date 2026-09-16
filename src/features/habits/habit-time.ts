@@ -23,6 +23,26 @@ export function habitLocalTime(instant: string, timezone: string): string {
 export function habitAddDays(date: string, days: number): string {
   return Temporal.PlainDate.from(date).add({ days }).toString();
 }
+/** 手填整段时间：睡觉 00:00–03:59 属于所选那晚的次日，起床始终在所选日期。 */
+export function habitLocalForClock(
+  date: string,
+  kind: HabitKind,
+  input: string,
+): string {
+  const value = input.trim().replace('：', ':');
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value) ?? /^(\d{2})(\d{2})$/.exec(value);
+  if (!match || Number(match[1]) > 23 || Number(match[2]) > 59)
+    throw new Error('请输入有效时间，例如 23:48 或 00:12');
+  const time = `${match[1].padStart(2, '0')}:${match[2]}`;
+  const actualDate = kind === 'sleep' && time < '04:00' ? habitAddDays(date, 1) : date;
+  return `${actualDate}T${time}`;
+}
+/** 给编辑者展示具体发生日期，避免只写“次日”而需要自己换算。 */
+export function habitActualTimeLabel(local: string): string {
+  const value = Temporal.PlainDateTime.from(local);
+  const period = value.hour < 4 ? '凌晨' : value.hour >= 18 ? '晚' : '';
+  return `${value.month}月${value.day}日${period} ${local.slice(11, 16)}`;
+}
 /** 起床按自然日；睡觉和工作效率在账号墙钟 04:00 分日。 */
 export function habitBusinessDate(
   instant: string,
