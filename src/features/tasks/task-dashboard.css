@@ -1842,6 +1842,36 @@ button.task-duration-actual:focus-visible {
   .timed-task-create-row .timed-create-duration {
     grid-template-columns: 1fr;
   }
+  /* 新增表单不继承已保存任务的两行网格、文字下沉和勾选框占位。 */
+  .timed-task-create-row .timed-create-primary {
+    display: grid;
+    grid-template-columns: minmax(76px, 0.35fr) minmax(0, 1fr);
+    align-items: center;
+  }
+  .timed-task-create-row .timed-create-check-cell {
+    display: none;
+  }
+  .timed-task-create-row .timed-create-project-cell {
+    grid-column: auto;
+    grid-row: auto;
+    align-self: center;
+    height: 44px;
+    padding: 0;
+    width: 100%;
+    max-width: none;
+  }
+  .timed-task-create-row .project-inline-select {
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+  }
+  .timed-task-create-row input.timed-create-title-input {
+    grid-column: auto;
+    grid-row: auto;
+    align-self: center;
+    height: 44px;
+    padding: 0 10px;
+  }
 }
 
 /* 最窄手机给元数据整行空间，保留时间、预计和实际入口；放大文字时允许自然换行。 */
