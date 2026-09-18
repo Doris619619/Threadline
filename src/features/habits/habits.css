@@ -76,6 +76,55 @@
   padding: 0;
   background: transparent;
 }
+/* 日期导航独立于统计：原生日期输入兼容键盘和手机，窄屏允许返回按钮自然换行。 */
+.habit-day-navigation {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.habit-day-navigation > button {
+  min-width: 44px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+.habit-day-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+}
+.habit-day-picker input {
+  width: 142px;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 4px;
+}
+.habit-day-picker input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.habit-return-today {
+  margin-left: auto;
+}
+.habits-panel .habit-backfill-button {
+  color: var(--text-primary);
+}
+.habit-backfill-button:hover,
+.habit-backfill-button:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
 .habit-today > header {
   margin-bottom: 12px;
   flex-wrap: wrap;
@@ -343,6 +392,28 @@
   padding: 12px 0 20px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 12px;
+}
+/* 单项编辑只呈现一个输入，避免沿用整天管理表单的宽度、分隔线和重复标题。 */
+.manager-dialog:has(.habit-editor--single) {
+  width: min(100%, 360px);
+  gap: 12px;
+}
+.habit-editor--single .habit-editor-section {
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+.habit-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+.habit-editor-actions .tl-button--primary {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+.habit-editor-actions .tl-button--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
 }
 .habit-editor label,
 .habit-settings-form label {

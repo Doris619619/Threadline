@@ -1,12 +1,4 @@
 /* 文件用途：标题栏轻量更新入口与按需展开的详情，沿用主题且不改变工作台内容尺寸。 */
-.tl-window.mode-full:has(.desktop-update-trigger) {
-  overflow: clip;
-}
-.tl-window.mode-full:has(.desktop-update-trigger) .full-window-chrome {
-  position: sticky;
-  top: 0;
-  z-index: 40;
-}
 .full-window-entries .desktop-update-trigger,
 .compact-window-header .desktop-update-trigger {
   display: inline-flex;

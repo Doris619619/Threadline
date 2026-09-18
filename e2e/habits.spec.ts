@@ -6,6 +6,144 @@ import {
   openWorkspaceSection,
 } from './support/workspace';
 
+test('whole clock text preserves the selected night across midnight and page navigation', async ({
+  page,
+}) => {
+  await bootstrapLocalAdapterWorkspace(page, 'habits-clock-text');
+  await openWorkspaceSection(page, '习惯');
+  await page.getByRole('button', { name: '前一天记录' }).click();
+  const sleep = page.getByTestId('habit-sleep');
+  for (const [input, date, label] of [
+    ['23:48', '2026-08-22', '8月22日晚 23:48'],
+    ['00:12', '2026-08-23', '8月23日凌晨 00:12'],
+    ['01:40', '2026-08-23', '8月23日凌晨 01:40'],
+  ]) {
+    await sleep.getByRole('button').click();
+    const editor = page.getByRole('dialog');
+    const field = editor.getByLabel('睡觉时间', { exact: true });
+    await field.fill('');
+    await field.pressSequentially(input);
+    await expect(field).toHaveValue(input);
+    await expect(editor).toContainText(label);
+    await field.press('Enter');
+    await expect(editor).not.toBeVisible();
+    const entry = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('threadline.test.habits.v1')!).entries.find(
+        (item: { kind: string }) => item.kind === 'sleep',
+      ),
+    );
+    expect(entry.business_date).toBe('2026-08-22');
+    expect(entry.local_time).toContain(`${date}T${input}`);
+  }
+  await sleep.getByRole('button').click();
+  const editor = page.getByRole('dialog');
+  await editor.getByLabel('睡觉时间', { exact: true }).fill('25:80');
+  await editor.getByRole('button', { name: '保存记录' }).click();
+  await expect(editor.getByRole('alert')).toContainText('请输入有效时间');
+  await expect(editor.getByLabel('睡觉时间', { exact: true })).toHaveValue('25:80');
+  await page.keyboard.press('Escape');
+  await openWorkspaceSection(page, '首页');
+  await openWorkspaceSection(page, '习惯');
+  await expect(page.getByText('正在读取习惯记录…', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: '前一天记录' }).click();
+  await expect(sleep).toContainText('01:40');
+});
+
+test('yesterday is directly editable without opening history and never records the current time', async ({
+  page,
+}, testInfo) => {
+  await bootstrapLocalAdapterWorkspace(page, 'habits-day-navigation');
+  await openWorkspaceSection(page, '习惯');
+  const navigation = page.getByRole('navigation', { name: '打卡日期' });
+  const sleep = page.getByTestId('habit-sleep');
+  const editor = page.getByRole('dialog');
+  await page.getByRole('button', { name: '起床了', exact: true }).click();
+  await page
+    .getByLabel('当天工作效率', { exact: true })
+    .getByRole('button', { name: '好', exact: true })
+    .click();
+  await navigation.getByRole('button', { name: '前一天记录' }).click();
+  await expect(navigation.getByLabel('记录日期')).toHaveValue('2026-08-22');
+  await expect(navigation).toContainText('昨天');
+  await expect(page.getByRole('button', { name: '睡觉了', exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.locator('.habit-history')).not.toHaveAttribute('open', '');
+  await sleep.getByRole('button', { name: '补录睡觉时间' }).click();
+  await expect(editor.getByLabel('睡觉时间', { exact: true })).toBeFocused();
+  await expect(editor.getByLabel('睡觉时间', { exact: true })).toHaveValue('');
+  await expect(editor.getByLabel('睡觉实际时间', { exact: true })).not.toBeVisible();
+  await editor.getByLabel('睡觉时间', { exact: true }).fill('01:10');
+  await expect(editor).toContainText('8月23日凌晨 01:10');
+  await editor.getByRole('button', { name: '保存记录', exact: true }).click();
+  await expect(editor).not.toBeVisible();
+  await sleep.getByRole('button', { name: '编辑睡觉时间 01:10' }).click();
+  await editor.getByLabel('睡觉时间', { exact: true }).fill('00:50');
+  await editor.getByRole('button', { name: '保存记录', exact: true }).click();
+  await expect(sleep.getByRole('button', { name: '编辑睡觉时间 00:50' })).toBeVisible();
+  await page
+    .getByLabel('2026-08-22 工作效率', { exact: true })
+    .getByRole('button', { name: '差', exact: true })
+    .click();
+  await expect(
+    page
+      .getByLabel('2026-08-22 工作效率', { exact: true })
+      .getByRole('button', { name: '差', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  const entries = await page.evaluate(
+    () => JSON.parse(localStorage.getItem('threadline.test.habits.v1')!).entries,
+  );
+  expect(entries).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        kind: 'sleep',
+        business_date: '2026-08-22',
+        local_time: expect.stringContaining('2026-08-23T00:50'),
+        source: 'manual',
+      }),
+      expect.objectContaining({
+        kind: 'efficiency',
+        business_date: '2026-08-22',
+        efficiency: 'poor',
+        source: 'manual',
+      }),
+      expect.objectContaining({
+        kind: 'efficiency',
+        business_date: '2026-08-23',
+        efficiency: 'good',
+      }),
+    ]),
+  );
+  await page.screenshot({
+    path: testInfo.outputPath('habits-yesterday.png'),
+    fullPage: true,
+  });
+  await navigation.getByRole('button', { name: '今天', exact: true }).click();
+  await expect(navigation.getByRole('button', { name: '后一天记录' })).toBeDisabled();
+  await expect(page.getByTestId('habit-wake')).toContainText('12:00');
+  await expect(
+    page
+      .getByLabel('当天工作效率', { exact: true })
+      .getByRole('button', { name: '好', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await page.reload();
+  await openWorkspaceSection(page, '习惯');
+  await navigation.getByRole('button', { name: '前一天记录' }).click();
+  await expect(sleep).toContainText('00:50');
+  // 直接选更早日期也只补录；日期选择不修改图表的本周范围。
+  await navigation.getByLabel('记录日期').fill('2026-07-31');
+  await sleep.getByRole('button', { name: '补录睡觉时间' }).click();
+  await editor.getByLabel('睡觉时间', { exact: true }).fill('00:20');
+  await editor.getByRole('button', { name: '保存记录', exact: true }).click();
+  await expect(sleep).toContainText('00:20');
+  await expect(page.getByRole('heading', { name: '本周', exact: true })).toBeVisible();
+  await page.clock.setSystemTime(new Date('2026-08-24T04:01:00+08:00'));
+  await page.clock.runFor(1100);
+  await expect(navigation.getByLabel('记录日期')).toHaveValue('2026-07-31');
+  await navigation.getByRole('button', { name: '今天', exact: true }).click();
+  await expect(navigation.getByLabel('记录日期')).toHaveValue('2026-08-24');
+});
+
 test.describe('account timezone independent of the operating system', () => {
   test.use({ timezoneId: 'America/New_York' });
   test('China clock, direct midnight editing and all-page dates survive reload', async ({
@@ -98,8 +236,12 @@ test('habits record, history, settings and accessible mobile navigation', async 
     .getByRole('button', { name: '2026-08-22 未记录', exact: true })
     .click();
   const editor = page.getByRole('dialog');
-  await editor.getByLabel('睡觉实际时间', { exact: true }).fill('2026-08-23T00:20');
-  await editor.getByLabel('补录工作效率', { exact: true }).selectOption('medium');
+  await expect(editor.getByLabel('睡觉时间', { exact: true })).toBeFocused();
+  await expect(editor.locator('input:visible')).toHaveCount(1);
+  await expect(editor.getByLabel('起床时间', { exact: true })).toHaveCount(0);
+  await expect(editor.getByLabel('睡觉实际时间', { exact: true })).not.toBeVisible();
+  expect((await editor.boundingBox())!.width).toBeLessThanOrEqual(400);
+  await editor.getByLabel('睡觉时间', { exact: true }).fill('00:20');
   await editor.getByRole('button', { name: '保存记录' }).click();
   await expect(editor).not.toBeVisible();
   await expect(
@@ -107,6 +249,42 @@ test('habits record, history, settings and accessible mobile navigation', async 
       .locator('.habit-calendar')
       .getByRole('button', { name: '2026-08-22 较晚', exact: true }),
   ).toBeVisible();
+  // 趋势明细也只编辑对应指标；Enter 保存不会触碰同日的起床和效率。
+  const sleepTrend = page.getByRole('region', { name: '睡觉时间', exact: true });
+  await sleepTrend.getByText('查看每日数值', { exact: true }).click();
+  await sleepTrend.getByRole('button', { name: /^2026-08-22/ }).click();
+  await expect(editor.locator('input:visible')).toHaveCount(1);
+  await expect(editor.getByLabel('睡觉时间', { exact: true })).toHaveValue('00:20');
+  await editor.getByLabel('睡觉时间', { exact: true }).fill('00:25');
+  await page.screenshot({ path: testInfo.outputPath('simple-sleep-editor.png') });
+  await editor.getByLabel('睡觉时间', { exact: true }).press('Enter');
+  await expect(editor).not.toBeVisible();
+  const wakeTrend = page.getByRole('region', { name: '起床时间', exact: true });
+  await wakeTrend.getByText('查看每日数值', { exact: true }).click();
+  await wakeTrend.getByRole('button', { name: /^2026-08-23/ }).click();
+  await expect(editor.getByLabel('起床时间', { exact: true })).toBeFocused();
+  await expect(editor.getByLabel('睡觉时间', { exact: true })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await page
+    .getByRole('button', { name: '2026-08-22 工作效率 未记录', exact: true })
+    .click();
+  await expect(editor.getByLabel('补录工作效率')).toBeFocused();
+  await expect(editor.locator('input:visible')).toHaveCount(0);
+  await editor.getByLabel('补录工作效率').selectOption('medium');
+  await editor.getByRole('button', { name: '保存记录' }).click();
+  await expect(editor).not.toBeVisible();
+  // 月历当前指标为效率时，只打开效率选择器，不再退回整天表单。
+  await page
+    .getByLabel('历史指标')
+    .getByRole('button', { name: '效率', exact: true })
+    .click();
+  await page
+    .locator('.habit-calendar')
+    .getByRole('button', { name: '2026-08-22 中', exact: true })
+    .click();
+  await expect(editor.getByLabel('补录工作效率')).toHaveValue('medium');
+  await expect(editor.locator('input:visible')).toHaveCount(0);
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: '习惯设置', exact: true }).click();
   await editor.getByLabel('起床目标', { exact: true }).fill('07:00');
   await editor.getByLabel('达标上限', { exact: true }).fill('23:10');

@@ -22,7 +22,7 @@ import { useAccountTimezone } from '@/features/settings/account-timezone-provide
 import { getAccountTimezone } from '@/lib/account-clock';
 import { beginCloudWrite } from '@/lib/cloud-write-guard';
 import { usesLocalWorkspace } from '@/lib/workspace-runtime';
-import { useWorkspaceView } from '@/components/app-shell';
+import { getMonthGrid } from '@/lib/date-range';
 import { habitAddDays, habitBusinessDate } from './habit-time';
 import {
   applyLocalHabitRequest,
@@ -102,7 +102,6 @@ export function HabitStore({
   repository: HabitRepository;
   children: ReactNode;
 }) {
-  const { active } = useWorkspaceView();
   const account = useAccountTimezone();
   const [confirmedSettings, setConfirmedSettings] = useState<HabitSettings | null>(
     null,
@@ -111,16 +110,27 @@ export function HabitStore({
   const timezone = account?.settings?.timezone ?? getAccountTimezone();
   const [now, setNow] = useState(() => new Date().toISOString());
   const today = habitBusinessDate(now, timezone, 'wake');
-  const [range, updateRange] = useState({
-    start: habitAddDays(today, -35),
-    end: today,
-  });
+  // 覆盖默认月历及完整比较周期，避免第一次打开页面后再串行补读范围。
+  const [range, updateRange] = useState<{ start: string; end: string }>(() => ({
+    start: [habitAddDays(today, -35), getMonthGrid(today)[0]].sort()[0],
+    end: getMonthGrid(today).at(-1)!,
+  }));
   const [pending, setPending] = useState<HabitRequest | null>(null);
   const [busy, setBusy] = useState(false);
   const locked = useRef(false);
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
-  const confirmed = useRef(new Map<string, HabitEntry>());
+  // 重新挂载也继承当前账号缓存中的最高版本，避免后台旧读取撤销已确认记录。
+  const [initialConfirmed] = useState(() => {
+    const entries = new Map<string, HabitEntry>();
+    for (const [, cached] of queryClient.getQueriesData<HabitData>({
+      queryKey: ['habits', repository.owner],
+    }))
+      for (const row of cached?.entries ?? [])
+        if ((entries.get(row.id)?.version ?? 0) < row.version) entries.set(row.id, row);
+    return entries;
+  });
+  const confirmed = useRef(initialConfirmed);
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -146,7 +156,9 @@ export function HabitStore({
       };
     },
     networkMode: 'always',
-    enabled: active === 'habits',
+    // 账号时区就绪后后台预读；导航不再启停查询，也不增加全局启动等待。
+    enabled: !account || Boolean(account.settings),
+    staleTime: 60_000,
   });
   const fallback = useMemo(() => emptyHabitData(timezone), [timezone]);
   const queried = query.data ?? fallback;
@@ -161,7 +173,12 @@ export function HabitStore({
   }, [query.data?.settings.version, query.data?.settings.timezone]);
   const setRange = useCallback((start: string, end: string) => {
     updateRange((old) =>
-      old.start === start && old.end === end ? old : { start, end },
+      old.start <= start && old.end >= end
+        ? old
+        : {
+            start: old.start < start ? old.start : start,
+            end: old.end > end ? old.end : end,
+          },
     );
   }, []);
   useEffect(() => {

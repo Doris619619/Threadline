@@ -7,6 +7,7 @@ Web/PWA 保持完整工作台。Windows Electron 使用同一 Main BrowserWindow
 ## 完整工作台与工作站
 
 - 完整工作台无原生标题栏、非置顶；保留全部导航。仅 Electron 提供工作站、最小化、最大化/还原与关闭按钮。启动与登录阶段也有关闭和最小化按钮，首次显示居中于指针所在显示器的工作区。
+- 完整窗口标题栏始终固定在视口顶部，滚动首页、习惯等长页面后仍可直接最小化、最大化或关闭。固定行为属于桌面外壳，不依赖是否出现更新提示；Web/PWA 不增加窗口按钮，工作站沿用原有独立标题栏。
 - 工作站始终置顶。标题栏仅显示“工作站／清空／收起／关闭”，中间是连续的“序号＋项目＋任务名”，底部打开完整工作台。拖动标题栏移动窗口，拖动边框可调宽。
 - 工作站保存 `threadline.workstation.v1` 的有序 task ID 引用。改名和项目变化会同步；右键或 Shift+F10 可移出引用，拖动任务可排序。移出和清空不会删除、完成或修改原任务；真正移入回收站的任务才自动清理引用。
 - 工作站每个新进程初始宽度 200 logical px，保留有效位置；当前运行期间可调至 340px，切换和收起/展开保留用户宽度。默认高度 200px，按列表自然高度加 68px 调整，范围 96–220px；大量任务只滚动列表，不滚动标题栏。
@@ -39,6 +40,8 @@ Web/PWA 保持完整工作台。Windows Electron 使用同一 Main BrowserWindow
 `desktop:compact-height` 只接受 workstation 与有限高度；`desktop:appearance` 仅接受 blue/anya；`desktop:edge-pointer` 仅接受 Edge 的 start/move/end/cancel，坐标由原生 screen 获取。主题和入口位置保存在 Main 的 `compact-preferences.json`，不接触业务数据。拖动区与按钮区按 [Electron 窗口交互规则](https://www.electronjs.org/docs/latest/tutorial/custom-window-interactions) 分开。
 
 ## 验证
+
+`pnpm test:e2e e2e/desktop-update.spec.ts --project=desktop` 覆盖有/无更新提示时首页与习惯页滚动后的标题栏位置、最小化/最大化/关闭事件，以及更新详情、主题与工作站切换。窗口按钮事件使用隔离 bridge；实际 Windows 产物另做 packaged smoke。
 
 `pnpm test:electron` 构建测试 adapter 并运行业务窗口烟测，包含工作站连续 100 次高度调整和入口连续 120 次 Renderer 指针拖动。`node scripts/test-electron-collapse.mjs` 在生产静态 Renderer 与 Main/Preload 构建完成后单独运行，使用隔离登录门禁，不需要登录。
 

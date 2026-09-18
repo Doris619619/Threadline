@@ -12,13 +12,10 @@ import {
 } from '@/lib/date-range';
 import { useHabits } from './habit-state';
 import { EFFICIENCY_LABELS, type HabitKind } from './habit-types';
-import {
-  habitAddDays,
-  habitBusinessDate,
-  habitLocalTime,
-} from './habit-time';
+import { habitAddDays, habitBusinessDate, habitLocalTime } from './habit-time';
 import { habitGrade, habitRegularity, summarizeHabits } from './habit-statistics';
 import { HabitToday } from './habit-today';
+import { HabitDayNavigation } from './habit-day-navigation';
 import { HabitTimeTrend } from './habit-trends';
 import { HabitSettingsDialog } from './habit-settings-dialog';
 import { HabitEntryDialog } from './habit-entry-dialog';
@@ -38,19 +35,25 @@ export function HabitsPanel() {
   const [period, setPeriod] = useState<'week' | 'month'>('week');
   const [anchor, setAnchor] = useState<string | null>(null);
   const [month, setMonth] = useState<string | null>(null);
+  const [recordDate, setRecordDate] = useState<string | null>(null);
+  // 返回今天后继续跟随时钟；切换时区造成所选日期在未来时也回到当前。
+  const historicalDate = recordDate && recordDate < today ? recordDate : null;
   const [historyKind, setHistoryKind] = useState<HabitKind>('sleep');
-  const [editingKind, setEditingKind] = useState<HabitKind | undefined>();
-  const [selectedDate, selectDate] = useState<string | null>(null);
-  /** 日期入口显示完整详情，时间入口只编辑所选项目。 */
-  const setSelectedDate = (date: string | null) => {
-    setEditingKind(undefined);
-    selectDate(date);
-  };
+  const [editing, setEditing] = useState<{ date: string; kind: HabitKind } | null>(
+    null,
+  );
+  /** 所有入口携带当前指标，只编辑用户点选的一项，日期与指标一起更新。 */
+  const openEntry = (date: string, kind: HabitKind) => setEditing({ date, kind });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const range =
     period === 'week' ? getWeekRange(anchor ?? today) : getMonthRange(anchor ?? today);
   const grid = getMonthGrid(month ?? today);
-  const fetchStart = [range.start, grid[0], habitAddDays(businessToday, -28)].sort()[0];
+  const fetchStart = [
+    range.start,
+    grid[0],
+    habitAddDays(businessToday, -28),
+    historicalDate ?? today,
+  ].sort()[0];
   const fetchEnd = [range.end, grid.at(-1)!, today].sort().at(-1)!;
   useEffect(() => {
     setRange(fetchStart, fetchEnd);
@@ -147,12 +150,13 @@ export function HabitsPanel() {
               )}
             </div>
           )}
-          <HabitToday
-            onEdit={(date, kind) => {
-              setEditingKind(kind);
-              selectDate(date);
-            }}
+          <HabitDayNavigation
+            date={historicalDate ?? today}
+            today={today}
+            disabled={busy || Boolean(pending)}
+            onChange={setRecordDate}
           />
+          <HabitToday date={historicalDate} onEdit={openEntry} />
           <section aria-label="习惯统计" className="habit-statistics">
             <header className="habit-range-header">
               <h2>{anchor ? '统计' : period === 'week' ? '本周' : '本月'}</h2>
@@ -250,7 +254,7 @@ export function HabitsPanel() {
                   end={range.end < today ? range.end : today}
                   average={summary[kind].average}
                   count={summary[kind].count}
-                  onSelect={setSelectedDate}
+                  onSelect={(date) => openEntry(date, kind)}
                 />
               ))}
             </div>
@@ -274,7 +278,7 @@ export function HabitsPanel() {
                       disabled={date > today}
                       data-status={entry?.efficiency ?? 'missing'}
                       aria-label={`${date} 工作效率 ${entry ? EFFICIENCY_LABELS[entry.efficiency!] : '未记录'}`}
-                      onClick={() => setSelectedDate(date)}
+                      onClick={() => openEntry(date, 'efficiency')}
                     >
                       <small>{Number(date.slice(8))}日</small>
                       <strong>
@@ -356,7 +360,7 @@ export function HabitsPanel() {
                     data-outside={date.slice(0, 7) !== (month ?? today).slice(0, 7)}
                     data-today={date === today}
                     data-status={grade}
-                    onClick={() => setSelectedDate(date)}
+                    onClick={() => openEntry(date, historyKind)}
                   >
                     <time>{Number(date.slice(8))}</time>
                     <small>{grade === '未记录' ? '—' : grade}</small>
@@ -364,17 +368,17 @@ export function HabitsPanel() {
                 );
               })}
             </div>
-            <p className="habit-caption">点日期查看、补录或修改；— 表示未记录。</p>
+            <p className="habit-caption">点日期编辑所选项目；— 表示未记录。</p>
           </details>
         </>
       )}
       {settingsOpen && <HabitSettingsDialog onClose={() => setSettingsOpen(false)} />}
-      {selectedDate && (
+      {editing && (
         <HabitEntryDialog
-          key={selectedDate}
-          date={selectedDate}
-          focusKind={editingKind}
-          onClose={() => setSelectedDate(null)}
+          key={`${editing.date}:${editing.kind}`}
+          date={editing.date}
+          focusKind={editing.kind}
+          onClose={() => setEditing(null)}
         />
       )}
     </div>

@@ -251,6 +251,24 @@ test.describe('compact viewport layout matrix', () => {
     const cancelBtn = timedRow.locator('.timed-create-cancel-btn');
     const confirmBtn = timedRow.locator('.timed-create-confirm-btn');
 
+    // 不只检查“不重叠”：首行上下边缘一致，所有输入行左右对齐。
+    await expect(timedRow.locator('.timed-create-check-cell')).toBeHidden();
+    const projectBox = (await projectSelect.boundingBox())!;
+    const titleBox = (await titleInput.boundingBox())!;
+    const startBox = (await startTimeInput.boundingBox())!;
+    const endBox = (await endTimeInput.boundingBox())!;
+    expect(Math.abs(projectBox.y - titleBox.y)).toBeLessThan(1);
+    expect(Math.abs(projectBox.height - titleBox.height)).toBeLessThan(1);
+    expect(Math.abs(projectBox.x - startBox.x)).toBeLessThan(1);
+    expect(
+      Math.abs(titleBox.x + titleBox.width - endBox.x - endBox.width),
+    ).toBeLessThan(1);
+    expect(Math.abs(startBox.y - endBox.y)).toBeLessThan(1);
+    await page.screenshot({
+      path: testInfo.outputPath('mobile-create-aligned.png'),
+      fullPage: true,
+    });
+
     // 验证各行元素均在水平 viewport 内，且无横向溢出
     await expectElementWithinHorizontalViewport(page, timedRow, '今日日程新增态卡片');
     await expectElementWithinHorizontalViewport(page, projectSelect, '项目选择');
