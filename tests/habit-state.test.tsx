@@ -130,6 +130,27 @@ it('never reuses the previous account cache while a different account is loading
   expect(next.result.current.ready).toBe(false);
   expect(next.result.current.data.entries).toEqual([]);
 });
+it('retains confirmed versions after remount when a background read is stale', async () => {
+  const task = setup();
+  await waitFor(() => expect(task.result.current.ready).toBe(true));
+  await act(async () => {
+    await task.result.current.save(request);
+  });
+  task.unmount();
+  const reopened = renderHook(() => useHabits(), {
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={task.client}>
+        <HabitStore repository={task.repository}>{children}</HabitStore>
+      </QueryClientProvider>
+    ),
+  });
+  expect(reopened.result.current.data.entries).toEqual(saved);
+  const calls = vi.mocked(task.repository.list).mock.calls.length;
+  act(() => reopened.result.current.retry());
+  await waitFor(() => expect(task.repository.list).toHaveBeenCalledTimes(calls + 1));
+  await waitFor(() => expect(task.client.isFetching()).toBe(0));
+  expect(reopened.result.current.data.entries).toEqual(saved);
+});
 it('shows the frozen first click immediately and never lets stale lists erase confirmation', async () => {
   let resolve!: (rows: HabitEntry[]) => void;
   const task = setup(

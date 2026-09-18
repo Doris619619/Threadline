@@ -120,7 +120,17 @@ export function HabitStore({
   const locked = useRef(false);
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
-  const confirmed = useRef(new Map<string, HabitEntry>());
+  // 重新挂载也继承当前账号缓存中的最高版本，避免后台旧读取撤销已确认记录。
+  const [initialConfirmed] = useState(() => {
+    const entries = new Map<string, HabitEntry>();
+    for (const [, cached] of queryClient.getQueriesData<HabitData>({
+      queryKey: ['habits', repository.owner],
+    }))
+      for (const row of cached?.entries ?? [])
+        if ((entries.get(row.id)?.version ?? 0) < row.version) entries.set(row.id, row);
+    return entries;
+  });
+  const confirmed = useRef(initialConfirmed);
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
