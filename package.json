@@ -1,7 +1,7 @@
 {
   "name": "threadline",
   "productName": "Threadline",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "个人任务工作台的 Web、PWA 与 Windows Electron 桌面应用。",
   "private": true,
   "type": "module",
