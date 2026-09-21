@@ -25,7 +25,7 @@ type WorkspaceViewContract = {
 const primaryWorkspaceViews: WorkspaceViewContract[] = [
   {
     label: '首页',
-    heading: '我的工作台',
+    heading: '任务大厅',
     panelTestId: 'home-panel',
     keyControl: (page) => page.getByRole('heading', { name: '今日日程', exact: true }),
   },

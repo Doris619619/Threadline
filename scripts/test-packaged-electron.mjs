@@ -253,7 +253,7 @@ async function runPackagedSmoke(executablePath) {
       await page.getByRole('dialog').getByLabel('起床时间', { exact: true }).waitFor();
       await page.keyboard.press('Escape');
       await page.reload();
-      await page.getByRole('heading', { name: '我的工作台', exact: true }).waitFor();
+      await page.getByRole('heading', { name: '任务大厅', exact: true }).waitFor();
       await page
         .getByLabel('主导航', { exact: true })
         .getByRole('button', { name: '习惯', exact: true })
