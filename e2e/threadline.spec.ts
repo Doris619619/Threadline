@@ -226,7 +226,7 @@ test.describe('desktop task drag scheduling', () => {
   });
 });
 
-/** 只填时段不推算预计；随后显式预计可独立编辑并持久化。 */
+/** 起止时间自动回填预计；随后可手动覆盖，再次编辑时间范围会重新计算。 */
 test('creates a timed task from explicit start and end time inputs', async ({
   page,
 }) => {
@@ -234,17 +234,22 @@ test('creates a timed task from explicit start and end time inputs', async ({
   await schedule.getByRole('button', { name: '添加', exact: true }).click();
   await schedule.getByLabel('开始时间').fill('14:20');
   await schedule.getByLabel('结束时间').fill('15:30');
+  await expect(schedule.getByLabel('预计时长（分钟）')).toHaveValue('70');
   await schedule.getByPlaceholder('任务名称（按 Enter 保存）').fill('整理研究笔记');
   await schedule.getByTitle('保存任务').click();
   const row = page.locator('.timeline-row').filter({ hasText: '整理研究笔记' });
   await expect(row.locator('.timeline-time')).toHaveText('14:20–15:30');
-  await expect(row.locator('.task-duration-planned')).toContainText('待定');
+  await expect(row.locator('.task-duration-planned')).toContainText('1h10min');
   await row.locator('.task-duration-planned').click();
   await row.getByLabel('预计时长（分钟）').fill('45');
   await row.getByLabel('预计时长（分钟）').press('Enter');
   await page.reload();
   await expect(row.locator('.task-duration-planned')).toContainText('45min');
   await expect(row.locator('.timeline-time')).toHaveText('14:20–15:30');
+  await row.locator('.timeline-time').click();
+  await row.locator('.timeline-time-input').fill('14:00-16:00');
+  await row.locator('.timeline-time-input').press('Enter');
+  await expect(row.locator('.task-duration-planned')).toContainText('2h');
 });
 
 test('creates a waiting task from the inline waiting row', async ({ page }) => {

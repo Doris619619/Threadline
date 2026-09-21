@@ -5,6 +5,7 @@
 'use client';
 
 import { useState } from 'react';
+import { estimateFromTimeRange } from '@/features/tasks/task-time';
 
 /** 日程新增行的全部可恢复输入字段。 */
 export type TimedTaskCreateDraft = {
@@ -66,8 +67,18 @@ export function useTaskCreateDrafts() {
     initialQuickDraft(''),
   );
 
+  /** 起止字段变化时即时估时；单独编辑预计不会被自动值覆盖。 */
   const updateTimedDraft = (patch: Partial<TimedTaskCreateDraft>) =>
-    setTimedDraft((current) => ({ ...current, ...patch }));
+    setTimedDraft((current) => {
+      const next = { ...current, ...patch };
+      if (patch.startTime !== undefined || patch.endTime !== undefined)
+        next.planned = estimateFromTimeRange(
+          next.startTime,
+          next.endTime,
+          next.planned,
+        );
+      return next;
+    });
   const updateQuickDraft = (patch: Partial<QuickTaskCreateDraft>) =>
     setQuickDraft((current) => ({ ...current, ...patch }));
   const openTimed = (projectId: string) => {

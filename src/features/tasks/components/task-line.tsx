@@ -112,10 +112,10 @@ export function TaskLine({
     });
 
   /**
-   * 保存时间输入；非法值绝不写库，主动清空也保留在日程的待填时间状态。
+   * 保存时间范围并自动填入预计；不完整范围保留原估时，非法值不写库，清空保留待填时间状态。
    */
   const saveTime = (input: string) => {
-    const { start, end } = parseTimeInput(input);
+    const { start, end, duration } = parseTimeInput(input);
     if (input.trim() && (!start || (input.match(/[-–~至到\s]+/) && !end))) {
       setTimeError('请输入有效时间，如 08:30 或 08:30-10:00');
       return;
@@ -129,6 +129,7 @@ export function TaskLine({
       ...task,
       plannedStartTime: start,
       plannedEndTime: end,
+      plannedDurationMinutes: duration ?? task.plannedDurationMinutes,
       schedulePendingTime: start ? false : true,
       updatedAt: new Date().toISOString(),
     });
