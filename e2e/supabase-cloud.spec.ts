@@ -15,12 +15,12 @@ function readRequiredTestEnvironment(name: string): string {
   return value;
 }
 
-/** 通过真实用户路径完成一次性偏好，后续登录等待我的工作台，避免云 E2E 绕过生产门禁。 */
+/** 通过真实用户路径完成一次性偏好，后续登录等待任务大厅，避免云 E2E 绕过生产门禁。 */
 async function completeFirstRun(page: Page) {
   await expect(
     page
       .getByRole('heading', { name: '选择喜欢的主题' })
-      .or(page.getByRole('heading', { name: '我的工作台', exact: true })),
+      .or(page.getByRole('heading', { name: '任务大厅', exact: true })),
   ).toBeVisible();
   if (await page.getByRole('heading', { name: '选择喜欢的主题' }).isVisible()) {
     await page.getByRole('button', { name: '继续', exact: true }).click();
@@ -45,7 +45,7 @@ test.describe('habits account timezone through real PostgREST', () => {
     await page.locator('input#auth-password').fill(password);
     await page.getByRole('button', { name: '登录', exact: true }).click();
     await completeFirstRun(page);
-    await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '任务大厅' })).toBeVisible();
     await openWorkspaceSection(page, '习惯');
     await page.getByRole('button', { name: '习惯设置', exact: true }).click();
     const dialog = page.getByRole('dialog');
@@ -104,7 +104,7 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
   await page.getByRole('button', { name: '登录', exact: true }).click();
   await completeFirstRun(page);
 
-  await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '任务大厅' })).toBeVisible();
   await page.getByRole('button', { name: '项目', exact: true }).click();
   await expect(page.locator('.project-panel')).toBeVisible();
   await expect(
@@ -120,7 +120,7 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
   await expect(waitingPanel.getByText(taskTitle, { exact: true })).toBeVisible();
 
   await page.reload();
-  await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '任务大厅' })).toBeVisible();
   await expect(
     page.locator('.waiting-panel').getByText(taskTitle, { exact: true }),
   ).toBeVisible();

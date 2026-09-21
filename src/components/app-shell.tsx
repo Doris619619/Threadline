@@ -356,8 +356,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             active !== 'settings' && (
               <header className="tl-header" data-home={active === 'home'}>
                 <div>
-                  <h1>{activeItem.label === '首页' ? '我的工作台' : activeItem.label}</h1>
-                  <p>{activeItem.description}</p>
+                  <h1>{activeItem.label === '首页' ? '任务大厅' : activeItem.label}</h1>
+                  {active !== 'home' && <p>{activeItem.description}</p>}
                 </div>
                 {active === 'home' && (
                   <ThemeIllustration className="home-theme-illustration" />

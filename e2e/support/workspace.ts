@@ -36,7 +36,7 @@ const localStorageKeys = [
 
 /** load 事件早于 React 的本地数据水合；首开与刷新共用有上限的页面就绪条件。 */
 export async function waitForLocalAdapterWorkspace(page: Page) {
-  await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '任务大厅' })).toBeVisible();
   await expect(page.locator('.dashboard')).toBeVisible({ timeout: 10_000 });
 }
 

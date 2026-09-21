@@ -68,7 +68,7 @@ test('menus and project picker escape a one-row list without changing its width'
   await expect(menu).toHaveCount(0);
   await row.getByRole('button', { name: '邮件处理更多操作' }).click();
   await expect(menu).toBeVisible();
-  await page.getByRole('heading', { name: '我的工作台' }).click();
+  await page.getByRole('heading', { name: '任务大厅' }).click();
   await expect(menu).toHaveCount(0);
   const project = row.getByRole('button', { name: /所属项目/ });
   const projectBox = await project.boundingBox();

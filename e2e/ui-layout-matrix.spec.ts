@@ -135,7 +135,7 @@ test.describe('compact viewport layout matrix', () => {
   }, testInfo) => {
     const home = page.getByTestId('home-panel');
     const header = page.locator('.tl-header');
-    const title = header.getByRole('heading', { level: 1, name: '我的工作台' });
+    const title = header.getByRole('heading', { level: 1, name: '任务大厅' });
     const dateToolbar = header.locator('.tl-date');
     const seededTask = page
       .locator('.timeline-row')

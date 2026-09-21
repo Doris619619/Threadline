@@ -390,7 +390,7 @@ test('keeps dynamic styles functional without CSP console violations', async ({
       cspErrors.push(message.text());
   });
   await page.reload();
-  await page.getByRole('heading', { name: '我的工作台' }).waitFor();
+  await page.getByRole('heading', { name: '任务大厅' }).waitFor();
   await expect(page.locator('.dashboard-columns')).toHaveCSS('--schedule-ratio', /fr$/);
   await expect(page.locator('.tl-project-tag').first()).toHaveCSS(
     '--project-color',
@@ -549,7 +549,7 @@ test('reopens the cached PWA offline without returning HTML for a Next script', 
   const page = await context.newPage();
   try {
     await page.goto('/');
-    await page.getByRole('heading', { name: '我的工作台' }).waitFor();
+    await page.getByRole('heading', { name: '任务大厅' }).waitFor();
     await page.waitForFunction(() => navigator.serviceWorker.ready.then(() => true));
     await page.reload();
     await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
@@ -573,7 +573,7 @@ test('reopens the cached PWA offline without returning HTML for a Next script', 
     expect(asset.contentType).toContain('javascript');
     expect(asset.prefix).not.toContain('<!doctype html');
     await page.reload();
-    await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '任务大厅' })).toBeVisible();
   } finally {
     await context.close();
   }

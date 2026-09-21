@@ -36,7 +36,7 @@ export function ThemeChoices({
               className={`appearance-preview appearance-preview--${item.id}`}
               aria-hidden="true"
             >
-              <span className="appearance-preview-heading">我的工作台</span>
+              <span className="appearance-preview-heading">任务大厅</span>
               <span className="appearance-preview-line">
                 <i />
                 <span className="appearance-preview-bar" />
