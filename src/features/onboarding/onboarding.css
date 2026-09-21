@@ -60,7 +60,9 @@
 }
 /* 像素主题的原按钮色在小号常规字重下不足 4.5:1；引导保持深绿底和浅色文字。 */
 html:is([data-theme='cottage'], [data-theme='classic'])
+  .onboarding-page
   .onboarding-card
+  .onboarding-actions
   .tl-button--primary {
   background: #405f40;
   color: #fffdf7;

@@ -42,6 +42,17 @@ test('first-run choices persist, hide rhythm and fill schedule estimates', async
         'data-color-scheme',
         colorScheme,
       );
+      if (theme === 'cottage' || theme === 'classic') {
+        // 直接断言最终层叠结果，避免不同系统字体让 axe 跳过文字对比度计算。
+        await expect(page.getByRole('button', { name: '继续', exact: true })).toHaveCSS(
+          'background-color',
+          'rgb(64, 95, 64)',
+        );
+        await expect(page.getByRole('button', { name: '继续', exact: true })).toHaveCSS(
+          'color',
+          'rgb(255, 253, 247)',
+        );
+      }
       const violations = (
         await new AxeBuilder({ page }).include('.onboarding-card').analyze()
       ).violations.filter((issue) =>
