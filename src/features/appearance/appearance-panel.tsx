@@ -2,8 +2,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
-import { ThemeIllustration } from './theme-illustration';
-import { CottageScene } from './cottage-scene';
+import { ThemeChoices } from './theme-choices';
 import {
   getAppearance,
   applyFontResult,
@@ -18,13 +17,6 @@ const fonts: { id: AppearanceFont; label: string }[] = [
   { id: 'source-han-sans', label: '思源黑体' },
   { id: 'source-han-serif', label: '思源宋体' },
 ];
-const themes = [
-  { id: 'blue', label: '默认蓝色', description: '清爽 · 专注 · 熟悉' },
-  { id: 'anya', label: '安妮雅', description: '樱花粉 · 奶油白' },
-  { id: 'cottage', label: '皮卡小屋', description: '糖果像素 · 回到自己的家' },
-  { id: 'classic', label: '皮卡经典', description: '经典页签 · 奶油像素界面' },
-] as const;
-
 /** Preview fonts on entering this screen; do not preload unused fonts on the ordinary workspace. */
 export function AppearancePanel() {
   const preferences = useAppearance();
@@ -74,42 +66,10 @@ export function AppearancePanel() {
       <p className="appearance-intro">
         让工作台更像你。主题与字体分别选择，仅保存在当前设备。
       </p>
-      <fieldset className="appearance-section">
-        <legend>主题</legend>
-        <div className="appearance-theme-options">
-          {themes.map(({ id: theme, label, description }) => (
-            <button
-              key={theme}
-              type="button"
-              className="appearance-theme-option"
-              aria-pressed={preferences.theme === theme}
-              onClick={() => void select({ ...preferences, theme })}
-            >
-              <span
-                className={`appearance-preview appearance-preview--${theme}`}
-                aria-hidden="true"
-              >
-                <span className="appearance-preview-heading">我的工作台</span>
-                <span className="appearance-preview-line">
-                  <i />
-                  <span className="appearance-preview-bar" />
-                </span>
-                <span className="appearance-preview-line">
-                  <i />
-                  <span className="appearance-preview-bar" />
-                </span>
-                {theme === 'anya' && <ThemeIllustration />}
-                {theme === 'cottage' && <CottageScene />}
-              </span>
-              <span className="appearance-option-label">
-                <strong>{label}</strong>
-                <Check size={18} aria-hidden="true" />
-              </span>
-              <small>{description}</small>
-            </button>
-          ))}
-        </div>
-      </fieldset>
+      <ThemeChoices
+        theme={preferences.theme}
+        onSelect={(theme) => void select({ ...preferences, theme })}
+      />
       <fieldset className="appearance-section">
         <legend>明暗模式</legend>
         <div className="appearance-mode-options">

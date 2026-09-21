@@ -32,6 +32,12 @@ test('keeps update actions visible across navigation, themes, download and compa
       value: {
         environment: 'electron',
         role: 'main',
+        getAutoStartState: async () => ({
+          supported: false,
+          enabled: false,
+          decided: true,
+        }),
+        showEntryWindow: async () => undefined,
         getUpdateState: async () => state,
         onUpdateState: (callback: typeof listener) => {
           listener = callback;

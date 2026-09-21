@@ -9,6 +9,7 @@ import { usesLocalWorkspace } from '@/lib/workspace-runtime';
 import { getLocalDateKey } from '@/lib/local-date';
 import { validatePeriod, type PeriodDraft, type PeriodRecord } from './period-rules';
 import { listPeriods, savePeriod, deletePeriod } from './period-repository';
+import { useRhythmVisible } from '@/features/onboarding/account-preferences-provider';
 
 type RhythmContext = {
   marks: Record<string, boolean>;
@@ -23,10 +24,12 @@ const Context = createContext<RhythmContext | null>(null);
 
 /** 云端读取失败不伪装空数据；直接采用保存结果，Realtime 仅使账号查询失效。 */
 function CloudRhythmStateProvider({ children }: { children: ReactNode }) {
+  const visible = useRhythmVisible();
   const { client, repository, user } = useCloudRuntime();
   const queryClient = useQueryClient();
   const key = ['rhythm', user.id];
   const query = useQuery({
+    enabled: visible,
     queryKey: key,
     networkMode: 'always',
     queryFn: async () => {
@@ -42,6 +45,7 @@ function CloudRhythmStateProvider({ children }: { children: ReactNode }) {
     // 离线时立即报告错误并保留表单，不能让 React Query 将操作无限暂停在“保存中”。
     networkMode: 'always',
     mutationFn: async (action: { draft: PeriodDraft } | { id: string }) => {
+      if (!visible) throw new Error('当前账号未启用节律。');
       if (!navigator.onLine) throw new Error('当前离线，输入已保留，请联网后重试');
       if ('draft' in action) {
         validatePeriod(action.draft, query.data?.periods ?? [], getLocalDateKey());
@@ -75,6 +79,10 @@ function CloudRhythmStateProvider({ children }: { children: ReactNode }) {
     },
   });
   useEffect(() => {
+    if (!visible) {
+      void queryClient.cancelQueries({ queryKey: ['rhythm', user.id] });
+      return;
+    }
     const channel = client.channel(`periods:${user.id}`);
     for (const table of ['period_records', 'rhythm_marks'])
       channel.on(
@@ -86,7 +94,7 @@ function CloudRhythmStateProvider({ children }: { children: ReactNode }) {
     return () => {
       void client.removeChannel(channel);
     };
-  }, [client, queryClient, user.id]);
+  }, [client, queryClient, user.id, visible]);
   return (
     <Context.Provider
       value={{
@@ -116,7 +124,7 @@ function LocalRhythmTestAdapter({ children }: { children: ReactNode }) {
   return <Context.Provider value={state}>{children}</Context.Provider>;
 }
 
-/** 生产只使用云端；本地状态仅适用于显式测试与 Preview。 */
+/** 保持 Provider 和工作台树稳定；云端按性别停用查询订阅，恢复显示时读取保留的历史。 */
 export function RhythmStateProvider({ children }: { children: ReactNode }) {
   return usesLocalWorkspace() ? (
     <LocalRhythmTestAdapter>{children}</LocalRhythmTestAdapter>

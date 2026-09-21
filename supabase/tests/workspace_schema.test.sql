@@ -84,8 +84,8 @@ select is(
 );
 
 select table_privs_are(
-  'public', 'workspace_profiles', 'authenticated', array['SELECT', 'INSERT'],
-  'Authenticated initializer can select and insert its workspace profile'
+  'public', 'workspace_profiles', 'authenticated', array['SELECT'],
+  'Authenticated profile access is read-only at table level; initialization uses owner_id column grant'
 );
 select table_privs_are(
   'public', 'projects', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'],

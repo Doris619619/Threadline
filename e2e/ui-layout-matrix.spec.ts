@@ -135,7 +135,7 @@ test.describe('compact viewport layout matrix', () => {
   }, testInfo) => {
     const home = page.getByTestId('home-panel');
     const header = page.locator('.tl-header');
-    const title = header.getByRole('heading', { level: 1, name: '我的工作台' });
+    const title = header.getByRole('heading', { level: 1, name: '任务大厅' });
     const dateToolbar = header.locator('.tl-date');
     const seededTask = page
       .locator('.timeline-row')
@@ -321,18 +321,18 @@ test.describe('compact viewport layout matrix', () => {
       ).toBeGreaterThanOrEqual(44 - 0.001);
     }
 
-    // 验证预计是独立可编辑分钟；修改起止时间不自动填写它。
+    // 起止时间自动计算分钟，手动覆盖后再次改时间按新时段重新计算。
     await startTimeInput.fill('08:30');
     await endTimeInput.fill('10:00');
-    await expect(plannedDisplay).toHaveValue('');
-    await plannedDisplay.fill('90');
     await expect(plannedDisplay).toHaveValue('90');
+    await plannedDisplay.fill('75');
+    await expect(plannedDisplay).toHaveValue('75');
     await expect(timedRow.locator('.estimate-preview')).toHaveCount(0);
     await expect(
       timedRow.getByRole('button', { name: '清空预计，设为待定' }),
     ).toHaveCount(0);
     await endTimeInput.fill('11:00');
-    await expect(plannedDisplay).toHaveValue('90');
+    await expect(plannedDisplay).toHaveValue('150');
 
     // 2. 测试无时间待办移动端新增态紧凑单行结构
     const waitingPanel = page.locator('.waiting-panel');

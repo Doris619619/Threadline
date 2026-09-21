@@ -6,6 +6,7 @@
 import { ManagementDialog } from '@/components/ui/management-dialog';
 import { getLocalDateKey } from '@/lib/local-date';
 import { PlannedMinutesField } from './planned-minutes-field';
+import { TaskTimingFields } from './task-timing-fields';
 
 import { useId, useRef, useState } from 'react';
 import { X, ChevronDown } from 'lucide-react';
@@ -357,54 +358,33 @@ export function TaskDialog({
             </label>
           </div>
         ) : (
-          <div className="task-form-grid">
-            <label className="task-form-project">
-              项目
-              <select name="project" defaultValue={defaultProjectId}>
-                {projects
-                  .filter(
-                    (project) =>
-                      project.status === 'active' || project.id === editing?.projectId,
-                  )
-                  .map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label>
-              开始时间
-              <Input
-                name="start"
-                defaultValue={editing?.plannedStartTime}
-                placeholder="1420 或 14:20"
-              />
-            </label>
-            <label>
-              结束时间
-              <Input
-                name="end"
-                defaultValue={editing?.plannedEndTime}
-                placeholder="可选"
-              />
-            </label>
+          <TaskTimingFields
+            editing={editing}
+            project={
+              <label className="task-form-project">
+                项目
+                <select name="project" defaultValue={defaultProjectId}>
+                  {projects
+                    .filter(
+                      (project) =>
+                        project.status === 'active' ||
+                        project.id === editing?.projectId,
+                    )
+                    .map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            }
+          />
+        )}
+        {isWaiting && (
+          <div className="task-form-grid task-form-durations">
+            <PlannedMinutesField defaultValue={editing?.plannedDurationMinutes} />
           </div>
         )}
-
-        <div className="task-form-grid task-form-durations">
-          <PlannedMinutesField defaultValue={editing?.plannedDurationMinutes} />
-          {!isWaiting && (
-            <label>
-              实际时长（分钟）
-              <Input
-                name="actual"
-                type="number"
-                defaultValue={editing?.actualDurationMinutes}
-              />
-            </label>
-          )}
-        </div>
 
         {editing && onToggleWorkstation && (
           <button

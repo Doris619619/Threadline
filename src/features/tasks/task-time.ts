@@ -1,5 +1,5 @@
 /**
- * @fileoverview 统一起止时间、独立预计分钟及实际耗时的解析和展示，供任务视图复用。
+ * @fileoverview 统一任务时间解析、起止时间自动估时与可手动修改的预计分钟展示。
  */
 
 import { calculateDuration } from '@/lib/task-rules';
@@ -41,6 +41,17 @@ export function normalizeTime(value: string) {
   return h < 24 && m < 60
     ? `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
     : undefined;
+}
+
+/** 时间编辑时自动填入有效同日范围的预计分钟；缺失、同刻或跨日保留原估时供用户继续输入。 */
+export function estimateFromTimeRange(
+  startRaw: string,
+  endRaw: string,
+  previous: string,
+): string {
+  const start = normalizeTime(startRaw);
+  const end = normalizeTime(endRaw);
+  return start && end && end > start ? String(calculateDuration(start, end)) : previous;
 }
 
 /**

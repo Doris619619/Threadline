@@ -69,7 +69,7 @@ test('keeps independent theme/font choices and renders real fonts after reload',
   await page.reload();
   await expect(root).toHaveAttribute('data-theme', 'anya');
   await expect(root).toHaveAttribute('data-font', 'source-han-sans');
-  await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '任务大厅' })).toBeVisible();
   expect(errors).toEqual([]);
 });
 

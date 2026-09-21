@@ -2,7 +2,7 @@
  * @fileoverview 通过真实本地 Supabase 验证登录、编辑失败重试、慢网勾选、双页面同步与持久化。
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { openWorkspaceSection } from './support/workspace';
 
 /** 读取 runner 注入的一次性凭据；缺失时明确指出应通过专用 runner 启动。 */
@@ -13,6 +13,20 @@ function readRequiredTestEnvironment(name: string): string {
       `${name} is required; run this suite through scripts/test-supabase-browser.mjs.`,
     );
   return value;
+}
+
+/** 通过真实用户路径完成一次性偏好，后续登录等待任务大厅，避免云 E2E 绕过生产门禁。 */
+async function completeFirstRun(page: Page) {
+  await expect(
+    page
+      .getByRole('heading', { name: '选择喜欢的主题' })
+      .or(page.getByRole('heading', { name: '任务大厅', exact: true })),
+  ).toBeVisible();
+  if (await page.getByRole('heading', { name: '选择喜欢的主题' }).isVisible()) {
+    await page.getByRole('button', { name: '继续', exact: true }).click();
+    await page.getByLabel('女生', { exact: true }).check();
+    await page.getByRole('button', { name: '进入工作台' }).click();
+  }
 }
 
 const email = readRequiredTestEnvironment('THREADLINE_SUPABASE_E2E_EMAIL');
@@ -30,7 +44,8 @@ test.describe('habits account timezone through real PostgREST', () => {
     await page.getByLabel('邮箱').fill(email);
     await page.locator('input#auth-password').fill(password);
     await page.getByRole('button', { name: '登录', exact: true }).click();
-    await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();
+    await completeFirstRun(page);
+    await expect(page.getByRole('heading', { name: '任务大厅' })).toBeVisible();
     await openWorkspaceSection(page, '习惯');
     await page.getByRole('button', { name: '习惯设置', exact: true }).click();
     const dialog = page.getByRole('dialog');
@@ -87,8 +102,9 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
   await page.getByLabel('邮箱').fill(email);
   await page.locator('input#auth-password').fill(password);
   await page.getByRole('button', { name: '登录', exact: true }).click();
+  await completeFirstRun(page);
 
-  await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '任务大厅' })).toBeVisible();
   await page.getByRole('button', { name: '项目', exact: true }).click();
   await expect(page.locator('.project-panel')).toBeVisible();
   await expect(
@@ -104,7 +120,7 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
   await expect(waitingPanel.getByText(taskTitle, { exact: true })).toBeVisible();
 
   await page.reload();
-  await expect(page.getByRole('heading', { name: '我的工作台' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '任务大厅' })).toBeVisible();
   await expect(
     page.locator('.waiting-panel').getByText(taskTitle, { exact: true }),
   ).toBeVisible();

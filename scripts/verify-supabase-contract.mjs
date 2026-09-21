@@ -353,13 +353,15 @@ if (
   );
 rejectPattern(/annotation_strokes/i, 'Annotation must remain local-only');
 rejectPattern(/status\s*=\s*'purged'|\b'purged'\b/i, 'purged is not a TaskStatus');
-// 旧工作区继续 last-write-wins；仅独立习惯领域采用显式版本冲突，不扩大旧模型边界。
+// 旧任务工作区继续 last-write-wins；习惯、时区和个人偏好有各自显式版本，不扩大任务模型边界。
 const legacyMigrations = (
   await Promise.all(
     migrationFiles
       .filter(
         (name) =>
-          !name.endsWith('_habits.sql') && !name.endsWith('_account_timezone.sql'),
+          !name.endsWith('_habits.sql') &&
+          !name.endsWith('_account_timezone.sql') &&
+          !name.endsWith('_account_preferences.sql'),
       )
       .map((name) => readFile(join(migrationsDirectory, name), 'utf8')),
   )
@@ -423,4 +425,30 @@ requireDefinitionPattern(
   accountTimezoneMigration,
   /revoke all on function public\.set_account_timezone[\s\S]*from public, anon, authenticated/i,
   'account timezone RPC is not anonymous',
+);
+
+// 个人偏好只能更新自己的行；引导完成与性别约束以及初始化列权限需同时存在。
+const accountPreferencesMigration = await readFile(
+  join(migrationsDirectory, '202609200001_account_preferences.sql'),
+  'utf8',
+);
+requireDefinitionPattern(
+  accountPreferencesMigration,
+  /security definer set search_path = pg_catalog, public[\s\S]*auth\.uid\(\)[\s\S]*where owner_id = owner for update/i,
+  'preferences writes are authenticated, owner scoped and serialized',
+);
+requireDefinitionPattern(
+  accountPreferencesMigration,
+  /onboarding_requires_gender check \(onboarding_completed_at is null or gender is not null\)/i,
+  'onboarding completion requires explicit gender',
+);
+requireDefinitionPattern(
+  accountPreferencesMigration,
+  /revoke insert on public\.workspace_profiles from authenticated;\s*grant insert\(owner_id\)/i,
+  'workspace initialization cannot forge preference values',
+);
+requireDefinitionPattern(
+  accountPreferencesMigration,
+  /revoke all on function public\.save_account_preferences[\s\S]*from public, anon, authenticated/i,
+  'preferences RPC denies anonymous writes',
 );

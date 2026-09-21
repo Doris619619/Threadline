@@ -9,6 +9,7 @@ import type {
   WindowStateConfig,
 } from '@/lib/desktop-window-policy';
 import type { DesktopUpdateBridge } from '@/lib/desktop-update';
+import type { AutoStartState } from '@/lib/desktop-auto-start';
 
 export type DesktopWindowStates = Partial<Record<DesktopViewMode, WindowStateConfig>>;
 
@@ -70,6 +71,9 @@ export type ThreadlineDesktopBridge =
   | (DesktopUpdateBridge & {
       environment: 'electron';
       role: 'main';
+      getAutoStartState: () => Promise<AutoStartState>;
+      setAutoStartEnabled: (enabled: boolean) => Promise<AutoStartState>;
+      deferAutoStart: () => Promise<AutoStartState>;
       hydrateDesktopState: (
         payload: DesktopHydrationPayload,
       ) => Promise<NativeApplyResult>;

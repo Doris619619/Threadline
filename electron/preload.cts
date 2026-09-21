@@ -42,6 +42,10 @@ const bridge =
         transitionWindow: (payload: unknown) =>
           ipcRenderer.invoke('desktop:transition', payload),
         bringToFront: () => ipcRenderer.invoke('desktop:bring-to-front'),
+        getAutoStartState: () => ipcRenderer.invoke('desktop:auto-start-get'),
+        setAutoStartEnabled: (enabled: boolean) =>
+          ipcRenderer.invoke('desktop:auto-start-set', enabled),
+        deferAutoStart: () => ipcRenderer.invoke('desktop:auto-start-defer'),
         resizeCompactContent: (mode: string, height: number) =>
           ipcRenderer.invoke('desktop:compact-height', mode, height),
         setAppearanceTheme: (theme: string) =>

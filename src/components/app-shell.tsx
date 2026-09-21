@@ -38,6 +38,7 @@ import { ThemeIllustration } from '@/features/appearance/theme-illustration';
 import { CottageNavIcon } from '@/features/appearance/cottage-sprite';
 import { CottageCompanion } from '@/features/appearance/cottage-companion';
 import { DesktopUpdateEntry } from '@/features/desktop-update/update-entry';
+import { useRhythmVisible } from '@/features/onboarding/account-preferences-provider';
 
 /** Open the native date popup for the full visible control; unsupported/restricted browsers keep their native input behavior. */
 function openWorkspaceDatePicker(input: HTMLInputElement): boolean {
@@ -90,8 +91,6 @@ const navigation = [
   },
 ] as const;
 const mobilePrimaryIds = new Set(['home', 'calendar', 'projects', 'habits']);
-const mobilePrimary = navigation.filter((item) => mobilePrimaryIds.has(item.id));
-const mobileSecondary = navigation.filter((item) => !mobilePrimaryIds.has(item.id));
 export type WorkspaceViewId = (typeof navigation)[number]['id'];
 type WorkspaceView = {
   active: WorkspaceViewId;
@@ -218,9 +217,21 @@ function EdgeTab() {
   );
 }
 
-/** 根据 desktop presentation 渲染完整壳层、compact 壳层或 edge tab。 */
+/** 根据窗口形态与账号性别过滤导航；节律被隐藏时同步回到首页，防止渲染已卸载的私密状态。 */
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const [active, setActive] = useState<WorkspaceViewId>('home');
+  const [selection, setActive] = useState<WorkspaceViewId>('home');
+  const rhythmVisible = useRhythmVisible();
+  const active = selection === 'rhythm' && !rhythmVisible ? 'home' : selection;
+  if (active !== selection) setActive(active);
+  const visibleNavigation = navigation.filter(
+    (item) => item.id !== 'rhythm' || rhythmVisible,
+  );
+  const mobilePrimary = visibleNavigation.filter((item) =>
+    mobilePrimaryIds.has(item.id),
+  );
+  const mobileSecondary = visibleNavigation.filter(
+    (item) => !mobilePrimaryIds.has(item.id),
+  );
   const today = useAccountToday();
   useAccountTimezone();
   const [dateSelection, setDateSelection] = useState<string | null>(null);
@@ -255,7 +266,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               Threadline
             </a>
             <nav className="tl-desktop-nav" aria-label="主导航">
-              {navigation.map(({ id, label, icon: Icon }) => (
+              {visibleNavigation.map(({ id, label, icon: Icon }) => (
                 <SidebarItem
                   key={id}
                   active={active === id}
@@ -345,10 +356,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             active !== 'settings' && (
               <header className="tl-header" data-home={active === 'home'}>
                 <div>
-                  <h1>
-                    {activeItem.label === '首页' ? '我的工作台' : activeItem.label}
-                  </h1>
-                  <p>{activeItem.description}</p>
+                  <h1>{activeItem.label === '首页' ? '任务大厅' : activeItem.label}</h1>
+                  {active !== 'home' && <p>{activeItem.description}</p>}
                 </div>
                 {active === 'home' && (
                   <ThemeIllustration className="home-theme-illustration" />

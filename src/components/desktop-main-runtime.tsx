@@ -15,24 +15,30 @@ import { WorkspaceDataProvider } from '@/features/workspace/workspace-data-provi
 import { DesktopWindowProvider } from '@/lib/desktop-window-context';
 import { usesLocalWorkspace } from '@/lib/workspace-runtime';
 import { DesktopUpdateRuntime } from '@/features/desktop-update/update-runtime';
+import { AccountPreferencesProvider } from '@/features/onboarding/account-preferences-provider';
+import { OnboardingGate } from '@/features/onboarding/onboarding-gate';
 
-/** 挂载与数据来源无关的完整业务树和桌面视图状态。 */
+/** 个性化完成后才加载业务树，避免短暂显示不适用的栏目或恢复过小窗口。 */
 function WorkspaceRuntime() {
   return (
-    <AccountTimezoneProvider>
-      <DesktopWindowProvider>
-        <PwaRegistrar />
-        <RhythmStateProvider>
-          <AppShell>
-            <HabitsStateProvider>
-              <WorkspaceDataProvider>
-                <WorkspaceContent />
-              </WorkspaceDataProvider>
-            </HabitsStateProvider>
-          </AppShell>
-        </RhythmStateProvider>
-      </DesktopWindowProvider>
-    </AccountTimezoneProvider>
+    <AccountPreferencesProvider>
+      <OnboardingGate>
+        <AccountTimezoneProvider>
+          <DesktopWindowProvider>
+            <PwaRegistrar />
+            <RhythmStateProvider>
+              <AppShell>
+                <HabitsStateProvider>
+                  <WorkspaceDataProvider>
+                    <WorkspaceContent />
+                  </WorkspaceDataProvider>
+                </HabitsStateProvider>
+              </AppShell>
+            </RhythmStateProvider>
+          </DesktopWindowProvider>
+        </AccountTimezoneProvider>
+      </OnboardingGate>
+    </AccountPreferencesProvider>
   );
 }
 
