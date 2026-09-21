@@ -58,6 +58,13 @@
 .onboarding-sign-out {
   min-height: 44px;
 }
+/* 像素主题的原按钮色在小号常规字重下不足 4.5:1；引导保持深绿底和浅色文字。 */
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .onboarding-card
+  .tl-button--primary {
+  background: #405f40;
+  color: #fffdf7;
+}
 .onboarding-footnote {
   margin-top: 20px;
   font-size: 13px;
