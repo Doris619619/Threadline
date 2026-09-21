@@ -9,6 +9,7 @@ const frozenLocalNow = '2026-08-23T12:00:00+08:00';
 
 /** 每个 local adapter 用例首次导航前必须移除的业务与窗口状态 key。 */
 const localStorageKeys = [
+  'threadline.profile.preview.v1',
   'threadline.tasks.v1',
   'threadline.projects.v1',
   'threadline.daily-by-date.v1',

@@ -29,8 +29,14 @@ import { threadlineAppVersion } from '@/lib/app-info';
 import { UpdateControls } from '@/features/desktop-update/update-runtime';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import type { Task } from '@/types/domain';
+import { useAccountPreferences } from '@/features/onboarding/account-preferences-provider';
+import {
+  PersonalPreferencesSettings,
+  AutoStartSettings,
+} from './personal-preferences-settings';
 
 type SettingsSection =
+  | 'personal'
   | 'timezone'
   | 'overview'
   | 'appearance'
@@ -100,6 +106,7 @@ export function SettingsPanel({
   const { isNativeDesktop, mode, resetWindowStates } = useDesktopWindow();
   const cloudRuntime = useOptionalCloudRuntime();
   const account = useAccountTimezone();
+  const preferences = useAccountPreferences();
   const [section, setSection] = useState<SettingsSection>('overview');
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string>();
@@ -118,6 +125,12 @@ export function SettingsPanel({
       setSigningOut(false);
     }
   };
+  if (section === 'personal')
+    return (
+      <SettingsDetail title="个人资料" onBack={() => setSection('overview')}>
+        <PersonalPreferencesSettings />
+      </SettingsDetail>
+    );
   if (section === 'timezone')
     return (
       <SettingsDetail title="日期与时区" onBack={() => setSection('overview')}>
@@ -136,8 +149,8 @@ export function SettingsPanel({
         <Surface className="settings-copy">
           <Cloud aria-hidden="true" size={24} />
           <p>
-            任务、项目、Daily、工作站与节律以当前 Supabase 账号为真源，并在联网后通过
-            Realtime 刷新。
+            性别、首次引导状态、任务、项目、Daily、工作站与节律以当前 Supabase
+            账号为真源，并在联网后通过 Realtime 刷新。
           </p>
           <p>
             主题、字体、批注笔迹、高亮颜色和桌面窗口尺寸只保存在当前设备，不会上传到
@@ -176,7 +189,8 @@ export function SettingsPanel({
     );
   if (section === 'desktop' && isNativeDesktop)
     return (
-      <SettingsDetail title="桌面窗口" onBack={() => setSection('overview')}>
+      <SettingsDetail title="桌面" onBack={() => setSection('overview')}>
+        <AutoStartSettings />
         <Surface className="desktop-settings">
           <p>完整工作台与工作站共用主窗口；工作站可收起到左右屏幕边缘。</p>
           <dl>
@@ -248,6 +262,21 @@ export function SettingsPanel({
       <section className="settings-group" aria-labelledby="settings-general">
         <h2 id="settings-general">通用</h2>
         <Surface>
+          {preferences && (
+            <SettingsRow
+              icon={ShieldCheck}
+              title="个人资料"
+              description="修改性别与节律显示"
+              value={
+                preferences.profile?.gender === 'male'
+                  ? '男生'
+                  : preferences.profile?.gender === 'female'
+                    ? '女生'
+                    : '未设置'
+              }
+              onClick={() => setSection('personal')}
+            />
+          )}
           <SettingsRow
             icon={Palette}
             title="外观"
@@ -266,8 +295,8 @@ export function SettingsPanel({
           {isNativeDesktop && (
             <SettingsRow
               icon={MonitorCog}
-              title="桌面窗口"
-              description="管理应用窗口模式与位置"
+              title="桌面"
+              description="管理开机自启动、窗口模式与位置"
               onClick={() => setSection('desktop')}
             />
           )}

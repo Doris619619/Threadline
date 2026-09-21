@@ -6,6 +6,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { RhythmStateProvider, useRhythmState } from '@/features/rhythm/rhythm-state';
 
 const mocks = vi.hoisted(() => ({
+  visible: true,
+  removeChannel: vi.fn(),
   listPeriods: vi.fn(
     async (): Promise<import('@/features/rhythm/period-rules').PeriodRecord[]> => [],
   ),
@@ -14,13 +16,16 @@ const mocks = vi.hoisted(() => ({
   listRhythmMarks: vi.fn(async () => ({})),
 }));
 vi.mock('@/lib/workspace-runtime', () => ({ usesLocalWorkspace: () => false }));
+vi.mock('@/features/onboarding/account-preferences-provider', () => ({
+  useRhythmVisible: () => mocks.visible,
+}));
 vi.mock('@/features/rhythm/period-repository', () => mocks);
 vi.mock('@/features/auth/cloud-runtime-provider', () => {
   const channel = { on: vi.fn().mockReturnThis(), subscribe: vi.fn() };
   const runtime = {
     user: { id: 'account' },
     repository: mocks,
-    client: { channel: () => channel, removeChannel: vi.fn() },
+    client: { channel: () => channel, removeChannel: mocks.removeChannel },
   };
   return { useCloudRuntime: () => runtime };
 });
@@ -37,12 +42,31 @@ function setup() {
   });
 }
 afterEach(() => {
+  mocks.visible = true;
   onlineManager.setOnline(true);
   vi.restoreAllMocks();
   vi.clearAllMocks();
 });
 
 describe('cloud period offline recovery', () => {
+  it('does not query male profiles and stops subscriptions without remounting consumers', async () => {
+    mocks.visible = false;
+    const hook = setup();
+    expect(mocks.listPeriods).not.toHaveBeenCalled();
+    expect(mocks.listRhythmMarks).not.toHaveBeenCalled();
+    mocks.visible = true;
+    hook.rerender();
+    await waitFor(() => expect(hook.result.current.loading).toBe(false));
+    expect(mocks.listPeriods).toHaveBeenCalledOnce();
+    mocks.visible = false;
+    hook.rerender();
+    await waitFor(() => expect(mocks.removeChannel).toHaveBeenCalled());
+    await act(async () => {
+      await expect(
+        hook.result.current.save({ id: 'p', startDate: '2026-01-02' }),
+      ).rejects.toThrow('未启用');
+    });
+  });
   it('rejects save immediately even when React Query sees the browser as offline', async () => {
     const { result } = setup();
     await waitFor(() => expect(result.current.loading).toBe(false));

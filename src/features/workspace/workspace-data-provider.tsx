@@ -201,7 +201,6 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       'daily_entries',
       'daily_entry_items',
       'workstation_entries',
-      'rhythm_marks',
       'daily_history_entries',
       'history_events',
       'daily_close_records',

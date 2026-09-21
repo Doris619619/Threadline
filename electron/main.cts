@@ -37,6 +37,7 @@ import {
 } from '../src/lib/desktop-window-policy.js';
 import { readFramelessGeometry } from './window-geometry.cjs';
 import { registerDesktopUpdates } from './desktop-updates.cjs';
+import { registerAutoStart } from './auto-start.cjs';
 
 // Windows/Linux 默认菜单会占用紧凑窗口的标题区域，必须在 app ready 前移除。
 Menu.setApplicationMenu(null);
@@ -969,6 +970,7 @@ function bootstrapApplication(): void {
     try {
       registerRendererProtocol();
       registerDesktopIpc();
+      registerAutoStart((event) => isTrustedSender(event, 'main'));
       registerDesktopUpdates(
         () => mainWindow,
         (event) => isTrustedSender(event, 'main'),

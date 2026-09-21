@@ -31,6 +31,7 @@ export type StartupProgressSnapshot = {
 type StartupProgressContextValue = StartupProgressSnapshot & {
   setWorkspaceDataStatus: (operation: StartupOperation) => void;
   setRealtimeStatus: (operation: StartupOperation) => void;
+  setPersonalizationActive: (active: boolean) => void;
 };
 
 const StartupProgressContext = createContext<StartupProgressContextValue | null>(null);
@@ -65,6 +66,7 @@ export function StartupProgressProvider({
   const [workspaceDataState, setWorkspaceDataState] =
     useState<StartupOperation>(pendingOperation);
   const [realtime, setRealtimeState] = useState<StartupOperation>(pendingOperation);
+  const [personalizationActive, setPersonalizationActive] = useState(false);
 
   /** 接收 WorkspaceDataProvider 的真实 query 与本机 hydration 结果。 */
   const setWorkspaceDataStatus = useCallback((operation: StartupOperation) => {
@@ -90,6 +92,7 @@ export function StartupProgressProvider({
   );
   const shouldShowStartup =
     active &&
+    !personalizationActive &&
     (authentication.status !== 'completed' ||
       workspaceInitialization.status !== 'completed' ||
       workspaceData.status !== 'completed');
@@ -101,6 +104,7 @@ export function StartupProgressProvider({
       realtime,
       setWorkspaceDataStatus,
       setRealtimeStatus,
+      setPersonalizationActive,
     }),
     [
       authentication,
