@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { _electron as electron } from 'playwright';
 
 import { terminateOwnedProcess } from './desktop-build-runtime.mjs';
+import { testElectronLoginRace } from './test-electron-login-race.mjs';
 import { testElectronInteractionFeedback } from './test-electron-interaction-feedback.mjs';
 
 const rendererPort = process.env.THREADLINE_ELECTRON_E2E_PORT ?? '3123';
@@ -413,7 +414,10 @@ try {
       edge?.bounds.x === movedEdge.bounds.x && edge?.bounds.y === movedEdge.bounds.y
     );
   }, 'Edge side and vertical position must survive a process restart');
-  console.log('Electron window smoke test passed, including persisted Edge position.');
+  await testElectronLoginRace(application, restartedPage);
+  console.log(
+    'Electron window smoke test passed, including persisted Edge position and login races.',
+  );
 } catch (error) {
   exitCode = 1;
   console.error(error);

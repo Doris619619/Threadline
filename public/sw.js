@@ -1,6 +1,6 @@
 /** Service Worker：缓存精确的应用壳与 Next 静态资源，绝不以 HTML 响应脚本或样式请求。 */
 
-const CACHE = 'threadline-shell-v4';
+const CACHE = 'threadline-shell-v5';
 const SHELL = [
   '/',
   '/manifest.webmanifest',
@@ -71,7 +71,9 @@ self.addEventListener('activate', (event) => {
       .keys()
       .then((keys) =>
         Promise.all(
-          keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)),
+          keys
+            .filter((key) => key.startsWith('threadline-shell-') && key !== CACHE)
+            .map((key) => caches.delete(key)),
         ),
       )
       .then(() => self.clients.claim()),
@@ -88,6 +90,42 @@ function cacheResponse(event, response) {
       .then((cache) => cache.put(event.request, copy))
       .catch(() => undefined),
   );
+}
+
+/** 静态资源不得接受路由兜底 HTML，以免缓存损坏脚本或图片。 */
+function validAsset(response) {
+  return response.ok && !response.headers.get('content-type')?.includes('text/html');
+}
+
+/** 固定 URL 资源优先读取网络；只有缓存可用时，才设置五秒回退界限。 */
+async function freshAsset(event) {
+  const cached = await caches.match(event.request);
+  const controller = new AbortController();
+  let timer;
+  const network = fetch(event.request, { signal: controller.signal }).then(
+    (response) => {
+      if (!validAsset(response)) throw new Error('Invalid asset response');
+      cacheResponse(event, response);
+      return response;
+    },
+  );
+  try {
+    if (!cached) return await network;
+    return await Promise.race([
+      network,
+      new Promise((resolve) => {
+        timer = setTimeout(() => {
+          controller.abort();
+          resolve(cached);
+        }, 5000);
+      }),
+    ]);
+  } catch (error) {
+    if (cached) return cached;
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 self.addEventListener('fetch', (event) => {
@@ -111,12 +149,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  if (isStaticAsset && !url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(freshAsset(event));
+    return;
+  }
+
   if (isStaticAsset) {
     event.respondWith(
       caches.match(event.request).then(
         (cached) =>
           cached ??
           fetch(event.request).then((response) => {
+            if (!validAsset(response)) throw new Error('Invalid asset response');
             cacheResponse(event, response);
             return response;
           }),
