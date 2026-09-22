@@ -215,13 +215,13 @@ async function runPackagedSmoke(executablePath) {
         Math.abs(
           geometry.x + geometry.width / 2 - geometry.area.x - geometry.area.width / 2,
         ) < 4,
-        'Entry window horizontally centered',
+        `Entry window horizontally centered: ${JSON.stringify(geometry)}`,
       );
       assert.ok(
         Math.abs(
           geometry.y + geometry.height / 2 - geometry.area.y - geometry.area.height / 2,
         ) < 4,
-        'Entry window vertically centered',
+        `Entry window vertically centered: ${JSON.stringify(geometry)}`,
       );
       await page
         .locator('.desktop-entry-chrome button[aria-label="关闭窗口"]')

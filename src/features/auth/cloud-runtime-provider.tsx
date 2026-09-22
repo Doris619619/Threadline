@@ -28,6 +28,7 @@ import {
   type StartupOperation,
 } from '@/features/startup/startup-progress-context';
 import { getMainDesktopBridge } from '@/lib/desktop-bridge';
+import { useSessionRecovery } from './use-session-recovery';
 
 type CloudRuntime = {
   client: SupabaseClient;
@@ -98,7 +99,7 @@ function LoginGate({ client }: { client: SupabaseClient }) {
 
   return (
     <main className="auth-gate">
-      <DesktopEntryChrome />
+      <DesktopEntryChrome purpose="authentication" />
       <div className="auth-viewport">
         {view === 'welcome' ? (
           <section className="auth-view auth-view-welcome" aria-label="欢迎页面">
@@ -293,31 +294,14 @@ function AuthenticatedRuntime({
   queryClient: QueryClient;
   children: ReactNode;
 }) {
-  const [session, setSession] = useState<Session | null>();
-  const [sessionRecoveryDone, setSessionRecoveryDone] = useState(false);
-  const [sessionRecoveryError, setSessionRecoveryError] = useState<string>();
+  const {
+    session,
+    done: sessionRecoveryDone,
+    error: sessionRecoveryError,
+    retry,
+  } = useSessionRecovery(client, queryClient);
   const [initializationError, setInitializationError] = useState<string>();
   const [initializedOwner, setInitializedOwner] = useState<string>();
-
-  useEffect(() => {
-    let mounted = true;
-    void client.auth.getSession().then(({ data, error }) => {
-      if (!mounted) return;
-      setSessionRecoveryError(error?.message);
-      setSession(data.session);
-      setSessionRecoveryDone(true);
-    });
-    const { data } = client.auth.onAuthStateChange((_event, nextSession) => {
-      setSessionRecoveryError(undefined);
-      setInitializationError(undefined);
-      setSession(nextSession);
-      if (!nextSession) queryClient.clear();
-    });
-    return () => {
-      mounted = false;
-      data.subscription.unsubscribe();
-    };
-  }, [client, queryClient]);
 
   useEffect(() => {
     if (!session || initializedOwner === session.user.id) return;
@@ -338,7 +322,10 @@ function AuthenticatedRuntime({
     void repository
       .initializeWorkspace()
       .then(() => {
-        if (!cancelled) setInitializedOwner(session.user.id);
+        if (!cancelled) {
+          setInitializationError(undefined);
+          setInitializedOwner(session.user.id);
+        }
       })
       .catch((error: unknown) => {
         if (!cancelled)
@@ -381,15 +368,16 @@ function AuthenticatedRuntime({
   return (
     <StartupProgressProvider
       key={session?.user.id ?? 'anonymous'}
-      active={session !== null}
+      active={session !== null || Boolean(sessionRecoveryError) || !sessionRecoveryDone}
       authentication={authentication}
       workspaceInitialization={workspaceInitialization}
+      onRetry={sessionRecoveryError ? retry : undefined}
     >
       {runtime ? (
         <CloudRuntimeContext.Provider value={runtime}>
           {children}
         </CloudRuntimeContext.Provider>
-      ) : session === null && sessionRecoveryDone ? (
+      ) : session === null && sessionRecoveryDone && !sessionRecoveryError ? (
         <LoginGate client={client} />
       ) : null}
     </StartupProgressProvider>

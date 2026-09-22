@@ -776,11 +776,29 @@ function registerDesktopIpc(): void {
     if (startupWatchdog) clearTimeout(startupWatchdog);
     return applyDesktopState(state);
   });
-  /** 启动和登录页不等待业务水合即可居中显示；每次进程启动只执行一次。 */
-  ipcMain.handle('desktop:entry-window', (event) => {
+  /** 登录门禁可重复恢复完整窗口；普通启动 effect 仍不能覆盖已恢复的工作站。 */
+  ipcMain.handle('desktop:entry-window', (event, purpose: unknown = 'startup') => {
     if (!isTrustedSender(event, 'main')) throw new Error('Rejected entry sender');
+    if (purpose !== 'startup' && purpose !== 'authentication')
+      throw new Error('Rejected entry purpose');
     // 启动层迟到的 effect 不能覆盖已经选择的工作站尺寸或收起状态。
-    if (entryWindowShown || desktopStateInitialized || !mainWindow) return;
+    if (!mainWindow) return;
+    if (purpose === 'startup' && (entryWindowShown || desktopStateInitialized)) return;
+    // 启动遮罩切到登录表单时窗口已经完整；重复设置原生尺寸会在 Windows 引入外框偏移。
+    if (
+      purpose === 'authentication' &&
+      entryWindowShown &&
+      !desktopStateInitialized &&
+      latestState.mode === 'full' &&
+      latestState.presentation === 'expanded'
+    ) {
+      revealMain();
+      return;
+    }
+    if (purpose === 'authentication') {
+      desktopStateInitialized = false;
+      if (edgeWindow && !edgeWindow.isDestroyed()) edgeWindow.hide();
+    }
     entryWindowShown = true;
     if (startupWatchdog) clearTimeout(startupWatchdog);
     const area = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea;
@@ -790,8 +808,14 @@ function registerDesktopIpc(): void {
       getLogicalWorkAreas(),
       area,
     );
+    // Main 的当前模式必须与原生窗口一致；不广播给已卸载的业务层，也不覆盖其持久偏好。
+    latestState = {
+      mode: 'full',
+      presentation: 'expanded',
+      windowStates: { ...latestState.windowStates, full: bounds },
+    };
     applyMainNativeState('full', bounds);
-    mainWindow.show();
+    revealMain();
   });
   ipcMain.handle('desktop:bring-to-front', async (event) => {
     if (!isTrustedSender(event, 'main'))

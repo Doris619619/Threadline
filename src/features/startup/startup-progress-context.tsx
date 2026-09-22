@@ -57,11 +57,13 @@ export function StartupProgressProvider({
   workspaceInitialization,
   active,
   children,
+  onRetry,
 }: {
   authentication: StartupOperation;
   workspaceInitialization: StartupOperation;
   active: boolean;
   children: ReactNode;
+  onRetry?: () => void;
 }) {
   const [workspaceDataState, setWorkspaceDataState] =
     useState<StartupOperation>(pendingOperation);
@@ -119,7 +121,9 @@ export function StartupProgressProvider({
   return (
     <StartupProgressContext.Provider value={value}>
       {children}
-      {shouldShowStartup && <ThreadlineStartupScreen progress={value} />}
+      {shouldShowStartup && (
+        <ThreadlineStartupScreen progress={value} onRetry={onRetry} />
+      )}
     </StartupProgressContext.Provider>
   );
 }

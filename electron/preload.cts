@@ -50,7 +50,8 @@ const bridge =
           ipcRenderer.invoke('desktop:compact-height', mode, height),
         setAppearanceTheme: (theme: string) =>
           ipcRenderer.invoke('desktop:appearance', theme),
-        showEntryWindow: () => ipcRenderer.invoke('desktop:entry-window'),
+        showEntryWindow: (purpose: 'startup' | 'authentication' = 'startup') =>
+          ipcRenderer.invoke('desktop:entry-window', purpose),
         minimizeMainWindow: () => ipcRenderer.invoke('desktop:minimize-main'),
         closeMainWindow: () => ipcRenderer.invoke('desktop:close-main'),
         getMainWindowMaximized: () => ipcRenderer.invoke('desktop:get-maximized'),

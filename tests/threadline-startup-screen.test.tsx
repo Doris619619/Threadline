@@ -1,8 +1,8 @@
 /** @fileoverview 覆盖统一启动页对认证、工作区数据与 Realtime 真实状态的可见映射。 */
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { useEffect } from 'react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   StartupProgressProvider,
   useOptionalStartupProgress,
@@ -53,9 +53,33 @@ function StartupReporter({
 const completed: StartupOperation = { status: 'completed' };
 const active: StartupOperation = { status: 'active' };
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 describe('Threadline startup progress', () => {
+  /** 长等待只开放恢复入口，不伪造任何完成阶段。 */
+  it('offers recovery after a real wait without advancing progress', async () => {
+    vi.useFakeTimers();
+    const retry = vi.fn();
+    render(
+      <ThreadlineStartupScreen
+        progress={{
+          authentication: completed,
+          workspaceInitialization: completed,
+          workspaceData: active,
+          realtime: active,
+        }}
+        onRetry={retry}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: '重新加载' })).not.toBeInTheDocument();
+    await act(() => vi.advanceTimersByTimeAsync(20_000));
+    expect(screen.getByLabelText('已完成 2 个启动阶段')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '重新加载' }));
+    expect(retry).toHaveBeenCalledOnce();
+  });
   /** Session 尚未从 Supabase 恢复时，首个阶段是唯一进行中的阶段。 */
   it('shows session recovery as active before authentication resolves', () => {
     render(
