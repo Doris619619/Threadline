@@ -28,9 +28,10 @@ export function readAnnotationDocument(key: string): AnnotationDocument {
     imported: value.imported,
   };
 }
-/** 两代源都保留；来源版本和原 ID 共同标识导入身份。 */
+/** 两代源都保留；v2 已迁移笔迹沿用 v1 ID，优先采用 v2 的固定日期并按原 ID 去重。 */
 export function readLegacyAnnotations() {
-  return [ANNOTATION_STORAGE_KEY_V1, ANNOTATION_STORAGE_KEY_V2].flatMap((key) => {
+  const seen = new Set<string>();
+  return [ANNOTATION_STORAGE_KEY_V2, ANNOTATION_STORAGE_KEY_V1].flatMap((key) => {
     const raw = localStorage.getItem(workspaceStorageKey(key));
     if (!raw) return [];
     const value: unknown = JSON.parse(raw);
@@ -38,7 +39,11 @@ export function readLegacyAnnotations() {
       key === ANNOTATION_STORAGE_KEY_V1
         ? migrateLegacyAnnotationStrokes(value)
         : normalizeAnnotationStrokes(value);
-    return strokes.map((stroke) => ({ source: `${key}:${stroke.id}`, stroke }));
+    return strokes.flatMap((stroke) => {
+      if (seen.has(stroke.id)) return [];
+      seen.add(stroke.id);
+      return [{ source: `stroke:${stroke.id}`, stroke }];
+    });
   });
 }
 /** 同一次 setItem 提交笔迹和凭据；写入失败不会留下已导入标记。 */
