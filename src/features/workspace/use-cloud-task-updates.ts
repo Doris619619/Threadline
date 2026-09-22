@@ -11,11 +11,12 @@ import {
 import { isCancelledError, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SupabaseWorkspaceRepository } from '@/lib/supabase/workspace-repository';
 import type { Task } from '@/types/domain';
+import { taskFieldChanges } from '@/lib/task-patch';
 import { beginCloudWrite } from '@/lib/cloud-write-guard';
 
 type TaskRepository = Pick<
   SupabaseWorkspaceRepository,
-  'listTasks' | 'saveTask' | 'listTaskTimeEntries'
+  'listTasks' | 'restoreTask' | 'updateTaskFields' | 'listTaskTimeEntries'
 >;
 type PendingTask = {
   latest: Task;
@@ -51,13 +52,16 @@ export function useCloudTaskUpdates(
     scope: typeof scope;
     rows: Map<string, Task>;
   }>();
-  const activeScope = useRef(scope);
+  const activeScope = useRef<typeof scope | undefined>(scope);
   useLayoutEffect(() => {
     activeScope.current = scope;
+    return () => {
+      if (activeScope.current === scope) activeScope.current = undefined;
+    };
   }, [scope]);
   const query = useQuery({
     queryKey: scope.key,
-    queryFn: () => repository.listTasks(),
+    queryFn: ({ signal }) => repository.listTasks(signal),
   });
   const tasks = useMemo(
     () =>
@@ -86,7 +90,7 @@ export function useCloudTaskUpdates(
       });
       await queryClient.fetchQuery({
         queryKey: ['workspace', ownerKey, 'task-time-entries'],
-        queryFn: () => repository.listTaskTimeEntries(),
+        queryFn: ({ signal }) => repository.listTaskTimeEntries(signal),
         staleTime: 0,
       });
     } catch (error) {
@@ -101,22 +105,30 @@ export function useCloudTaskUpdates(
     async (task: Task, previous: Task | undefined, entry: PendingTask) => {
       let committed = false;
       try {
-        // 只应用本次编辑的字段，前一个流转失败时不能把其乐观状态再次写回。
-        const patch = Object.fromEntries(
-          Object.entries(task).filter(
-            ([key, value]) => value !== previous?.[key as keyof Task],
-          ),
-        );
-        entry.confirmed = await repository.saveTask({
-          ...entry.confirmed,
-          ...patch,
-        } as Task);
+        if (activeScope.current !== scope) return;
+        if (!previous || !entry.confirmed) throw new Error('任务不存在，请重新加载。');
+        const patch = taskFieldChanges(task, previous);
+        entry.confirmed =
+          task.status === 'active' &&
+          (previous.status === 'trashed' || previous.status === 'abandoned') &&
+          task.date
+            ? await repository.restoreTask(task.id, task.date, entry.confirmed)
+            : await repository.updateTaskFields(task.id, patch, entry.confirmed);
         committed = true;
       } catch (error) {
+        if (activeScope.current !== scope) return;
+        try {
+          entry.confirmed = (await repository.listTasks()).find(
+            (row) => row.id === task.id,
+          );
+        } catch {
+          /* 读取失败保留最后确认值，下一次操作仍由字段冲突保护。 */
+        }
         onError(
           `任务保存失败，请重试：${error instanceof Error ? error.message : '云端写入失败'}`,
         );
       }
+      if (activeScope.current !== scope) return;
       await queryClient.cancelQueries({ queryKey: scope.key, exact: true });
       if (entry.latest === task) {
         const confirmed = entry.confirmed;
@@ -174,7 +186,11 @@ export function useCloudTaskUpdates(
 
   /** 原子命令与普通编辑共用每任务队列；立即展示意图，失败恢复最后确认值。 */
   const commitTask = useCallback(
-    (taskId: string, preview: (task: Task) => Task, operation: () => Promise<Task>) => {
+    (
+      taskId: string,
+      preview: (task: Task) => Task,
+      operation: (confirmed: Task) => Promise<Task>,
+    ) => {
       if (!navigator.onLine) return Promise.reject(new Error('当前离线，任务未保存。'));
       const previous =
         scope.pending.get(taskId)?.latest ??
@@ -193,15 +209,26 @@ export function useCloudTaskUpdates(
       publishPending();
       const result = entry.tail.then(async () => {
         try {
-          const saved = await operation();
+          if (activeScope.current !== scope || !entry.confirmed)
+            throw new Error('账号会话已改变，请重新操作。');
+          const saved = await operation(entry.confirmed);
           entry.confirmed = saved;
           return saved;
         } catch (error) {
+          if (activeScope.current === scope) {
+            try {
+              entry.confirmed = (await repository.listTasks()).find(
+                (row) => row.id === taskId,
+              );
+            } catch {
+              /* 失败保留确认状态。 */
+            }
+          }
           onError(error instanceof Error ? error.message : '任务操作失败，请重试。');
           throw error;
         } finally {
           await queryClient.cancelQueries({ queryKey: scope.key, exact: true });
-          if (entry.latest === next) {
+          if (activeScope.current === scope && entry.latest === next) {
             const confirmed = entry.confirmed;
             queryClient.setQueryData<Task[]>(scope.key, (rows = []) =>
               confirmed ? overlayTasks(rows, new Map([[taskId, confirmed]])) : rows,
@@ -219,8 +246,25 @@ export function useCloudTaskUpdates(
       );
       return result;
     },
-    [onError, publishPending, queryClient, scope],
+    [onError, publishPending, queryClient, repository, scope],
   );
 
-  return { query, tasks, updateTasks, commitTask };
+  /** 表单保留打开时基准，冲突由调用者展示且不关闭草稿；与行内和流转共用队列。 */
+  const saveTaskConfirmed = useCallback(
+    (task: Task, original?: Task) => {
+      const previous =
+        original ??
+        scope.pending.get(task.id)?.latest ??
+        queryClient.getQueryData<Task[]>(scope.key)?.find((row) => row.id === task.id);
+      if (!previous) return Promise.reject(new Error('任务不存在，请重新加载。'));
+      const patch = taskFieldChanges(task, previous);
+      return commitTask(
+        task.id,
+        (current) => ({ ...current, ...patch }),
+        () => repository.updateTaskFields(task.id, patch, previous),
+      );
+    },
+    [commitTask, queryClient, repository, scope],
+  );
+  return { query, tasks, updateTasks, commitTask, saveTaskConfirmed };
 }

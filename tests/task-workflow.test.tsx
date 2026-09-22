@@ -38,7 +38,7 @@ describe('useTaskWorkflow', () => {
     vi.setSystemTime(new Date('2026-08-21T12:00:00'));
   });
   afterEach(() => vi.useRealTimers());
-  it('removes only the trashed task visual bindings before requesting the transactional transition', () => {
+  it('leaves visual bindings intact until the provider confirms the transactional transition', () => {
     const currentTask = taskFixture();
     const tasks = stateContainer([currentTask]);
     const annotations = stateContainer<AnnotationStroke[]>([
@@ -76,10 +76,8 @@ describe('useTaskWorkflow', () => {
 
     act(() => result.current.moveTask(currentTask.id, 'trashed'));
 
-    expect(annotations.read()).toEqual([
-      expect.objectContaining({ id: 'annotation-other' }),
-    ]);
-    expect(workstation.read()).toEqual(['task-other']);
+    expect(annotations.read()).toHaveLength(2);
+    expect(workstation.read()).toEqual([currentTask.id, 'task-other']);
     expect(transitionTask).toHaveBeenCalledWith(currentTask.id, 'trashed');
   });
 

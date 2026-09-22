@@ -27,6 +27,8 @@ it('starts settings, rules and entries together instead of waiting for serial ro
         eq: () => query,
         order: () => query,
         range: () => query,
+        limit: () => query,
+        gt: () => query,
         gte: () => query,
         lte: () => query,
         maybeSingle: () => read(table),
@@ -64,9 +66,12 @@ it('paginates without losing rows and scopes all reads to the account', async ()
           filters.push([table, ...args]);
           return query;
         },
-        range: (start: number, end: number) => {
-          offset = start;
-          ranges.push([table, start, end]);
+        limit: (size: number) => {
+          ranges.push([table, size]);
+          return query;
+        },
+        gt: (_key: string, value: string) => {
+          offset = Number(value) + 1;
           return query;
         },
         abortSignal: (value: AbortSignal) => {
@@ -78,9 +83,12 @@ it('paginates without losing rows and scopes all reads to the account', async ()
           resolve({
             data:
               table === 'habit_entries'
-                ? Array.from({ length: offset === 0 ? 500 : 1 }, (_, i) => ({
-                    id: String(offset + i),
-                  }))
+                ? Array.from(
+                    { length: offset === 0 ? 500 : offset === 500 ? 1 : 0 },
+                    (_, i) => ({
+                      id: String(offset + i).padStart(6, '0'),
+                    }),
+                  )
                 : [],
             error: null,
           }),
@@ -99,9 +107,9 @@ it('paginates without losing rows and scopes all reads to the account', async ()
   expect(data.entries).toHaveLength(501);
   expect(data.settings.owner_id).toBe('account');
   expect(data.rules[0].sleep_target).toBe(1400);
-  expect(ranges).toContainEqual(['habit_entries', 500, 999]);
+  expect(ranges).toContainEqual(['habit_entries', 500]);
   expect(filters).toContainEqual(['habit_entries', 'business_date', '2026-01-01']);
-  expect(filters.filter(([, key]) => key === 'owner_id')).toHaveLength(4);
+  expect(filters.filter(([, key]) => key === 'owner_id')).toHaveLength(5);
   expect(aborts.every((value) => value === signal)).toBe(true);
 });
 it('sends stable operation identity and settings versions through RPC', async () => {
@@ -172,6 +180,8 @@ it('reconciles known records moved outside the range by another device', async (
         select: () => query,
         order: () => query,
         range: () => query,
+        limit: () => query,
+        gt: () => query,
         gte: () => query,
         lte: () => query,
         eq: (...args: unknown[]) => {

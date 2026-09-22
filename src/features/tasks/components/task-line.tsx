@@ -4,6 +4,7 @@
 
 'use client';
 
+import { compositionHandlers, isComposingInput } from '@/lib/composition-input';
 import { Check, Plus, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useGuardedAction } from '@/hooks/use-guarded-action';
@@ -81,6 +82,8 @@ export function TaskLine({
   const projectPickerRef = useRef<HTMLButtonElement>(null);
   const projectAction = useGuardedAction();
   const latestTask = useRef(task);
+  const submittedEdit = useRef(false);
+  useLayoutEffect(() => { submittedEdit.current = false; }, [editingField]);
   useLayoutEffect(() => {
     latestTask.current = task;
   }, [task]);
@@ -115,6 +118,7 @@ export function TaskLine({
    * 保存时间范围并自动填入预计；不完整范围保留原估时，非法值不写库，清空保留待填时间状态。
    */
   const saveTime = (input: string) => {
+    if (submittedEdit.current) return;
     const { start, end, duration } = parseTimeInput(input);
     if (input.trim() && (!start || (input.match(/[-–~至到\s]+/) && !end))) {
       setTimeError('请输入有效时间，如 08:30 或 08:30-10:00');
@@ -125,6 +129,7 @@ export function TaskLine({
       return;
     }
     setTimeError(undefined);
+    submittedEdit.current = true;
     onUpdate({
       ...task,
       plannedStartTime: start,
@@ -138,7 +143,9 @@ export function TaskLine({
 
   /** 保存标题；空串或未变化则只退出编辑。 */
   const saveTitle = (input: string) => {
+    if (submittedEdit.current) return;
     const trimmed = input.trim();
+    submittedEdit.current = true;
     if (trimmed && trimmed !== task.title) {
       onUpdate({
         ...task,
@@ -151,6 +158,7 @@ export function TaskLine({
 
   /** 解析并写入预计时长。 */
   const savePlanned = (input: string) => {
+    if (submittedEdit.current) return;
     let duration: number | undefined;
     try {
       duration = parseEstimateMinutes(input);
@@ -159,6 +167,7 @@ export function TaskLine({
       return;
     }
     setTimeError(undefined);
+    submittedEdit.current = true;
     onUpdate({
       ...task,
       plannedDurationMinutes: duration,
@@ -169,7 +178,16 @@ export function TaskLine({
 
   /** 解析并写入实际时长。 */
   const saveActual = (input: string) => {
-    const duration = parseDurationInput(input);
+    if (submittedEdit.current) return;
+    let duration: number | undefined;
+    try {
+      duration = parseDurationInput(input);
+    } catch (error) {
+      setTimeError((error as Error).message);
+      return;
+    }
+    setTimeError(undefined);
+    submittedEdit.current = true;
     onUpdate({
       ...task,
       actualDurationMinutes: duration,
@@ -191,6 +209,7 @@ export function TaskLine({
     (editingField === 'time' ? (
       <>
         <input
+          {...compositionHandlers}
           className="tl-inline-input timeline-time-input timeline-time"
           defaultValue={timeDisplay}
           placeholder="08:30"
@@ -198,8 +217,9 @@ export function TaskLine({
           draggable={false}
           onDragStart={stopDragOnControl}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') saveTime(e.currentTarget.value);
-            if (e.key === 'Escape') setEditingField(undefined);
+            if (e.key === 'Enter' && !isComposingInput(e))
+              saveTime(e.currentTarget.value);
+            if (e.key === 'Escape') { submittedEdit.current = true; setEditingField(undefined); }
           }}
           onBlur={(e) => saveTime(e.currentTarget.value)}
         />
@@ -230,6 +250,7 @@ export function TaskLine({
     timed &&
     (editingField === 'planned' ? (
       <input
+        {...compositionHandlers}
         className="tl-inline-input task-duration-input task-duration task-duration-planned"
         defaultValue={
           task.plannedDurationMinutes !== undefined
@@ -241,8 +262,9 @@ export function TaskLine({
         inputMode="numeric"
         autoFocus
         onKeyDown={(e) => {
-          if (e.key === 'Enter') savePlanned(e.currentTarget.value);
-          if (e.key === 'Escape') setEditingField(undefined);
+          if (e.key === 'Enter' && !isComposingInput(e))
+            savePlanned(e.currentTarget.value);
+          if (e.key === 'Escape') { submittedEdit.current = true; setEditingField(undefined); }
         }}
         onBlur={(e) => savePlanned(e.currentTarget.value)}
       />
@@ -276,6 +298,7 @@ export function TaskLine({
     timed &&
     (editingField === 'actual' ? (
       <input
+        {...compositionHandlers}
         className="tl-inline-input task-duration-input task-duration task-duration-actual"
         defaultValue={
           task.actualDurationMinutes !== undefined
@@ -285,8 +308,9 @@ export function TaskLine({
         placeholder="30min"
         autoFocus
         onKeyDown={(e) => {
-          if (e.key === 'Enter') saveActual(e.currentTarget.value);
-          if (e.key === 'Escape') setEditingField(undefined);
+          if (e.key === 'Enter' && !isComposingInput(e))
+            saveActual(e.currentTarget.value);
+          if (e.key === 'Escape') { submittedEdit.current = true; setEditingField(undefined); }
         }}
         onBlur={(e) => saveActual(e.currentTarget.value)}
       />
@@ -362,12 +386,13 @@ export function TaskLine({
                   disabled={projectAction.busy}
                 >
                   <input
+                    {...compositionHandlers}
                     placeholder="新项目名称"
                     value={newProjectName}
                     autoFocus
                     onChange={(e) => setNewProjectName(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                      if (e.key === 'Enter' && !isComposingInput(e)) {
                         e.preventDefault();
                         handleCreateProject();
                       }
@@ -471,12 +496,14 @@ export function TaskLine({
       <div className="task-content-wrap">
         {editingField === 'title' ? (
           <input
+            {...compositionHandlers}
             className="tl-inline-input task-title-input task-title"
             defaultValue={task.title}
             autoFocus
             onKeyDown={(e) => {
-              if (e.key === 'Enter') saveTitle(e.currentTarget.value);
-              if (e.key === 'Escape') setEditingField(undefined);
+              if (e.key === 'Enter' && !isComposingInput(e))
+                saveTitle(e.currentTarget.value);
+              if (e.key === 'Escape') { submittedEdit.current = true; setEditingField(undefined); }
             }}
             onBlur={(e) => saveTitle(e.currentTarget.value)}
           />
@@ -496,11 +523,12 @@ export function TaskLine({
             <div className="task-time-details">
               {timeNode}
               {plannedNode}
-              {editingField === 'planned' && timeError && (
-                <span role="alert" className="timeline-inline-error">
-                  {timeError}
-                </span>
-              )}
+              {(editingField === 'planned' || editingField === 'actual') &&
+                timeError && (
+                  <span role="alert" className="timeline-inline-error">
+                    {timeError}
+                  </span>
+                )}
               {actualNode}
             </div>
           )}

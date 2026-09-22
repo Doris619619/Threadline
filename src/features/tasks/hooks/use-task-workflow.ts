@@ -13,8 +13,6 @@ export function useTaskWorkflow({
   tasks,
   selectedDate,
   updateTasks,
-  updateAnnotationStrokes,
-  updateWorkstationTaskIds,
   transitionTask,
 }: {
   tasks: Task[];
@@ -38,12 +36,6 @@ export function useTaskWorkflow({
   const moveTask = (id: string, status: TaskStatus) => {
     const task = tasks.find((item) => item.id === id);
     if (!task || !canTransitionTask(task, status)) return;
-    if (status === 'trashed') {
-      updateAnnotationStrokes((current) =>
-        current.filter((stroke) => stroke.targetTaskId !== id),
-      );
-      updateWorkstationTaskIds((current) => current.filter((taskId) => taskId !== id));
-    }
     if (status === 'active') {
       updateTask({
         ...task,

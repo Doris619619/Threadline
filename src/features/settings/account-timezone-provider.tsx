@@ -2,6 +2,7 @@
 'use client';
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -9,6 +10,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react';
+import { useOptionalStartupProgress } from '@/features/startup/startup-progress-context';
 import { useOptionalCloudRuntime } from '@/features/auth/cloud-runtime-provider';
 import { beginCloudWrite } from '@/lib/cloud-write-guard';
 import {
@@ -46,11 +48,24 @@ export function useAccountTimezone() {
 function AccountTimezoneSession({ children }: { children: ReactNode }) {
   const cloud = useOptionalCloudRuntime();
   const owner = cloud?.user.id ?? 'local';
+  const startup = useOptionalStartupProgress();
+  const setTimezoneStatus = startup?.setAccountTimezoneStatus;
   const [settings, setSettings] = useState<HabitSettings | null>(null);
   const latest = useRef<HabitSettings | null>(null);
   const alive = useRef(true);
   const [error, setError] = useState<string>();
   const [attempt, setAttempt] = useState(0);
+  const retry = useCallback(() => {
+    setError(undefined);
+    setAttempt((value) => value + 1);
+  }, []);
+  useEffect(() => {
+    setTimezoneStatus?.({
+      status: settings ? 'completed' : error ? 'failed' : 'active',
+      message: error,
+      retry,
+    });
+  }, [settings, error, retry, setTimezoneStatus]);
   const initialZone = useRef(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
   /** 仅接收当前账号的单调版本；取消或迟到的读取不能撤销已保存选择。 */
   const accept = (next: HabitSettings) => {
@@ -177,7 +192,7 @@ function AccountTimezoneSession({ children }: { children: ReactNode }) {
       <div className="auth-gate" role={error ? 'alert' : 'status'}>
         <p>{error ?? '正在读取账号时区…'}</p>
         {error && (
-          <button type="button" onClick={() => setAttempt((value) => value + 1)}>
+          <button type="button" onClick={retry}>
             重新读取
           </button>
         )}

@@ -15,10 +15,13 @@ import {
 
 /** 数据请求的完成由测试控制，确保持久窗口状态先恢复而查询仍未完成。 */
 function DataReporter({ ready, unmount }: { ready: boolean; unmount: () => void }) {
-  const report = useOptionalStartupProgress()!.setWorkspaceDataStatus;
+  const progress = useOptionalStartupProgress()!;
+  const report = progress.setWorkspaceDataStatus;
+  const timezone = progress.setAccountTimezoneStatus;
   useEffect(() => {
+    timezone({ status: 'completed' });
     report({ status: ready ? 'completed' : 'active' });
-  }, [ready, report]);
+  }, [ready, report, timezone]);
   useEffect(() => unmount, [unmount]);
   return <p data-testid="data-consumer">业务数据</p>;
 }

@@ -28,7 +28,7 @@ export function useTaskCreateAndEdit({
   editing: Task | undefined;
   projects: Project[];
   selectedDate: string;
-  updateTask: (task: Task) => void | Promise<unknown>;
+  updateTask: (task: Task, original?: Task) => void | Promise<unknown>;
 }) {
   /** 等待项目持久化确认后返回它，后续 task 写入不再与项目 FK 竞争。 */
   const createProjectDirectly = async (name: string): Promise<Project> => {
@@ -58,8 +58,10 @@ export function useTaskCreateAndEdit({
       return { error: '结束时间需晚于有效的开始时间' };
     }
     let planned: number | undefined;
+    let actual: number | undefined;
     try {
       planned = parseEstimateMinutes(draft.planned);
+      actual = parseDurationInput(draft.actual);
     } catch (error) {
       return { error: (error as Error).message };
     }
@@ -72,7 +74,7 @@ export function useTaskCreateAndEdit({
       schedulePendingTime: !start,
       plannedEndTime: end,
       plannedDurationMinutes: planned,
-      actualDurationMinutes: parseDurationInput(draft.actual),
+      actualDurationMinutes: actual,
       completed: draft.completed,
       completedAt: draft.completed ? new Date().toISOString() : undefined,
       status: 'active',
@@ -110,8 +112,10 @@ export function useTaskCreateAndEdit({
     const start = startRaw ? normalizeTime(startRaw) : undefined;
     const end = endRaw ? normalizeTime(endRaw) : undefined;
     let planned: number | undefined;
+    let actual: number | undefined;
     try {
       planned = parseEstimateMinutes(String(form.get('planned') ?? ''));
+      actual = parseDurationInput(String(form.get('actual') ?? ''));
     } catch (error) {
       return (error as Error).message;
     }
@@ -119,7 +123,7 @@ export function useTaskCreateAndEdit({
       title,
       projectId: String(form.get('project') ?? ''),
       plannedMinutes: planned,
-      actualMinutes: numberOrUndefined(form.get('actual')),
+      actualMinutes: actual,
     });
     if (!parsed.success) return parsed.error.issues[0]?.message ?? '请检查任务信息';
     if (startRaw && !start) return '开始时间格式应为 1420 或 14:20';
@@ -150,12 +154,10 @@ export function useTaskCreateAndEdit({
         ? (String(form.get('importance') ?? 'normal') as Task['importance'])
         : (editing?.importance ?? 'normal'),
       // Waiting Dialog 不提供 actual 输入；保留历史实际投入，避免编辑标题/重要性时触发负向账本变更。
-      actualDurationMinutes: isWaiting
-        ? editing?.actualDurationMinutes
-        : numberOrUndefined(form.get('actual')),
+      actualDurationMinutes: isWaiting ? editing?.actualDurationMinutes : actual,
       updatedAt: new Date().toISOString(),
     };
-    if (editing) await updateTask(nextTask);
+    if (editing) await updateTask(nextTask, editing);
     else await createTask(nextTask);
     return undefined;
   };
@@ -166,10 +168,4 @@ export function useTaskCreateAndEdit({
     createTimedTask,
     saveTask,
   };
-}
-
-/** 保持 Dialog 的 FormData 数字空值处理，与原组件一致。 */
-function numberOrUndefined(value: FormDataEntryValue | null) {
-  const text = String(value ?? '').trim();
-  return text ? Number(text) : undefined;
 }

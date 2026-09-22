@@ -17,17 +17,22 @@ export function formatMinutes(value?: number) {
  */
 export function parseDurationInput(value: string): number | undefined {
   const clean = value.trim().toLowerCase();
-  if (!clean || clean === '—' || clean === '-' || clean === '0' || clean === '0min') {
-    return undefined;
-  }
-  const decimalHourMatch = clean.match(/^(\d+(?:\.\d+)?)\s*h(?:our)?s?$/);
-  if (decimalHourMatch) return Math.round(parseFloat(decimalHourMatch[1]) * 60);
-  const hourMinMatch = clean.match(/^(\d+)\s*h(?:our)?s?\s*(\d+)\s*m(?:in)?s?$/);
-  if (hourMinMatch)
-    return parseInt(hourMinMatch[1], 10) * 60 + parseInt(hourMinMatch[2], 10);
-  const minMatch = clean.match(/^(\d+)\s*(?:m|min|mins|minute|minutes)?$/);
-  if (minMatch) return parseInt(minMatch[1], 10);
-  return undefined;
+  if (!clean || clean === '—' || clean === '-') return undefined;
+  const hour = clean.match(/^(\d+(?:\.\d+)?)\s*(?:h(?:our)?s?|小时)$/);
+  const mixed = clean.match(
+    /^(\d+)\s*(?:h(?:our)?s?|小时)\s*(\d+)\s*(?:m(?:in)?s?|分钟)$/,
+  );
+  const minute = clean.match(/^(\d+)\s*(?:m|min|mins|minute|minutes|分钟)?$/);
+  const result = hour
+    ? Math.round(Number(hour[1]) * 60)
+    : mixed
+      ? Number(mixed[1]) * 60 + Number(mixed[2])
+      : minute
+        ? Number(minute[1])
+        : NaN;
+  if (!Number.isSafeInteger(result) || result < 0 || result > 2147483647)
+    throw new Error('实际耗时请输入有效的非负分钟，如 30min 或 1h20min');
+  return result;
 }
 
 /** 将紧凑时间输入标准化为两位小时和分钟；非法输入保持 undefined。 */

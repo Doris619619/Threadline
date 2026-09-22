@@ -44,7 +44,10 @@ function StartupReporter({
 }) {
   const progress = useOptionalStartupProgress();
   useEffect(() => {
-    if (workspaceData) progress?.setWorkspaceDataStatus(workspaceData);
+    if (workspaceData) {
+      progress?.setAccountTimezoneStatus(completed);
+      progress?.setWorkspaceDataStatus(workspaceData);
+    }
     if (realtime) progress?.setRealtimeStatus(realtime);
   }, [progress, realtime, workspaceData]);
   return null;
@@ -66,6 +69,7 @@ describe('Threadline startup progress', () => {
     render(
       <ThreadlineStartupScreen
         progress={{
+          accountTimezone: completed,
           authentication: completed,
           workspaceInitialization: completed,
           workspaceData: active,
@@ -76,7 +80,7 @@ describe('Threadline startup progress', () => {
     );
     expect(screen.queryByRole('button', { name: '重新加载' })).not.toBeInTheDocument();
     await act(() => vi.advanceTimersByTimeAsync(20_000));
-    expect(screen.getByLabelText('已完成 2 个启动阶段')).toBeInTheDocument();
+    expect(screen.getByLabelText('已完成 3 个启动阶段')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '重新加载' }));
     expect(retry).toHaveBeenCalledOnce();
   });
@@ -123,6 +127,7 @@ describe('Threadline startup progress', () => {
     render(
       <ThreadlineStartupScreen
         progress={{
+          accountTimezone: completed,
           authentication: completed,
           workspaceInitialization: completed,
           workspaceData: completed,
@@ -131,7 +136,7 @@ describe('Threadline startup progress', () => {
       />,
     );
 
-    expect(screen.getAllByLabelText('已完成')).toHaveLength(4);
+    expect(screen.getAllByLabelText('已完成')).toHaveLength(5);
   });
 
   /** 初始化失败保留真实错误，业务 query 失败同样不能伪装为已完成。 */

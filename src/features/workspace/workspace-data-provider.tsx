@@ -19,6 +19,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWorkspaceView } from '@/components/app-shell';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 import { useCloudRuntime } from '@/features/auth/cloud-runtime-provider';
+import { useSessionReadiness } from '@/features/startup/use-session-readiness';
 import { useOptionalStartupProgress } from '@/features/startup/startup-progress-context';
 import {
   WorkspaceContextProviders,
@@ -34,7 +35,7 @@ import { useCloudTaskUpdates } from '@/features/workspace/use-cloud-task-updates
 import { usesLocalWorkspace } from '@/lib/workspace-runtime';
 import { useAnnotationStrokes } from '@/hooks/use-annotation-strokes';
 import { usePersistentState } from '@/hooks/use-persistent-state';
-import { reconcileTaskAnnotations } from '@/lib/annotation-reconciliation';
+
 import type { CloseRecord, HistoryEvent, Project, Task } from '@/types/domain';
 
 /** 解析 React setter，并保证异步写入读取 Query cache 中的最新集合。 */
@@ -79,8 +80,6 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const ownerKey = user.id;
   const [mutationError, setMutationError] = useState<string>();
-  const [annotationStrokes, updateAnnotationStrokes, annotationHydrated] =
-    useAnnotationStrokes();
   const [highlightColor, updateHighlightColor, highlightHydrated] =
     usePersistentState<string>(
       'threadline.annotation-highlight-color.v1',
@@ -89,38 +88,50 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
 
   const projectsQuery = useQuery({
     queryKey: ['workspace', ownerKey, 'projects'],
-    queryFn: () => repository.listProjects(),
+    queryFn: ({ signal }) => repository.listProjects(signal),
   });
   const {
     query: tasksQuery,
     tasks,
     updateTasks,
     commitTask,
+    saveTaskConfirmed,
   } = useCloudTaskUpdates(ownerKey, repository, setMutationError);
+  const confirmedTaskIds = useMemo(
+    () => (tasksQuery.data ?? []).map((task) => task.id),
+    [tasksQuery.data],
+  );
+  const [
+    annotationStrokes,
+    updateAnnotationStrokes,
+    annotationHydrated,
+    annotationImport,
+  ] = useAnnotationStrokes(ownerKey, confirmedTaskIds);
   const taskTimeEntriesQuery = useQuery({
     queryKey: ['workspace', ownerKey, 'task-time-entries'],
-    queryFn: () => repository.listTaskTimeEntries(),
+    queryFn: ({ signal }) => repository.listTaskTimeEntries(signal),
   });
   const dailyQuery = useQuery({
     queryKey: ['workspace', ownerKey, 'daily'],
-    queryFn: () => repository.listDailyBundle(),
+    queryFn: ({ signal }) => repository.listDailyBundle(signal),
   });
   const dailyHistoryQuery = useQuery({
     queryKey: ['workspace', ownerKey, 'daily-history'],
-    queryFn: () => repository.listDailyHistory(),
+    queryFn: ({ signal }) => repository.listDailyHistory(signal),
   });
   const historyQuery = useQuery({
     queryKey: ['workspace', ownerKey, 'history'],
-    queryFn: () => repository.listHistory(),
+    queryFn: ({ signal }) => repository.listHistory(signal),
   });
   const closeRecordsQuery = useQuery({
     queryKey: ['workspace', ownerKey, 'close-records'],
-    queryFn: () => repository.listCloseRecords(),
+    queryFn: ({ signal }) => repository.listCloseRecords(signal),
   });
   const {
     query: workstationQuery,
     workstationTaskIds,
     updateWorkstationTaskIds,
+    runWorkstationCommand,
   } = useCloudWorkstation(ownerKey, repository, setMutationError);
 
   const taskTimeEntries = useMemo(
@@ -186,9 +197,48 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
   ]);
 
   useEffect(() => {
-    if (!tasksQuery.isSuccess) return;
-    updateAnnotationStrokes((current) => reconcileTaskAnnotations(current, tasks));
-  }, [tasks, tasksQuery.isSuccess, updateAnnotationStrokes]);
+    if (!tasksQuery.isSuccess || !annotationHydrated) return;
+    const controller = new AbortController();
+    const confirmed = new Map(tasksQuery.data.map((task) => [task.id, task]));
+    const missing = [
+      ...new Set(
+        annotationStrokes.flatMap((stroke) =>
+          stroke.targetTaskId && !confirmed.has(stroke.targetTaskId)
+            ? [stroke.targetTaskId]
+            : [],
+        ),
+      ),
+    ];
+    void repository
+      .findTasksByIds(missing, ownerKey, controller.signal)
+      .then((found) => {
+        if (controller.signal.aborted) return;
+        for (const task of found) confirmed.set(task.id, task);
+        const checkedMissing = new Set(missing);
+        updateAnnotationStrokes((current) =>
+          current.filter(
+            (stroke) =>
+              !stroke.targetTaskId ||
+              (confirmed.has(stroke.targetTaskId)
+                ? confirmed.get(stroke.targetTaskId)!.status !== 'trashed'
+                : !checkedMissing.has(stroke.targetTaskId)),
+          ),
+        );
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted)
+          setMutationError(`批注核对失败，已保留原笔迹：${String(error)}`);
+      });
+    return () => controller.abort();
+  }, [
+    annotationHydrated,
+    annotationStrokes,
+    ownerKey,
+    repository,
+    tasksQuery.data,
+    tasksQuery.isSuccess,
+    updateAnnotationStrokes,
+  ]);
 
   useEffect(() => {
     const refresh = createWorkspaceRealtimeRefresh(queryClient, ownerKey);
@@ -408,29 +458,6 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     [ownerKey, projects, queryClient, repository],
   );
 
-  /** 确认保存后再发布字段；失败保留原任务，账本刷新失败不伪装成写入失败。 */
-  const saveTaskConfirmed = useCallback(
-    async (task: Task) => {
-      if (!navigator.onLine) throw new Error('当前离线，任务未保存。');
-      await queryClient.cancelQueries({
-        queryKey: ['workspace', ownerKey, 'tasks'],
-        exact: true,
-      });
-      const saved = await repository.saveTask(task);
-      queryClient.setQueryData<Task[]>(
-        ['workspace', ownerKey, 'tasks'],
-        (current = []) => current.map((item) => (item.id === saved.id ? saved : item)),
-      );
-      void Promise.all(
-        ['task-time-entries', 'history'].map((key) =>
-          queryClient.invalidateQueries({ queryKey: ['workspace', ownerKey, key] }),
-        ),
-      ).catch(() => setMutationError('任务已保存，但记录刷新失败，请重新加载。'));
-      return saved;
-    },
-    [ownerKey, queryClient, repository],
-  );
-
   const transitionTask = useCallback(
     async (taskId: string, transition: TaskTransition, targetDate?: string) => {
       try {
@@ -562,7 +589,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     [invalidateWorkspace, repository],
   );
 
-  const hydrated =
+  const allLoaded =
     projectsQuery.isSuccess &&
     tasksQuery.isSuccess &&
     taskTimeEntriesQuery.isSuccess &&
@@ -573,6 +600,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     workstationQuery.isSuccess &&
     annotationHydrated &&
     highlightHydrated;
+  const hydrated = useSessionReadiness(ownerKey, allLoaded);
   const queryError = [
     projectsQuery.error,
     tasksQuery.error,
@@ -586,16 +614,19 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!setWorkspaceDataStatus) return;
-    if (queryError) {
+    if (queryError && !hydrated) {
       setWorkspaceDataStatus({
         status: 'failed',
+        retry: () => {
+          void invalidateWorkspace();
+        },
         message:
           queryError instanceof Error ? queryError.message : '云工作区数据载入失败',
       });
       return;
     }
     setWorkspaceDataStatus({ status: hydrated ? 'completed' : 'active' });
-  }, [hydrated, queryError, setWorkspaceDataStatus]);
+  }, [hydrated, invalidateWorkspace, queryError, setWorkspaceDataStatus]);
 
   const taskState = useMemo(
     () => ({ tasks, taskTimeEntries, taskTimeEntriesAuthoritative: true }),
@@ -744,12 +775,22 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     [updateCloseRecords, updateHistory],
   );
   const surfaceState = useMemo(
-    () => ({ annotationStrokes, workstationTaskIds, highlightColor }),
-    [annotationStrokes, highlightColor, workstationTaskIds],
+    () => ({ annotationStrokes, workstationTaskIds, highlightColor, annotationImport }),
+    [annotationStrokes, highlightColor, workstationTaskIds, annotationImport],
   );
   const surfaceActions = useMemo(
-    () => ({ updateAnnotationStrokes, updateWorkstationTaskIds, updateHighlightColor }),
-    [updateAnnotationStrokes, updateHighlightColor, updateWorkstationTaskIds],
+    () => ({
+      updateAnnotationStrokes,
+      updateWorkstationTaskIds,
+      updateHighlightColor,
+      runWorkstationCommand,
+    }),
+    [
+      updateAnnotationStrokes,
+      updateHighlightColor,
+      updateWorkstationTaskIds,
+      runWorkstationCommand,
+    ],
   );
   const commands = useMemo(
     () => ({
@@ -806,13 +847,20 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       }}
       notice={
         (mutationError ||
+          annotationImport.error ||
           queryError ||
           startupProgress?.realtime.status === 'failed') && (
           <p className="workspace-sync-error" role="alert">
             {mutationError ??
+              annotationImport.error ??
               (queryError instanceof Error ? queryError.message : undefined) ??
               startupProgress?.realtime.message ??
               '云工作区载入失败'}
+            {queryError && (
+              <button type="button" onClick={() => void invalidateWorkspace()}>
+                重试同步
+              </button>
+            )}
           </p>
         )
       }

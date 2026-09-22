@@ -6,7 +6,7 @@ import type { Project, Task } from '@/types/domain';
 
 type Repository = Pick<
   SupabaseWorkspaceRepository,
-  'saveProject' | 'saveTask' | 'appendHistory'
+  'saveProject' | 'createTask' | 'appendHistory'
 >;
 
 /** 保留项目 FK 前置条件；只等待任务本体确认，后台记录写入持续受重启保护。 */
@@ -29,7 +29,7 @@ export async function createCloudTask(
         rows.map((item) => (item.id === saved.id ? saved : item)),
       );
     }
-    const saved = await repository.saveTask(task);
+    const saved = await repository.createTask(task);
     await client.cancelQueries({
       queryKey: ['workspace', owner, 'tasks'],
       exact: true,

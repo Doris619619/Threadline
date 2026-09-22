@@ -19,16 +19,19 @@ export type StartupOperationStatus = 'pending' | 'active' | 'completed' | 'faile
 export type StartupOperation = {
   status: StartupOperationStatus;
   message?: string;
+  retry?: () => void;
 };
 
 export type StartupProgressSnapshot = {
   authentication: StartupOperation;
   workspaceInitialization: StartupOperation;
+  accountTimezone: StartupOperation;
   workspaceData: StartupOperation;
   realtime: StartupOperation;
 };
 
 type StartupProgressContextValue = StartupProgressSnapshot & {
+  setAccountTimezoneStatus: (operation: StartupOperation) => void;
   setWorkspaceDataStatus: (operation: StartupOperation) => void;
   setRealtimeStatus: (operation: StartupOperation) => void;
   setPersonalizationActive: (active: boolean) => void;
@@ -40,7 +43,11 @@ const pendingOperation: StartupOperation = { status: 'pending' };
 
 /** 比较状态快照，避免 Query 或 Realtime 的重复回调制造无意义重渲染。 */
 function sameOperation(left: StartupOperation, right: StartupOperation): boolean {
-  return left.status === right.status && left.message === right.message;
+  return (
+    left.status === right.status &&
+    left.message === right.message &&
+    left.retry === right.retry
+  );
 }
 
 /** 允许数据层在非云端测试适配器中不挂载启动状态桥接。 */
@@ -67,12 +74,21 @@ export function StartupProgressProvider({
 }) {
   const [workspaceDataState, setWorkspaceDataState] =
     useState<StartupOperation>(pendingOperation);
+  const [accountTimezone, setAccountTimezoneState] =
+    useState<StartupOperation>(pendingOperation);
   const [realtime, setRealtimeState] = useState<StartupOperation>(pendingOperation);
   const [personalizationActive, setPersonalizationActive] = useState(false);
 
   /** 接收 WorkspaceDataProvider 的真实 query 与本机 hydration 结果。 */
   const setWorkspaceDataStatus = useCallback((operation: StartupOperation) => {
     setWorkspaceDataState((current) =>
+      sameOperation(current, operation) ? current : operation,
+    );
+  }, []);
+
+  /** 时区失败由最外层启动界面展示并重试，不把按钮隐藏在遮罩下。 */
+  const setAccountTimezoneStatus = useCallback((operation: StartupOperation) => {
+    setAccountTimezoneState((current) =>
       sameOperation(current, operation) ? current : operation,
     );
   }, []);
@@ -97,9 +113,12 @@ export function StartupProgressProvider({
     !personalizationActive &&
     (authentication.status !== 'completed' ||
       workspaceInitialization.status !== 'completed' ||
+      accountTimezone.status !== 'completed' ||
       workspaceData.status !== 'completed');
   const value = useMemo<StartupProgressContextValue>(
     () => ({
+      accountTimezone,
+      setAccountTimezoneStatus,
       authentication,
       workspaceInitialization,
       workspaceData,
@@ -109,6 +128,8 @@ export function StartupProgressProvider({
       setPersonalizationActive,
     }),
     [
+      accountTimezone,
+      setAccountTimezoneStatus,
       authentication,
       realtime,
       setRealtimeStatus,

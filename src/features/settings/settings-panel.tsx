@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   Trash2,
 } from 'lucide-react';
+import { AnnotationImportSettings } from './annotation-import-settings';
 import { AccountTimezoneSettings } from './account-timezone-settings';
 import { useAccountTimezone } from './account-timezone-provider';
 import { timezoneLabel } from '@/lib/account-clock';
@@ -146,6 +147,7 @@ export function SettingsPanel({
   if (section === 'sync')
     return (
       <SettingsDetail title="数据与同步" onBack={() => setSection('overview')}>
+        <AnnotationImportSettings />
         <Surface className="settings-copy">
           <Cloud aria-hidden="true" size={24} />
           <p>

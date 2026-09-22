@@ -3,6 +3,7 @@
  */
 'use client';
 
+import { useAccountToday } from '@/features/settings/account-timezone-provider';
 import { ManagementDialog } from '@/components/ui/management-dialog';
 import { getLocalDateKey } from '@/lib/local-date';
 import { PlannedMinutesField } from './planned-minutes-field';
@@ -17,7 +18,9 @@ import type { Project, Task } from '@/types/domain';
 
 /** 仅选择指定日期时展示日期控件，避免窄屏上的原生日期输入撑开表单。 */
 function CloseTaskRow({ task, tomorrow }: { task: Task; tomorrow: string }) {
-  const [action, setAction] = useState('tomorrow');
+  const today = useAccountToday();
+  const pastTomorrow = tomorrow < today;
+  const [action, setAction] = useState(pastTomorrow ? 'date' : 'tomorrow');
   return (
     <div className="close-task">
       <label>
@@ -29,7 +32,9 @@ function CloseTaskRow({ task, tomorrow }: { task: Task; tomorrow: string }) {
             value={action}
             onChange={(event) => setAction(event.target.value)}
           >
-            <option value="tomorrow">移到明天</option>
+            <option value="tomorrow" disabled={pastTomorrow}>
+              移到明天
+            </option>
             <option value="date">指定日期</option>
             <option value="waiting">放回待安排</option>
             <option value="abandoned">放弃</option>
@@ -44,7 +49,8 @@ function CloseTaskRow({ task, tomorrow }: { task: Task; tomorrow: string }) {
             aria-label={task.title + '目标日期'}
             name={'date-' + task.id}
             type="date"
-            defaultValue={tomorrow}
+            defaultValue={pastTomorrow ? today : tomorrow}
+            min={today}
             required
           />
         </label>

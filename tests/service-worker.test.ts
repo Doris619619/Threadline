@@ -9,6 +9,9 @@ function loadFetchHandler() {
   const handlers = new Map<string, (event: unknown) => void>();
   const context = {
     URL,
+    AbortController,
+    setTimeout,
+    clearTimeout,
     fetch: vi.fn(),
     caches: { match: vi.fn().mockResolvedValue(undefined), open: vi.fn() },
     self: {
@@ -26,6 +29,80 @@ function loadFetchHandler() {
 }
 
 describe('service worker origin boundary', () => {
+  it('N08 limits network waiting to five seconds only when a cached asset exists', async () => {
+    vi.useFakeTimers();
+    try {
+      const { handler, fetch, caches } = loadFetchHandler();
+      caches.match.mockResolvedValue(new Response('cached image'));
+      fetch.mockImplementation(
+        (_request, init) =>
+          new Promise((_resolve, reject) =>
+            init.signal.addEventListener('abort', () => reject(new Error('aborted'))),
+          ),
+      );
+      let response!: Promise<Response>;
+      handler({
+        request: {
+          method: 'GET',
+          url: 'https://threadline.example/icon.svg',
+          mode: 'cors',
+          destination: 'image',
+        },
+        respondWith: (value: Promise<Response>) => {
+          response = value;
+        },
+        waitUntil: vi.fn(),
+      });
+      await vi.advanceTimersByTimeAsync(4999);
+      let resolved = false;
+      void response.then(() => {
+        resolved = true;
+      });
+      await Promise.resolve();
+      expect(resolved).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(await (await response).text()).toBe('cached image');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('N08 waits beyond five seconds for an uncached asset and rejects HTML', async () => {
+    vi.useFakeTimers();
+    try {
+      const { handler, fetch } = loadFetchHandler();
+      let release!: (response: Response) => void;
+      fetch.mockReturnValue(
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+      );
+      let response!: Promise<Response>;
+      handler({
+        request: {
+          method: 'GET',
+          url: 'https://threadline.example/font.woff2',
+          mode: 'cors',
+          destination: 'font',
+        },
+        respondWith: (value: Promise<Response>) => {
+          response = value;
+        },
+        waitUntil: vi.fn(),
+      });
+      await vi.advanceTimersByTimeAsync(6000);
+      expect(fetch.mock.calls[0][1].signal.aborted).toBe(false);
+      const failed = expect(response).rejects.toThrow('Invalid asset');
+      release(
+        new Response('<html>fallback</html>', {
+          headers: { 'content-type': 'text/html' },
+        }),
+      );
+      await failed;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it('does not call respondWith or fetch for a Supabase cross-origin request', () => {
     const { handler, fetch } = loadFetchHandler();
     const respondWith = vi.fn();

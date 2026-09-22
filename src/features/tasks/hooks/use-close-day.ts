@@ -1,5 +1,6 @@
 /** @fileoverview 把每日收尾表单转换成单次原子 close_day 命令，不拆分写入业务表。 */
 
+import { validatePlanningDate } from '@/lib/task-rules';
 import type { Project, Task, TaskTimeEntry } from '@/types/domain';
 
 type CloseAction = {
@@ -37,6 +38,10 @@ export function useCloseDay({
       const action = String(rawAction) as CloseAction['action'];
       const selectedTarget = String(form.get(`date-${task.id}`) ?? '');
       const targetDate = action === 'tomorrow' ? tomorrow : selectedTarget || undefined;
+      if (action === 'tomorrow' || action === 'date') {
+        const message = validatePlanningDate(targetDate, task.date);
+        if (message) throw new Error(message);
+      }
       return [{ taskId: task.id, action, targetDate }];
     });
     const taskMinutesByProject = new Map<string, number>();

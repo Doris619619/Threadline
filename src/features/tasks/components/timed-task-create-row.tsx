@@ -2,6 +2,7 @@
 
 'use client';
 
+import { compositionHandlers, isComposingInput } from '@/lib/composition-input';
 import { Check, Clock, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { TaskActionsPopover } from './task-actions-popover';
@@ -86,7 +87,7 @@ export function TimedTaskCreateRow({
     }
   };
   const onKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+    if (event.key === 'Enter' && !isComposingInput(event)) {
       event.preventDefault();
       void confirm();
     }
@@ -141,12 +142,13 @@ export function TimedTaskCreateRow({
             >
               <fieldset disabled={saving} className="project-picker-new-form">
                 <input
+                  {...compositionHandlers}
                   placeholder="新项目名称"
                   value={draft.projectName}
                   autoFocus
                   onChange={(event) => onChange({ projectName: event.target.value })}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                    if (event.key === 'Enter' && !isComposingInput(event)) {
                       event.preventDefault();
                       addProject();
                     }
@@ -173,6 +175,7 @@ export function TimedTaskCreateRow({
           )}
         </div>
         <input
+          {...compositionHandlers}
           className="tl-inline-input task-title-input task-title timed-create-title-input"
           placeholder="任务名称（按 Enter 保存）"
           value={draft.title}
@@ -185,6 +188,7 @@ export function TimedTaskCreateRow({
         <div className="timeline-time-range-inputs">
           <div className="timed-create-time-field">
             <input
+              {...compositionHandlers}
               className="tl-inline-input timeline-time-input"
               aria-label="开始时间"
               placeholder="开始时间"
@@ -201,6 +205,7 @@ export function TimedTaskCreateRow({
           </span>
           <div className="timed-create-time-field">
             <input
+              {...compositionHandlers}
               className="tl-inline-input timeline-time-input"
               aria-label="结束时间"
               placeholder="结束时间"
@@ -228,6 +233,7 @@ export function TimedTaskCreateRow({
 
         <div className="timed-create-duration-cell timed-create-actual-cell">
           <input
+            {...compositionHandlers}
             className="tl-inline-input task-duration-input task-duration task-duration-actual"
             placeholder="实际耗时（可选）"
             aria-label="实际耗时"

@@ -66,6 +66,7 @@ export function TaskDashboard() {
     updateAnnotationStrokes,
     workstationTaskIds,
     updateWorkstationTaskIds,
+    runWorkstationCommand,
     highlightColor,
     updateHighlightColor,
     createTask,
@@ -173,6 +174,8 @@ export function TaskDashboard() {
     updateAnnotationStrokes,
     updateTasks,
     updateWorkstationTaskIds,
+    runWorkstationCommand,
+    workstationTaskIds,
     transitionTask,
   });
 

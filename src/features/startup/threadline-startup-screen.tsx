@@ -36,6 +36,11 @@ export function getStartupSteps(progress: StartupProgressSnapshot): StartupStep[
       operation: progress.workspaceInitialization,
     },
     {
+      key: 'accountTimezone',
+      label: '读取账号时区',
+      operation: progress.accountTimezone,
+    },
+    {
       key: 'workspaceData',
       label: '加载工作区数据',
       operation: progress.workspaceData,
@@ -52,6 +57,7 @@ function getStatusCopy(key: StartupStepKey, operation: StartupOperation): string
     return operation.message ?? '未能完成，请检查网络后重试。';
   if (key === 'authentication') return '正在恢复登录状态…';
   if (key === 'workspaceInitialization') return '正在初始化云工作区…';
+  if (key === 'accountTimezone') return '正在读取账号时区…';
   if (key === 'workspaceData') return '正在同步项目、任务与 Daily…';
   return '正在开启实时同步…';
 }
@@ -218,7 +224,13 @@ export function ThreadlineStartupScreen({
             <button
               type="button"
               className="tl-button tl-button--secondary"
-              onClick={onRetry ?? (() => window.location.reload())}
+              onClick={
+                failedStep?.operation.retry ??
+                onRetry ??
+                steps.find((step) => step.operation.status === 'active')?.operation
+                  .retry ??
+                (() => window.location.reload())
+              }
             >
               重新加载
             </button>
