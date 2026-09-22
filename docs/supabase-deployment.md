@@ -114,4 +114,6 @@ Electron Renderer 只接收同一组三个公开变量。`desktop:preview`、`de
 
 ## Issue 49 接口部署顺序
 
-先执行向前迁移 `202609220001_issue_49_data_safety.sql` 并验证 RLS/权限，再发布客户端。新增 update_task_fields、restore_task、apply_workstation_command 和 close_day_checked；旧签名保留。新客户端缺少迁移时报错，不退回不安全整行写入。旧版客户端仍可能存在整行覆盖风险，需更新。迁移不重写历史或清理生产数据；本修复任务不执行生产迁移。
+先执行向前迁移 `202609220001_issue_49_data_safety.sql` 并验证 RLS/权限，再发布客户端。新增 update_task_fields、restore_task、apply_workstation_command 和 close_day_checked；旧签名保留。新客户端缺少迁移时报错，不退回不安全整行写入。旧版客户端仍可能存在整行覆盖风险，需更新。迁移不重写历史或清理生产数据。
+
+2026-09-22，按 0.1.9 发布授权对已关联生产项目执行 dry-run，确认只有这一项迁移后应用成功。4 个新 RPC 均核验为 security invoker，anon 不可执行、authenticated 可执行；tasks、workstation_entries、history_events、task_time_entries、daily_entries、daily_history_entries 的 RLS 全部保持启用。此核验只读取 schema/权限元数据，不对真实账号执行业务写入。
