@@ -79,13 +79,14 @@ begin
   return result;
 end; $$;
 
--- 收尾检查和所有写入处于同一事务；设置行锁防止请求期间时区改变。
+-- 收尾检查和所有写入处于同一事务；复用时区设置的账号锁防止请求期间时区改变。
 create or replace function public.close_day_checked(p_close_date date, p_actions jsonb, p_project_minutes jsonb, p_time_zone text)
 returns public.daily_close_records language plpgsql security invoker set search_path = pg_catalog, public as $$
 declare current_owner uuid := auth.uid(); action_record record; previous_task public.tasks; close_record public.daily_close_records; account_zone text; account_today date;
 begin
   if current_owner is null then raise exception 'AUTH_REQUIRED' using errcode = '28000'; end if;
-  select timezone into account_zone from public.habit_settings where owner_id = current_owner for share;
+  perform pg_advisory_xact_lock(hashtextextended(current_owner::text, 731));
+  select timezone into account_zone from public.habit_settings where owner_id = current_owner;
   account_zone := coalesce(account_zone, 'UTC');
   if p_time_zone is distinct from account_zone then raise exception 'ACCOUNT_TIMEZONE_CHANGED' using errcode = '40001'; end if;
   account_today := (statement_timestamp() at time zone account_zone)::date;

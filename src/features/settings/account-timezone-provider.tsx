@@ -94,6 +94,7 @@ function AccountTimezoneSession({ children }: { children: ReactNode }) {
             .eq('owner_id', owner)
             .maybeSingle();
           checkHabitError(result.error);
+          if (cancelled) return;
           if (result.data) next = result.data as HabitSettings;
           else {
             const endWrite = beginCloudWrite();
