@@ -31,6 +31,8 @@ Web/PWA 保持完整工作台。Windows Electron 使用同一 Main BrowserWindow
 - 旧 `mini-today` 偏好在读取时迁移到工作站；旧 geometry 从保存对象中剔除，`threadline.desktop-last-compact-mode.v3` 删除。仅保留这段兼容识别，不保留旧视图。任务、预计、日期和工作站引用不迁移，不需要数据库变更。
 - 当前偏好键为 `threadline.desktop-mode.v3`、`threadline.desktop-window-states.v3`、`threadline.desktop-compact-presentation.v3`；重置仅清空位置/尺寸。Web/PWA 不会因历史桌面偏好进入小窗。
 - Renderer 在业务就绪后只发起一次 hydration。Main 校验模式、geometry、来源角色与 requestId，返回原生状态；Renderer 以递增 stateRevision 保存状态并 ACK。保存用户 geometry 不触发反向 transition。
+- 收起时 AppShell 仅隐藏业务视图，不卸载 WorkspaceDataProvider；恢复持久化的 `edge-collapsed` 时，数据加载必须继续，完成后才能进行原生窗口握手，避免两者互相等待。
+- `desktop:entry-window` 区分 `startup` 和 `authentication`。普通启动请求仍为一次性；重新进入登录或认证错误页可重复恢复完整窗口并移除 Edge，不改写用户保存的工作站偏好，登录恢复后再按原偏好握手。
 - 工作区、DPI 和显示器变更重新检查可见区域。Full 离屏时居中回退，工作站离屏时移到工作区右上方并留 24px；已收起时只定位 Edge，不调整隐藏 Main，也不等待后台 ACK。
 - 收起采用 Main 当前真实尺寸，忽略过期 Renderer 宽度；隐藏/最小化时忽略内容高度消息。迟到的启动居中请求和启动 watchdog 不得覆盖已经选定的业务窗口状态。
 - 单实例锁保证重复启动唤醒已有窗口；Edge 可见时恢复工作站。Edge 加载失败、崩溃或异常关闭时恢复 Main，避免应用无可见入口。

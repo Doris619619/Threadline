@@ -382,6 +382,13 @@
   transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.threadline-startup-recovery {
+  margin-top: 1rem;
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+}
+
 .threadline-startup-error {
   margin: 15px 0 0;
   padding: 10px 12px;

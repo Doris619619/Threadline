@@ -7,6 +7,7 @@
 import { Check, LoaderCircle, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { BrandIcon } from '@/features/appearance/brand-icon';
 import { DesktopEntryChrome } from '@/components/desktop-entry-chrome';
+import { useEffect, useState } from 'react';
 import type {
   StartupOperation,
   StartupOperationStatus,
@@ -112,18 +113,30 @@ function StartupStepRightBadge({ status }: { status: StartupOperationStatus }) {
  */
 export function ThreadlineStartupScreen({
   progress,
+  onRetry,
 }: {
   progress: StartupProgressSnapshot;
+  onRetry?: () => void;
 }) {
   const steps = getStartupSteps(progress);
   const completedCount = steps.filter(
     (step) => step.operation.status === 'completed',
   ).length;
   const failedStep = steps.find((step) => step.operation.status === 'failed');
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    // 只提示真实等待过久，不推进阶段；底层请求完成后仍由 Provider 撤去遮罩。
+    const timer = setTimeout(() => setSlow(true), 20_000);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <main className="threadline-startup" aria-busy={!failedStep}>
-      <DesktopEntryChrome />
+      <DesktopEntryChrome
+        purpose={
+          progress.authentication.status === 'failed' ? 'authentication' : 'startup'
+        }
+      />
       <section className="threadline-startup-visual" aria-hidden="true">
         <span className="threadline-startup-star threadline-startup-star-left" />
         <span className="threadline-startup-star threadline-startup-star-right" />
@@ -198,6 +211,18 @@ export function ThreadlineStartupScreen({
             {failedStep.label}未完成：
             {failedStep.operation.message ?? '请检查网络后重试。'}
           </p>
+        )}
+        {(failedStep || slow) && (
+          <div className="threadline-startup-recovery">
+            {!failedStep && <p role="status">加载时间较长，请检查网络后重试。</p>}
+            <button
+              type="button"
+              className="tl-button tl-button--secondary"
+              onClick={onRetry ?? (() => window.location.reload())}
+            >
+              重新加载
+            </button>
+          </div>
         )}
       </section>
 

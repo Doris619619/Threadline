@@ -252,171 +252,180 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const shiftDate = (amount: number) =>
     setSelectedDate((current) => addLocalDateDays(current, amount));
   const weekday = format(parseLocalDateKey(selectedDate), 'EE', { locale: zhCN });
-  if (isEdgeCollapsed) return <EdgeTab />;
   return (
-    <div className={`tl-window mode-${isCompact ? 'compact' : 'full'}`}>
-      {!isCompact && isNativeDesktop && <FullWindowChrome />}
-      <div className="tl-window-body">
-        {!isCompact && (
-          <aside className="tl-sidebar">
-            <a className="tl-brand" href="#main-content">
-              <span className="tl-brand-mark" aria-hidden="true">
-                <Spline size={16} strokeWidth={2.4} />
-              </span>
-              Threadline
-            </a>
-            <nav className="tl-desktop-nav" aria-label="主导航">
-              {visibleNavigation.map(({ id, label, icon: Icon }) => (
-                <SidebarItem
-                  key={id}
-                  active={active === id}
-                  onClick={() => {
-                    setActive(id);
-                    setMobileMoreOpen(false);
-                  }}
-                >
-                  <CottageNavIcon name={id}>
-                    <Icon aria-hidden="true" size={18} />
-                  </CottageNavIcon>
-                  {label}
-                </SidebarItem>
-              ))}
-            </nav>
-            <nav className="tl-mobile-nav" aria-label="移动端主导航">
-              {mobilePrimary.map(({ id, label, icon: Icon }) => (
-                <SidebarItem
-                  key={id}
-                  active={active === id}
-                  onClick={() => {
-                    setActive(id);
-                    setMobileMoreOpen(false);
-                  }}
-                >
-                  <CottageNavIcon name={id}>
-                    <Icon aria-hidden="true" size={18} />
-                  </CottageNavIcon>
-                  {label}
-                </SidebarItem>
-              ))}
-              <div className="tl-mobile-more">
-                <button
-                  type="button"
-                  className={cn(
-                    'tl-sidebar-item',
-                    mobileSecondary.some((item) => item.id === active) && 'is-active',
-                  )}
-                  aria-expanded={mobileMoreOpen}
-                  aria-controls="mobile-more-navigation"
-                  onClick={() => setMobileMoreOpen((open) => !open)}
-                >
-                  <MoreHorizontal aria-hidden="true" size={18} />
-                  更多
-                </button>
-                {mobileMoreOpen && (
-                  <div id="mobile-more-navigation" className="tl-mobile-more-menu">
-                    {mobileSecondary.map(({ id, label, icon: Icon }) => (
-                      <button
-                        type="button"
-                        key={id}
-                        className={active === id ? 'is-active' : ''}
-                        onClick={() => {
-                          setActive(id);
-                          setMobileMoreOpen(false);
-                        }}
-                      >
-                        <CottageNavIcon name={id}>
-                          <Icon aria-hidden="true" size={18} />
-                        </CottageNavIcon>
-                        {label}
-                      </button>
-                    ))}
-                    <CottageCompanion compact view={active} />
-                  </div>
-                )}
-              </div>
-            </nav>
-            <CottageCompanion view={active} />
-            {cloudRuntime && (
-              <AccountDisclosure
-                identity={getUserIdentity(cloudRuntime.user)}
-                onOpenSettings={() => {
-                  setActive('settings');
-                  setMobileMoreOpen(false);
-                }}
-                signOut={cloudRuntime.signOut}
-              />
-            )}
-          </aside>
-        )}
-        <main id="main-content" className="tl-main" data-workspace-view={active}>
-          {!isCompact &&
-            !usesDedicatedProjectHeader &&
-            active !== 'calendar' &&
-            active !== 'habits' &&
-            active !== 'settings' && (
-              <header className="tl-header" data-home={active === 'home'}>
-                <div>
-                  <h1>{activeItem.label === '首页' ? '任务大厅' : activeItem.label}</h1>
-                  {active !== 'home' && <p>{activeItem.description}</p>}
-                </div>
-                {active === 'home' && (
-                  <ThemeIllustration className="home-theme-illustration" />
-                )}
-                <div className="tl-header-actions">
-                  {active !== 'rhythm' && (
-                    <div className="tl-date">
-                      <div className="tl-date-select">
-                        <label
-                          className="tl-date-picker"
-                          htmlFor="workspace-date-picker"
+    <>
+      {isEdgeCollapsed && <EdgeTab />}
+      {/* 收起只隐藏业务树，不能卸载数据加载器，否则启动握手会永远等不到完成。 */}
+      <div
+        className={`tl-window mode-${isCompact ? 'compact' : 'full'}`}
+        style={isEdgeCollapsed ? { display: 'none' } : undefined}
+      >
+        {!isCompact && isNativeDesktop && <FullWindowChrome />}
+        <div className="tl-window-body">
+          {!isCompact && (
+            <aside className="tl-sidebar">
+              <a className="tl-brand" href="#main-content">
+                <span className="tl-brand-mark" aria-hidden="true">
+                  <Spline size={16} strokeWidth={2.4} />
+                </span>
+                Threadline
+              </a>
+              <nav className="tl-desktop-nav" aria-label="主导航">
+                {visibleNavigation.map(({ id, label, icon: Icon }) => (
+                  <SidebarItem
+                    key={id}
+                    active={active === id}
+                    onClick={() => {
+                      setActive(id);
+                      setMobileMoreOpen(false);
+                    }}
+                  >
+                    <CottageNavIcon name={id}>
+                      <Icon aria-hidden="true" size={18} />
+                    </CottageNavIcon>
+                    {label}
+                  </SidebarItem>
+                ))}
+              </nav>
+              <nav className="tl-mobile-nav" aria-label="移动端主导航">
+                {mobilePrimary.map(({ id, label, icon: Icon }) => (
+                  <SidebarItem
+                    key={id}
+                    active={active === id}
+                    onClick={() => {
+                      setActive(id);
+                      setMobileMoreOpen(false);
+                    }}
+                  >
+                    <CottageNavIcon name={id}>
+                      <Icon aria-hidden="true" size={18} />
+                    </CottageNavIcon>
+                    {label}
+                  </SidebarItem>
+                ))}
+                <div className="tl-mobile-more">
+                  <button
+                    type="button"
+                    className={cn(
+                      'tl-sidebar-item',
+                      mobileSecondary.some((item) => item.id === active) && 'is-active',
+                    )}
+                    aria-expanded={mobileMoreOpen}
+                    aria-controls="mobile-more-navigation"
+                    onClick={() => setMobileMoreOpen((open) => !open)}
+                  >
+                    <MoreHorizontal aria-hidden="true" size={18} />
+                    更多
+                  </button>
+                  {mobileMoreOpen && (
+                    <div id="mobile-more-navigation" className="tl-mobile-more-menu">
+                      {mobileSecondary.map(({ id, label, icon: Icon }) => (
+                        <button
+                          type="button"
+                          key={id}
+                          className={active === id ? 'is-active' : ''}
+                          onClick={() => {
+                            setActive(id);
+                            setMobileMoreOpen(false);
+                          }}
                         >
-                          <CalendarDays size={18} aria-hidden="true" />
-                          <time dateTime={selectedDate}>
-                            {selectedDate}　{weekday}
-                          </time>
-                        </label>
-                        <input
-                          id="workspace-date-picker"
-                          aria-label="工作区日期"
-                          className="tl-native-date-picker"
-                          type="date"
-                          value={selectedDate}
-                          onClick={(event) => {
-                            if (openWorkspaceDatePicker(event.currentTarget))
-                              event.preventDefault();
-                          }}
-                          onKeyDown={(event) => {
-                            if (
-                              (event.key === 'Enter' || event.key === ' ') &&
-                              openWorkspaceDatePicker(event.currentTarget)
-                            )
-                              event.preventDefault();
-                          }}
-                          onChange={(event) => {
-                            if (event.target.value) setSelectedDate(event.target.value);
-                          }}
-                        />
-                      </div>
-                      <div className="tl-date-step">
-                        <button aria-label="前一天" onClick={() => shiftDate(-1)}>
-                          <ChevronLeft size={18} aria-hidden="true" />
+                          <CottageNavIcon name={id}>
+                            <Icon aria-hidden="true" size={18} />
+                          </CottageNavIcon>
+                          {label}
                         </button>
-                        <button aria-label="后一天" onClick={() => shiftDate(1)}>
-                          <ChevronRight size={18} aria-hidden="true" />
-                        </button>
-                      </div>
+                      ))}
+                      <CottageCompanion compact view={active} />
                     </div>
                   )}
                 </div>
-              </header>
-            )}
-          <WorkspaceViewContext.Provider
-            value={{ active, selectedDate, setActive, setSelectedDate }}
-          >
-            {children}
-          </WorkspaceViewContext.Provider>
-        </main>
+              </nav>
+              <CottageCompanion view={active} />
+              {cloudRuntime && (
+                <AccountDisclosure
+                  identity={getUserIdentity(cloudRuntime.user)}
+                  onOpenSettings={() => {
+                    setActive('settings');
+                    setMobileMoreOpen(false);
+                  }}
+                  signOut={cloudRuntime.signOut}
+                />
+              )}
+            </aside>
+          )}
+          <main id="main-content" className="tl-main" data-workspace-view={active}>
+            {!isCompact &&
+              !usesDedicatedProjectHeader &&
+              active !== 'calendar' &&
+              active !== 'habits' &&
+              active !== 'settings' && (
+                <header className="tl-header" data-home={active === 'home'}>
+                  <div>
+                    <h1>
+                      {activeItem.label === '首页' ? '任务大厅' : activeItem.label}
+                    </h1>
+                    {active !== 'home' && <p>{activeItem.description}</p>}
+                  </div>
+                  {active === 'home' && (
+                    <ThemeIllustration className="home-theme-illustration" />
+                  )}
+                  <div className="tl-header-actions">
+                    {active !== 'rhythm' && (
+                      <div className="tl-date">
+                        <div className="tl-date-select">
+                          <label
+                            className="tl-date-picker"
+                            htmlFor="workspace-date-picker"
+                          >
+                            <CalendarDays size={18} aria-hidden="true" />
+                            <time dateTime={selectedDate}>
+                              {selectedDate}　{weekday}
+                            </time>
+                          </label>
+                          <input
+                            id="workspace-date-picker"
+                            aria-label="工作区日期"
+                            className="tl-native-date-picker"
+                            type="date"
+                            value={selectedDate}
+                            onClick={(event) => {
+                              if (openWorkspaceDatePicker(event.currentTarget))
+                                event.preventDefault();
+                            }}
+                            onKeyDown={(event) => {
+                              if (
+                                (event.key === 'Enter' || event.key === ' ') &&
+                                openWorkspaceDatePicker(event.currentTarget)
+                              )
+                                event.preventDefault();
+                            }}
+                            onChange={(event) => {
+                              if (event.target.value)
+                                setSelectedDate(event.target.value);
+                            }}
+                          />
+                        </div>
+                        <div className="tl-date-step">
+                          <button aria-label="前一天" onClick={() => shiftDate(-1)}>
+                            <ChevronLeft size={18} aria-hidden="true" />
+                          </button>
+                          <button aria-label="后一天" onClick={() => shiftDate(1)}>
+                            <ChevronRight size={18} aria-hidden="true" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </header>
+              )}
+            <WorkspaceViewContext.Provider
+              value={{ active, selectedDate, setActive, setSelectedDate }}
+            >
+              {children}
+            </WorkspaceViewContext.Provider>
+          </main>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

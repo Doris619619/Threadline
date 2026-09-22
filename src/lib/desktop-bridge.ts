@@ -85,7 +85,7 @@ export type ThreadlineDesktopBridge =
       setAppearanceTheme: (
         theme: 'blue' | 'anya' | 'cottage' | 'classic',
       ) => Promise<void>;
-      showEntryWindow: () => Promise<void>;
+      showEntryWindow: (purpose?: 'startup' | 'authentication') => Promise<void>;
       minimizeMainWindow: () => Promise<void>;
       closeMainWindow: () => Promise<void>;
       getMainWindowMaximized: () => Promise<boolean>;

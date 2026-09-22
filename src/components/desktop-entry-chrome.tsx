@@ -11,14 +11,18 @@ const getSnapshot = () => Boolean(getMainDesktopBridge());
 const getServerSnapshot = () => false;
 
 /** 在登录门禁和启动遮罩内保持可见，首次显示时请求 Main 居中。 */
-export function DesktopEntryChrome() {
+export function DesktopEntryChrome({
+  purpose = 'startup',
+}: {
+  purpose?: 'startup' | 'authentication';
+}) {
   const native = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   useEffect(() => {
     if (native)
       void getMainDesktopBridge()
-        ?.showEntryWindow()
+        ?.showEntryWindow(purpose)
         .catch(() => undefined);
-  }, [native]);
+  }, [native, purpose]);
   if (!native) return null;
   return (
     <header className="desktop-entry-chrome">
