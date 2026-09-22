@@ -31,16 +31,16 @@ function setup() {
   const pending = deferred();
   const repository = {
     listWorkstationTaskIds: vi.fn(async () => [...server]),
-    removeWorkstationTasks: vi.fn(async (ids: string[]) => {
-      await pending.promise;
-      server = server.filter((id) => !ids.includes(id));
-    }),
-    addWorkstationTask: vi.fn(async (id: string) => {
-      server.push(id);
-    }),
-    reorderWorkstation: vi.fn(async (ids: string[]) => {
-      server = ids;
-    }),
+    applyWorkstationCommand: vi.fn(
+      async (command: import('@/lib/workstation-command').WorkstationCommand) => {
+        if (command.type === 'clear') {
+          await pending.promise;
+          server = server.filter((id) => !command.ids.includes(id));
+        }
+        if (command.type === 'add') server.push(command.id);
+        return [...server];
+      },
+    ),
   };
   const onError = vi.fn();
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -57,7 +57,10 @@ it('clears immediately, ignores stale reads and preserves a subsequent add until
   act(() => c.hook.result.current.updateWorkstationTaskIds(() => []));
   expect(c.hook.result.current.workstationTaskIds).toEqual([]);
   await waitFor(() =>
-    expect(c.repository.removeWorkstationTasks).toHaveBeenCalledWith(['a', 'b', 'c']),
+    expect(c.repository.applyWorkstationCommand).toHaveBeenCalledWith({
+      type: 'clear',
+      ids: ['a', 'b', 'c'],
+    }),
   );
   act(() => c.client.setQueryData(c.key, ['a', 'b', 'c']));
   expect(c.hook.result.current.workstationTaskIds).toEqual([]);
@@ -66,19 +69,22 @@ it('clears immediately, ignores stale reads and preserves a subsequent add until
   await act(async () => c.pending.resolve());
   await waitFor(() => expect(getPendingCloudWrites()).toBe(0));
   expect(c.hook.result.current.workstationTaskIds).toEqual(['d']);
-  expect(c.repository.removeWorkstationTasks).toHaveBeenCalledTimes(1);
-  expect(c.repository.reorderWorkstation).toHaveBeenCalledWith(['d']);
+  expect(c.repository.applyWorkstationCommand).toHaveBeenCalledTimes(2);
+  expect(c.repository.applyWorkstationCommand).toHaveBeenCalledWith({
+    type: 'add',
+    id: 'd',
+  });
 });
 
 it('restores server membership on failure and permits retry', async () => {
   const c = setup();
   act(() => c.hook.result.current.updateWorkstationTaskIds([]));
-  await waitFor(() => expect(c.repository.removeWorkstationTasks).toHaveBeenCalled());
+  await waitFor(() => expect(c.repository.applyWorkstationCommand).toHaveBeenCalled());
   await act(async () => c.pending.reject(new Error('network')));
   await waitFor(() => expect(getPendingCloudWrites()).toBe(0));
   expect(c.hook.result.current.workstationTaskIds).toEqual(['a', 'b', 'c']);
   expect(c.onError).toHaveBeenCalledWith(expect.stringContaining('保存失败'));
-  c.repository.removeWorkstationTasks.mockResolvedValueOnce(undefined);
+  c.repository.applyWorkstationCommand.mockResolvedValueOnce([]);
   act(() => c.hook.result.current.updateWorkstationTaskIds([]));
   await waitFor(() => expect(getPendingCloudWrites()).toBe(0));
   expect(c.hook.result.current.workstationTaskIds).toEqual([]);
@@ -99,7 +105,7 @@ it('returns a saved task before history finishes and never labels a history fail
   };
   const repository = {
     saveProject: vi.fn(),
-    saveTask: vi.fn(async () => task),
+    createTask: vi.fn(async () => task),
     appendHistory: vi.fn(() => history.promise),
   };
   client.setQueryData(['workspace', 'owner', 'tasks'], [task]); // Realtime 已先送达同一行。
@@ -126,5 +132,5 @@ it('returns a saved task before history finishes and never labels a history fail
   history.reject(new Error('history unavailable'));
   await waitFor(() => expect(getPendingCloudWrites()).toBe(0));
   expect(onError).toHaveBeenCalledWith(expect.stringContaining('任务已创建'));
-  expect(repository.saveTask).toHaveBeenCalledTimes(1);
+  expect(repository.createTask).toHaveBeenCalledTimes(1);
 });

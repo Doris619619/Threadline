@@ -21,10 +21,10 @@ describe('task time compatibility', () => {
     expect(parseDurationInput('30min')).toBe(30);
     expect(parseDurationInput('1.5h')).toBe(90);
     expect(parseDurationInput('1h20min')).toBe(80);
-    expect(parseDurationInput('1.5h30m')).toBeUndefined();
-    expect(parseDurationInput('1h1.5m')).toBeUndefined();
+    expect(() => parseDurationInput('1.5h30m')).toThrow();
+    expect(() => parseDurationInput('1h1.5m')).toThrow();
     expect(parseDurationInput('—')).toBeUndefined();
-    expect(parseDurationInput('later')).toBeUndefined();
+    expect(() => parseDurationInput('later')).toThrow();
   });
 
   it('normalizes existing time input forms without accepting invalid values', () => {

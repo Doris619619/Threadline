@@ -26,6 +26,8 @@ test.afterEach(async ({ page }, testInfo) => {
 test('menus and project picker escape a one-row list without changing its width', async ({
   page,
 }) => {
+  // 三次导航包含首次 WebKit 字体布局；CI 冷启动已观测到 30 秒以上，断言仍使用原时限。
+  test.setTimeout(60_000);
   await bootstrapLocalAdapterWorkspace(page, 'interaction-menus');
   await page.clock.resume();
   // 仅保留一条演示日程，复现用户截图中菜单高于列表的条件。

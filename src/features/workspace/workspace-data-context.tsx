@@ -33,7 +33,7 @@ export type WorkspaceCommands = {
   deleteProject: (projectId: string) => Promise<void>;
   createTask: (task: Task) => Promise<Task>;
   /** 等待普通字段持久化成功，供规划表单和完成操作处理失败。 */
-  saveTaskConfirmed: (task: Task) => Promise<Task>;
+  saveTaskConfirmed: (task: Task, original?: Task) => Promise<Task>;
   createDailyTemplate: (daily: Daily) => Promise<void>;
   saveDailyTemplate: (daily: Daily) => Promise<void>;
   /** 保存一个日期实例并在真实写入完成后 resolve，供首页等待后收尾。 */
@@ -93,10 +93,14 @@ export type WorkspaceContextValues = {
   };
   surfaceState: {
     annotationStrokes: AnnotationStroke[];
+    annotationImport?: import('@/hooks/use-annotation-strokes').AnnotationImport;
     workstationTaskIds: string[];
     highlightColor: string;
   };
   surfaceActions: {
+    runWorkstationCommand?: (
+      command: import('@/lib/workstation-command').WorkstationCommand,
+    ) => void;
     updateAnnotationStrokes: Dispatch<SetStateAction<AnnotationStroke[]>>;
     updateWorkstationTaskIds: Dispatch<SetStateAction<string[]>>;
     updateHighlightColor: Dispatch<SetStateAction<string>>;

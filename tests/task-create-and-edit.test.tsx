@@ -241,6 +241,7 @@ describe('useTaskCreateAndEdit', () => {
         date: '2026-08-19',
         plannedDurationMinutes: 20,
       }),
+      editing,
     );
     expect(updating.createTask).not.toHaveBeenCalled();
   });
@@ -285,6 +286,7 @@ describe('useTaskCreateAndEdit', () => {
         importance: 'important',
         actualDurationMinutes: 30,
       }),
+      editing,
     );
   });
 
@@ -325,6 +327,7 @@ describe('useTaskCreateAndEdit', () => {
         plannedStartTime: '09:00',
         schedulePendingTime: false,
       }),
+      editing,
     );
   });
 
@@ -366,6 +369,7 @@ describe('useTaskCreateAndEdit', () => {
         plannedStartTime: undefined,
         schedulePendingTime: true,
       }),
+      editing,
     );
   });
 });

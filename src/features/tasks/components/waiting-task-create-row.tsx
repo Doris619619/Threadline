@@ -2,6 +2,7 @@
 
 'use client';
 
+import { compositionHandlers, isComposingInput } from '@/lib/composition-input';
 import { PlannedMinutesField } from './planned-minutes-field';
 import { Check, X } from 'lucide-react';
 import { useRef, useState } from 'react';
@@ -120,12 +121,13 @@ export function WaitingTaskCreateRow({
           >
             <fieldset disabled={saving} className="project-picker-new-form">
               <input
+                {...compositionHandlers}
                 placeholder="新项目名称"
                 value={draft.projectName}
                 autoFocus
                 onChange={(event) => onChange({ projectName: event.target.value })}
                 onKeyDown={(event) => {
-                  if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                  if (event.key === 'Enter' && !isComposingInput(event)) {
                     event.preventDefault();
                     addProject();
                   }
@@ -152,6 +154,7 @@ export function WaitingTaskCreateRow({
         )}
       </div>
       <input
+        {...compositionHandlers}
         className="tl-inline-input task-title-input quick-create-title"
         aria-label={draft.importance === 'important' ? '重要事项内容' : '普通事项内容'}
         placeholder="事项内容"
@@ -159,7 +162,7 @@ export function WaitingTaskCreateRow({
         autoFocus
         onChange={(event) => onChange({ title: event.target.value })}
         onKeyDown={(event) => {
-          if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+          if (event.key === 'Enter' && !isComposingInput(event)) {
             event.preventDefault();
             void confirm();
           }

@@ -1,4 +1,5 @@
 /** @fileoverview 生理期云端仓储，依赖 RLS 隔离账号，以软删除保留可追溯数据。 */
+import { readAllRows } from '@/lib/supabase/pagination';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PeriodDraft, PeriodRecord } from './period-rules';
 
@@ -22,14 +23,18 @@ function checkError(error: { code?: string; message: string } | null) {
   throw new Error(`生理期记录保存或读取失败：${error.message}`);
 }
 /** 读取当前账号未删除的记录，所有数据隔离由 RLS 强制落实。 */
-export async function listPeriods(client: SupabaseClient): Promise<PeriodRecord[]> {
-  const { data, error } = await client
-    .from('period_records')
-    .select('*')
-    .is('deleted_at', null)
-    .order('start_date', { ascending: false });
-  checkError(error);
-  return (data ?? []).map(mapPeriod);
+export async function listPeriods(
+  client: SupabaseClient,
+  signal?: AbortSignal,
+): Promise<PeriodRecord[]> {
+  return (
+    await readAllRows(client, 'period_records', {
+      signal,
+      nullColumn: 'deleted_at',
+      sort: 'start_date',
+      descending: true,
+    })
+  ).map(mapPeriod);
 }
 /** 新建使用 insert，编辑使用 update，避免陈旧客户端将已删除记录重新插入。 */
 export async function savePeriod(

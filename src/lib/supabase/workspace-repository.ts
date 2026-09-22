@@ -2,6 +2,10 @@
  * @fileoverview 提供 Threadline 细粒度 Supabase 查询、CRUD 与原子 RPC，不执行整工作区 upsert。
  */
 
+import type { TaskPatch } from '@/lib/task-patch';
+import { TaskConflictError } from '@/lib/task-patch';
+import type { WorkstationCommand } from '@/lib/workstation-command';
+import { readAllRows } from './pagination';
 import { validatePlanningDate } from '@/lib/task-rules';
 import { getAccountTimezone } from '@/lib/account-clock';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -9,6 +13,7 @@ import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 import { isDailyCompleted } from '@/features/daily/daily-rules';
 import {
   fromDatabaseInstant,
+  fromDatabaseVersionInstant,
   fromDatabaseWallTime,
   toDatabaseDate,
   toDatabaseWallTime,
@@ -33,6 +38,8 @@ function assertResponse<T>(
   operation: string,
   response: { data: T | null; error: { message: string } | null },
 ): T {
+  if (response.error?.message.includes('TASK_FIELD_CONFLICT'))
+    throw new TaskConflictError();
   if (response.error) throw new Error(`${operation}: ${response.error.message}`);
   if (response.data === null) throw new Error(`${operation}: empty response`);
   return response.data;
@@ -80,7 +87,7 @@ function mapTask(row: JsonRecord): Task {
     postponedFrom: (row.postponed_from as string | null) ?? undefined,
     postponedTo: (row.postponed_to as string | null) ?? undefined,
     abandonedAt: fromDatabaseInstant((row.abandoned_at as string | null) ?? null),
-    deletedAt: fromDatabaseInstant((row.deleted_at as string | null) ?? null),
+    deletedAt: fromDatabaseVersionInstant((row.deleted_at as string | null) ?? null),
     createdAt: fromDatabaseInstant(String(row.created_at)) ?? String(row.created_at),
     updatedAt: fromDatabaseInstant(String(row.updated_at)) ?? String(row.updated_at),
   };
@@ -180,21 +187,22 @@ export class SupabaseWorkspaceRepository {
   constructor(private readonly client: SupabaseClient) {}
 
   /** 原子初始化账号并返回五个 UUID 默认项目。 */
-  async initializeWorkspace(): Promise<Project[]> {
-    const response = await this.client.rpc('initialize_workspace');
+  async initializeWorkspace(signal?: AbortSignal): Promise<Project[]> {
+    const request = this.client.rpc('initialize_workspace');
+    const response = await (signal ? request.abortSignal(signal) : request);
     return (assertResponse('initialize_workspace', response) as JsonRecord[]).map(
       mapProject,
     );
   }
 
   /** 查询当前 owner 的全部项目。 */
-  async listProjects(): Promise<Project[]> {
-    const response = await this.client
-      .from('projects')
-      .select('*')
-      .is('deleted_at', null)
-      .order('position');
-    return (assertResponse('list projects', response) as JsonRecord[]).map(mapProject);
+  async listProjects(signal?: AbortSignal): Promise<Project[]> {
+    const rows = await readAllRows(this.client, 'projects', {
+      signal,
+      sort: 'position',
+      nullColumn: 'deleted_at',
+    });
+    return rows.map(mapProject);
   }
 
   /** 直接保存一个项目并使用 server-returned row。 */
@@ -247,30 +255,128 @@ export class SupabaseWorkspaceRepository {
   }
 
   /** 查询 authoritative all-task identity set，供业务视图和 Annotation reconciliation 共用。 */
-  async listTasks(): Promise<Task[]> {
-    const response = await this.client.from('tasks').select('*').order('created_at');
-    return (assertResponse('list tasks', response) as JsonRecord[]).map(mapTask);
+  async listTasks(signal?: AbortSignal): Promise<Task[]> {
+    const rows = await readAllRows(this.client, 'tasks', {
+      signal,
+      sort: 'created_at',
+    });
+    return rows.map(mapTask);
   }
 
   /** 查询按业务日固定的实际投入；analytics 不能由可变 scheduled_date 推断。 */
-  async listTaskTimeEntries(): Promise<TaskTimeEntry[]> {
-    const response = await this.client
-      .from('task_time_entries')
-      .select('*')
-      .order('entry_date');
-    return (assertResponse('list task time entries', response) as JsonRecord[]).map(
-      mapTaskTimeEntry,
-    );
+  async listTaskTimeEntries(signal?: AbortSignal): Promise<TaskTimeEntry[]> {
+    const rows = await readAllRows(this.client, 'task_time_entries', {
+      signal,
+      sort: 'entry_date',
+    });
+    return rows.map(mapTaskTimeEntry);
+  }
+
+  /** 仅在完整身份补查成功后确认缺失；显式 owner 过滤与 RLS 双重隔离。 */
+  async findTasksByIds(
+    ids: string[],
+    owner: string,
+    signal?: AbortSignal,
+  ): Promise<Task[]> {
+    const result: Task[] = [];
+    for (let offset = 0; offset < ids.length; offset += 100) {
+      result.push(
+        ...(
+          await readAllRows(this.client, 'tasks', {
+            ids: ids.slice(offset, offset + 100),
+            owner,
+            signal,
+          })
+        ).map(mapTask),
+      );
+    }
+    return result;
   }
 
   /** 直接保存普通 task 字段并返回数据库触发器更新后的 row。 */
-  async saveTask(task: Task): Promise<Task> {
+  async createTask(task: Task): Promise<Task> {
     const response = await this.client
       .from('tasks')
-      .upsert(taskRow(task))
+      .insert(taskRow(task))
       .select()
       .single();
     return mapTask(assertResponse('save task', response) as JsonRecord);
+  }
+
+  /** 恢复是受检的独立命令，不能经字段补丁或 insert 复活旧表单。 */
+  async restoreTask(id: string, date: string, expected: Task): Promise<Task> {
+    return mapTask(
+      assertResponse(
+        'restore task',
+        await this.client.rpc('restore_task', {
+          p_task_id: id,
+          p_target_date: date,
+          p_expected_status: expected.status,
+          p_expected_deleted_at: expected.deletedAt ?? null,
+        }),
+      ) as JsonRecord,
+    );
+  }
+
+  /** 按真实编辑字段和打开时预期值更新；缺少迁移时明确失败，不退回整行写入。 */
+  async updateTaskFields(
+    id: string,
+    changes: TaskPatch,
+    expected: Task,
+  ): Promise<Task> {
+    const columns: Record<keyof TaskPatch, string> = {
+      title: 'title',
+      projectId: 'project_id',
+      schedulePendingTime: 'schedule_pending_time',
+      plannedStartTime: 'planned_start_time',
+      plannedEndTime: 'planned_end_time',
+      plannedDurationMinutes: 'planned_duration_minutes',
+      actualDurationMinutes: 'actual_duration_minutes',
+      completed: 'completed',
+      importance: 'importance',
+    };
+    const baseline = taskRow(expected) as Record<string, unknown>;
+    const proposed = taskRow({ ...expected, ...changes }) as Record<string, unknown>;
+    const patch: JsonRecord = {};
+    const guard: JsonRecord = {
+      status: expected.status,
+      scheduled_date: expected.date ?? null,
+      deleted_at: expected.deletedAt ?? null,
+    };
+    for (const key of Object.keys(changes) as (keyof TaskPatch)[]) {
+      const column = columns[key];
+      if (!column) throw new Error('不允许修改该任务字段');
+      patch[column] = proposed[column];
+      guard[column] = baseline[column];
+    }
+    if ('actualDurationMinutes' in changes) {
+      guard.project_id = baseline.project_id;
+      guard.actual_duration_minutes = baseline.actual_duration_minutes;
+    }
+    // 时间成组比较，防止两个客户端分别修改起止时间后形成意外范围。
+    if ('plannedStartTime' in changes || 'plannedEndTime' in changes) {
+      guard.planned_start_time = baseline.planned_start_time;
+      guard.planned_end_time = baseline.planned_end_time;
+    }
+    const response = await this.client.rpc('update_task_fields', {
+      p_task_id: id,
+      p_changes: patch,
+      p_expected: guard,
+    });
+    return mapTask(assertResponse('update task fields', response) as JsonRecord);
+  }
+
+  /** 写命令只执行一次；SETOF 回包可能受 max_rows 截断，成功后分页读取完整集合。 */
+  async applyWorkstationCommand(command: WorkstationCommand): Promise<string[]> {
+    const response = await this.client.rpc('apply_workstation_command', {
+      p_command: command.type,
+      p_task_ids: command.type === 'clear' ? command.ids : [],
+      p_task_id: command.type === 'clear' ? null : command.id,
+      p_anchor_id: command.type === 'move' ? command.anchor : null,
+      p_after: command.type === 'move' ? command.after : false,
+    });
+    assertResponse('workstation command', response);
+    return this.listWorkstationTaskIds();
   }
 
   /** 通过事务命令完成 task transition、history 和 trash workstation 副作用。 */
@@ -333,19 +439,14 @@ export class SupabaseWorkspaceRepository {
   }
 
   /** 查询模板、日期实例及两类 item，并在 mapper 中保持 ID 边界。 */
-  async listDailyBundle(): Promise<DailyBundle> {
+  async listDailyBundle(signal?: AbortSignal): Promise<DailyBundle> {
     const [templates, templateItems, entries, entryItems] = await Promise.all([
-      this.client.from('daily_templates').select('*').order('position'),
-      this.client.from('daily_template_items').select('*').order('position'),
-      this.client.from('daily_entries').select('*').order('entry_date'),
-      this.client.from('daily_entry_items').select('*').order('position'),
+      readAllRows(this.client, 'daily_templates', { signal, sort: 'position' }),
+      readAllRows(this.client, 'daily_template_items', { signal, sort: 'position' }),
+      readAllRows(this.client, 'daily_entries', { signal, sort: 'entry_date' }),
+      readAllRows(this.client, 'daily_entry_items', { signal, sort: 'position' }),
     ]);
-    return mapDailyBundle(
-      assertResponse('list Daily templates', templates) as JsonRecord[],
-      assertResponse('list Daily template items', templateItems) as JsonRecord[],
-      assertResponse('list Daily entries', entries) as JsonRecord[],
-      assertResponse('list Daily entry items', entryItems) as JsonRecord[],
-    );
+    return mapDailyBundle(templates, templateItems, entries, entryItems);
   }
 
   /** 以一个 RPC 原子保存某天 Daily 父字段和全部子项，不修改长期模板。 */
@@ -407,21 +508,20 @@ export class SupabaseWorkspaceRepository {
   }
 
   /** 查询正式 Daily history；普通未记录 entry 由 analytics query 另行合并。 */
-  async listDailyHistory(): Promise<DailyHistoryEntry[]> {
-    const response = await this.client
-      .from('daily_history_entries')
-      .select('*')
-      .order('recorded_at', { ascending: false });
-    return (assertResponse('list Daily history', response) as JsonRecord[]).map(
-      (row) => ({
-        id: String(row.id),
-        dailyId: String(row.template_id),
-        date: String(row.entry_date),
-        completed: Boolean(row.completed),
-        actual: Number(row.actual_duration_minutes ?? 0),
-        result: String(row.result ?? ''),
-      }),
-    );
+  async listDailyHistory(signal?: AbortSignal): Promise<DailyHistoryEntry[]> {
+    const rows = await readAllRows(this.client, 'daily_history_entries', {
+      signal,
+      sort: 'recorded_at',
+      descending: true,
+    });
+    return rows.map((row) => ({
+      id: String(row.id),
+      dailyId: String(row.template_id),
+      date: String(row.entry_date),
+      completed: Boolean(row.completed),
+      actual: Number(row.actual_duration_minutes ?? 0),
+      result: String(row.result ?? ''),
+    }));
   }
 
   /** 将 Daily 整体归档、恢复或软删除；未来 entry 才会受影响。 */
@@ -453,12 +553,13 @@ export class SupabaseWorkspaceRepository {
   }
 
   /** 查询 append-only task history。 */
-  async listHistory(): Promise<HistoryEvent[]> {
-    const response = await this.client
-      .from('history_events')
-      .select('*')
-      .order('occurred_at', { ascending: false });
-    return (assertResponse('list history', response) as JsonRecord[]).map((row) => ({
+  async listHistory(signal?: AbortSignal): Promise<HistoryEvent[]> {
+    const rows = await readAllRows(this.client, 'history_events', {
+      signal,
+      sort: 'occurred_at',
+      descending: true,
+    });
+    return rows.map((row) => ({
       id: String(row.id),
       taskId: row.task_id === null ? undefined : String(row.task_id),
       dailyInstanceId:
@@ -493,19 +594,18 @@ export class SupabaseWorkspaceRepository {
   }
 
   /** 查询每日收尾记录。 */
-  async listCloseRecords(): Promise<CloseRecord[]> {
-    const response = await this.client
-      .from('daily_close_records')
-      .select('*')
-      .order('close_date', { ascending: false });
-    return (assertResponse('list close records', response) as JsonRecord[]).map(
-      (row) => ({
-        id: String(row.id),
-        date: String(row.close_date),
-        closedAt: fromDatabaseInstant(String(row.closed_at)) ?? String(row.closed_at),
-        projectMinutes: (row.project_minutes as Record<string, number> | null) ?? {},
-      }),
-    );
+  async listCloseRecords(signal?: AbortSignal): Promise<CloseRecord[]> {
+    const rows = await readAllRows(this.client, 'daily_close_records', {
+      signal,
+      sort: 'close_date',
+      descending: true,
+    });
+    return rows.map((row) => ({
+      id: String(row.id),
+      date: String(row.close_date),
+      closedAt: fromDatabaseInstant(String(row.closed_at)) ?? String(row.closed_at),
+      projectMinutes: (row.project_minutes as Record<string, number> | null) ?? {},
+    }));
   }
 
   /** 原子完成未完成任务流转、正式 Daily 记录与 close record 写入。 */
@@ -520,7 +620,8 @@ export class SupabaseWorkspaceRepository {
   ): Promise<CloseRecord> {
     const row = assertResponse(
       'close day',
-      await this.client.rpc('close_day', {
+      await this.client.rpc('close_day_checked', {
+        p_time_zone: getAccountTimezone(),
         p_close_date: toDatabaseDate(date),
         p_actions: actions.map((action) => ({
           task_id: action.taskId,
@@ -539,15 +640,13 @@ export class SupabaseWorkspaceRepository {
   }
 
   /** 返回当前 active workstation task IDs。 */
-  async listWorkstationTaskIds(): Promise<string[]> {
-    const response = await this.client
-      .from('workstation_entries')
-      .select('task_id,position')
-      .is('removed_at', null)
-      .order('position');
-    return (assertResponse('list workstation', response) as JsonRecord[]).map((row) =>
-      String(row.task_id),
-    );
+  async listWorkstationTaskIds(signal?: AbortSignal): Promise<string[]> {
+    const rows = await readAllRows(this.client, 'workstation_entries', {
+      signal,
+      sort: 'position',
+      nullColumn: 'removed_at',
+    });
+    return rows.map((row) => String(row.task_id));
   }
 
   /** 原子添加或重新加入工作站末尾。 */
@@ -590,13 +689,10 @@ export class SupabaseWorkspaceRepository {
   }
 
   /** 查询 Rhythm 日期标记。 */
-  async listRhythmMarks(): Promise<Record<string, boolean>> {
-    const response = await this.client.from('rhythm_marks').select('*');
+  async listRhythmMarks(signal?: AbortSignal): Promise<Record<string, boolean>> {
+    const rows = await readAllRows(this.client, 'rhythm_marks', { signal });
     return Object.fromEntries(
-      (assertResponse('list Rhythm', response) as JsonRecord[]).map((row) => [
-        String(row.mark_date),
-        Boolean(row.marked),
-      ]),
+      rows.map((row) => [String(row.mark_date), Boolean(row.marked)]),
     );
   }
 

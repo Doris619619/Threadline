@@ -57,20 +57,20 @@ describe('SupabaseWorkspaceRepository task boundary', () => {
   it('persists a newly created scheduled task with normal importance and maps its server row', async () => {
     const single = vi.fn().mockResolvedValue({ data: databaseTaskRow(), error: null });
     const select = vi.fn().mockReturnValue({ single });
-    const upsert = vi.fn().mockReturnValue({ select });
-    const from = vi.fn().mockReturnValue({ upsert });
+    const insert = vi.fn().mockReturnValue({ select });
+    const from = vi.fn().mockReturnValue({ insert });
     const repository = new SupabaseWorkspaceRepository({
       from,
     } as unknown as SupabaseClient);
 
-    await expect(repository.saveTask(taskFixture())).resolves.toMatchObject({
+    await expect(repository.createTask(taskFixture())).resolves.toMatchObject({
       plannedStartTime: '09:30',
       plannedEndTime: '10:45',
       importance: 'normal',
       createdAt: '2026-08-19T17:00:00.000Z',
     });
     expect(from).toHaveBeenCalledWith('tasks');
-    expect(upsert).toHaveBeenCalledWith({
+    expect(insert).toHaveBeenCalledWith({
       id: 'task-1',
       project_id: 'project-1',
       title: '评审 PR',
@@ -97,12 +97,12 @@ describe('SupabaseWorkspaceRepository task boundary', () => {
       error: null,
     });
     const select = vi.fn().mockReturnValue({ single });
-    const upsert = vi.fn().mockReturnValue({ select });
+    const insert = vi.fn().mockReturnValue({ select });
     const repository = new SupabaseWorkspaceRepository({
-      from: vi.fn().mockReturnValue({ upsert }),
+      from: vi.fn().mockReturnValue({ insert }),
     } as unknown as SupabaseClient);
 
-    await expect(repository.saveTask(taskFixture())).resolves.toMatchObject({
+    await expect(repository.createTask(taskFixture())).resolves.toMatchObject({
       importance: 'normal',
     });
   });

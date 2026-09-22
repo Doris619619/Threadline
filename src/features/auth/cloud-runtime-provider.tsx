@@ -302,9 +302,23 @@ function AuthenticatedRuntime({
   } = useSessionRecovery(client, queryClient);
   const [initializationError, setInitializationError] = useState<string>();
   const [initializedOwner, setInitializedOwner] = useState<string>();
+  const [initializationAttempt, setInitializationAttempt] = useState(0);
+  const retryInitialization = () => {
+    setInitializationError(undefined);
+    setInitializationAttempt((value) => value + 1);
+  };
+  const sessionOwner = session?.user.id;
+  const [initializationSession, setInitializationSession] = useState(sessionOwner);
+  if (initializationSession !== sessionOwner) {
+    setInitializationSession(sessionOwner);
+    setInitializedOwner(undefined);
+    setInitializationError(undefined);
+  }
 
   useEffect(() => {
-    if (!session || initializedOwner === session.user.id) return;
+    if (!sessionOwner) return;
+    if (initializedOwner === sessionOwner) return;
+    const controller = new AbortController();
     let cancelled = false;
     for (const key of [
       'threadline.tasks.v1',
@@ -320,11 +334,11 @@ function AuthenticatedRuntime({
     ])
       window.localStorage.removeItem(key);
     void repository
-      .initializeWorkspace()
+      .initializeWorkspace(controller.signal)
       .then(() => {
         if (!cancelled) {
           setInitializationError(undefined);
-          setInitializedOwner(session.user.id);
+          setInitializedOwner(sessionOwner);
         }
       })
       .catch((error: unknown) => {
@@ -335,8 +349,9 @@ function AuthenticatedRuntime({
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [initializedOwner, repository, session]);
+  }, [initializedOwner, initializationAttempt, repository, sessionOwner]);
 
   const authentication: StartupOperation = sessionRecoveryError
     ? { status: 'failed', message: sessionRecoveryError }
@@ -344,7 +359,7 @@ function AuthenticatedRuntime({
       ? { status: 'completed' }
       : { status: 'active' };
   const workspaceInitialization: StartupOperation = initializationError
-    ? { status: 'failed', message: initializationError }
+    ? { status: 'failed', message: initializationError, retry: retryInitialization }
     : session && initializedOwner === session.user.id
       ? { status: 'completed' }
       : session
@@ -371,7 +386,7 @@ function AuthenticatedRuntime({
       active={session !== null || Boolean(sessionRecoveryError) || !sessionRecoveryDone}
       authentication={authentication}
       workspaceInitialization={workspaceInitialization}
-      onRetry={sessionRecoveryError ? retry : undefined}
+      onRetry={sessionRecoveryError ? retry : retryInitialization}
     >
       {runtime ? (
         <CloudRuntimeContext.Provider value={runtime}>

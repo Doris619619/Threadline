@@ -1,5 +1,6 @@
 /** @fileoverview 习惯单项编辑：时间优先，日期、时区、清除与恢复按需展开，保留版本化写入。 */
 'use client';
+import { compositionHandlers, isComposingInput } from '@/lib/composition-input';
 import { useState } from 'react';
 import { ManagementDialog } from '@/components/ui/management-dialog';
 import { useHabits } from './habit-state';
@@ -167,6 +168,7 @@ export function HabitEntryDialog({
                     <label>
                       时间
                       <input
+                        {...compositionHandlers}
                         type="text"
                         inputMode="text"
                         placeholder="23:48"
@@ -176,7 +178,7 @@ export function HabitEntryDialog({
                         data-management-initial-focus
                         onFocus={(event) => event.currentTarget.select()}
                         onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
+                          if (event.key === 'Enter' && !isComposingInput(event)) {
                             event.preventDefault();
                             void submit();
                           }
@@ -216,6 +218,7 @@ export function HabitEntryDialog({
                   <label>
                     归属日期
                     <input
+                      {...compositionHandlers}
                       aria-label={`${KIND_LABELS[draft.kind]}归属日期`}
                       type="date"
                       value={draft.date}
@@ -229,6 +232,7 @@ export function HabitEntryDialog({
                       <label>
                         实际日期与时间
                         <input
+                          {...compositionHandlers}
                           aria-label={`${KIND_LABELS[draft.kind]}实际时间`}
                           type="datetime-local"
                           step="60"
@@ -244,6 +248,7 @@ export function HabitEntryDialog({
                       <label>
                         记录时区
                         <input
+                          {...compositionHandlers}
                           aria-label={`${KIND_LABELS[draft.kind]}时区`}
                           value={draft.timezone}
                           onChange={(event) =>

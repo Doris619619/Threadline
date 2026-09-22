@@ -8,6 +8,34 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+it.each(['headers', 'body'])(
+  'K04 aborts hung initialization %s and releases the write guard',
+  async (stage) => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_input, init) => {
+        const wait = () =>
+          new Promise((_resolve, reject) =>
+            init.signal.addEventListener('abort', () => reject(init.signal.reason)),
+          );
+        return stage === 'headers'
+          ? wait()
+          : Promise.resolve({ clone: () => ({ arrayBuffer: wait }) });
+      }),
+    );
+    const request = fetchWithRecoveryDeadline(
+      'https://example.invalid/rest/v1/rpc/initialize_workspace',
+      { method: 'POST' },
+    );
+    const failure = expect(request).rejects.toThrow('云端请求超时');
+    await vi.advanceTimersByTimeAsync(20_000);
+    await failure;
+    const { getPendingCloudWrites } = await import('@/lib/cloud-write-guard');
+    expect(getPendingCloudWrites()).toBe(0);
+  },
+);
+
 it('aborts a stalled read at the recovery deadline', async () => {
   vi.useFakeTimers();
   vi.stubGlobal(

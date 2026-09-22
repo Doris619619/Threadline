@@ -122,8 +122,12 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
   >('threadline.close-records.v1', []);
   const [workstationTaskIds, updateWorkstationTaskIds, workstationHydrated] =
     usePersistentState<string[]>('threadline.workstation.v1', []);
-  const [annotationStrokes, updateAnnotationStrokes, annotationHydrated] =
-    useAnnotationStrokes();
+  const [
+    annotationStrokes,
+    updateAnnotationStrokes,
+    annotationHydrated,
+    annotationImport,
+  ] = useAnnotationStrokes();
   const [highlightColor, updateHighlightColor, highlightHydrated] =
     usePersistentState<string>(
       'threadline.annotation-highlight-color.v1',
@@ -465,8 +469,8 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
     [updateCloseRecords, updateHistory],
   );
   const surfaceState = useMemo(
-    () => ({ annotationStrokes, workstationTaskIds, highlightColor }),
-    [annotationStrokes, highlightColor, workstationTaskIds],
+    () => ({ annotationStrokes, workstationTaskIds, highlightColor, annotationImport }),
+    [annotationStrokes, highlightColor, workstationTaskIds, annotationImport],
   );
   const surfaceActions = useMemo(
     () => ({ updateAnnotationStrokes, updateWorkstationTaskIds, updateHighlightColor }),

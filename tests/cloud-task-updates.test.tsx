@@ -42,7 +42,7 @@ function task(id = 'one'): Task {
   };
 }
 
-/** 每个测试独立缓存和仓储；saveTask 默认挂起，模拟手机上的请求延迟。 */
+/** 每个测试独立缓存和仓储；updateTaskFields 默认挂起，模拟手机上的请求延迟。 */
 function setup(rows = [task()]) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
@@ -51,8 +51,10 @@ function setup(rows = [task()]) {
   const writes: ReturnType<typeof deferred<Task>>[] = [];
   const repository = {
     listTasks: vi.fn(async () => rows),
-    saveTask: vi.fn((_row: Task) => {
-      void _row;
+    updateTaskFields: vi.fn((_id: string, _patch: Partial<Task>, _expected: Task) => {
+      void _id;
+      void _patch;
+      void _expected;
       const request = deferred<Task>();
       writes.push(request);
       return request.promise;
@@ -107,7 +109,10 @@ describe('cloud task save feedback', () => {
     expect(checkbox).toBeChecked();
     await act(async () =>
       ctx.writes[0].resolve({
-        ...ctx.repository.saveTask.mock.calls[0][0],
+        ...{
+          ...ctx.repository.updateTaskFields.mock.calls[0][2],
+          ...ctx.repository.updateTaskFields.mock.calls[0][1],
+        },
         updatedAt: 'server',
       }),
     );
@@ -146,10 +151,9 @@ describe('cloud task save feedback', () => {
     expect(result.current.tasks[0].completed).toBe(false);
     await act(async () => ctx.writes[1].resolve(task()));
     expect(result.current.tasks[0].completed).toBe(false);
-    expect(ctx.repository.saveTask.mock.calls.map(([row]) => row.completed)).toEqual([
-      true,
-      false,
-    ]);
+    expect(
+      ctx.repository.updateTaskFields.mock.calls.map(([, patch]) => patch.completed),
+    ).toEqual([true, false]);
   });
 
   it('does not restore another task when concurrent saves finish out of order', async () => {
@@ -206,6 +210,7 @@ describe('cloud task save feedback', () => {
     await waitFor(() => expect(ctx.writes).toHaveLength(1));
     await act(async () => ctx.writes[0].resolve({ ...task(), completed: true }));
     await waitFor(() => expect(ctx.writes).toHaveLength(2));
+    ctx.repository.listTasks.mockResolvedValue([{ ...task(), completed: true }]);
     await act(async () => ctx.writes[1].reject(new Error('network')));
     expect(result.current.tasks[0].completed).toBe(true);
   });
@@ -237,7 +242,7 @@ describe('cloud task save feedback', () => {
     );
     act(() => result.current.updateTasks([{ ...task(), completed: true }]));
     expect(result.current.tasks[0].completed).toBe(false);
-    expect(ctx.repository.saveTask).not.toHaveBeenCalled();
+    expect(ctx.repository.updateTaskFields).not.toHaveBeenCalled();
     expect(ctx.onError).toHaveBeenCalledWith(expect.stringContaining('离线'));
   });
 
@@ -345,19 +350,25 @@ it('serializes field edits behind a failed command without saving its rejected s
       rows.map((row) => ({ ...row, title: '后续修改' })),
     ),
   );
-  expect(ctx.repository.saveTask).not.toHaveBeenCalled();
+  expect(ctx.repository.updateTaskFields).not.toHaveBeenCalled();
   await act(async () => {
     request.reject(new Error('失败'));
     await failure;
   });
   await waitFor(() => expect(ctx.writes).toHaveLength(1));
-  expect(ctx.repository.saveTask.mock.calls[0][0]).toMatchObject({
+  expect({
+    ...ctx.repository.updateTaskFields.mock.calls[0][2],
+    ...ctx.repository.updateTaskFields.mock.calls[0][1],
+  }).toMatchObject({
     title: '后续修改',
     status: 'waiting',
     date: undefined,
   });
   await act(async () =>
-    ctx.writes[0].resolve(ctx.repository.saveTask.mock.calls[0][0]),
+    ctx.writes[0].resolve({
+      ...ctx.repository.updateTaskFields.mock.calls[0][2],
+      ...ctx.repository.updateTaskFields.mock.calls[0][1],
+    }),
   );
   expect(hook.result.current.tasks[0]).toMatchObject({
     title: '后续修改',
@@ -389,4 +400,32 @@ it('a previous account response cannot clear the current account pending edit', 
   await act(async () => ctx.writes[0].resolve({ ...task(), completed: true }));
   expect(hook.result.current.tasks[0].title).toBe('新账号草稿');
   await act(async () => ctx.writes[1].resolve({ ...task('two'), title: '新账号草稿' }));
+});
+
+it('stops queued writes and ignores a late command failure after switching accounts', async () => {
+  const ctx = setup();
+  const hook = renderHook(
+    ({ owner }) => useCloudTaskUpdates(owner, ctx.repository, ctx.onError),
+    { wrapper: ctx.wrapper, initialProps: { owner: 'owner' } },
+  );
+  const request = deferred<Task>();
+  const operation = vi.fn(() => request.promise);
+  let result!: Promise<unknown>;
+  act(() => {
+    result = hook.result.current
+      .commitTask('one', (row) => row, operation)
+      .catch(() => undefined);
+    hook.result.current.updateTasks((rows) =>
+      rows.map((row) => ({ ...row, title: 'queued' })),
+    );
+  });
+  await waitFor(() => expect(operation).toHaveBeenCalledOnce());
+  hook.rerender({ owner: 'other' });
+  ctx.onError.mockClear();
+  await act(async () => {
+    request.reject(new Error('old session failure'));
+    await result;
+  });
+  expect(ctx.repository.updateTaskFields).not.toHaveBeenCalled();
+  expect(ctx.onError).not.toHaveBeenCalled();
 });

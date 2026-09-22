@@ -32,11 +32,11 @@ function CloudRhythmStateProvider({ children }: { children: ReactNode }) {
     enabled: visible,
     queryKey: key,
     networkMode: 'always',
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!navigator.onLine) throw new Error('当前离线，无法读取记录，请联网后重试');
       const [marks, periods] = await Promise.all([
-        repository.listRhythmMarks(),
-        listPeriods(client),
+        repository.listRhythmMarks(signal),
+        listPeriods(client, signal),
       ]);
       return { marks, periods };
     },

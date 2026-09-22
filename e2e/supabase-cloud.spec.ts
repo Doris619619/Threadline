@@ -90,6 +90,7 @@ test.describe('habits account timezone through real PostgREST', () => {
 
 test('uses local Supabase Auth and persists a task through a real browser session', async ({
   page,
+  browser,
 }) => {
   await page.goto('/');
 
@@ -129,7 +130,7 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
   await page.locator('.waiting-task-main').filter({ hasText: taskTitle }).click();
   const editor = page.getByRole('dialog', { name: '修改待安排事项' });
   await editor.getByRole('textbox', { name: '任务名称' }).fill(`${taskTitle} edited`);
-  await page.route('**/rest/v1/tasks*', async (route) => {
+  await page.route('**/rest/v1/rpc/update_task_fields', async (route) => {
     if (route.request().method() === 'POST') {
       await route.fulfill({
         status: 503,
@@ -145,7 +146,7 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
   await expect(editor.getByRole('textbox', { name: '任务名称' })).toHaveValue(
     `${taskTitle} edited`,
   );
-  await page.unroute('**/rest/v1/tasks*');
+  await page.unroute('**/rest/v1/rpc/update_task_fields');
   await editor.getByRole('button', { name: '保存', exact: true }).click();
   await expect(editor).toBeHidden();
   await page.reload();
@@ -160,8 +161,12 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
   await schedule.getByTitle('保存任务').click();
   const row = schedule.locator('.timeline-row').filter({ hasText: '首次勾选云端回归' });
   await expect(row).toBeVisible();
-  const observer = await page.context().newPage();
-  await observer.goto('/');
+  const observerContext = await browser.newContext({
+    storageState: await page.context().storageState(),
+    serviceWorkers: 'block',
+  });
+  const observer = await observerContext.newPage();
+  await observer.goto(page.url());
   const observerCheck = observer
     .locator('.schedule-panel .timeline-row')
     .filter({ hasText: '首次勾选云端回归' })
@@ -176,7 +181,7 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
   const interceptedWrite = new Promise<void>((resolve) => {
     intercepted = resolve;
   });
-  await page.route('**/rest/v1/tasks*', async (route) => {
+  await page.route('**/rest/v1/rpc/update_task_fields', async (route) => {
     if (route.request().method() === 'POST') {
       intercepted();
       await writeGate;
@@ -201,7 +206,42 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
   await expect(observerCheck).toBeChecked();
   await page.reload();
   await expect(checked).toBeChecked();
-  await observer.close();
+
+  // 行内编辑保留打开时原值；另一设备的同字段修改到达后，旧草稿必须冲突并保持可恢复。
+  await page.unroute('**/rest/v1/rpc/update_task_fields');
+  await row.locator('.task-title').click();
+  const inline = schedule.locator('input.task-title-input');
+  await inline.fill('本机尚未确认的草稿');
+  const observerRow = observer
+    .locator('.schedule-panel .timeline-row')
+    .filter({ hasText: '首次勾选云端回归' });
+  await observerRow.locator('.task-title').click();
+  const remoteInline = observer.locator('.schedule-panel input.task-title-input');
+  await remoteInline.fill('另一设备的新标题');
+  await remoteInline.press('Enter');
+  await expect(
+    observer
+      .locator('.schedule-panel .task-title')
+      .filter({ hasText: '另一设备的新标题' }),
+  ).toBeVisible();
+  // checkbox 的名称使用当前 task，证明本机已经接收远端 render，而非只在服务端发生变化。
+  await expect(
+    schedule.getByRole('checkbox', { name: '完成另一设备的新标题', exact: true }),
+  ).toBeVisible();
+  await inline.press('Enter');
+  await expect(schedule.getByRole('alert')).toContainText('其他设备修改');
+  await expect(inline).toHaveValue('本机尚未确认的草稿');
+  await expect(
+    page.getByText('保存冲突，查看保留草稿：本机尚未确认的草稿', { exact: true }),
+  ).toBeVisible();
+  await observer.reload();
+  await expect(
+    observer
+      .locator('.schedule-panel .task-title')
+      .filter({ hasText: '另一设备的新标题' }),
+  ).toBeVisible();
+  await inline.press('Escape');
+  await observerContext.close();
   await page.setViewportSize({ width: 1280, height: 720 });
 
   await page.getByRole('button', { name: '设置', exact: true }).click();

@@ -40,6 +40,7 @@ export function useDailyExecution(
   const [error, setError] = useState<string>();
   const current = useRef(draft);
   const saved = useRef(JSON.stringify(daily));
+  const [accepted, setAccepted] = useState(daily);
   const pending = useRef<Promise<void> | null>(null);
 
   // 只接纳干净实例的云端刷新，不覆盖尚未提交或失败的输入。
@@ -48,8 +49,13 @@ export function useDailyExecution(
     if (!dirty && !saving) {
       const fresh = createDraft(daily);
       setDraft(fresh);
+      setAccepted(daily);
     }
   }
+
+  useLayoutEffect(() => {
+    saved.current = JSON.stringify(accepted);
+  }, [accepted]);
 
   /** 布局提交后同步云端新草稿，避免在 React render 中修改 ref。 */
   useLayoutEffect(() => {

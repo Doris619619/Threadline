@@ -17,7 +17,13 @@ export async function fetchWithRecoveryDeadline(
     init?.method ?? (input instanceof Request ? input.method : 'GET')
   ).toUpperCase();
   const url = new URL(input instanceof Request ? input.url : String(input));
-  if (method !== 'GET' && method !== 'HEAD' && !url.pathname.startsWith('/auth/v1/'))
+  const initialization = url.pathname === '/rest/v1/rpc/initialize_workspace';
+  if (
+    method !== 'GET' &&
+    method !== 'HEAD' &&
+    !url.pathname.startsWith('/auth/v1/') &&
+    !initialization
+  )
     return trackedCloudFetch(input, init);
   const callerSignal =
     init?.signal ?? (input instanceof Request ? input.signal : undefined);

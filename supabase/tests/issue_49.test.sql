@@ -1,0 +1,47 @@
+-- 文件用途：在隔离回滚事务中验证 Issue 49 的字段冲突、账本、工作站意图、收尾规则和账号边界。
+begin;
+create extension if not exists pgtap with schema extensions;
+select no_plan();
+insert into auth.users(id,email) values ('49000000-0000-0000-0000-000000000001','issue49-a@example.test'), ('49000000-0000-0000-0000-000000000002','issue49-b@example.test');
+select ok(not has_function_privilege('anon','public.update_task_fields(uuid,jsonb,jsonb)','EXECUTE'), 'Anonymous cannot patch tasks');
+select ok(not has_function_privilege('anon','public.apply_workstation_command(text,uuid[],uuid,uuid,boolean)','EXECUTE'), 'Anonymous cannot change memberships');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','49000000-0000-0000-0000-000000000001',true);
+select public.initialize_workspace();
+insert into public.tasks(id,project_id,title,scheduled_date,status,actual_duration_minutes)
+select id, (select id from public.projects where is_fallback limit 1), 'original', current_date, 'active', 30
+from unnest(array['49000000-0000-0000-0001-000000000001'::uuid,'49000000-0000-0000-0001-000000000002'::uuid,'49000000-0000-0000-0001-000000000003'::uuid]) id;
+select public.update_task_fields('49000000-0000-0000-0001-000000000001','{"completed":true}',jsonb_build_object('status','active','scheduled_date',current_date,'deleted_at',null,'completed',false));
+select lives_ok($test$select public.update_task_fields('49000000-0000-0000-0001-000000000001','{"title":"edited"}',jsonb_build_object('status','active','scheduled_date',current_date,'deleted_at',null,'title','original'))$test$, 'Stale title form preserves remote completion');
+select ok((select completed and completed_at is not null from public.tasks where id='49000000-0000-0000-0001-000000000001'),'Completion and server timestamp preserved');
+select is((select sum(minutes) from public.task_time_entries where task_id='49000000-0000-0000-0001-000000000001'),30::bigint,'Title and completion do not rewrite actual ledger');
+select throws_ok($test$select public.update_task_fields('49000000-0000-0000-0001-000000000001','{"title":"overwritten"}',jsonb_build_object('status','active','scheduled_date',current_date,'deleted_at',null,'title','original'))$test$,'40001','TASK_FIELD_CONFLICT:title','Same field conflict is rejected');
+select throws_ok($test$select public.update_task_fields('49000000-0000-0000-0001-000000000001','{"owner_id":null}',jsonb_build_object('status','active','scheduled_date',current_date,'deleted_at',null,'owner_id',null))$test$,'22023','INVALID_TASK_FIELD','Owner cannot be patched');
+select public.update_task_fields('49000000-0000-0000-0001-000000000001','{"actual_duration_minutes":40}',jsonb_build_object('status','active','scheduled_date',current_date,'deleted_at',null,'actual_duration_minutes',30,'project_id',(select project_id from public.tasks where id='49000000-0000-0000-0001-000000000001')));
+select is((select sum(minutes) from public.task_time_entries where task_id='49000000-0000-0000-0001-000000000001'),40::bigint,'Actual changes continue through ledger trigger');
+select throws_ok($test$select public.update_task_fields('49000000-0000-0000-0001-000000000001','{"actual_duration_minutes":45}',jsonb_build_object('status','active','scheduled_date',current_date - 1,'deleted_at',null,'actual_duration_minutes',40,'project_id',(select project_id from public.tasks where id='49000000-0000-0000-0001-000000000001')))$test$,'40001','TASK_FIELD_CONFLICT:scheduled_date','Stale accounting date rejected');
+select public.apply_workstation_command('add','{}','49000000-0000-0000-0001-000000000001');
+select public.apply_workstation_command('add','{}','49000000-0000-0000-0001-000000000002');
+select public.apply_workstation_command('add','{}','49000000-0000-0000-0001-000000000003');
+select public.apply_workstation_command('add','{}','49000000-0000-0000-0001-000000000003');
+select is((select count(*) from public.workstation_entries where removed_at is null),3::bigint,'Concurrent-style additions and repeated add preserve all members');
+select public.apply_workstation_command('clear',array['49000000-0000-0000-0001-000000000001'::uuid]);
+select is((select count(*) from public.workstation_entries where removed_at is null),2::bigint,'Clear only removes visible snapshot');
+select public.apply_workstation_command('move','{}','49000000-0000-0000-0001-000000000003','49000000-0000-0000-0001-000000000002',false);
+select is((select task_id from public.workstation_entries where removed_at is null order by position limit 1),'49000000-0000-0000-0001-000000000003'::uuid,'Move places task at anchor');
+select throws_ok($test$select public.apply_workstation_command('move','{}','49000000-0000-0000-0001-000000000003','49000000-0000-0000-0001-000000000001',false)$test$,'40001','WORKSTATION_ANCHOR_CHANGED','Missing anchor requests retry');
+select throws_ok($test$select public.close_day_checked(current_date,jsonb_build_array(jsonb_build_object('task_id','49000000-0000-0000-0001-000000000002','action','waiting'),jsonb_build_object('task_id','49000000-0000-0000-0001-000000000003','action','date','target_date',current_date-1)),'{}','UTC')$test$,'22023','INVALID_TARGET_DATE','Past close target rejects entire transaction');
+select is((select status from public.tasks where id='49000000-0000-0000-0001-000000000002'),'active','Earlier action rolled back');
+select is((select count(*) from public.daily_close_records),0::bigint,'Invalid close leaves no close record');
+select throws_ok($test$select public.close_day_checked(current_date,jsonb_build_array(jsonb_build_object('task_id','49000000-0000-0000-0001-000000000002','action','date','target_date',current_date)),'{}','UTC')$test$,'22023','INVALID_TARGET_DATE','Same source date rejected');
+select throws_ok($test$select public.close_day_checked(current_date,'[]','{}','Asia/Shanghai')$test$,'40001','ACCOUNT_TIMEZONE_CHANGED','Outdated timezone rejected');
+select lives_ok($test$select public.close_day(current_date,'[]','{}')$test$,'Legacy signature uses explicit UTC fallback');
+select public.transition_task('49000000-0000-0000-0001-000000000003','trashed',null);
+select is((select count(*) from public.workstation_entries where task_id='49000000-0000-0000-0001-000000000003' and removed_at is null),0::bigint,'Trash atomically removes membership');
+select throws_ok($test$select public.update_task_fields('49000000-0000-0000-0001-000000000003','{"title":"resurrect"}',jsonb_build_object('status','active','scheduled_date',current_date,'deleted_at',null,'title','original'))$test$,'P0002','TASK_NOT_FOUND','Old edit cannot resurrect trashed task');
+select set_config('request.jwt.claim.sub','49000000-0000-0000-0000-000000000002',true);
+select throws_ok($test$select public.update_task_fields('49000000-0000-0000-0001-000000000001','{"title":"foreign"}','{}')$test$,'P0002','TASK_NOT_FOUND','Cross-account patch denied');
+select throws_ok($test$select public.apply_workstation_command('add','{}','49000000-0000-0000-0001-000000000001')$test$,'P0002','ACTIVE_TASK_NOT_FOUND','Cross-account membership denied');
+select is((select count(*) from public.tasks),0::bigint,'RLS preserves account isolation');
+select * from finish();
+rollback;

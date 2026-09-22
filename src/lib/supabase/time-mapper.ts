@@ -47,7 +47,11 @@ export function fromDatabaseWallTime(value: string | null): string | undefined {
 /** 校验 datetime-local 值并保持 timestamp without time zone，不附加时区。 */
 export function toDatabaseLocalDateTime(value: string | undefined): string | null {
   if (value === undefined) return null;
-  if (!localDateTimePattern.test(value) || !isRealDate(value.slice(0, 10)) || !isRealTime(value.slice(11)))
+  if (
+    !localDateTimePattern.test(value) ||
+    !isRealDate(value.slice(0, 10)) ||
+    !isRealTime(value.slice(11))
+  )
     throw new Error(`Invalid local datetime: ${value}`);
   return value.length === 16 ? `${value}:00` : value;
 }
@@ -64,4 +68,10 @@ export function fromDatabaseInstant(value: string | null): string | undefined {
   if (!Number.isFinite(date.getTime()))
     throw new Error(`Invalid timestamptz: ${value}`);
   return date.toISOString();
+}
+
+/** 校验并原样保留数据库并发令牌；Date 只用于校验，不能截掉 PostgreSQL 微秒。 */
+export function fromDatabaseVersionInstant(value: string | null): string | undefined {
+  fromDatabaseInstant(value);
+  return value ?? undefined;
 }

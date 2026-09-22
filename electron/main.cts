@@ -75,6 +75,7 @@ let entryWindowShown = false;
 let desktopStateInitialized = false;
 let startupWatchdog: ReturnType<typeof setTimeout> | undefined;
 let stateRevision = 0;
+let windowIntent = 0;
 const stateAcknowledgements = new Map<number, () => void>();
 let suppressGeometryUntil = 0;
 let userGeometryTimer: ReturnType<typeof setTimeout> | undefined;
@@ -400,10 +401,34 @@ function revealMain(): void {
   }
 }
 
+/** 迟到操作只返回当前状态，不得重放旧尺寸或重新隐藏登录窗口。 */
+function currentNativeResult(requestId = 0): NativeApplyResult {
+  return {
+    requestId,
+    stateRevision,
+    mode: latestState.mode,
+    presentation: latestState.presentation,
+    geometry: resolveNativeBounds(
+      latestState.mode,
+      latestState.windowStates[latestState.mode],
+    ),
+    visibleSurface:
+      edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()
+        ? 'edge'
+        : 'main',
+    fallback: false,
+  };
+}
+
 /** 以 Main 为最终安全 surface；仅在 Main 可见后才销毁已故障的 Edge。 */
-async function ensureVisibleSurface(reason: string): Promise<NativeApplyResult> {
+async function ensureVisibleSurface(
+  reason: string,
+  intent = ++windowIntent,
+): Promise<NativeApplyResult> {
+  if (intent !== windowIntent || isQuitting) return currentNativeResult();
   if (!mainWindow || mainWindow.isDestroyed()) await createMainWindow();
-  const mode = 'workstation';
+  if (intent !== windowIntent || isQuitting) return currentNativeResult();
+  const mode = latestState.mode === 'full' ? 'full' : 'workstation';
   const geometry = resolveNativeBounds(mode, latestState.windowStates[mode]);
   latestState = {
     ...latestState,
@@ -413,11 +438,13 @@ async function ensureVisibleSurface(reason: string): Promise<NativeApplyResult> 
   stateRevision += 1;
   applyMainNativeState(mode, geometry);
   await waitForMainReadyToShow();
+  if (intent !== windowIntent || isQuitting) return currentNativeResult();
   try {
     await publishCanonicalState(geometry, 'main', 'recovery', reason);
   } catch {
     // Renderer 无响应时仍需显示 Main，确保至少一个 surface 可见。
   }
+  if (intent !== windowIntent || isQuitting) return currentNativeResult();
   revealMain();
   if (edgeWindow && !edgeWindow.isDestroyed()) {
     intentionallyClosingEdge = true;
@@ -438,7 +465,7 @@ async function ensureVisibleSurface(reason: string): Promise<NativeApplyResult> 
 
 /** 将 Edge 的非主动关闭、渲染失败或显示器变化安全回退到可见 Main。 */
 function recoverFromEdgeFailure(reason: string): void {
-  if (isQuitting) return;
+  if (isQuitting || latestState.presentation !== 'edge-collapsed') return;
   void ensureVisibleSurface(reason).catch(exitAfterStartupFailure);
 }
 
@@ -492,7 +519,8 @@ function recoverFromMainFailure(reason: string): void {
 }
 
 /** 加载并 reveal 固定尺寸 Edge；失败由调用方回退 Main。 */
-async function revealEdge(): Promise<void> {
+async function revealEdge(intent: number): Promise<void> {
+  if (intent !== windowIntent || isQuitting) return;
   if (!edgeWindow || edgeWindow.isDestroyed()) {
     edgeWindow = createWindow('edge-tab', {
       frame: false,
@@ -540,9 +568,12 @@ async function revealEdge(): Promise<void> {
         rejectReady(new Error('Edge closed before reveal'));
       });
     });
-    await window.loadURL(getRendererUrl('edge-tab'));
-    await edgeReady;
+    // 同时订阅 ready 与 load 失败，避免销毁时留下未处理拒绝。
+    await Promise.all([window.loadURL(getRendererUrl('edge-tab')), edgeReady]);
+    if (intent !== windowIntent || isQuitting) return;
   }
+  if (intent !== windowIntent || isQuitting || !edgeWindow || edgeWindow.isDestroyed())
+    return;
   const mainBounds =
     mainWindow && !mainWindow.isDestroyed()
       ? readFramelessGeometry(mainWindow)
@@ -566,6 +597,7 @@ async function revealEdge(): Promise<void> {
 async function reconcileDisplayState(reason: string): Promise<void> {
   if (reconcilingDisplays || isQuitting) return;
   reconcilingDisplays = true;
+  const intent = ++windowIntent;
   try {
     const mode = latestState.mode;
     const geometry = resolveNativeBounds(mode, latestState.windowStates[mode]);
@@ -602,6 +634,7 @@ async function reconcileDisplayState(reason: string): Promise<void> {
     }
     applyMainNativeState(mode, geometry);
     await waitForMainReadyToShow();
+    if (intent !== windowIntent || isQuitting) return;
     try {
       await publishCanonicalState(geometry, 'main', 'recovery', reason);
     } catch {
@@ -613,7 +646,7 @@ async function reconcileDisplayState(reason: string): Promise<void> {
         edgeWindow.isVisible()
       )
         return;
-      await ensureVisibleSurface('display-state-sync-timeout');
+      await ensureVisibleSurface('display-state-sync-timeout', intent);
     }
   } finally {
     reconcilingDisplays = false;
@@ -668,6 +701,8 @@ async function applyDesktopState(
     | 'second-instance'
     | 'recovery' = 'renderer-command',
 ): Promise<NativeApplyResult> {
+  const intent = ++windowIntent;
+  if (isQuitting) return currentNativeResult(payload.requestId);
   const mode =
     payload.presentation === 'edge-collapsed' && payload.mode === 'full'
       ? 'workstation'
@@ -692,7 +727,9 @@ async function applyDesktopState(
   applyMainNativeState(mode, geometry);
   if (wantsEdge) {
     try {
-      await revealEdge();
+      await revealEdge(intent);
+      if (intent !== windowIntent || isQuitting)
+        return currentNativeResult(payload.requestId);
       return {
         requestId: payload.requestId,
         stateRevision,
@@ -704,17 +741,21 @@ async function applyDesktopState(
         reason: fallbackReason,
       };
     } catch {
-      return ensureVisibleSurface('edge-startup-failed');
+      return ensureVisibleSurface('edge-startup-failed', intent);
     }
   }
   await waitForMainReadyToShow();
+  if (intent !== windowIntent || isQuitting)
+    return currentNativeResult(payload.requestId);
   if (origin !== 'renderer-command') {
     try {
       await publishCanonicalState(geometry, 'main', origin, fallbackReason);
     } catch {
-      return ensureVisibleSurface('renderer-state-sync-timeout');
+      return ensureVisibleSurface('renderer-state-sync-timeout', intent);
     }
   }
+  if (intent !== windowIntent || isQuitting)
+    return currentNativeResult(payload.requestId);
   revealMain();
   return {
     requestId: payload.requestId,
@@ -781,6 +822,10 @@ function registerDesktopIpc(): void {
     if (!isTrustedSender(event, 'main')) throw new Error('Rejected entry sender');
     if (purpose !== 'startup' && purpose !== 'authentication')
       throw new Error('Rejected entry purpose');
+    if (purpose === 'authentication') {
+      windowIntent++;
+      stateRevision++;
+    }
     // 启动层迟到的 effect 不能覆盖已经选择的工作站尺寸或收起状态。
     if (!mainWindow) return;
     if (purpose === 'startup' && (entryWindowShown || desktopStateInitialized)) return;
@@ -868,6 +913,7 @@ function registerDesktopIpc(): void {
     if (!isTrustedSender(event, 'main'))
       throw new Error('Rejected desktop close sender');
     // Edge 可能隐藏但仍存在；只 close Main 会让 window-all-closed 永远不触发并留下后台进程。
+    windowIntent++;
     isQuitting = true;
     app.quit();
   });
@@ -1035,6 +1081,7 @@ function bootstrapApplication(): void {
   });
 
   app.on('before-quit', () => {
+    windowIntent++;
     isQuitting = true;
   });
 

@@ -18,10 +18,16 @@ export function useTaskDashboardController({
   updateAnnotationStrokes,
   updateTasks,
   updateWorkstationTaskIds,
+  runWorkstationCommand,
+  workstationTaskIds,
   transitionTask,
   ...dataInput
 }: DataInput & {
   interactionLocked: boolean;
+  workstationTaskIds: string[];
+  runWorkstationCommand?: (
+    command: import('@/lib/workstation-command').WorkstationCommand,
+  ) => void;
   updateAnnotationStrokes: React.Dispatch<React.SetStateAction<AnnotationStroke[]>>;
   updateTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   updateWorkstationTaskIds: React.Dispatch<React.SetStateAction<string[]>>;
@@ -40,7 +46,11 @@ export function useTaskDashboardController({
     updateWorkstationTaskIds,
     transitionTask,
   });
-  const workstation = useWorkstationMembership(updateWorkstationTaskIds);
+  const workstation = useWorkstationMembership(
+    updateWorkstationTaskIds,
+    workstationTaskIds,
+    runWorkstationCommand,
+  );
   const resize = useScheduleResize();
   const [autoFocusTimeTaskId, setAutoFocusTimeTaskId] = useState<string | null>(null);
 

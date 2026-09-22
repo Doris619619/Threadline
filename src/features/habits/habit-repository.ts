@@ -1,4 +1,5 @@
 /** @fileoverview 习惯 Supabase 仓储：范围读取、RPC 写入与可恢复错误，不进入任务仓储。 */
+import { readAllRows } from '@/lib/supabase/pagination';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   HabitData,
@@ -53,23 +54,12 @@ export async function listHabitData(
   if (signal) settingsQuery.abortSignal(signal);
   /** 各表独立读取，表内分页顺序不变；避免每次进入等待三次网络往返。 */
   const readRows = async (table: 'habit_rule_versions' | 'habit_entries') => {
-    const rows: (HabitRule | HabitEntry)[] = [];
-    for (let offset = 0; ; offset += 500) {
-      let query = client
-        .from(table)
-        .select('*')
-        .eq('owner_id', owner)
-        .order('id')
-        .range(offset, offset + 499);
-      if (table === 'habit_entries')
-        query = query.gte('business_date', start).lte('business_date', end);
-      if (signal) query = query.abortSignal(signal);
-      const result = await query;
-      checkHabitError(result.error);
-      rows.push(...(result.data as (HabitRule | HabitEntry)[]));
-      if (result.data!.length < 500) break;
-    }
-    return rows;
+    return (await readAllRows(client, table, {
+      owner,
+      signal,
+      range:
+        table === 'habit_entries' ? { column: 'business_date', start, end } : undefined,
+    })) as unknown as (HabitRule | HabitEntry)[];
   };
   const [settingsResult, ruleRows, entryRows] = await Promise.all([
     settingsQuery.maybeSingle(),

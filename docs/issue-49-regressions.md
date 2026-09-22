@@ -1,0 +1,56 @@
+<!-- 文件用途：逐项记录 Issue 49 的修复契约、测试证据、数据库发布次序与实机验收边界。 -->
+# Issue 49 修复与验证记录
+
+基线：`main a748abf`。最初交付范围为修复、验证与 PR；完成复审后，用户授权合并并发布 0.1.9。生产迁移已先行执行并核验权限，客户端发布与实机验收分别追踪，自动化结果不等于真机验收完成。
+
+| 问题 | 实现契约 | 回归位置 |
+| --- | --- | --- |
+| N01 分页 | 全表按唯一 ID 升序分页，每页最多 500，直到空页；失败不返回部分集合，恢复业务排序，转发取消信号 | `issue-49-pagination.test.ts`、`habit-repository.test.ts` |
+| N02 批注隔离 | 环境及账号 v3 空间；仅确认任务归属后自动迁移，其余在设置中主动导入；保留 v1/v2，来源身份去重，原子保存笔迹及凭据 | `issue-49-annotations.test.tsx` |
+| N03 Daily | 干净远端记录同时更新草稿和确认基准；脏草稿和串行 flush 保留 | `issue-49-inputs.test.tsx`、既有 Daily 测试 |
+| N04 删除确认 | 删除 RPC 确认后清理笔迹；对账仅用确认集合，缺失 ID 按账号补查；失败保留原笔迹 | `issue-49-workspace-provider.test.tsx`、`issue-49-inputs.test.tsx`、`task-workflow.test.tsx`、`issue_49.test.sql` |
+| N05 耗时 | 空值、有效数值与非法输入分开；有限非负整数，上限 2147483647；非法输入不提交且显示错误 | `issue-49-inputs.test.tsx`、`task-time.test.ts`、`task-create-and-edit.test.tsx` |
+| N06 输入法 | 组合状态、isComposing、229 均阻止 Enter 快捷提交；普通 Enter 保留 | `issue-49-inputs.test.tsx`；Windows/iPhone 实机待验 |
+| N07 工作站 | 原子加入、移除、清空可见 ID、移动到锚点；账号锁、失败读回、取消旧账号队列 | `issue-49-commands.test.tsx`、`cloud-interaction-feedback.test.tsx`、`issue_49.test.sql` |
+| N08 PWA | Next 静态 chunk cache-first；固定 URL 图片字体 network-first，缓存存在时最多等 5 秒；拒绝 HTML 资产，只清理自有缓存 | `service-worker.test.ts`、`e2e/issue-49-worker.spec.ts` |
+| N09 字段冲突 | 创建 insert；编辑只提交差异并比较原字段，检查日期/状态/删除及账本归属；恢复走独立命令，共享任务队列 | `issue-49-commands.test.tsx`、`cloud-task-updates.test.tsx`、`issue_49.test.sql` |
+| N10 收尾日期 | 服务端账号时区为准，拒绝过去、原日期和过期时区；历史收尾默认今天，事务整体回滚 | `issue_49.test.sql`、`issue-49-close-day.test.tsx`、既有 close-day 测试 |
+| K01 后台失败 | 本会话首次就绪后不重新遮挡，保留缓存、显示非阻塞错误与重试 | `issue-49-workspace-provider.test.tsx`、`issue-49-startup.test.tsx` |
+| K02 时区错误 | 显式账号时区阶段及重试；首次引导仍优先显示 | `issue-49-startup.test.tsx`、`threadline-startup-screen.test.tsx` |
+| K03 窗口竞态 | 原生意图序号；异步结束检查是否仍有效，迟到回退只返回当前状态 | `scripts/test-electron-login-race.mjs`，纳入真实 Electron smoke |
+| K04 初始化超时 | initialize_workspace 20 秒网络 deadline，覆盖响应体；退出与重试取消旧请求，人工阶段重试 | `cloud-recovery-deadline.test.ts` |
+
+## 数据与兼容保护
+
+PR 复审追加的四条边界均确认成立，首批正确行为用例在原实现上全部失败：
+
+| 复审问题 | 修复契约 | 回归位置 |
+| --- | --- | --- |
+| R1 恢复时间精度 | `deletedAt` 保留数据库微秒原文；精确冲突校验不变 | `issue-49-review-regressions.test.tsx`；真实仓储 → PostgREST 恢复与一微秒变化拒绝 |
+| R2 冲突后排队覆盖 | 冲突使旧队列失效，保留最后草稿；读取确认值不自动授权重试 | Hook 延迟 Promise、排队命令、读回失败、账号切换与草稿展示 |
+| R3 行内基准漂移 | 进入编辑时固定 original；实际字段差异保存，失败保留输入，Enter/blur 去重 | TaskLine 远端重渲染；真实双浏览器同字段冲突与持久化检查 |
+| R4 工作站回包截断 | 写命令一次，成功后只读分页，完整成功才发布 | SDK 分页；真实 `max_rows=1000` 下 1001 成员加入与排序 |
+
+本轮不改数据库签名、迁移或生产数据；最终验证状态以 PR 对应提交的 CI 为准。
+
+先部署向前迁移 `202609220001_issue_49_data_safety.sql`，验证新 RPC 的权限和行为，再更新 Web/PWA/Electron 客户端。新客户端遇到缺失接口会明确报错，不退回整行写入。旧 RPC 保留兼容入口；旧客户端仍可能继续自身整行写入逻辑，应安排客户端升级。
+
+不重写旧迁移，不回填或重算历史任务、Daily 快照、历史账本。任务更新仍通过原触发器。工作站清空只针对点击时可见 ID，保留其他设备新成员。排序锚点消失要求重试。
+
+批注源 v1/v2 不删除；v3 以环境及账号分隔。v1/v2 共存时按原笔迹 ID 去重，优先保留 v2 已迁移的固定日期，不把旧 today 笔迹重新分配到导入当天。导入无法确认归属的任务笔迹时，保留画布与内容并解除不可信任务绑定，避免立即被当前账号对账删除。导入凭据与笔迹一次性持久化，存储失败提示错误并保留源数据。失败的新笔迹保留在当前会话草稿中，外部存储通知不会抹掉草稿；设置页可重试保存。多标签页支持 Web Locks 时串行合并差异。
+
+分页不是数据库快照。任务未出现在集合中时必须完成账号限定的身份补查后再判定不存在；任何读取失败都保留关联笔迹。初始化超时不表示服务端未提交，只有已验证幂等的初始化允许用户重试；其他业务写入没有新增自动重试。
+
+## 验证记录
+
+- 原实现的 N03/N04/N05/N06 四项正确行为测试先失败；修复后通过。其余问题保留 Issue #49 的审计证据并补正式回归。
+- 本地首轮完整测试：79 文件 / 388 用例通过；之后增加真实 Provider、存储失败恢复和旧会话队列回归。最终完整测试计数与覆盖率记录在 PR #50 的验证区，以对应提交的 CI 为准。
+- 本地 lint、typecheck、Electron compile、SQL 静态契约和真实 Electron 登录竞态测试通过。
+- 提交 `5d8c213` 的 CI 已通过 Supabase 静态检查、数据库 lint、pgTAP、真实 PostgREST 集成和隔离账号浏览器测试；Windows Electron 开发壳、打包构建及 EXE smoke 通过；preview-demo 通过。
+- PWA 两版同 URL、离线回退、哈希脚本及缓存命名空间测试，在桌面和手机尺寸 Chromium 通过；首次引导四主题回归同样通过。网络响应体挂起另有假时钟回归。
+- WebKit 项目选择器冷启动的三次导航在 CI 超过原 30 秒总时限；单独设置 60 秒总时限，断言时限和重复三次的门禁保持不变。主题可访问性检查等待真实 CSS 过渡结束后取最终颜色，不使用固定 sleep 或失败重试。
+- 本机 Docker Desktop 启动失败：Inference manager 无法访问 dockerInference socket。未重置 Docker 或删除用户环境；真实数据库验证交给 CI 的隔离本地 Supabase。
+- 必须保持 CI 的 supabase、web、preview-demo、windows-electron 四项，不移除旧测试、不降低覆盖率、不加无条件重试。
+- [ ] Windows 中文输入法实机候选确认、连续输入与失焦。
+- [ ] 真 iPhone 中文输入、PWA 更新后在线/离线恢复。
+- [ ] 生产迁移与客户端更新后的人工验收；本 PR 不执行此步骤。
