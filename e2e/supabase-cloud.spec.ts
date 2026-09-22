@@ -206,6 +206,41 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
   await expect(observerCheck).toBeChecked();
   await page.reload();
   await expect(checked).toBeChecked();
+
+  // 行内编辑保留打开时原值；另一设备的同字段修改到达后，旧草稿必须冲突并保持可恢复。
+  await page.unroute('**/rest/v1/rpc/update_task_fields');
+  await row.locator('.task-title').click();
+  const inline = schedule.locator('input.task-title-input');
+  await inline.fill('本机尚未确认的草稿');
+  const observerRow = observer
+    .locator('.schedule-panel .timeline-row')
+    .filter({ hasText: '首次勾选云端回归' });
+  await observerRow.locator('.task-title').click();
+  const remoteInline = observer.locator('.schedule-panel input.task-title-input');
+  await remoteInline.fill('另一设备的新标题');
+  await remoteInline.press('Enter');
+  await expect(
+    observer
+      .locator('.schedule-panel .task-title')
+      .filter({ hasText: '另一设备的新标题' }),
+  ).toBeVisible();
+  // checkbox 的名称使用当前 task，证明本机已经接收远端 render，而非只在服务端发生变化。
+  await expect(
+    schedule.getByRole('checkbox', { name: '完成另一设备的新标题', exact: true }),
+  ).toBeVisible();
+  await inline.press('Enter');
+  await expect(schedule.getByRole('alert')).toContainText('其他设备修改');
+  await expect(inline).toHaveValue('本机尚未确认的草稿');
+  await expect(
+    page.getByText('保存冲突，查看保留草稿：本机尚未确认的草稿', { exact: true }),
+  ).toBeVisible();
+  await observer.reload();
+  await expect(
+    observer
+      .locator('.schedule-panel .task-title')
+      .filter({ hasText: '另一设备的新标题' }),
+  ).toBeVisible();
+  await inline.press('Escape');
   await observerContext.close();
   await page.setViewportSize({ width: 1280, height: 720 });
 

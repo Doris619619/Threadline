@@ -1,5 +1,6 @@
 /** @fileoverview 通过真实 PostgREST 并发请求验证字段 CAS、工作站锁、删除确认与收尾回滚。 */
 import assert from 'node:assert/strict';
+import { testIssue49Review } from './test-issue49-review-integration.mjs';
 
 /** 只使用 runner 已建立的一次性账号和本地数据库，不读取生产连接。 */
 export async function testIssue49Commands(owner, foreign, project) {
@@ -112,4 +113,5 @@ export async function testIssue49Commands(owner, foreign, project) {
     p_after: true,
   });
   assert.equal(missingAnchor.error?.code, '40001');
+  await testIssue49Review(owner, project);
 }

@@ -3,6 +3,7 @@
  */
 
 import type { TaskPatch } from '@/lib/task-patch';
+import { TaskConflictError } from '@/lib/task-patch';
 import type { WorkstationCommand } from '@/lib/workstation-command';
 import { readAllRows } from './pagination';
 import { validatePlanningDate } from '@/lib/task-rules';
@@ -12,6 +13,7 @@ import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 import { isDailyCompleted } from '@/features/daily/daily-rules';
 import {
   fromDatabaseInstant,
+  fromDatabaseVersionInstant,
   fromDatabaseWallTime,
   toDatabaseDate,
   toDatabaseWallTime,
@@ -36,6 +38,8 @@ function assertResponse<T>(
   operation: string,
   response: { data: T | null; error: { message: string } | null },
 ): T {
+  if (response.error?.message.includes('TASK_FIELD_CONFLICT'))
+    throw new TaskConflictError();
   if (response.error) throw new Error(`${operation}: ${response.error.message}`);
   if (response.data === null) throw new Error(`${operation}: empty response`);
   return response.data;
@@ -83,7 +87,7 @@ function mapTask(row: JsonRecord): Task {
     postponedFrom: (row.postponed_from as string | null) ?? undefined,
     postponedTo: (row.postponed_to as string | null) ?? undefined,
     abandonedAt: fromDatabaseInstant((row.abandoned_at as string | null) ?? null),
-    deletedAt: fromDatabaseInstant((row.deleted_at as string | null) ?? null),
+    deletedAt: fromDatabaseVersionInstant((row.deleted_at as string | null) ?? null),
     createdAt: fromDatabaseInstant(String(row.created_at)) ?? String(row.created_at),
     updatedAt: fromDatabaseInstant(String(row.updated_at)) ?? String(row.updated_at),
   };
@@ -359,12 +363,10 @@ export class SupabaseWorkspaceRepository {
       p_changes: patch,
       p_expected: guard,
     });
-    if (response.error?.message.includes('TASK_FIELD_CONFLICT'))
-      throw new Error('任务已在其他设备修改，请重新查看后保存。草稿已保留。');
     return mapTask(assertResponse('update task fields', response) as JsonRecord);
   }
 
-  /** 工作站命令只提交指定成员或排序锚点，返回服务端真实集合。 */
+  /** 写命令只执行一次；SETOF 回包可能受 max_rows 截断，成功后分页读取完整集合。 */
   async applyWorkstationCommand(command: WorkstationCommand): Promise<string[]> {
     const response = await this.client.rpc('apply_workstation_command', {
       p_command: command.type,
@@ -373,9 +375,8 @@ export class SupabaseWorkspaceRepository {
       p_anchor_id: command.type === 'move' ? command.anchor : null,
       p_after: command.type === 'move' ? command.after : false,
     });
-    return (assertResponse('workstation command', response) as JsonRecord[]).map(
-      (row) => String(row.task_id),
-    );
+    assertResponse('workstation command', response);
+    return this.listWorkstationTaskIds();
   }
 
   /** 通过事务命令完成 task transition、history 和 trash workstation 副作用。 */

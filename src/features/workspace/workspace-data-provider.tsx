@@ -32,6 +32,7 @@ import { useCloudWorkstation } from '@/features/workspace/use-cloud-workstation'
 import { createCloudTask } from '@/features/workspace/create-cloud-task';
 import { createWorkspaceRealtimeRefresh } from './workspace-realtime-refresh';
 import { useCloudTaskUpdates } from '@/features/workspace/use-cloud-task-updates';
+import { TaskConflictDrafts } from '@/features/workspace/task-conflict-drafts';
 import { usesLocalWorkspace } from '@/lib/workspace-runtime';
 import { useAnnotationStrokes } from '@/hooks/use-annotation-strokes';
 import { usePersistentState } from '@/hooks/use-persistent-state';
@@ -96,6 +97,8 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     updateTasks,
     commitTask,
     saveTaskConfirmed,
+    conflictedDrafts,
+    dismissConflict,
   } = useCloudTaskUpdates(ownerKey, repository, setMutationError);
   const confirmedTaskIds = useMemo(
     () => (tasksQuery.data ?? []).map((task) => task.id),
@@ -846,23 +849,31 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
         commands,
       }}
       notice={
-        (mutationError ||
-          annotationImport.error ||
-          queryError ||
-          startupProgress?.realtime.status === 'failed') && (
-          <p className="workspace-sync-error" role="alert">
-            {mutationError ??
-              annotationImport.error ??
-              (queryError instanceof Error ? queryError.message : undefined) ??
-              startupProgress?.realtime.message ??
-              '云工作区载入失败'}
-            {queryError && (
-              <button type="button" onClick={() => void invalidateWorkspace()}>
-                重试同步
-              </button>
-            )}
-          </p>
-        )
+        <>
+          <TaskConflictDrafts
+            drafts={conflictedDrafts}
+            tasks={tasksQuery.data ?? []}
+            projects={projects}
+            onDismiss={dismissConflict}
+          />
+          {(mutationError ||
+            annotationImport.error ||
+            queryError ||
+            startupProgress?.realtime.status === 'failed') && (
+            <p className="workspace-sync-error" role="alert">
+              {mutationError ??
+                annotationImport.error ??
+                (queryError instanceof Error ? queryError.message : undefined) ??
+                startupProgress?.realtime.message ??
+                '云工作区载入失败'}
+              {queryError && (
+                <button type="button" onClick={() => void invalidateWorkspace()}>
+                  重试同步
+                </button>
+              )}
+            </p>
+          )}
+        </>
       }
     >
       {children}

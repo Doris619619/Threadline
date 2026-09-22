@@ -6,7 +6,7 @@
 
 import { compositionHandlers, isComposingInput } from '@/lib/composition-input';
 import { Check, Plus, X } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useGuardedAction } from '@/hooks/use-guarded-action';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ProjectTag } from '@/components/ui/project-tag';
@@ -49,7 +49,7 @@ export function TaskLine({
   onToggleWorkstation,
 }: {
   task: Task;
-  onUpdate: (t: Task) => void;
+  onUpdate: (t: Task, original?: Task) => void | Promise<unknown>;
   onEdit: () => void;
   onMove: (id: string, s: TaskStatus) => void;
   onReschedule: () => void;
@@ -73,17 +73,32 @@ export function TaskLine({
   const timed = inSchedulePanel || Boolean(task.plannedStartTime);
   const canDrag = draggable && !interactionLocked;
   const canChangeWorkflow = !task.completed;
-  const [editingField, setEditingField] = useState<
+  const [editingField, setEditingFieldState] = useState<
     'time' | 'project' | 'title' | 'planned' | 'actual' | undefined
   >();
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [timeError, setTimeError] = useState<string>();
+  const [saveError, setSaveError] = useState<string>();
+  const [saving, setSaving] = useState(false);
+  const [editingOriginal, setEditingOriginal] = useState<Task>();
   const projectPickerRef = useRef<HTMLButtonElement>(null);
   const projectAction = useGuardedAction();
   const latestTask = useRef(task);
   const submittedEdit = useRef(false);
-  useLayoutEffect(() => { submittedEdit.current = false; }, [editingField]);
+  const editSession = useRef(0);
+  /** 开始编辑时固定原值；远端刷新不改变当前输入会话的并发基准。 */
+  const setEditingField = useCallback((field: typeof editingField) => {
+    editSession.current += 1;
+    setEditingOriginal(field ? latestTask.current : undefined);
+    setSaveError(undefined);
+    setSaving(false);
+    setTimeError(undefined);
+    setEditingFieldState(field);
+  }, []);
+  useLayoutEffect(() => {
+    submittedEdit.current = false;
+  }, [editingField]);
   useLayoutEffect(() => {
     latestTask.current = task;
   }, [task]);
@@ -95,7 +110,32 @@ export function TaskLine({
       onTimeFocused?.();
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [autoFocusTime, onTimeFocused]);
+  }, [autoFocusTime, onTimeFocused, setEditingField]);
+
+  /** Enter 与失焦只提交一次，异步失败保留输入和原始基准，迟到结果不关闭新编辑。 */
+  const submitEdit = async (changes: Partial<Task>) => {
+    if (submittedEdit.current || !editingOriginal) return false;
+    submittedEdit.current = true;
+    setSaving(true);
+    const session = editSession.current;
+    setSaveError(undefined);
+    try {
+      const result = onUpdate(
+        { ...editingOriginal, ...changes, updatedAt: new Date().toISOString() },
+        editingOriginal,
+      );
+      if (result) await result;
+      if (session === editSession.current) setEditingField(undefined);
+      return true;
+    } catch (error) {
+      if (session === editSession.current) {
+        setSaving(false);
+        submittedEdit.current = false;
+        setSaveError(error instanceof Error ? error.message : '保存失败，请重试。');
+      }
+      return false;
+    }
+  };
 
   /** 根据名称创建项目并写回当前任务归属。 */
   const handleCreateProject = () =>
@@ -103,11 +143,7 @@ export function TaskLine({
       if (!newProjectName.trim() || !onAddProject) return;
       const created = await onAddProject(newProjectName.trim());
       if (created) {
-        onUpdate({
-          ...latestTask.current,
-          projectId: created.id,
-          updatedAt: new Date().toISOString(),
-        });
+        if (!(await submitEdit({ projectId: created.id }))) return;
       }
       setNewProjectName('');
       setIsAddingProject(false);
@@ -129,31 +165,25 @@ export function TaskLine({
       return;
     }
     setTimeError(undefined);
-    submittedEdit.current = true;
-    onUpdate({
-      ...task,
+    void submitEdit({
       plannedStartTime: start,
       plannedEndTime: end,
-      plannedDurationMinutes: duration ?? task.plannedDurationMinutes,
+      plannedDurationMinutes: duration ?? editingOriginal?.plannedDurationMinutes,
       schedulePendingTime: start ? false : true,
       updatedAt: new Date().toISOString(),
     });
-    setEditingField(undefined);
   };
 
   /** 保存标题；空串或未变化则只退出编辑。 */
   const saveTitle = (input: string) => {
     if (submittedEdit.current) return;
     const trimmed = input.trim();
-    submittedEdit.current = true;
-    if (trimmed && trimmed !== task.title) {
-      onUpdate({
-        ...task,
-        title: trimmed,
-        updatedAt: new Date().toISOString(),
-      });
+    if (trimmed && trimmed !== editingOriginal?.title)
+      void submitEdit({ title: trimmed });
+    else {
+      submittedEdit.current = true;
+      setEditingField(undefined);
     }
-    setEditingField(undefined);
   };
 
   /** 解析并写入预计时长。 */
@@ -167,13 +197,10 @@ export function TaskLine({
       return;
     }
     setTimeError(undefined);
-    submittedEdit.current = true;
-    onUpdate({
-      ...task,
+    void submitEdit({
       plannedDurationMinutes: duration,
       updatedAt: new Date().toISOString(),
     });
-    setEditingField(undefined);
   };
 
   /** 解析并写入实际时长。 */
@@ -187,13 +214,10 @@ export function TaskLine({
       return;
     }
     setTimeError(undefined);
-    submittedEdit.current = true;
-    onUpdate({
-      ...task,
+    void submitEdit({
       actualDurationMinutes: duration,
       updatedAt: new Date().toISOString(),
     });
-    setEditingField(undefined);
   };
 
   const timeDisplay = task.plannedStartTime
@@ -212,6 +236,7 @@ export function TaskLine({
           {...compositionHandlers}
           className="tl-inline-input timeline-time-input timeline-time"
           defaultValue={timeDisplay}
+          readOnly={saving}
           placeholder="08:30"
           autoFocus
           draggable={false}
@@ -219,7 +244,10 @@ export function TaskLine({
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !isComposingInput(e))
               saveTime(e.currentTarget.value);
-            if (e.key === 'Escape') { submittedEdit.current = true; setEditingField(undefined); }
+            if (e.key === 'Escape') {
+              submittedEdit.current = true;
+              setEditingField(undefined);
+            }
           }}
           onBlur={(e) => saveTime(e.currentTarget.value)}
         />
@@ -252,6 +280,7 @@ export function TaskLine({
       <input
         {...compositionHandlers}
         className="tl-inline-input task-duration-input task-duration task-duration-planned"
+        readOnly={saving}
         defaultValue={
           task.plannedDurationMinutes !== undefined
             ? String(task.plannedDurationMinutes)
@@ -264,7 +293,10 @@ export function TaskLine({
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !isComposingInput(e))
             savePlanned(e.currentTarget.value);
-          if (e.key === 'Escape') { submittedEdit.current = true; setEditingField(undefined); }
+          if (e.key === 'Escape') {
+            submittedEdit.current = true;
+            setEditingField(undefined);
+          }
         }}
         onBlur={(e) => savePlanned(e.currentTarget.value)}
       />
@@ -300,6 +332,7 @@ export function TaskLine({
       <input
         {...compositionHandlers}
         className="tl-inline-input task-duration-input task-duration task-duration-actual"
+        readOnly={saving}
         defaultValue={
           task.actualDurationMinutes !== undefined
             ? `${task.actualDurationMinutes}min`
@@ -310,7 +343,10 @@ export function TaskLine({
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !isComposingInput(e))
             saveActual(e.currentTarget.value);
-          if (e.key === 'Escape') { submittedEdit.current = true; setEditingField(undefined); }
+          if (e.key === 'Escape') {
+            submittedEdit.current = true;
+            setEditingField(undefined);
+          }
         }}
         onBlur={(e) => saveActual(e.currentTarget.value)}
       />
@@ -358,19 +394,14 @@ export function TaskLine({
               .map((p) => (
                 <button
                   key={p.id}
-                  disabled={projectAction.busy}
+                  disabled={projectAction.busy || saving}
                   type="button"
                   className={cn(
                     'project-picker-item',
                     p.id === task.projectId && 'is-selected',
                   )}
                   onClick={() => {
-                    onUpdate({
-                      ...task,
-                      projectId: p.id,
-                      updatedAt: new Date().toISOString(),
-                    });
-                    setEditingField(undefined);
+                    void submitEdit({ projectId: p.id });
                   }}
                 >
                   <ProjectTag name={p.name} color={p.color} />
@@ -498,12 +529,16 @@ export function TaskLine({
           <input
             {...compositionHandlers}
             className="tl-inline-input task-title-input task-title"
+            readOnly={saving}
             defaultValue={task.title}
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !isComposingInput(e))
                 saveTitle(e.currentTarget.value);
-              if (e.key === 'Escape') { submittedEdit.current = true; setEditingField(undefined); }
+              if (e.key === 'Escape') {
+                submittedEdit.current = true;
+                setEditingField(undefined);
+              }
             }}
             onBlur={(e) => saveTitle(e.currentTarget.value)}
           />
@@ -514,6 +549,13 @@ export function TaskLine({
             title={task.title}
           >
             {task.title}
+          </span>
+        )}
+
+        {saving && <span role="status">保存中…</span>}
+        {saveError && (
+          <span role="alert" className="timeline-inline-error">
+            {saveError}
           </span>
         )}
 

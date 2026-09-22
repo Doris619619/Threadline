@@ -11,7 +11,12 @@ import {
 import { isCancelledError, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SupabaseWorkspaceRepository } from '@/lib/supabase/workspace-repository';
 import type { Task } from '@/types/domain';
-import { taskFieldChanges } from '@/lib/task-patch';
+import {
+  isTaskConflict,
+  TaskConflictError,
+  taskFieldChanges,
+  type TaskConflictDraft,
+} from '@/lib/task-patch';
 import { beginCloudWrite } from '@/lib/cloud-write-guard';
 
 type TaskRepository = Pick<
@@ -19,6 +24,8 @@ type TaskRepository = Pick<
   'listTasks' | 'restoreTask' | 'updateTaskFields' | 'listTaskTimeEntries'
 >;
 type PendingTask = {
+  original: Task | undefined;
+  blocked?: boolean;
   latest: Task;
   confirmed: Task | undefined;
   tail: Promise<void>;
@@ -45,12 +52,14 @@ export function useCloudTaskUpdates(
       key: ['workspace', ownerKey, 'tasks'],
       repository,
       pending: new Map<string, PendingTask>(),
+      conflicts: new Map<string, TaskConflictDraft>(),
     }),
     [ownerKey, repository],
   );
   const [optimistic, setOptimistic] = useState<{
     scope: typeof scope;
     rows: Map<string, Task>;
+    conflicts: TaskConflictDraft[];
   }>();
   const activeScope = useRef<typeof scope | undefined>(scope);
   useLayoutEffect(() => {
@@ -78,8 +87,31 @@ export function useCloudTaskUpdates(
     setOptimistic({
       scope,
       rows: new Map([...scope.pending].map(([id, entry]) => [id, entry.latest])),
+      conflicts: [...scope.conflicts.values()],
     });
   }, [scope]);
+
+  /** 已冲突的这一轮队列永不自动恢复；保留最后草稿供用户查看，新的编辑另建基准。 */
+  const stopConflictedQueue = useCallback(
+    (entry: PendingTask) => {
+      entry.blocked = true;
+      if (entry.original)
+        scope.conflicts.set(entry.latest.id, {
+          original: entry.original,
+          draft: entry.latest,
+        });
+    },
+    [scope],
+  );
+
+  /** 只在用户主动处理完草稿后移除提示，不执行任何远端写入。 */
+  const dismissConflict = useCallback(
+    (id: string) => {
+      scope.conflicts.delete(id);
+      publishPending();
+    },
+    [publishPending, scope],
+  );
 
   /** 已提交的任务不受账本读取失败影响；实际投入仍只使用服务器账本。 */
   const refreshTimeEntries = useCallback(async () => {
@@ -104,6 +136,7 @@ export function useCloudTaskUpdates(
   /** 只回写当前任务，避免较早的整表快照覆盖其他任务；失败恢复最后一次已确认值。 */
   const save = useCallback(
     async (task: Task, previous: Task | undefined, entry: PendingTask) => {
+      if (entry.blocked) return;
       let committed = false;
       try {
         if (activeScope.current !== scope) return;
@@ -118,6 +151,7 @@ export function useCloudTaskUpdates(
         committed = true;
       } catch (error) {
         if (activeScope.current !== scope) return;
+        if (isTaskConflict(error)) stopConflictedQueue(entry);
         try {
           entry.confirmed = (await repository.listTasks()).find(
             (row) => row.id === task.id,
@@ -133,7 +167,8 @@ export function useCloudTaskUpdates(
       if (activeScope.current !== scope) return;
       await queryClient.cancelQueries({ queryKey: scope.key, exact: true });
       if (activeScope.current !== scope) return;
-      if (entry.latest === task) {
+      if (entry.latest === task || entry.blocked) {
+        if (entry.blocked) stopConflictedQueue(entry);
         const confirmed = entry.confirmed;
         queryClient.setQueryData<Task[]>(scope.key, (current = []) =>
           confirmed
@@ -145,7 +180,15 @@ export function useCloudTaskUpdates(
       }
       if (committed) void refreshTimeEntries();
     },
-    [onError, publishPending, queryClient, refreshTimeEntries, repository, scope],
+    [
+      onError,
+      publishPending,
+      queryClient,
+      refreshTimeEntries,
+      repository,
+      scope,
+      stopConflictedQueue,
+    ],
   );
 
   /** 离线立即拒绝；在线合并缓存与待保存意图后计算更新，不丢失连续点击。 */
@@ -173,6 +216,7 @@ export function useCloudTaskUpdates(
           return;
         }
         const entry = scope.pending.get(task.id) ?? {
+          original: previous,
           latest: task,
           confirmed: previous,
           tail: Promise.resolve(),
@@ -194,6 +238,7 @@ export function useCloudTaskUpdates(
       taskId: string,
       preview: (task: Task) => Task,
       operation: (confirmed: Task) => Promise<Task>,
+      original?: Task,
     ) => {
       if (!navigator.onLine) return Promise.reject(new Error('当前离线，任务未保存。'));
       const previous =
@@ -203,6 +248,7 @@ export function useCloudTaskUpdates(
       const next = preview(previous);
       const endWrite = beginCloudWrite();
       const entry = scope.pending.get(taskId) ?? {
+        original: original ?? previous,
         latest: next,
         confirmed: previous,
         tail: Promise.resolve(),
@@ -212,6 +258,10 @@ export function useCloudTaskUpdates(
       onError(undefined);
       publishPending();
       const result = entry.tail.then(async () => {
+        if (entry.blocked) {
+          endWrite();
+          throw new TaskConflictError();
+        }
         try {
           if (activeScope.current !== scope || !entry.confirmed)
             throw new Error('账号会话已改变，请重新操作。');
@@ -220,6 +270,7 @@ export function useCloudTaskUpdates(
           return saved;
         } catch (error) {
           if (activeScope.current === scope) {
+            if (isTaskConflict(error)) stopConflictedQueue(entry);
             try {
               entry.confirmed = (await repository.listTasks()).find(
                 (row) => row.id === taskId,
@@ -233,10 +284,16 @@ export function useCloudTaskUpdates(
           throw error;
         } finally {
           await queryClient.cancelQueries({ queryKey: scope.key, exact: true });
-          if (activeScope.current === scope && entry.latest === next) {
+          if (
+            activeScope.current === scope &&
+            (entry.latest === next || entry.blocked)
+          ) {
+            if (entry.blocked) stopConflictedQueue(entry);
             const confirmed = entry.confirmed;
             queryClient.setQueryData<Task[]>(scope.key, (rows = []) =>
-              confirmed ? overlayTasks(rows, new Map([[taskId, confirmed]])) : rows,
+              confirmed
+                ? overlayTasks(rows, new Map([[taskId, confirmed]]))
+                : rows.filter((row) => row.id !== taskId),
             );
             scope.pending.delete(taskId);
             publishPending();
@@ -244,14 +301,14 @@ export function useCloudTaskUpdates(
           endWrite();
         }
       });
-      // 调用者仍收到失败，队列本身保持可继续执行，下一次编辑可以重试。
+      // 调用者仍收到失败；字段冲突通过 entry.blocked 拒绝这一轮尚未发送的命令。
       entry.tail = result.then(
         () => undefined,
         () => undefined,
       );
       return result;
     },
-    [onError, publishPending, queryClient, repository, scope],
+    [onError, publishPending, queryClient, repository, scope, stopConflictedQueue],
   );
 
   /** 表单保留打开时基准，冲突由调用者展示且不关闭草稿；与行内和流转共用队列。 */
@@ -267,9 +324,18 @@ export function useCloudTaskUpdates(
         task.id,
         (current) => ({ ...current, ...patch }),
         () => repository.updateTaskFields(task.id, patch, previous),
+        previous,
       );
     },
     [commitTask, queryClient, repository, scope],
   );
-  return { query, tasks, updateTasks, commitTask, saveTaskConfirmed };
+  return {
+    query,
+    tasks,
+    updateTasks,
+    commitTask,
+    saveTaskConfirmed,
+    dismissConflict,
+    conflictedDrafts: optimistic?.scope === scope ? optimistic.conflicts : [],
+  };
 }

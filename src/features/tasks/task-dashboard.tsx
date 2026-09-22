@@ -160,7 +160,7 @@ export function TaskDashboard() {
     timed,
     toggleWorkstationTask,
     tomorrow,
-    updateTask: update,
+    updateTask: updateImmediate,
   } = useTaskDashboardController({
     closeRecords,
     dailyByDate,
@@ -178,6 +178,10 @@ export function TaskDashboard() {
     workstationTaskIds,
     transitionTask,
   });
+
+  /** 行内编辑传入打开时的快照并等待确认；完成切换保留即时反馈。 */
+  const update = (task: Task, original?: Task) =>
+    original ? saveTaskConfirmed(task, original) : updateImmediate(task);
 
   const { createProjectDirectly, createWaitingTask, createTimedTask, saveTask } =
     useTaskCreateAndEdit({

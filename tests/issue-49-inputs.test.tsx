@@ -111,5 +111,8 @@ it('N06 does not submit a title during IME composition', () => {
   fireEvent.change(input, { target: { value: '中文' } });
   fireEvent.keyDown(input, { key: 'Enter' });
   expect(onUpdate).toHaveBeenCalledOnce();
-  expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ title: '中文' }));
+  expect(onUpdate).toHaveBeenCalledWith(
+    expect.objectContaining({ title: '中文' }),
+    task,
+  );
 });
