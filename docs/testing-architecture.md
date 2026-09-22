@@ -62,3 +62,5 @@ PR CI 分为 `supabase`、`web`、`windows-electron` 三个 job。`supabase` 先
 `issue-49-*` 测试覆盖分页、账号批注、输入、命令和真实时区 Provider；原审计断言改为正确行为断言。`supabase/tests/issue_49.test.sql` 检查冲突、RLS、账本及事务回滚。真实 Service Worker 测试运行同源两版资源；Electron smoke 使用受控 Edge 加载闸门覆盖登录竞态。实机输入法与 iPhone 验收单列，不以合成事件或 WebKit 代替。最终证据记录于 [逐项矩阵](issue-49-regressions.md)。
 
 复审回归 `issue-49-review-regressions.test.tsx` 使用真实 SDK/仓储映射与 Hook/TaskLine，覆盖微秒恢复、冲突停止队列、保留草稿和行内编辑基准。四个首批用例在修复前均失败。`test-issue49-review-integration.mjs` 编译正式 TypeScript 仓储，在本地 PostgREST 上测试 `.123456` 正常恢复、仅差一微秒拒绝，以及 1001 成员加入/排序；同时断言裸查询仍被截为 1000，防止宽松配置掩盖问题。双隔离浏览器场景验证远端标题已经渲染后提交旧行内草稿仍报冲突，刷新远端页面确认未被覆盖。
+
+行内拒绝保存用例使用异步 `act` 等待 Promise 拒绝及 React 提交后再断言错误和输入；只等待写接口被调用会在繁忙的 CI 环境提前检查 DOM。保持原断言和时限，不使用固定 sleep 或失败重试。

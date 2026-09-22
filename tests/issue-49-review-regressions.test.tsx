@@ -227,7 +227,8 @@ it('R3 keeps the inline edit original across a remote render and retains a rejec
   const input = screen.getByRole('textbox');
   fireEvent.change(input, { target: { value: 'local draft' } });
   view.rerender(<TaskLine task={{ ...original, title: 'remote-new' }} {...props} />);
-  fireEvent.keyDown(input, { key: 'Enter' });
+  // 等待保存 Promise 拒绝及 React 提交；仅观察 onUpdate 被调用不足以证明错误已渲染。
+  await act(async () => fireEvent.keyDown(input, { key: 'Enter' }));
   await waitFor(() =>
     expect(onUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'local draft' }),
