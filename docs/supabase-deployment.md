@@ -111,3 +111,7 @@ Electron Renderer 只接收同一组三个公开变量。`desktop:preview`、`de
 | Physical phone acceptance completed | Pending HTTPS deployment     | 同账号 PC + 真机 iPhone PWA 双向同步记录                  |
 
 没有可访问的 HTTPS Production URL 时，不能把 hosted PC + phone acceptance 写成通过。Supabase 数据同步通过也不能替代 PWA 安装、Service Worker、移动布局和真机 Realtime 验收。
+
+## Issue 49 接口部署顺序
+
+先执行向前迁移 `202609220001_issue_49_data_safety.sql` 并验证 RLS/权限，再发布客户端。新增 update_task_fields、restore_task、apply_workstation_command 和 close_day_checked；旧签名保留。新客户端缺少迁移时报错，不退回不安全整行写入。旧版客户端仍可能存在整行覆盖风险，需更新。迁移不重写历史或清理生产数据；本修复任务不执行生产迁移。

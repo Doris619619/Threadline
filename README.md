@@ -102,3 +102,7 @@ pnpm dev
 ---
 
 [版本记录](https://github.com/Doris619619/Threadline/releases) · [反馈问题](https://github.com/Doris619619/Threadline/issues)
+
+## Issue 49 数据安全修复
+
+批注按环境及账号保存在本机；旧版无归属笔迹可在「设置 → 数据与同步」主动导入当前账号，源数据保留。任务编辑按字段校验冲突，工作站清空只移除点击时看到的成员。数据库需先迁移后更新客户端，详见 [逐项修复与验收记录](docs/issue-49-regressions.md)。

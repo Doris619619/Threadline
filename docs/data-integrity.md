@@ -41,3 +41,7 @@ Daily 完全不属于 Project。旧记录可保留 `legacy_project_id` snapshot 
 项目归档只从 active 选择器中隐藏，任务与历史仍保留。删除使用 `soft_delete_project`：fallback 项目禁止归档/删除但可修改名称和颜色；被删除项目的所有当前 task（包括回收站）原子改派到 fallback 项目，确保恢复后不会重新引用隐藏项目；`task_time_entries`、History snapshot 和旧 Daily snapshot 绝不重写，因此历史项目统计继续准确。云端项目读取自动排除 `deleted_at` 非空的行，刷新后不会重新出现。
 
 任务完成或重新打开由数据库触发器在同一事务附加正式 history event。
+
+## Issue 49 补充
+
+全量集合用 ID 游标读至空页，失败不发布半份集合。批注缺失任务先按账号补查；只有确认 trashed 或补查成功且不存在才清理。任务字段补丁锁行比较预期值，耗时同时检查项目、原日期和累计值，保留既有账本触发器。工作站命令在账号锁中执行，清空使用可见 ID 快照。详见 [修复矩阵](issue-49-regressions.md)。

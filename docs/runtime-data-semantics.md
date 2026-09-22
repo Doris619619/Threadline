@@ -55,3 +55,7 @@ Daily 完全不属于 Project，旧 `legacy_project_id` 只用于历史兼容，
 任务进入 `trashed` 时立即清除本设备关联 stroke。设备重连后用 owner 的 authoritative all-task identity set 对账：task 已是 trashed 或已被 30 天物理 purge 时删除 stroke；绝不能用单日或单状态局部查询判断“不存在”。
 
 规划使用普通任务的当前日期与完成状态，不使用投入热力口径；改期以账号选择的 IANA 时区校验今天及未来目标，三参数旧入口按 UTC 兼容。历史与投入账本保持原归属。
+
+## Issue 49 会话与写入语义
+
+创建任务使用 insert，编辑只提交实际字段差异；表单保留打开时原值，同字段冲突保留草稿。任务编辑与流转共享任务队列，退出后旧队列停止新请求。首次完整加载与后台同步分离；账号时区是可重试的启动阶段。initialize_workspace 的 20 秒 deadline 覆盖响应体，人工重试不能据超时推断服务端没有提交。详见 [修复与兼容边界](issue-49-regressions.md)。

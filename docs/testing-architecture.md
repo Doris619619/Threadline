@@ -56,3 +56,7 @@ local adapter 的首开与交互回归刷新统一等待 `.dashboard` 就绪，�
 PR CI 分为 `supabase`、`web`、`windows-electron` 三个 job。`supabase` 先启动 local Supabase，再运行数据库、Node integration 和真实 Chromium browser integration；`web` 执行 lint、typecheck、coverage、Web build 与 adapter E2E；`windows-electron` 顺序执行开发壳行为、package-dir 和 packaged EXE smoke。
 
 `desktop:verify:parity` 会构建 Preview 和 canonical package-dir 两份 unpacked app，成本不适合常规 PR，因此只在 tag/manual release workflow 的发布前 job 执行，并使用隔离 local adapter。NSIS 安装/卸载没有可靠、独立的 CI harness；它保持 release-tier 人工验收，不能被误写为 PR gate 已覆盖。
+
+## Issue 49 回归
+
+`issue-49-*` 测试覆盖分页、账号批注、输入、命令和真实时区 Provider；原审计断言改为正确行为断言。`supabase/tests/issue_49.test.sql` 检查冲突、RLS、账本及事务回滚。真实 Service Worker 测试运行同源两版资源；Electron smoke 使用受控 Edge 加载闸门覆盖登录竞态。实机输入法与 iPhone 验收单列，不以合成事件或 WebKit 代替。最终证据记录于 [逐项矩阵](issue-49-regressions.md)。
