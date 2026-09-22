@@ -1,6 +1,7 @@
 /** @fileoverview 用真实注册的 Service Worker 和同源两版资源验证更新、离线回退及缓存命名空间。 */
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
+import { resolve, sep } from 'node:path';
 import { expect, test } from '@playwright/test';
 
 test('N08 refreshes stable assets while preserving hashed chunks and unrelated caches', async ({
@@ -8,7 +9,8 @@ test('N08 refreshes stable assets while preserving hashed chunks and unrelated c
 }) => {
   let version = 1;
   const worker = await readFile('public/sw.js', 'utf8');
-  const server = createServer((request, response) => {
+  const publicRoot = resolve('public');
+  const server = createServer(async (request, response) => {
     response.setHeader('Cache-Control', 'no-store');
     if (request.url === '/sw.js') {
       response.setHeader('Content-Type', 'text/javascript');
@@ -28,8 +30,15 @@ test('N08 refreshes stable assets while preserving hashed chunks and unrelated c
       response.setHeader('Content-Type', 'text/html');
       response.end('<!doctype html><title>Worker test</title>');
     } else {
-      response.statusCode = 404;
-      response.end('missing');
+      // 安装阶段使用真实壳资源，避免测试把正常预缓存退化成大量 404。
+      const path = resolve(publicRoot, `.${request.url}`);
+      try {
+        if (!path.startsWith(`${publicRoot}${sep}`)) throw new Error('Invalid path');
+        response.end(await readFile(path));
+      } catch {
+        response.statusCode = 404;
+        response.end('missing');
+      }
     }
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -66,6 +75,8 @@ test('N08 refreshes stable assets while preserving hashed chunks and unrelated c
       .toContain('version-1');
     await page.addScriptTag({ url: '/_next/static/chunks/123456abcdef.js' });
     version = 2;
+    // 新文档触发同 URL 请求，避免同一文档的已解码 Image 内存复用绕过网络与 SW。
+    await page.reload();
     await image();
     await expect
       .poll(() => page.evaluate(async () => (await caches.match('/icon.svg'))?.text()))
@@ -77,6 +88,7 @@ test('N08 refreshes stable assets while preserving hashed chunks and unrelated c
       ),
     ).toBe(1);
     await context.setOffline(true);
+    await page.reload();
     await image();
     expect(
       await page.evaluate(async () => (await caches.match('/icon.svg'))?.text()),

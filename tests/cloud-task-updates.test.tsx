@@ -401,3 +401,31 @@ it('a previous account response cannot clear the current account pending edit', 
   expect(hook.result.current.tasks[0].title).toBe('新账号草稿');
   await act(async () => ctx.writes[1].resolve({ ...task('two'), title: '新账号草稿' }));
 });
+
+it('stops queued writes and ignores a late command failure after switching accounts', async () => {
+  const ctx = setup();
+  const hook = renderHook(
+    ({ owner }) => useCloudTaskUpdates(owner, ctx.repository, ctx.onError),
+    { wrapper: ctx.wrapper, initialProps: { owner: 'owner' } },
+  );
+  const request = deferred<Task>();
+  const operation = vi.fn(() => request.promise);
+  let result!: Promise<unknown>;
+  act(() => {
+    result = hook.result.current
+      .commitTask('one', (row) => row, operation)
+      .catch(() => undefined);
+    hook.result.current.updateTasks((rows) =>
+      rows.map((row) => ({ ...row, title: 'queued' })),
+    );
+  });
+  await waitFor(() => expect(operation).toHaveBeenCalledOnce());
+  hook.rerender({ owner: 'other' });
+  ctx.onError.mockClear();
+  await act(async () => {
+    request.reject(new Error('old session failure'));
+    await result;
+  });
+  expect(ctx.repository.updateTaskFields).not.toHaveBeenCalled();
+  expect(ctx.onError).not.toHaveBeenCalled();
+});

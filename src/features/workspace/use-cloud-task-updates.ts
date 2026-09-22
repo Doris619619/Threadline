@@ -88,17 +88,18 @@ export function useCloudTaskUpdates(
         queryKey: ['workspace', ownerKey, 'task-time-entries'],
         exact: true,
       });
+      if (activeScope.current !== scope) return;
       await queryClient.fetchQuery({
         queryKey: ['workspace', ownerKey, 'task-time-entries'],
         queryFn: ({ signal }) => repository.listTaskTimeEntries(signal),
         staleTime: 0,
       });
     } catch (error) {
-      if (!isCancelledError(error)) {
+      if (activeScope.current === scope && !isCancelledError(error)) {
         onError('任务已保存，但耗时同步失败，请刷新后重试。');
       }
     }
-  }, [onError, ownerKey, queryClient, repository]);
+  }, [onError, ownerKey, queryClient, repository, scope]);
 
   /** 只回写当前任务，避免较早的整表快照覆盖其他任务；失败恢复最后一次已确认值。 */
   const save = useCallback(
@@ -124,12 +125,14 @@ export function useCloudTaskUpdates(
         } catch {
           /* 读取失败保留最后确认值，下一次操作仍由字段冲突保护。 */
         }
+        if (activeScope.current !== scope) return;
         onError(
           `任务保存失败，请重试：${error instanceof Error ? error.message : '云端写入失败'}`,
         );
       }
       if (activeScope.current !== scope) return;
       await queryClient.cancelQueries({ queryKey: scope.key, exact: true });
+      if (activeScope.current !== scope) return;
       if (entry.latest === task) {
         const confirmed = entry.confirmed;
         queryClient.setQueryData<Task[]>(scope.key, (current = []) =>
@@ -148,6 +151,7 @@ export function useCloudTaskUpdates(
   /** 离线立即拒绝；在线合并缓存与待保存意图后计算更新，不丢失连续点击。 */
   const updateTasks = useCallback(
     (action: SetStateAction<Task[]>) => {
+      if (activeScope.current !== scope) return;
       if (!navigator.onLine) {
         onError('当前离线，任务未保存，请联网后重试。');
         return;
@@ -224,7 +228,8 @@ export function useCloudTaskUpdates(
               /* 失败保留确认状态。 */
             }
           }
-          onError(error instanceof Error ? error.message : '任务操作失败，请重试。');
+          if (activeScope.current === scope)
+            onError(error instanceof Error ? error.message : '任务操作失败，请重试。');
           throw error;
         } finally {
           await queryClient.cancelQueries({ queryKey: scope.key, exact: true });

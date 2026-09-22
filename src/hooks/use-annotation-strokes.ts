@@ -21,6 +21,7 @@ export type AnnotationImport = {
   count: number;
   error?: string;
   importLegacy: () => Promise<void>;
+  retry: () => Promise<void>;
 };
 const emptyIds: string[] = [];
 /** 旧会话的异步锁等待和补查结果不得写入新会话；跨标签页仅应用本次实际差异。 */
@@ -34,7 +35,11 @@ export function useAnnotationStrokes(
   AnnotationImport,
 ] {
   const scope = useMemo(
-    () => ({ key: annotationAccountKey(owner), active: false }),
+    () => ({
+      key: annotationAccountKey(owner),
+      active: false,
+      pending: new Map<symbol, (strokes: AnnotationStroke[]) => AnnotationStroke[]>(),
+    }),
     [owner],
   );
   const [state, setState] = useState<{
@@ -51,15 +56,20 @@ export function useAnnotationStrokes(
     if (!scope.active) return;
     try {
       const document = readAnnotationDocument(scope.key);
-      current.current = document.strokes;
-      setState({
+      const visible = [...scope.pending.values()].reduce(
+        (strokes, apply) => apply(strokes),
+        document.strokes,
+      );
+      current.current = visible;
+      setState((previous) => ({
         scope,
-        strokes: document.strokes,
+        strokes: visible,
+        error: scope.pending.size ? previous?.error : undefined,
         hydrated: true,
         count: readLegacyAnnotations().filter(
           (item) => !document.imported.includes(item.source),
         ).length,
-      });
+      }));
     } catch (error) {
       setState((previous) => ({
         scope,
@@ -115,6 +125,31 @@ export function useAnnotationStrokes(
   useEffect(() => {
     if (allowed.size) void importLegacy(false);
   }, [allowed, importLegacy]);
+  /** 失败差异留在本会话内，外部刷新不会抹掉草稿；用户可在存储恢复后重试。 */
+  const retry = useCallback(async () => {
+    let saved: symbol[] = [];
+    try {
+      await changeAnnotationDocument(
+        scope.key,
+        () => scope.active,
+        (document) => {
+          const pending = [...scope.pending];
+          saved = pending.map(([key]) => key);
+          return {
+            ...document,
+            strokes: pending.reduce(
+              (strokes, [, apply]) => apply(strokes),
+              document.strokes,
+            ),
+          };
+        },
+      );
+      for (const key of saved) scope.pending.delete(key);
+      refresh();
+    } catch (error) {
+      fail(error);
+    }
+  }, [fail, refresh, scope]);
   const update = useCallback<Dispatch<SetStateAction<AnnotationStroke[]>>>(
     (action) => {
       if (!scope.active) return;
@@ -138,25 +173,16 @@ export function useAnnotationStrokes(
         hydrated: true,
         count: value?.count ?? 0,
       }));
-      void changeAnnotationDocument(
-        scope.key,
-        () => scope.active,
-        (document) => ({
-          ...document,
-          strokes: [
-            ...document.strokes.filter(
-              (stroke) =>
-                !removed.has(stroke.id) &&
-                !changed.some((item) => item.id === stroke.id),
-            ),
-            ...changed,
-          ],
-        }),
-      )
-        .then(refresh)
-        .catch(fail);
+      scope.pending.set(Symbol(), (strokes) => [
+        ...strokes.filter(
+          (stroke) =>
+            !removed.has(stroke.id) && !changed.some((item) => item.id === stroke.id),
+        ),
+        ...changed,
+      ]);
+      void retry();
     },
-    [fail, refresh, scope],
+    [retry, scope],
   );
   return [
     state?.scope === scope ? state.strokes : [],
@@ -166,6 +192,7 @@ export function useAnnotationStrokes(
       count: state?.scope === scope ? state.count : 0,
       error: state?.scope === scope ? state.error : undefined,
       importLegacy,
+      retry,
     },
   ];
 }

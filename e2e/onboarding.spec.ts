@@ -53,6 +53,18 @@ test('first-run choices persist, hide rhythm and fill schedule estimates', async
           'rgb(255, 253, 247)',
         );
       }
+      // 等主题颜色过渡完成再测静态对比度，不把动画中间色当成最终主题颜色。
+      await page.locator('.onboarding-card').evaluate(async (card) => {
+        await Promise.all(
+          card
+            .getAnimations({ subtree: true })
+            .filter(
+              (animation) =>
+                animation.effect?.getComputedTiming().iterations !== Infinity,
+            )
+            .map((animation) => animation.finished.catch(() => undefined)),
+        );
+      });
       const violations = (
         await new AxeBuilder({ page }).include('.onboarding-card').analyze()
       ).violations.filter((issue) =>

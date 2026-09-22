@@ -103,8 +103,11 @@ async function freshAsset(event) {
   const controller = new AbortController();
   let timer;
   const network = fetch(event.request, { signal: controller.signal }).then(
-    (response) => {
+    async (response) => {
       if (!validAsset(response)) throw new Error('Invalid asset response');
+      // 已有回退资源时，五秒限时也覆盖响应体，不能仅收到响应头就撤销限时。
+      if (cached) await response.clone().arrayBuffer();
+      if (controller.signal.aborted) return cached;
       cacheResponse(event, response);
       return response;
     },

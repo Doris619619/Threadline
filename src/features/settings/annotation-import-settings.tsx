@@ -20,7 +20,14 @@ export function AnnotationImportSettings() {
       >
         导入旧批注到当前账号
       </button>
-      {annotationImport.error && <p role="alert">{annotationImport.error}</p>}
+      {annotationImport.error && (
+        <>
+          <p role="alert">{annotationImport.error}</p>
+          <button type="button" onClick={() => void annotationImport.retry()}>
+            重试保存批注
+          </button>
+        </>
+      )}
     </section>
   );
 }

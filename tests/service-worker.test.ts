@@ -29,6 +29,37 @@ function loadFetchHandler() {
 }
 
 describe('service worker origin boundary', () => {
+  it('falls back after five seconds when asset headers arrive but its body stalls', async () => {
+    vi.useFakeTimers();
+    try {
+      const { handler, fetch, caches } = loadFetchHandler();
+      caches.match.mockResolvedValue(new Response('cached font'));
+      fetch.mockResolvedValue({
+        ok: true,
+        headers: new Headers({ 'content-type': 'font/woff2' }),
+        clone: () => ({ arrayBuffer: () => new Promise(() => undefined) }),
+      });
+      let response!: Promise<Response>;
+      handler({
+        request: {
+          method: 'GET',
+          url: 'https://threadline.example/font.woff2',
+          mode: 'cors',
+          destination: 'font',
+        },
+        respondWith: (value: Promise<Response>) => {
+          response = value;
+        },
+        waitUntil: vi.fn(),
+      });
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(await (await response).text()).toBe('cached font');
+      expect(fetch.mock.calls[0][1].signal.aborted).toBe(true);
+      expect(caches.open).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it('N08 limits network waiting to five seconds only when a cached asset exists', async () => {
     vi.useFakeTimers();
     try {

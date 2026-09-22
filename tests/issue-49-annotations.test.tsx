@@ -21,6 +21,22 @@ afterEach(() => {
   localStorage.clear();
   vi.restoreAllMocks();
 });
+
+it('keeps unsaved strokes through another-tab notification and recovers after storage is available', async () => {
+  const hook = renderHook(() => useAnnotationStrokes('A'));
+  await waitFor(() => expect(hook.result.current[2]).toBe(true));
+  const write = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    throw new Error('quota');
+  });
+  await act(async () => hook.result.current[1]([stroke]));
+  act(() => window.dispatchEvent(new Event('storage')));
+  expect(hook.result.current[0]).toEqual([stroke]);
+  expect(hook.result.current[3].error).toContain('quota');
+  write.mockRestore();
+  await act(() => hook.result.current[3].retry());
+  expect(readAnnotationDocument(annotationAccountKey('A')).strokes).toEqual([stroke]);
+  expect(hook.result.current[3].error).toBeUndefined();
+});
 it('N02 isolates A → B → A and only automatically imports confirmed ownership', async () => {
   const source = JSON.stringify([
     { ...stroke, targetTaskId: 'a-task' },
