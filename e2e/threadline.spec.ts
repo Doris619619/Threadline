@@ -362,8 +362,8 @@ test('keeps drawn date annotations on their original day after navigation and re
   await expect(persistedStrokes).toHaveCount(1);
   await expect(persistedStrokes).toHaveAttribute('data-annotation-date', '2026-08-23');
   await page.waitForFunction(() => {
-    const stored = window.localStorage.getItem('threadline.annotations.v2');
-    return Boolean(stored && JSON.parse(stored).length);
+    const stored = window.localStorage.getItem('threadline.annotations.v3:local:local');
+    return Boolean(stored && JSON.parse(stored).strokes.length);
   });
 
   await page.getByRole('button', { name: '选择模式' }).click();

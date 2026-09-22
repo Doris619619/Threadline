@@ -1,5 +1,6 @@
 /** @fileoverview 用本地 Supabase 验证 Auth/RLS/Realtime、任务账本、项目软删除与独立 Daily 的真实写入边界。 */
 
+import { testIssue49Commands } from './test-issue49-integration.mjs';
 import { spawnSync } from 'node:child_process';
 import { createClient } from '@supabase/supabase-js';
 
@@ -195,10 +196,7 @@ try {
   if (realtimeUpdate.error) throw realtimeUpdate.error;
   await ownerRealtimeEvent;
   await new Promise((resolve) => setTimeout(resolve, 500));
-  check(
-    foreignRealtimeEvents === 0,
-    'Account B received an owner A Realtime event.',
-  );
+  check(foreignRealtimeEvents === 0, 'Account B received an owner A Realtime event.');
 
   const rhythm = await ownerA.client
     .from('rhythm_marks')
@@ -397,7 +395,8 @@ try {
   check(
     currentDateItemsAfterTemplateAppend.data.length === 1 &&
       currentDateItemsAfterTemplateAppend.data[0].template_item_id === templateItemId &&
-      currentDateItemsAfterTemplateAppend.data[0].planned_duration_minutes_snapshot === 35,
+      currentDateItemsAfterTemplateAppend.data[0].planned_duration_minutes_snapshot ===
+        35,
     'Repeated materialization appended a new template item to an existing Daily entry snapshot.',
   );
   const materializedFuture = await ownerA.client.rpc('ensure_daily_entries_for_date', {
@@ -433,7 +432,8 @@ try {
     ownerA.client.rpc('ensure_daily_entries_for_date', { p_entry_date: '2026-09-05' }),
     ownerA.client.rpc('ensure_daily_entries_for_date', { p_entry_date: '2026-09-05' }),
   ]);
-  for (const response of concurrentMaterialization) if (response.error) throw response.error;
+  for (const response of concurrentMaterialization)
+    if (response.error) throw response.error;
   const concurrentEntries = await ownerA.client
     .from('daily_entries')
     .select('id', { count: 'exact', head: true })
@@ -676,7 +676,9 @@ try {
     .order('entry_date');
   if (ledgerRows.error) throw ledgerRows.error;
   check(
-    JSON.stringify(ledgerRows.data.map(({ entry_date, minutes }) => ({ entry_date, minutes }))) ===
+    JSON.stringify(
+      ledgerRows.data.map(({ entry_date, minutes }) => ({ entry_date, minutes })),
+    ) ===
       JSON.stringify([
         { entry_date: '2026-09-05', minutes: 40 },
         { entry_date: '2026-09-06', minutes: 80 },
@@ -699,7 +701,10 @@ try {
   check(
     reducedLedgerTask.data.actual_duration_minutes === 100 &&
       JSON.stringify(
-        reducedLedgerRows.data.map(({ entry_date, minutes }) => ({ entry_date, minutes })),
+        reducedLedgerRows.data.map(({ entry_date, minutes }) => ({
+          entry_date,
+          minutes,
+        })),
       ) ===
         JSON.stringify([
           { entry_date: '2026-09-05', minutes: 40 },
@@ -858,6 +863,7 @@ try {
     'PROJECT_DELETE_FORBIDDEN',
     'Fallback project was deletable',
   );
+  await testIssue49Commands(ownerA.client, ownerB.client, fallback.id);
 } finally {
   let cleanupError;
   for (const [client, channel] of channels) {
@@ -875,4 +881,6 @@ try {
   if (cleanupError) throw cleanupError;
 }
 
-console.log('Local Supabase Auth/RLS/Realtime/task-ledger/project-delete/Daily integration passed.');
+console.log(
+  'Local Supabase Auth/RLS/Realtime/task-ledger/project-delete/Daily integration passed.',
+);

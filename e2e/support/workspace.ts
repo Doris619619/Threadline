@@ -19,6 +19,7 @@ const localStorageKeys = [
   'threadline.close-records.v1',
   'threadline.annotations.v1',
   'threadline.annotations.v2',
+  'threadline.annotations.v3:local:local',
   'threadline.annotation-highlight-color.v1',
   'threadline.workstation.v1',
   'threadline.workspace.v1',
