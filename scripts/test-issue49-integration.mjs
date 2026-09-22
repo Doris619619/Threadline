@@ -82,4 +82,34 @@ export async function testIssue49Commands(owner, foreign, project) {
     ledger.data.reduce((sum, item) => sum + item.minutes, 0),
     10,
   );
+  // 两种先后次序均合法：先排序后删除，或先删除并要求排序重试。
+  const [move, trash] = await Promise.all([
+    owner.rpc('apply_workstation_command', {
+      p_command: 'move',
+      p_task_id: tasks[1],
+      p_anchor_id: tasks[2],
+      p_after: true,
+    }),
+    owner.rpc('transition_task', {
+      p_task_id: tasks[2],
+      p_transition: 'trashed',
+      p_target_date: null,
+    }),
+  ]);
+  if (trash.error) throw trash.error;
+  if (move.error) assert.equal(move.error.code, '40001');
+  const members = await owner
+    .from('workstation_entries')
+    .select('*')
+    .is('removed_at', null);
+  if (members.error) throw members.error;
+  assert.ok(!members.data.some((member) => member.task_id === tasks[2]));
+  assert.ok(members.data.some((member) => member.task_id === tasks[1]));
+  const missingAnchor = await owner.rpc('apply_workstation_command', {
+    p_command: 'move',
+    p_task_id: tasks[1],
+    p_anchor_id: tasks[2],
+    p_after: true,
+  });
+  assert.equal(missingAnchor.error?.code, '40001');
 }
