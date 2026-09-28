@@ -1,4 +1,4 @@
-/** @fileoverview 面板独立时钟每秒刷新，使用账号时区，不带动表单和列表重绘。 */
+/** @fileoverview 面板独立时钟按账号时区显示到分钟；订阅时钟不带动表单和列表重绘。 */
 'use client';
 import { useSyncExternalStore } from 'react';
 import {
@@ -34,12 +34,11 @@ export function SpaceClock() {
       <time dateTime={now.toISOString()}>
         {new Intl.DateTimeFormat('zh-CN', {
           timeZone: zone,
-          month: 'long',
+          month: 'numeric',
           day: 'numeric',
           weekday: 'short',
           hour: '2-digit',
           minute: '2-digit',
-          second: '2-digit',
           hourCycle: 'h23',
         }).format(now)}
       </time>

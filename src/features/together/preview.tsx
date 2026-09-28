@@ -32,53 +32,57 @@ export function TogetherPreview() {
   }, [zone]);
   return (
     <main className="together-preview">
-      <div className="together-preview-controls">
-        <strong>本地预览 · 测试数据</strong>
-        <label>
-          查看身份
-          <select
-            value={index}
-            onChange={(event) => {
-              setAccountTimezone(identities[Number(event.target.value)][2]);
-              setIndex(Number(event.target.value));
-            }}
-          >
-            {identities.map((item, i) => (
-              <option key={item[0]} value={i}>
-                {item[1]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          主题
-          <select
-            aria-label="主题"
-            value={appearance.theme}
-            onChange={(event) =>
+      <details className="together-preview-dock">
+        <summary>
+          本地预览<span>设置</span>
+        </summary>
+        <div className="together-preview-controls">
+          <label>
+            查看身份
+            <select
+              value={index}
+              onChange={(event) => {
+                setAccountTimezone(identities[Number(event.target.value)][2]);
+                setIndex(Number(event.target.value));
+              }}
+            >
+              {identities.map((item, i) => (
+                <option key={item[0]} value={i}>
+                  {item[1]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            主题
+            <select
+              aria-label="主题"
+              value={appearance.theme}
+              onChange={(event) =>
+                saveAppearance({
+                  ...appearance,
+                  theme: event.target.value as AppearanceTheme,
+                })
+              }
+            >
+              {['blue', 'anya', 'cottage', 'classic'].map((theme) => (
+                <option key={theme}>{theme}</option>
+              ))}
+            </select>
+          </label>
+          <button
+            onClick={() =>
               saveAppearance({
                 ...appearance,
-                theme: event.target.value as AppearanceTheme,
+                colorMode: appearance.colorMode === 'dark' ? 'light' : 'dark',
               })
             }
           >
-            {['blue', 'anya', 'cottage', 'classic'].map((theme) => (
-              <option key={theme}>{theme}</option>
-            ))}
-          </select>
-        </label>
-        <button
-          onClick={() =>
-            saveAppearance({
-              ...appearance,
-              colorMode: appearance.colorMode === 'dark' ? 'light' : 'dark',
-            })
-          }
-        >
-          切换深浅色
-        </button>
-        <span>图片走微信；此处操作仅保存在本地测试数据库。</span>
-      </div>
+            切换深浅色
+          </button>
+          <small>测试身份 · 数据仅保存在本机</small>
+        </div>
+      </details>
       {
         <TogetherSession key={user} client={client} user={user} realtime={false}>
           <PreviewRefresh />

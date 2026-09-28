@@ -37,7 +37,8 @@
 | 文案 / 模板                                                                  | 来源                                                        |
 | ---------------------------------------------------------------------------- | ----------------------------------------------------------- |
 | · 创建时区：                                                                 | flag-detail.tsx                                             |
-| ${partner}的小目标                                                           | panel.tsx                                                   |
+| · 已见证                                                                     | flag-card.tsx                                               |
+| ${memberName(room, room.user_a)}与${memberName(room, room.user_b)}           | panel.tsx                                                   |
 | ${partner}发来了关系变更。                                                   | panel.tsx                                                   |
 | 按你的时区填写：                                                             | flag-editor.tsx                                             |
 | 按时提交                                                                     | flag-detail.tsx                                             |
@@ -49,9 +50,11 @@
 | 编辑约定                                                                     | flag-detail.tsx                                             |
 | 补充说明                                                                     | flag-editor.tsx                                             |
 | 不能接受自己发出的邀请。                                                     | repository.ts                                               |
-| 查看                                                                         | panel.tsx                                                   |
+| 查看                                                                         | flag-card.tsx、panel.tsx                                    |
 | 查看邀请                                                                     | binding.tsx                                                 |
+| 拆惊喜                                                                       | flag-card.tsx                                               |
 | 撤销邀请                                                                     | binding.tsx                                                 |
+| 称呼更新了                                                                   | panel.tsx                                                   |
 | 称呼需为 1–30 字，不能使用邮箱。                                             | repository.ts                                               |
 | 成果说明（选填）                                                             | flag-detail.tsx                                             |
 | 成果提交后，目标与约定不能修改。                                             | repository.ts                                               |
@@ -60,11 +63,12 @@
 | 当前离线，输入已保留，请联网后重试。                                         | state.tsx                                                   |
 | 的 flag ·                                                                    | flag-detail.tsx                                             |
 | 等待 TA 验收                                                                 | copy.ts                                                     |
-| 等我验收                                                                     | panel.tsx                                                   |
+| 等你验收                                                                     | flag-card.tsx                                               |
 | 第一个小目标，想请对方见证什么？                                             | copy.ts                                                     |
 | 对方的邀请码                                                                 | binding.tsx                                                 |
 | 对方送来了一份额外奖励。                                                     | copy.ts                                                     |
 | 对方想绑定为${relationshipLabel[room.proposed_relationship!]}                | settings.tsx                                                |
+| 对方在为你加油                                                               | flag-card.tsx                                               |
 | 复制失败，请手动选择邀请码复制。                                             | binding.tsx                                                 |
 | 复制邀请码                                                                   | binding.tsx                                                 |
 | 各自努力，互相见证。                                                         | copy.ts                                                     |
@@ -82,10 +86,12 @@
 | 还没有以前的空间。                                                           | settings.tsx                                                |
 | 好感度                                                                       | panel.tsx                                                   |
 | 好感度 +                                                                     | flag-detail.tsx                                             |
-| 好感度 +1                                                                    | flag-detail.tsx                                             |
+| 好感度 +1                                                                    | flag-card.tsx、flag-detail.tsx                              |
 | 好朋友                                                                       | binding.tsx、copy.ts、settings.tsx                          |
+| 互动暂未读取。                                                               | flag-board.tsx                                              |
 | 恢复我的展示名                                                               | settings.tsx                                                |
 | 回到现在的空间                                                               | panel.tsx                                                   |
+| 加油已送到                                                                   | flag-card.tsx                                               |
 | 见证，成果通过微信发送。                                                     | flag-editor.tsx                                             |
 | 奖励自己一杯奶茶                                                             | flag-editor.tsx                                             |
 | 接受邀请                                                                     | binding.tsx                                                 |
@@ -93,7 +99,7 @@
 | 结束后保留记录，不计为完成，也不扣好感度。                                   | flag-detail.tsx                                             |
 | 结束了这条 flag                                                              | flag-detail.tsx                                             |
 | 结束这条 flag                                                                | flag-detail.tsx                                             |
-| 截止 ${spaceTime(flag.deadline, zone)}                                       | panel.tsx                                                   |
+| 截止                                                                         | flag-card.tsx                                               |
 | 截止：                                                                       | flag-detail.tsx                                             |
 | 截止后提交                                                                   | flag-detail.tsx                                             |
 | 截止时间                                                                     | flag-editor.tsx                                             |
@@ -102,7 +108,7 @@
 | 今天想完成什么？                                                             | copy.ts                                                     |
 | 今天想完成什么？悄悄告诉 TA。                                                | copy.ts                                                     |
 | 进行中                                                                       | copy.ts                                                     |
-| 看看成果                                                                     | panel.tsx                                                   |
+| 看看成果                                                                     | flag-card.tsx                                               |
 | 空间内容                                                                     | panel.tsx                                                   |
 | 空间设置                                                                     | panel.tsx、settings.tsx                                     |
 | 空间展示名，不使用邮箱                                                       | binding.tsx                                                 |
@@ -112,8 +118,10 @@
 | 例如：完成默写，正确率达到 90%                                               | flag-editor.tsx                                             |
 | 两人空间                                                                     | panel.tsx                                                   |
 | 留一句夸奖（选填）                                                           | flag-detail.tsx                                             |
+| 每次鼓励、见证与惊喜，都会留下一个小心意                                     | panel.tsx                                                   |
 | 目标                                                                         | flag-editor.tsx                                             |
 | 内容刚刚发生变化，输入已保留。请关闭后重新打开，核对最新内容再提交。         | repository.ts                                               |
+| 你                                                                           | flag-card.tsx                                               |
 | 你的时区：                                                                   | flag-detail.tsx                                             |
 | 你的小目标，我都有认真看见。                                                 | copy.ts                                                     |
 | 你或对方已经绑定，请刷新查看。                                               | repository.ts                                               |
@@ -151,13 +159,11 @@
 | 送给对方                                                                     | flag-detail.tsx                                             |
 | 送来鼓励                                                                     | flag-detail.tsx                                             |
 | 送来小惊喜                                                                   | flag-detail.tsx                                             |
-| 提交成果                                                                     | copy.ts、panel.tsx                                          |
+| 提交成果                                                                     | copy.ts、flag-card.tsx                                      |
 | 完成的每一件小事，都会留在这里。                                             | panel.tsx                                                   |
-| 完成后：                                                                     | panel.tsx                                                   |
 | 完成后的奖励                                                                 | flag-detail.tsx、flag-editor.tsx                            |
-| 完成于 ${spaceTime(flag.completed_at!, zone)}                                | panel.tsx                                                   |
 | 晚一点没关系，我还在等你把它做好给我看。                                     | copy.ts                                                     |
-| 我的小目标                                                                   | panel.tsx                                                   |
+| 我                                                                           | flag-card.tsx                                               |
 | 我看见啦，真的很棒 ❤️                                                        | copy.ts                                                     |
 | 我们的关系                                                                   | binding.tsx                                                 |
 | 我们的回忆                                                                   | panel.tsx                                                   |
@@ -178,7 +184,6 @@
 | 邀请你绑定为                                                                 | binding.tsx                                                 |
 | 邀请一个人                                                                   | binding.tsx                                                 |
 | 一次只绑定一个人。目标各自完成，成果通过微信分享，在这里给彼此一个认真回应。 | binding.tsx                                                 |
-| 一起见证过的努力                                                             | panel.tsx                                                   |
 | 已保存                                                                       | flag-detail.tsx                                             |
 | 已发出关系变更，等待对方确认。                                               | settings.tsx                                                |
 | 已过截止时间，仍可提交成果。                                                 | copy.ts                                                     |
@@ -187,12 +192,11 @@
 | 已取消                                                                       | copy.ts                                                     |
 | 已通过微信发送成果                                                           | flag-detail.tsx                                             |
 | 已完成                                                                       | copy.ts                                                     |
+| 已为 TA 加油                                                                 | flag-card.tsx                                               |
 | 以前的空间                                                                   | settings.tsx                                                |
-| 以前的空间 · 只读                                                            | panel.tsx                                                   |
 | 有效至                                                                       | binding.tsx                                                 |
-| 有一份小惊喜                                                                 | panel.tsx                                                   |
-| 与                                                                           | panel.tsx、settings.tsx                                     |
-| 再看一些                                                                     | panel.tsx                                                   |
+| 与                                                                           | settings.tsx                                                |
+| 再看一些                                                                     | flag-board.tsx                                              |
 | 在这里留一句奖励说明；照片或其他礼物通过微信发送。                           | flag-detail.tsx                                             |
 | 暂时无法完成操作，请重试。                                                   | use-command.ts                                              |
 | 暂时无法完成操作，输入已保留，请检查网络后重试。                             | repository.ts                                               |
@@ -208,16 +212,17 @@
 | 正在保存…                                                                    | binding.tsx、dialog.tsx                                     |
 | 正在查看…                                                                    | binding.tsx                                                 |
 | 正在打开两人空间…                                                            | panel.tsx                                                   |
-| 正在读取 flag…                                                               | panel.tsx                                                   |
-| 正在读取…                                                                    | panel.tsx                                                   |
+| 正在读取…                                                                    | flag-board.tsx                                              |
 | 正在读取记录…                                                                | flag-detail.tsx                                             |
 | 正在读取空间资料…                                                            | binding.tsx                                                 |
+| 正在读取目标                                                                 | flag-board.tsx                                              |
 | 正在读取时间…                                                                | clock.tsx                                                   |
 | 正在进行                                                                     | panel.tsx                                                   |
 | 执行人取消                                                                   | supabase/migrations/202609280001_together.sql               |
-| 只属于你们两个人                                                             | panel.tsx                                                   |
+| 只读                                                                         | panel.tsx                                                   |
 | 只有你们两个人用的称呼                                                       | settings.tsx                                                |
-| 重新读取                                                                     | flag-detail.tsx、panel.tsx                                  |
+| 重试                                                                         | flag-board.tsx                                              |
+| 重新读取                                                                     | flag-board.tsx、flag-detail.tsx、panel.tsx                  |
 | 状态已经变化，请刷新查看。                                                   | repository.ts                                               |
 | 自己的展示名                                                                 | settings.tsx                                                |
 | TA 来给你抱抱啦：慢慢做，我陪你。                                            | copy.ts                                                     |

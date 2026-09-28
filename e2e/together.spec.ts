@@ -1,6 +1,15 @@
 /** @fileoverview 真实页面与本地 PostgreSQL RPC 验证微信成果闭环、时区、关系与四主题布局。 */
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+/** 预览控件默认收起，测试使用实际开关，不让调试面板遮挡产品内容。 */
+async function choosePreview(page: Page, label: string, value?: string) {
+  await page.locator('.together-preview-dock > summary').click();
+  if (value !== undefined)
+    await page.getByRole('combobox', { name: label, exact: true }).selectOption(value);
+  else await page.getByRole('button', { name: label, exact: true }).click();
+  await page.locator('.together-preview-dock > summary').click();
+}
+
 test('微信成果、对方验收、昵称与本地时区', async ({ page }) => {
   await page.goto('/together-preview');
   await expect(
@@ -29,7 +38,7 @@ test('微信成果、对方验收、昵称与本地时区', async ({ page }) => 
     .getByRole('dialog')
     .getByRole('button', { name: '关闭', exact: true })
     .click();
-  await page.getByLabel('查看身份').selectOption('1');
+  await choosePreview(page, '查看身份', '1');
   await expect(page.locator('.together-clock')).toContainText('纽约');
   await page.getByRole('button', { name: title, exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('10:00');
@@ -44,7 +53,7 @@ test('微信成果、对方验收、昵称与本地时区', async ({ page }) => 
     .getByRole('dialog')
     .getByRole('button', { name: '关闭', exact: true })
     .click();
-  await page.getByLabel('查看身份').selectOption('0');
+  await choosePreview(page, '查看身份', '0');
   await page.getByRole('button', { name: title, exact: true }).click();
   await page
     .getByRole('button', { name: '我做到啦，第一时间给你看。', exact: true })
@@ -58,7 +67,7 @@ test('微信成果、对方验收、昵称与本地时区', async ({ page }) => 
     .getByRole('dialog')
     .getByRole('button', { name: '关闭', exact: true })
     .click();
-  await page.getByLabel('查看身份').selectOption('1');
+  await choosePreview(page, '查看身份', '1');
   await page.getByRole('button', { name: title, exact: true }).click();
   await page
     .getByRole('button', { name: '我看见啦，真的很棒 ❤️', exact: true })
@@ -89,11 +98,11 @@ test('四主题深浅色与手机布局，无横向溢出', async ({ page }) => 
     page.getByRole('heading', { name: '我们的小窝', exact: true }),
   ).toBeVisible();
   for (const theme of ['blue', 'anya', 'cottage', 'classic']) {
-    await page.getByLabel('主题', { exact: true }).selectOption(theme);
+    await choosePreview(page, '主题', theme);
     for (const width of [1366, 390, 320]) {
       await page.setViewportSize({ width, height: 900 });
       for (let mode = 0; mode < 2; mode++) {
-        await page.getByRole('button', { name: '切换深浅色' }).click();
+        await choosePreview(page, '切换深浅色');
         await expect
           .poll(() =>
             page.evaluate(
@@ -107,7 +116,7 @@ test('四主题深浅色与手机布局，无横向溢出', async ({ page }) => 
       }
     }
   }
-  await page.getByLabel('主题', { exact: true }).selectOption('blue');
+  await choosePreview(page, '主题', 'blue');
   await page.setViewportSize({ width: 1366, height: 900 });
   await page.screenshot({
     path: 'docs/screenshots/together/desktop.png',
@@ -126,7 +135,7 @@ test('四主题深浅色与手机布局，无横向溢出', async ({ page }) => 
 
 test('已有账号邀请、昵称恢复和关系确认', async ({ page }) => {
   await page.goto('/together-preview');
-  await page.getByLabel('查看身份').selectOption('2');
+  await choosePreview(page, '查看身份', '2');
   await expect(
     page.getByRole('heading', { name: '两人空间', exact: true }),
   ).toBeVisible();
@@ -147,7 +156,7 @@ test('已有账号邀请、昵称恢复和关系确认', async ({ page }) => {
   if (await page.getByRole('button', { name: '生成邀请码' }).isVisible())
     await page.getByRole('button', { name: '生成邀请码' }).click();
   const code = await page.locator('.together-invite code').innerText();
-  await page.getByLabel('查看身份').selectOption('3');
+  await choosePreview(page, '查看身份', '3');
   await expect(
     page
       .getByLabel('先告诉对方怎么称呼你')
@@ -169,18 +178,18 @@ test('已有账号邀请、昵称恢复和关系确认', async ({ page }) => {
   await page.getByRole('button', { name: '空间设置', exact: true }).click();
   await page.getByLabel('给对方的昵称').fill('小太阳');
   await page.getByRole('button', { name: '保存称呼', exact: true }).click();
-  await expect(page.locator('.together-pair')).toContainText('小太阳');
-  await page.getByLabel('查看身份').selectOption('2');
+  await expect(page.locator('.together-byline')).toContainText('小太阳');
+  await choosePreview(page, '查看身份', '2');
   await page.getByRole('button', { name: '空间设置', exact: true }).click();
   await page.getByRole('button', { name: '恢复我的展示名', exact: true }).click();
-  await expect(page.locator('.together-pair')).toContainText('朋友小夏');
+  await expect(page.locator('.together-byline')).toContainText('朋友小夏');
   await page.getByRole('button', { name: '空间设置', exact: true }).click();
   await page.getByLabel('关系类型').selectOption('couple');
   await page.getByRole('button', { name: '请对方确认关系', exact: true }).click();
   await expect(
     page.getByRole('heading', { name: '我们的自习室', exact: true }),
   ).toBeVisible();
-  await page.getByLabel('查看身份').selectOption('3');
+  await choosePreview(page, '查看身份', '3');
   await page.getByRole('button', { name: '空间设置', exact: true }).click();
   await page.getByRole('button', { name: '确认关系', exact: true }).click();
   await expect(
@@ -205,7 +214,7 @@ test('长称呼、键盘退出、减少动态效果与错误输入修正', async
   await page.getByLabel('自己的展示名').fill('桃'.repeat(30));
   await page.getByLabel('给对方的昵称').fill('熊'.repeat(30));
   await page.getByRole('button', { name: '保存称呼', exact: true }).click();
-  await expect(page.locator('.together-pair')).toContainText('桃'.repeat(30));
+  await expect(page.locator('.together-byline')).toContainText('桃'.repeat(30));
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
   ).toBe(true);
@@ -234,4 +243,28 @@ test('长称呼、键盘退出、减少动态效果与错误输入修正', async
       .getByRole('dialog')
       .evaluate((node) => getComputedStyle(node).animationName),
   ).toBe('none');
+});
+
+test('在目标卡上直接加油，一次点击只送出一次', async ({ page }) => {
+  await page.goto('/together-preview');
+  await page.getByRole('button', { name: '立个 flag', exact: true }).click();
+  const title = `卡片加油验收 ${Date.now()}`;
+  await page.getByLabel('目标', { exact: true }).fill(title);
+  await page.getByRole('button', { name: '立下 flag', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await choosePreview(page, '查看身份', '1');
+  const note = page
+    .locator('.together-note')
+    .filter({ has: page.getByRole('button', { name: title, exact: true }) });
+  await note.getByRole('button', { name: '抱抱你，再加个油', exact: true }).click();
+  await expect(note.getByRole('status')).toContainText('好感度 +1');
+  await expect(
+    note.getByRole('button', { name: '已为 TA 加油', exact: true }),
+  ).toBeDisabled();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await choosePreview(page, '查看身份', '0');
+  await expect(note.getByLabel('对方在为你加油')).toBeVisible();
+  await note.getByRole('button', { name: title, exact: true }).click();
+  await page.getByRole('button', { name: '结束这条 flag', exact: true }).click();
+  await page.getByRole('button', { name: '确认结束', exact: true }).click();
 });

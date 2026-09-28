@@ -37,6 +37,17 @@ export function spaceTime(instant: string, zone: string) {
     hourCycle: 'h23',
   }).format(new Date(instant));
 }
+/** 卡片只展示月日和分钟；完整年份和查看时区保留在详情与悬停说明中。 */
+export function shortSpaceTime(instant: string, zone: string) {
+  return new Intl.DateTimeFormat('zh-CN', {
+    timeZone: zone,
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(instant));
+}
 /** 等待验收或补交不制造新的逾期，以首次正式提交为准。 */
 export function isLate(flag: Flag, now = Date.now()) {
   return (
