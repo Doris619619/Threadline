@@ -73,14 +73,13 @@ export function FlagDetail({
   return (
     <SpaceDialog title={flag.title} onClose={onClose} drawer>
       <div className="together-detail-meta">
-        <span>
-          {memberName(room, flag.owner_id)}的 flag · {statusLabel[flag.status]}
-        </span>
-        <p>截止：{spaceTime(flag.deadline, zone)}</p>
-        <small>
-          你的时区：{timezoneLabel(zone)} · 创建时区：{flag.timezone}
-        </small>
-        <small>立于 {spaceTime(flag.created_at, zone)}</small>
+        <div className="together-detail-owner">
+          <span>{memberName(room, flag.owner_id)}</span>
+          <span className="together-detail-status">{statusLabel[flag.status]}</span>
+        </div>
+        <time dateTime={flag.deadline} title={timezoneLabel(zone)}>
+          截止 {spaceTime(flag.deadline, zone)}
+        </time>
       </div>
       {flag.description && (
         <section>

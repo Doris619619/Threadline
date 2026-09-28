@@ -586,6 +586,11 @@
   font: inherit;
   font-size: 16px;
 }
+.together-optional {
+  color: var(--text-secondary);
+  font-weight: 400;
+  white-space: nowrap;
+}
 .together-dialog textarea {
   min-height: 110px;
   resize: vertical;
@@ -678,8 +683,25 @@
 .together-detail-meta {
   color: var(--text-secondary);
   font-size: 13px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
 }
-.together-detail-meta small {
+.together-detail-owner {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.together-detail-status {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.together-detail-meta time {
   display: block;
   line-height: 1.8;
 }

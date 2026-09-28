@@ -70,7 +70,6 @@ export function SpaceSettings({
                 placeholder="只有你们两个人用的称呼"
               />
             </label>
-            <small>昵称双方可见，对方可以恢复自己的展示名。</small>
             <button className="together-primary">保存称呼</button>
           </form>
           {(user === room.user_a ? room.nickname_a : room.nickname_b) && (
@@ -124,12 +123,8 @@ export function SpaceSettings({
             >
               解除绑定
             </summary>
-            <p>
-              解除后停止互动，未完成的 flag
-              会结束。旧记录仅你们两人可读，新对象无法查看。
-            </p>
             <button className="together-danger" onClick={() => void save('end_room')}>
-              确认解除绑定
+              解除并结束未完成的 flag
             </button>
           </details>
         </fieldset>

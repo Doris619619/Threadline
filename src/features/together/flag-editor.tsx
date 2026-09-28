@@ -73,13 +73,15 @@ export function FlagEditor({
             <input
               required
               type="datetime-local"
+              title={timezoneLabel(zone)}
               value={deadline}
               onChange={(event) => setDeadline(event.target.value)}
             />
           </label>
-          <small>按你的时区填写：{timezoneLabel(zone)}</small>
           <label>
-            完成后的奖励 <small>选填</small>
+            <span>
+              完成后的奖励<span className="together-optional">（选填）</span>
+            </span>
             <input
               maxLength={200}
               value={reward}
@@ -90,7 +92,9 @@ export function FlagEditor({
           <details open={flag?.description ? true : undefined}>
             <summary>补充说明</summary>
             <label>
-              怎样算完成
+              <span>
+                怎样算完成<span className="together-optional">（选填）</span>
+              </span>
               <textarea
                 maxLength={1000}
                 value={description}
@@ -99,7 +103,6 @@ export function FlagEditor({
               />
             </label>
           </details>
-          <p className="together-muted">请{partner}见证，成果通过微信发送。</p>
           <button className="together-primary" type="submit">
             {flag ? '保存修改' : '立下 flag'}
           </button>

@@ -227,7 +227,31 @@ test('成果抽屉保留样式，桌面靠右、手机全屏，验收弹窗居�
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(note.getByRole('button', { name: '看看成果' })).toBeFocused();
+    await page.getByRole('button', { name: '立个 flag', exact: true }).click();
+    const editor = page.getByRole('dialog', { name: '立个 flag', exact: true });
+    await editor.getByText('补充说明', { exact: true }).click();
+    await expect(editor.getByLabel('完成后的奖励（选填）')).toHaveJSProperty(
+      'required',
+      false,
+    );
+    await expect(editor.getByLabel('怎样算完成（选填）')).toHaveJSProperty(
+      'required',
+      false,
+    );
+    expect(await editor.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(
+      true,
+    );
+    if (width !== 320)
+      await page.screenshot({
+        path: `docs/screenshots/together/editor-${width === 1366 ? 'desktop' : 'mobile'}.png`,
+      });
+    await page.keyboard.press('Escape');
   }
+  await choosePreview(page, '切换深浅色');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: '立个 flag', exact: true }).click();
+  await page.getByRole('dialog').getByText('补充说明', { exact: true }).click();
+  await page.screenshot({ path: 'docs/screenshots/together/editor-mobile-dark.png' });
 });
 
 test('已有账号邀请、昵称恢复和关系确认', async ({ page }) => {
@@ -292,7 +316,9 @@ test('已有账号邀请、昵称恢复和关系确认', async ({ page }) => {
   await expect(page.getByRole('heading', { name: '同频', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '空间设置', exact: true }).click();
   await page.getByText('解除绑定', { exact: true }).click();
-  await page.getByRole('button', { name: '确认解除绑定', exact: true }).click();
+  await page
+    .getByRole('button', { name: '解除并结束未完成的 flag', exact: true })
+    .click();
   await expect(
     page.getByRole('heading', { name: '两人空间', exact: true }),
   ).toBeVisible();
