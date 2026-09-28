@@ -11,6 +11,7 @@ export function SpaceDialog({
   busy = false,
   error = '',
   drawer = false,
+  className = '',
 }: {
   title: string;
   children: ReactNode;
@@ -18,6 +19,7 @@ export function SpaceDialog({
   busy?: boolean;
   error?: string;
   drawer?: boolean;
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const id = useId();
@@ -34,7 +36,9 @@ export function SpaceDialog({
   return createPortal(
     <dialog
       ref={ref}
-      className={['together-dialog', drawer && 'is-drawer'].filter(Boolean).join(' ')}
+      className={['together-dialog', drawer && 'is-drawer', className]
+        .filter(Boolean)
+        .join(' ')}
       aria-labelledby={id}
       aria-busy={busy}
       onCancel={(event) => {

@@ -1,0 +1,167 @@
+/* 文件用途：以目标为主的紧凑编辑器；弱化属性边框、渐进展开补充说明，保持所有主题与键盘焦点。 */
+.together-dialog.together-editor {
+  width: min(560px, calc(100vw - 32px));
+  padding: 0;
+  border-radius: 20px;
+}
+.together-editor > header {
+  padding: 16px 20px 0 28px;
+  margin: 0;
+  align-items: center;
+}
+.together-editor > header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.together-editor > header button {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.together-editor > header button:hover {
+  background: var(--surface-secondary);
+}
+.together-editor form {
+  padding: 0 28px;
+}
+.together-editor label.together-editor-goal {
+  margin: 12px 0 24px;
+}
+.together-editor .together-editor-goal textarea {
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 0;
+  min-height: 82px;
+  max-height: 180px;
+  background: transparent;
+  font-size: 23px;
+  font-weight: 550;
+  line-height: 1.55;
+  letter-spacing: -0.03em;
+  resize: none;
+}
+.together-editor .together-editor-goal textarea::placeholder {
+  color: var(--text-secondary);
+  font-weight: 400;
+  opacity: 1;
+}
+.together-editor-properties {
+  display: grid;
+  grid-template-columns: 1fr;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0 16px;
+}
+.together-editor label.together-editor-property {
+  margin: 0;
+  padding: 12px 0 8px;
+  gap: 0;
+}
+.together-editor-property + .together-editor-property {
+  border-top: 1px solid var(--border);
+}
+.together-editor-caption {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.together-editor-caption .together-optional {
+  margin-left: -7px;
+}
+.together-editor-caption svg {
+  flex-shrink: 0;
+}
+.together-editor .together-editor-property input {
+  border: 0;
+  background: transparent;
+  padding: 7px 0 3px;
+  min-height: 44px;
+  font-size: 16px;
+  border-radius: 4px;
+}
+.together-editor details.together-editor-notes {
+  margin: 14px 0 0;
+  padding: 0;
+  border: 0;
+}
+.together-editor-notes summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  color: var(--text-secondary);
+}
+.together-editor-notes summary::-webkit-details-marker {
+  display: none;
+}
+.together-editor-chevron {
+  margin-left: auto;
+  transition: transform 180ms;
+}
+.together-editor-notes[open] .together-editor-chevron {
+  transform: rotate(180deg);
+}
+.together-editor-notes label {
+  margin: 4px 0 16px;
+  font-size: 12px;
+}
+.together-editor-notes textarea {
+  min-height: 92px;
+  padding: 12px;
+  border-color: var(--border);
+  border-radius: 10px;
+  line-height: 1.6;
+}
+.together-editor-footer {
+  position: sticky;
+  bottom: 0;
+  margin: 12px -28px 0;
+  padding: 16px 28px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  justify-content: flex-end;
+}
+.together-editor form .together-editor-footer .together-primary {
+  margin: 0;
+  min-height: 46px;
+  min-width: 140px;
+  padding: 10px 18px;
+  justify-content: space-between;
+  gap: 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 550;
+}
+.together-editor > [role='alert'],
+.together-editor > [role='status'] {
+  margin: 0;
+  padding: 0 28px 20px;
+}
+@media (max-width: 600px) {
+  .together-editor > header {
+    padding: 12px 12px 0 20px;
+  }
+  .together-editor form {
+    padding: 0 20px;
+  }
+  .together-editor label.together-editor-goal {
+    margin: 10px 0 18px;
+  }
+  .together-editor .together-editor-goal textarea {
+    font-size: 21px;
+    min-height: 76px;
+  }
+  .together-editor-footer {
+    margin-left: -20px;
+    margin-right: -20px;
+    padding: 14px 20px max(16px, env(safe-area-inset-bottom));
+  }
+  .together-editor form .together-editor-footer .together-primary {
+    width: 100%;
+  }
+}
