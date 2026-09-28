@@ -139,6 +139,13 @@ test('四主题深浅色与手机布局，无横向溢出', async ({ page }) => 
         ).toBeVisible();
         await page.getByRole('button', { name: '我们的回忆', exact: true }).click();
         await expect(page.locator('.together-memory-entry').first()).toBeVisible();
+        const entry = page.locator('.together-memory-entry').first();
+        const clock = await entry.locator('.together-memory-time').boundingBox();
+        const content = await entry.locator('.together-memory-content').boundingBox();
+        expect(clock!.x + clock!.width).toBeLessThan(content!.x);
+        await expect(page.locator('.together-memory-day h3').first()).toContainText(
+          /\d{4}年\d{1,2}月\d{1,2}日/,
+        );
         expect(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
         ).toBe(true);

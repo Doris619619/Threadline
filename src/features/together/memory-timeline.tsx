@@ -1,4 +1,4 @@
-/** @fileoverview 回忆按查看者本地日期归档；细线连接完成节点，保留奖励与惊喜入口。 */
+/** @fileoverview 回忆按查看者本地日期归档；左侧显示日期与时刻，右侧保留目标、奖励与惊喜。 */
 'use client';
 import { ArrowUpRight, Check, Gift, Mail } from 'lucide-react';
 import { accountClockParts } from '@/lib/account-clock';
@@ -30,8 +30,9 @@ export function MemoryTimeline({
         <section className="together-memory-day" key={day} aria-label={day}>
           <h3>
             <time dateTime={day}>
-              <b>{day.slice(5).replace('-', ' / ')}</b>
-              <span>{day.slice(0, 4)}</span>
+              <b>
+                {day.slice(0, 4)}年{Number(day.slice(5, 7))}月{Number(day.slice(8))}日
+              </b>
             </time>
             <span className="together-memory-rule" aria-hidden="true" />
           </h3>
@@ -41,18 +42,18 @@ export function MemoryTimeline({
                 <span className="together-memory-dot" aria-hidden="true">
                   <Check size={12} />
                 </span>
+                <time
+                  className="together-memory-time"
+                  dateTime={flag.completed_at!}
+                  title={`${spaceTime(flag.completed_at!, zone)} · ${zone}`}
+                >
+                  {accountClockParts(new Date(flag.completed_at!), zone).time.slice(
+                    0,
+                    5,
+                  )}
+                  <span>已见证</span>
+                </time>
                 <div className="together-memory-content">
-                  <time
-                    className="together-memory-time"
-                    dateTime={flag.completed_at!}
-                    title={`${spaceTime(flag.completed_at!, zone)} · ${zone}`}
-                  >
-                    {accountClockParts(new Date(flag.completed_at!), zone).time.slice(
-                      0,
-                      5,
-                    )}
-                    <span>已见证</span>
-                  </time>
                   <button
                     className="together-memory-title"
                     onClick={() => onOpen(flag)}

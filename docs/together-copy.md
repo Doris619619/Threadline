@@ -133,6 +133,7 @@
 | 你在这里叫「                                                                 | binding.tsx                                                 |
 | 你做到啦。你的认真和努力，我都有好好看见。                                   | copy.ts                                                     |
 | 昵称双方可见，对方可以恢复自己的展示名。                                     | settings.tsx                                                |
+| 年                                                                           | memory-timeline.tsx                                         |
 | 情侣                                                                         | binding.tsx、copy.ts、settings.tsx                          |
 | 请                                                                           | flag-editor.tsx                                             |
 | 请补充一下                                                                   | copy.ts、flag-detail.tsx                                    |
@@ -154,6 +155,7 @@
 | 确认结束                                                                     | flag-detail.tsx                                             |
 | 确认解除绑定                                                                 | settings.tsx                                                |
 | 确认了新的关系                                                               | supabase/migrations/202609280001_together.sql               |
+| 日                                                                           | memory-timeline.tsx                                         |
 | 上次提交结果尚未确认，请先按原内容重试，或关闭后核对最新记录。               | use-command.ts                                              |
 | 生成邀请码                                                                   | binding.tsx                                                 |
 | 实时连接暂不可用，回到页面会重新读取。                                       | state.tsx                                                   |
@@ -202,6 +204,7 @@
 | 以前的空间                                                                   | settings.tsx                                                |
 | 有效至                                                                       | binding.tsx                                                 |
 | 与                                                                           | settings.tsx                                                |
+| 月                                                                           | memory-timeline.tsx                                         |
 | 再看一些                                                                     | flag-board.tsx                                              |
 | 在这里留一句奖励说明；照片或其他礼物通过微信发送。                           | flag-detail.tsx                                             |
 | 暂时无法完成操作，请重试。                                                   | use-command.ts                                              |
