@@ -125,6 +125,7 @@ export async function readFlags(
   mode: 'review' | 'mine' | 'theirs' | 'completed' | 'cancelled',
   page: number,
   signal?: AbortSignal,
+  owner?: 'mine' | 'theirs',
 ): Promise<Flag[]> {
   let query = client.from('together_flags').select('*').eq('room_id', room);
   if (mode === 'review') query = query.eq('status', 'submitted').neq('owner_id', user);
@@ -133,6 +134,8 @@ export async function readFlags(
   else if (mode === 'theirs')
     query = query.in('status', ['active', 'changes']).neq('owner_id', user);
   else query = query.eq('status', mode);
+  if (owner === 'mine') query = query.eq('owner_id', user);
+  if (owner === 'theirs') query = query.neq('owner_id', user);
   query = query
     .order(mode === 'completed' ? 'completed_at' : 'created_at', { ascending: false })
     .order('id')

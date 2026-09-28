@@ -195,11 +195,39 @@
   right: 0;
   animation: together-tab 180ms ease-out;
 }
-.together-board {
+.together-lanes {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   align-items: start;
+}
+.together-lane {
+  min-width: 0;
+}
+.together-lane-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.together-lane-heading small {
+  font-size: 12px;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.together-lane-list {
+  display: grid;
+  gap: 18px;
+}
+/* 对方栏同时读取待验收与进行中，存在任一目标或加载反馈时不显示空状态。 */
+.together-lane-list:has(.together-note, [role='status'], [role='alert'])
+  > .together-board-empty {
+  display: none;
 }
 .together-note {
   position: relative;
@@ -824,9 +852,9 @@
   .together-heading-text {
     padding-right: 32px;
   }
-  .together-board {
+  .together-lanes {
     grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
+    gap: 28px;
   }
   .together-tabs {
     gap: 18px;

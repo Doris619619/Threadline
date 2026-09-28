@@ -62,9 +62,11 @@
 | 待验收                                                                       | copy.ts                                                     |
 | 当前离线，输入已保留，请联网后重试。                                         | state.tsx                                                   |
 | 的 flag ·                                                                    | flag-detail.tsx                                             |
+| 等 TA 立下一个小目标。                                                       | flag-board.tsx                                              |
 | 等待 TA 验收                                                                 | copy.ts                                                     |
 | 等你验收                                                                     | flag-card.tsx                                               |
 | 第一个小目标，想请对方见证什么？                                             | copy.ts                                                     |
+| 对方的 flag                                                                  | flag-board.tsx                                              |
 | 对方的邀请码                                                                 | binding.tsx                                                 |
 | 对方送来了一份额外奖励。                                                     | copy.ts                                                     |
 | 对方想绑定为${relationshipLabel[room.proposed_relationship!]}                | settings.tsx                                                |
@@ -83,6 +85,7 @@
 | 关系已结束                                                                   | supabase/migrations/202609280001_together.sql               |
 | 关系已结束，记录仅原成员可见                                                 | supabase/migrations/202609280001_together.sql               |
 | 还差一点点，再给我看看嘛。                                                   | copy.ts                                                     |
+| 还没有结束的约定。                                                           | flag-board.tsx                                              |
 | 还没有以前的空间。                                                           | settings.tsx                                                |
 | 好感度                                                                       | panel.tsx                                                   |
 | 好感度 +                                                                     | flag-detail.tsx                                             |
@@ -113,6 +116,7 @@
 | 空间设置                                                                     | panel.tsx、settings.tsx                                     |
 | 空间展示名，不使用邮箱                                                       | binding.tsx                                                 |
 | 立个 flag                                                                    | flag-editor.tsx、panel.tsx                                  |
+| 立个小目标，请对方见证。                                                     | flag-board.tsx                                              |
 | 立下 flag                                                                    | flag-detail.tsx、flag-editor.tsx                            |
 | 立于                                                                         | flag-detail.tsx                                             |
 | 例如：完成默写，正确率达到 90%                                               | flag-editor.tsx                                             |
@@ -160,10 +164,11 @@
 | 送来鼓励                                                                     | flag-detail.tsx                                             |
 | 送来小惊喜                                                                   | flag-detail.tsx                                             |
 | 提交成果                                                                     | copy.ts、flag-card.tsx                                      |
-| 完成的每一件小事，都会留在这里。                                             | panel.tsx                                                   |
+| 完成的目标会留在这里。                                                       | flag-board.tsx                                              |
 | 完成后的奖励                                                                 | flag-detail.tsx、flag-editor.tsx                            |
 | 晚一点没关系，我还在等你把它做好给我看。                                     | copy.ts                                                     |
 | 我                                                                           | flag-card.tsx                                               |
+| 我的 flag                                                                    | flag-board.tsx                                              |
 | 我看见啦，真的很棒 ❤️                                                        | copy.ts                                                     |
 | 我们的关系                                                                   | binding.tsx                                                 |
 | 我们的回忆                                                                   | panel.tsx                                                   |
@@ -206,7 +211,6 @@
 | 这个时间无效，或在夏令时切换时出现两次；请换一个明确的时间。                 | time.ts                                                     |
 | 这件事的过程                                                                 | flag-detail.tsx                                             |
 | 这件事完成了，对方见证了你的努力。                                           | copy.ts                                                     |
-| 这里还没有结束的约定。                                                       | panel.tsx                                                   |
 | 这项操作已经完成，请刷新查看。                                               | repository.ts                                               |
 | 这一步需要对方来完成。                                                       | repository.ts                                               |
 | 正在保存…                                                                    | binding.tsx、dialog.tsx                                     |

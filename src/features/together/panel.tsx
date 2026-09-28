@@ -6,9 +6,9 @@ import { Heart, Plus, Settings2, ArrowLeft, ChevronRight, Link2 } from 'lucide-r
 import { getAccountTimezone } from '@/lib/account-clock';
 import { useAccountTimezone } from '@/features/settings/account-timezone-provider';
 import { useTogether } from './state';
-import { togetherCopy, memberName, address } from './copy';
+import { togetherCopy, memberName } from './copy';
 import { checkSpaceError } from './repository';
-import { FlagList } from './flag-board';
+import { FlagLanes } from './flag-board';
 import { nameMark } from './flag-card';
 import { spaceTime } from './time';
 import { SpaceClock } from './clock';
@@ -138,7 +138,6 @@ function RoomContent({ room, onSettings }: { room: Room; onSettings: () => void 
   const [ended, setEnded] = useState(false);
   const [editing, setEditing] = useState<Flag | 'new' | null>(null);
   const [detail, setDetail] = useState<Flag | null>(null);
-  const copy = togetherCopy[room.relationship];
   const partner = memberName(room, user === room.user_a ? room.user_b : room.user_a);
   const latest = useQuery(
     {
@@ -197,27 +196,7 @@ function RoomContent({ room, onSettings }: { room: Room; onSettings: () => void 
           </button>
         )}
       </div>
-      {tab === 'active' ? (
-        <div className="together-board">
-          <FlagList room={room} mode="review" onOpen={setDetail} />
-          <FlagList
-            room={room}
-            mode="mine"
-            onOpen={setDetail}
-            empty={address(copy.empty, partner)}
-          />
-          <FlagList room={room} mode="theirs" onOpen={setDetail} />
-        </div>
-      ) : (
-        <div className="together-board together-memory-board">
-          <FlagList
-            room={room}
-            mode="completed"
-            onOpen={setDetail}
-            empty="完成的每一件小事，都会留在这里。"
-          />
-        </div>
-      )}
+      <FlagLanes room={room} mode={tab} onOpen={setDetail} />
       <button
         className="together-ended-toggle"
         aria-expanded={ended}
@@ -225,16 +204,7 @@ function RoomContent({ room, onSettings }: { room: Room; onSettings: () => void 
       >
         已结束的约定 <ChevronRight size={14} />
       </button>
-      {ended && (
-        <div className="together-board">
-          <FlagList
-            room={room}
-            mode="cancelled"
-            onOpen={setDetail}
-            empty="这里还没有结束的约定。"
-          />
-        </div>
-      )}
+      {ended && <FlagLanes room={room} mode="cancelled" onOpen={setDetail} />}
       {detail && (
         <FlagDetail
           initial={detail}

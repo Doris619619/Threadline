@@ -16,6 +16,15 @@ test('微信成果、对方验收、昵称与本地时区', async ({ page }) => 
     page.getByRole('heading', { name: '我们的小窝', exact: true }),
   ).toBeVisible();
   await expect(page.locator('.together-clock')).toContainText('北京时间');
+  await expect(
+    page.getByRole('region', { name: '我的 flag', exact: true }),
+  ).toContainText('背完雅思 Unit 3');
+  await expect(
+    page.getByRole('region', { name: '我的 flag', exact: true }),
+  ).not.toContainText('读完那本书的第三章');
+  await expect(
+    page.getByRole('region', { name: '对方的 flag', exact: true }),
+  ).toContainText('读完那本书的第三章');
   await page.getByRole('button', { name: '立个 flag', exact: true }).click();
   const editor = page.getByRole('dialog', { name: '立个 flag' });
   const title = `浏览器验收 ${Date.now()}`;
@@ -40,6 +49,12 @@ test('微信成果、对方验收、昵称与本地时区', async ({ page }) => 
     .click();
   await choosePreview(page, '查看身份', '1');
   await expect(page.locator('.together-clock')).toContainText('纽约');
+  await expect(
+    page.getByRole('region', { name: '对方的 flag', exact: true }),
+  ).toContainText(title);
+  await expect(
+    page.getByRole('region', { name: '我的 flag', exact: true }),
+  ).not.toContainText(title);
   await page.getByRole('button', { name: title, exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('10:00');
   await page
