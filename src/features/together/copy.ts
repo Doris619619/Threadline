@@ -17,7 +17,7 @@ export const togetherCopy = {
     overdue: '已过截止时间，仍可提交成果。',
   },
   couple: {
-    title: '我们的小窝',
+    title: '同频',
     intro: '你的小目标，我都有认真看见。',
     empty: '想让 TA 第一个见证哪件小事？',
     placeholder: '今天想完成什么？悄悄告诉 TA。',

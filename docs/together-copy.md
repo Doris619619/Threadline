@@ -8,7 +8,7 @@
 
 | 场景         | 好朋友                             | 情侣                                       |
 | ------------ | ---------------------------------- | ------------------------------------------ |
-| 空间名称     | 我们的自习室                       | 我们的小窝                                 |
+| 空间名称     | 我们的自习室                       | 同频                                       |
 | 页头说明     | 各自努力，互相见证。               | 你的小目标，我都有认真看见。               |
 | 空间空状态   | 第一个小目标，想请对方见证什么？   | 想让 TA 第一个见证哪件小事？               |
 | 创建目标提示 | 今天想完成什么？                   | 今天想完成什么？悄悄告诉 TA。              |
@@ -52,7 +52,7 @@
 | 不能接受自己发出的邀请。                                                     | repository.ts                                               |
 | 查看                                                                         | flag-card.tsx、panel.tsx                                    |
 | 查看邀请                                                                     | binding.tsx                                                 |
-| 拆惊喜                                                                       | flag-card.tsx                                               |
+| 拆惊喜                                                                       | flag-card.tsx、memory-timeline.tsx                          |
 | 撤销邀请                                                                     | binding.tsx                                                 |
 | 称呼更新了                                                                   | panel.tsx                                                   |
 | 称呼需为 1–30 字，不能使用邮箱。                                             | repository.ts                                               |
@@ -164,6 +164,7 @@
 | 送来鼓励                                                                     | flag-detail.tsx                                             |
 | 送来小惊喜                                                                   | flag-detail.tsx                                             |
 | 提交成果                                                                     | copy.ts、flag-card.tsx                                      |
+| 同频                                                                         | copy.ts                                                     |
 | 完成的目标会留在这里。                                                       | flag-board.tsx                                              |
 | 完成后的奖励                                                                 | flag-detail.tsx、flag-editor.tsx                            |
 | 晚一点没关系，我还在等你把它做好给我看。                                     | copy.ts                                                     |
@@ -172,7 +173,6 @@
 | 我看见啦，真的很棒 ❤️                                                        | copy.ts                                                     |
 | 我们的关系                                                                   | binding.tsx                                                 |
 | 我们的回忆                                                                   | panel.tsx                                                   |
-| 我们的小窝                                                                   | copy.ts                                                     |
 | 我们的自习室                                                                 | copy.ts                                                     |
 | 我做到啦，第一时间给你看。                                                   | copy.ts                                                     |
 | 无法读取邀请，请重试。                                                       | binding.tsx                                                 |
@@ -192,6 +192,7 @@
 | 已保存                                                                       | flag-detail.tsx                                             |
 | 已发出关系变更，等待对方确认。                                               | settings.tsx                                                |
 | 已过截止时间，仍可提交成果。                                                 | copy.ts                                                     |
+| 已见证                                                                       | memory-timeline.tsx                                         |
 | 已结束的约定                                                                 | panel.tsx                                                   |
 | 已经交给 TA 啦，等一句“真棒”。                                               | copy.ts                                                     |
 | 已取消                                                                       | copy.ts                                                     |

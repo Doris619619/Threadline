@@ -12,9 +12,7 @@ async function choosePreview(page: Page, label: string, value?: string) {
 
 test('微信成果、对方验收、昵称与本地时区', async ({ page }) => {
   await page.goto('/together-preview');
-  await expect(
-    page.getByRole('heading', { name: '我们的小窝', exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: '同频', exact: true })).toBeVisible();
   await expect(page.locator('.together-clock')).toContainText('北京时间');
   await expect(
     page.getByRole('region', { name: '我的 flag', exact: true }),
@@ -106,12 +104,23 @@ test('微信成果、对方验收、昵称与本地时区', async ({ page }) => 
     .click();
   await page.getByRole('button', { name: '我们的回忆', exact: true }).click();
   await expect(page.getByRole('button', { name: title, exact: true })).toBeVisible();
+  const memory = page.locator('.together-memory-entry').filter({
+    has: page.getByRole('button', { name: title, exact: true }),
+  });
+  await expect(memory).toContainText('一杯奶茶');
+  const completedAt = await memory.locator('time').getAttribute('datetime');
+  const localDay = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+  }).format(new Date(completedAt!));
+  await expect(
+    page.getByRole('region', { name: localDay, exact: true }).filter({ has: memory }),
+  ).toHaveCount(1);
+  await memory.getByRole('button', { name: '拆惊喜', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('照片已经发到微信啦。');
 });
 test('四主题深浅色与手机布局，无横向溢出', async ({ page }) => {
   await page.goto('/together-preview');
-  await expect(
-    page.getByRole('heading', { name: '我们的小窝', exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: '同频', exact: true })).toBeVisible();
   for (const theme of ['blue', 'anya', 'cottage', 'classic']) {
     await choosePreview(page, '主题', theme);
     for (const width of [1366, 390, 320]) {
@@ -128,6 +137,12 @@ test('四主题深浅色与手机布局，无横向溢出', async ({ page }) => 
         await expect(
           page.getByRole('button', { name: '立个 flag', exact: true }),
         ).toBeVisible();
+        await page.getByRole('button', { name: '我们的回忆', exact: true }).click();
+        await expect(page.locator('.together-memory-entry').first()).toBeVisible();
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        ).toBe(true);
+        await page.getByRole('button', { name: '正在进行', exact: true }).click();
       }
     }
   }
@@ -146,6 +161,66 @@ test('四主题深浅色与手机布局，无横向溢出', async ({ page }) => 
     path: 'docs/screenshots/together/mobile.png',
     fullPage: true,
   });
+  await page.getByRole('button', { name: '我们的回忆', exact: true }).click();
+  await expect(page.locator('.together-memory-entry').first()).toBeVisible();
+  await page.screenshot({ path: 'docs/screenshots/together/memories-mobile.png' });
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await page.screenshot({ path: 'docs/screenshots/together/memories-desktop.png' });
+  expect(
+    (await new AxeBuilder({ page }).include('.together-page').analyze()).violations,
+  ).toEqual([]);
+});
+
+test('成果抽屉保留样式，桌面靠右、手机全屏，验收弹窗居中', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/together-preview');
+  for (const width of [1366, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    const note = page.locator('.together-note').filter({
+      has: page.getByRole('button', { name: '读完那本书的第三章', exact: true }),
+    });
+    await note.getByRole('button', { name: '看看成果' }).click();
+    const drawer = page.getByRole('dialog', {
+      name: '读完那本书的第三章',
+      exact: true,
+    });
+    await expect(drawer).toHaveCSS('padding-top', width === 1366 ? '24px' : '20px');
+    await expect(drawer.locator('header')).toHaveCSS('display', 'flex');
+    const bounds = await drawer.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBeCloseTo(Math.max(0, width - 560), 0);
+    expect(bounds!.width).toBeCloseTo(Math.min(width, 560), 0);
+    expect(bounds!.height).toBeCloseTo(900, 0);
+    const approve = drawer.getByRole('button', {
+      name: '我看见啦，真的很棒 ❤️',
+      exact: true,
+    });
+    await expect(approve).toBeVisible();
+    expect((await approve.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    expect(await drawer.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(
+      true,
+    );
+    if (width !== 320)
+      await page.screenshot({
+        path: `docs/screenshots/together/detail-${width === 1366 ? 'desktop' : 'mobile'}.png`,
+      });
+    await approve.click();
+    const confirmation = page.getByRole('dialog', {
+      name: '我看见啦，真的很棒 ❤️',
+      exact: true,
+    });
+    await expect(confirmation).toHaveCSS(
+      'padding-top',
+      width === 1366 ? '24px' : '20px',
+    );
+    const modal = await confirmation.boundingBox();
+    expect(modal!.x + modal!.width / 2).toBeCloseTo(width / 2, 0);
+    await page.keyboard.press('Escape');
+    await expect(approve).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(note.getByRole('button', { name: '看看成果' })).toBeFocused();
+  }
 });
 
 test('已有账号邀请、昵称恢复和关系确认', async ({ page }) => {
@@ -207,9 +282,7 @@ test('已有账号邀请、昵称恢复和关系确认', async ({ page }) => {
   await choosePreview(page, '查看身份', '3');
   await page.getByRole('button', { name: '空间设置', exact: true }).click();
   await page.getByRole('button', { name: '确认关系', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: '我们的小窝', exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: '同频', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '空间设置', exact: true }).click();
   await page.getByText('解除绑定', { exact: true }).click();
   await page.getByRole('button', { name: '确认解除绑定', exact: true }).click();
@@ -222,9 +295,7 @@ test('长称呼、键盘退出、减少动态效果与错误输入修正', async
   await page.setViewportSize({ width: 320, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/together-preview');
-  await expect(
-    page.getByRole('heading', { name: '我们的小窝', exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: '同频', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '空间设置', exact: true }).click();
   await page.getByLabel('自己的展示名').fill('桃'.repeat(30));
   await page.getByLabel('给对方的昵称').fill('熊'.repeat(30));

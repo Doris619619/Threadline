@@ -7,6 +7,7 @@ import { readFlags, checkSpaceError } from './repository';
 import { getAccountTimezone } from '@/lib/account-clock';
 import { useAccountTimezone } from '@/features/settings/account-timezone-provider';
 import { FlagCard } from './flag-card';
+import { MemoryTimeline } from './memory-timeline';
 import type { Flag, Room } from './types';
 import { memberName } from './copy';
 
@@ -130,26 +131,41 @@ export function FlagList({
           <p>{empty}</p>
         </div>
       )}
-      {flags.map((flag) => (
-        <FlagCard
-          key={flag.id}
-          room={room}
-          flag={flag}
+      {mode === 'completed' ? (
+        <MemoryTimeline
+          flags={flags}
           zone={zone}
           onOpen={onOpen}
-          cheered={
-            !!marks.data?.some(
-              (event) => event.flag_id === flag.id && event.kind === 'cheered',
+          surprises={
+            new Set(
+              marks.data
+                ?.filter((event) => event.kind === 'surprise')
+                .map((event) => event.flag_id),
             )
           }
-          surprise={
-            !!marks.data?.some(
-              (event) => event.flag_id === flag.id && event.kind === 'surprise',
-            )
-          }
-          marksReady={!!marks.data}
         />
-      ))}
+      ) : (
+        flags.map((flag) => (
+          <FlagCard
+            key={flag.id}
+            room={room}
+            flag={flag}
+            zone={zone}
+            onOpen={onOpen}
+            cheered={
+              !!marks.data?.some(
+                (event) => event.flag_id === flag.id && event.kind === 'cheered',
+              )
+            }
+            surprise={
+              !!marks.data?.some(
+                (event) => event.flag_id === flag.id && event.kind === 'surprise',
+              )
+            }
+            marksReady={!!marks.data}
+          />
+        ))
+      )}
       {marks.error && (
         <p className="together-error" role="alert">
           互动暂未读取。<button onClick={() => void marks.refetch()}>重试</button>
