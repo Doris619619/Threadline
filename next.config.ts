@@ -20,6 +20,10 @@ const nextConfig: NextConfig = {
     : ['web.tsx', 'web.ts'],
   ...(isElectronBuild ? { output: 'export', distDir: '.next-electron' } : {}),
   reactStrictMode: true,
+  ...(process.env.THREADLINE_TOGETHER_PREVIEW === 'true' &&
+  process.env.NODE_ENV === 'development'
+    ? { devIndicators: false as const, distDir: '.next-together-preview' }
+    : {}),
   allowedDevOrigins: ['127.0.0.1'],
 };
 

@@ -18,6 +18,7 @@ import {
   Orbit,
   Settings,
   Spline,
+  UsersRound,
   X,
 } from 'lucide-react';
 import { createContext, useContext, useState } from 'react';
@@ -39,6 +40,8 @@ import { CottageNavIcon } from '@/features/appearance/cottage-sprite';
 import { CottageCompanion } from '@/features/appearance/cottage-companion';
 import { DesktopUpdateEntry } from '@/features/desktop-update/update-entry';
 import { useRhythmVisible } from '@/features/onboarding/account-preferences-provider';
+import { useOptionalTogether } from '@/features/together/state';
+import { togetherCopy } from '@/features/together/copy';
 
 /** Open the native date popup for the full visible control; unsupported/restricted browsers keep their native input behavior. */
 function openWorkspaceDatePicker(input: HTMLInputElement): boolean {
@@ -82,6 +85,12 @@ const navigation = [
     label: '节律',
     icon: Orbit,
     description: '记录生理期开始与结束，随账号同步，不进入洞察与报告',
+  },
+  {
+    id: 'together',
+    label: '两人空间',
+    icon: UsersRound,
+    description: '各自努力，互相见证',
   },
   {
     id: 'settings',
@@ -219,6 +228,10 @@ function EdgeTab() {
 
 /** 根据窗口形态与账号性别过滤导航；节律被隐藏时同步回到首页，防止渲染已卸载的私密状态。 */
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const together = useOptionalTogether();
+  const togetherLabel = together?.room
+    ? togetherCopy[together.room.relationship].title
+    : '两人空间';
   const [selection, setActive] = useState<WorkspaceViewId>('home');
   const rhythmVisible = useRhythmVisible();
   const active = selection === 'rhythm' && !rhythmVisible ? 'home' : selection;
@@ -280,10 +293,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       setMobileMoreOpen(false);
                     }}
                   >
-                    <CottageNavIcon name={id}>
+                    <CottageNavIcon name={id === 'together' ? 'flower' : id}>
                       <Icon aria-hidden="true" size={18} />
                     </CottageNavIcon>
-                    {label}
+                    {id === 'together' ? togetherLabel : label}
+                    {id === 'together' && !!together?.pending && (
+                      <span className="together-badge">{together.pending}</span>
+                    )}
                   </SidebarItem>
                 ))}
               </nav>
@@ -297,7 +313,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       setMobileMoreOpen(false);
                     }}
                   >
-                    <CottageNavIcon name={id}>
+                    <CottageNavIcon name={id === 'together' ? 'flower' : id}>
                       <Icon aria-hidden="true" size={18} />
                     </CottageNavIcon>
                     {label}
@@ -316,6 +332,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     <MoreHorizontal aria-hidden="true" size={18} />
                     更多
+                    {!!together?.pending && (
+                      <span className="together-badge">{together.pending}</span>
+                    )}
                   </button>
                   {mobileMoreOpen && (
                     <div id="mobile-more-navigation" className="tl-mobile-more-menu">
@@ -329,10 +348,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             setMobileMoreOpen(false);
                           }}
                         >
-                          <CottageNavIcon name={id}>
+                          <CottageNavIcon name={id === 'together' ? 'flower' : id}>
                             <Icon aria-hidden="true" size={18} />
                           </CottageNavIcon>
-                          {label}
+                          {id === 'together' ? togetherLabel : label}
+                          {id === 'together' && !!together?.pending && (
+                            <span className="together-badge">{together.pending}</span>
+                          )}
                         </button>
                       ))}
                       <CottageCompanion compact view={active} />
@@ -358,7 +380,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               !usesDedicatedProjectHeader &&
               active !== 'calendar' &&
               active !== 'habits' &&
-              active !== 'settings' && (
+              active !== 'settings' &&
+              active !== 'together' && (
                 <header className="tl-header" data-home={active === 'home'}>
                   <div>
                     <h1>

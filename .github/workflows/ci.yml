@@ -24,6 +24,7 @@ jobs:
       - run: pnpm supabase:lint
       - run: pnpm test:db
       - run: pnpm test:supabase:integration
+      - run: pnpm test:together:integration
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:supabase:browser
       - if: always()
@@ -43,6 +44,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
+      - run: pnpm test:together:copy
+      - run: pnpm test:together:db
       - run: pnpm test:coverage
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium webkit
@@ -70,6 +73,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm test:preview
+      - run: pnpm test:together:e2e
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -40,3 +40,4 @@ import '../features/appearance/cottage-wardrobe.css';
 import '../features/appearance/cottage-furnishings.css';
 import '../features/appearance/classic.css';
 import '../features/appearance/classic-controls.css';
+import '../features/together/together.css';

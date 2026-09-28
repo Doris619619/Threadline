@@ -10,6 +10,7 @@ export default defineConfig([
   globalIgnores([
     '.next/**',
     '.next-electron/**',
+    '.next-together-preview/**',
     'dist-electron/**',
     'release/**',
     'node_modules/**',

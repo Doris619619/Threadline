@@ -1,6 +1,7 @@
 # dependencies and generated builds
 node_modules/
 .next/
+.next-together-preview/
 .next-electron/
 public/sw-precache.json
 dist-electron/

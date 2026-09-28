@@ -16,6 +16,7 @@ const defaultWebTestIgnore = [
   '**/ui-*.spec.ts',
   '**/mobile-form-controls.spec.ts',
   '**/supabase-cloud.spec.ts',
+  '**/together.spec.ts',
 ];
 
 /** 创建只收集紧凑布局矩阵文件的桌面项目，避免业务 E2E 被每个 viewport 重复执行。 */

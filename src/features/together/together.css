@@ -1,0 +1,544 @@
+/* 文件用途：两人空间的主题自适应列表、关系页头、轻量表单与响应式详情抽屉。 */
+.together-preview {
+  min-height: 100dvh;
+  background: var(--background);
+}
+.together-preview-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.together-preview-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.together-preview-controls select,
+.together-preview-controls button {
+  min-height: 44px;
+  background: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  padding: 8px;
+}
+.together-page {
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 32px 28px 48px;
+  color: var(--text-primary);
+}
+.together-heading,
+.together-toolbar,
+.together-pair,
+.together-actions,
+.together-dialog > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.together-heading h1 {
+  font-size: 28px;
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  margin: 6px 0 0;
+}
+.together-eyebrow,
+.together-muted,
+.together-clock,
+.together-page small,
+.together-dialog small {
+  color: var(--text-secondary);
+}
+.together-eyebrow {
+  font-size: 13px;
+}
+.together-page button,
+.together-dialog button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+  transition:
+    background 150ms,
+    transform 150ms;
+}
+.together-page button:active,
+.together-dialog button:active {
+  transform: translateY(1px);
+}
+.together-page button:disabled,
+.together-dialog button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.together-page button:focus-visible,
+.together-dialog :focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 3px;
+}
+.together-page .together-primary,
+.together-dialog .together-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
+}
+.together-page .together-icon-button {
+  padding: 10px;
+  background: transparent;
+  border-color: transparent;
+}
+.together-clock {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  margin-top: 16px;
+}
+.together-clock span {
+  border-left: 1px solid var(--border-strong);
+  padding-left: 12px;
+}
+.together-pair {
+  justify-content: flex-start;
+  padding: 30px 0;
+}
+.together-pair strong {
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+.together-pair p {
+  color: var(--text-secondary);
+  margin: 6px 0 0;
+  font-size: 14px;
+}
+.together-avatars {
+  display: flex;
+  flex-shrink: 0;
+  padding-right: 6px;
+}
+.together-avatars span {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border: 3px solid var(--background);
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+}
+.together-avatars span + span {
+  margin-left: -8px;
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+}
+.together-score {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.together-page[data-relationship='couple'] .together-score {
+  color: var(--text-secondary);
+}
+.together-score svg {
+  color: var(--daily-accent);
+}
+.together-toolbar {
+  padding: 8px 0 18px;
+  border-bottom: 1px solid var(--border);
+}
+.together-tabs {
+  display: flex;
+  gap: 4px;
+}
+.together-tabs button {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+.together-tabs button[aria-pressed='true'] {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+.together-list {
+  padding-top: 24px;
+}
+.together-list h2 {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 550;
+  margin: 0 0 8px;
+}
+.together-flag {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.together-flag-text {
+  flex: 1;
+  min-width: 0;
+}
+.together-flag small {
+  display: block;
+  font-size: 12px;
+}
+.together-flag .together-flag-title {
+  display: block;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 5px 0;
+  min-height: 44px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.together-flag p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+}
+.together-flag .together-open {
+  border-color: transparent;
+  background: transparent;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.together-gift {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--accent-text);
+  margin-top: 8px;
+}
+.together-page .together-ended-toggle {
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-top: 24px;
+  padding-left: 0;
+}
+.together-empty-copy {
+  padding: 24px 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.together-binding,
+.together-empty {
+  max-width: 500px;
+  margin: 64px auto;
+}
+.together-binding h2,
+.together-empty h2 {
+  font-size: 23px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.together-binding p,
+.together-empty p {
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+.together-binding-icon {
+  color: var(--accent-text);
+  margin-bottom: 12px;
+}
+.together-page label,
+.together-dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  margin: 18px 0 10px;
+}
+.together-page input,
+.together-page select,
+.together-dialog input,
+.together-dialog select,
+.together-dialog textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 16px;
+}
+.together-dialog textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+.together-page fieldset,
+.together-dialog fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.together-dialog form .together-primary {
+  margin-top: 20px;
+}
+.together-invite {
+  border-left: 2px solid var(--accent-border);
+  padding: 4px 0 4px 18px;
+  margin-top: 20px;
+}
+.together-invite code {
+  display: block;
+  font-size: 19px;
+  letter-spacing: 0.05em;
+  overflow-wrap: anywhere;
+}
+.together-invite small {
+  display: block;
+  margin: 12px 0;
+}
+.together-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+.together-dialog {
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-surface);
+  padding: 24px;
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  margin: auto;
+  box-shadow: var(--shadow-window);
+}
+.together-dialog::backdrop {
+  background: rgb(0 0 0 / 35%);
+}
+.together-dialog > header {
+  margin-bottom: 24px;
+  align-items: flex-start;
+}
+.together-dialog > header h2 {
+  font-size: 21px;
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.together-dialog > header button {
+  border: 0;
+  flex-shrink: 0;
+  padding: 10px;
+}
+.together-dialog.is-drawer {
+  margin: 0 0 0 auto;
+  width: min(560px, 100vw);
+  height: 100dvh;
+  max-height: 100dvh;
+  border-radius: 0;
+  animation: together-enter 180ms ease-out;
+}
+.together-dialog section {
+  margin-top: 24px;
+}
+.together-dialog h3 {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.together-dialog p {
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+.together-detail-meta {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.together-detail-meta small {
+  display: block;
+  line-height: 1.8;
+}
+.together-prewrap {
+  white-space: pre-wrap;
+}
+.together-timeline article {
+  border-left: 1px solid var(--border-strong);
+  padding: 0 0 24px 16px;
+  margin-left: 3px;
+}
+.together-timeline strong {
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 550;
+}
+.together-timeline time {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-top: 6px;
+}
+.together-timeline p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+.together-dialog details {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.together-dialog summary {
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.together-dialog .together-check {
+  flex-direction: row;
+  align-items: center;
+  min-height: 44px;
+}
+.together-check input {
+  width: 20px;
+  min-height: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.together-dialog .together-danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.together-error {
+  color: var(--danger);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.together-error button {
+  margin-left: 8px;
+}
+.together-room-notice {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.together-affection {
+  color: var(--daily-accent);
+  animation: together-heart 250ms ease-out;
+}
+.together-history-link {
+  display: flex !important;
+  flex-direction: column;
+  align-items: flex-start !important;
+  width: 100%;
+  margin-bottom: 8px;
+  text-align: left;
+}
+.together-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-size: 11px;
+  margin-left: 4px;
+}
+@keyframes together-enter {
+  from {
+    transform: translateX(18px);
+    opacity: 0.5;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes together-heart {
+  50% {
+    transform: scale(1.03);
+  }
+}
+@media (max-width: 760px) {
+  .together-page {
+    padding: 24px 16px 32px;
+  }
+  .together-heading h1 {
+    font-size: 26px;
+  }
+  .together-pair {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 24px 0;
+  }
+  .together-pair > div:nth-child(2) {
+    flex: 1;
+    min-width: 0;
+  }
+  .together-score {
+    width: 100%;
+    margin-left: 0;
+  }
+  .together-toolbar {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .together-tabs button {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+  .together-toolbar > button {
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+  .together-flag {
+    gap: 8px;
+  }
+  .together-binding,
+  .together-empty {
+    margin: 40px 0;
+  }
+  .together-dialog {
+    padding: 20px 16px;
+  }
+  .together-dialog.is-drawer {
+    width: 100%;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .together-dialog,
+  .together-affection {
+    animation: none !important;
+  }
+  .together-page button,
+  .together-dialog button {
+    transition: none;
+  }
+}

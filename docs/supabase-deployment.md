@@ -2,6 +2,10 @@
 
 # Supabase、Vercel 与跨端验收
 
+## 两人空间迁移
+
+新功能先应用 `202609280001_together.sql`，再发布客户端。新增独立成员 RLS、幂等 RPC 与 rooms/memberships Realtime，不放宽个人数据权限。成果图片改为微信发送，应用只记录主动声明与验收，因此不需要 Storage 或清理 Cron。部署步骤、测试边界及 localhost 展示见 [两人空间](together-space.md)。
+
 ## 需要在 Supabase 完成的操作
 
 1. 创建 **Production Supabase** 项目；Vercel Preview 默认可使用无数据库演示，仅在需要验证真实云同步时创建独立 staging/test 项目。记录云项目各自的 Project URL 和 `sb_publishable_...` key，绝不复制 `service_role`、`sb_secret_` 或数据库密码到前端环境变量。
