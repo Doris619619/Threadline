@@ -116,7 +116,9 @@ export function FlagCard({
             </span>
           )}
           <button
-            className={`together-note-open${review ? 'is-review' : ''}`}
+            className={['together-note-open', review && 'is-review']
+              .filter(Boolean)
+              .join(' ')}
             onClick={() => onOpen(flag)}
           >
             {surprise ? (

@@ -34,11 +34,13 @@ export function SpaceDialog({
   return createPortal(
     <dialog
       ref={ref}
-      className={`together-dialog${drawer ? 'is-drawer' : ''}`}
+      className={['together-dialog', drawer && 'is-drawer'].filter(Boolean).join(' ')}
       aria-labelledby={id}
       aria-busy={busy}
       onCancel={(event) => {
         event.preventDefault();
+        // React 事件会沿 Portal 的组件树冒泡，Escape 只关闭最上层表单。
+        event.stopPropagation();
         if (!busy) onClose();
       }}
     >
