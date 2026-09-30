@@ -67,7 +67,11 @@ export function FlagCard({
           ) : (
             <span className="together-status-dot" />
           )}
-          {review ? '等你验收' : statusLabel[flag.status]}
+          {review
+            ? '待我验收'
+            : mine && flag.status === 'submitted'
+              ? '等对方验收'
+              : statusLabel[flag.status]}
         </span>
       </div>
       <button className="together-note-title" onClick={() => onOpen(flag)}>
@@ -92,7 +96,7 @@ export function FlagCard({
           )}
         </div>
         <div className="together-note-actions">
-          {!mine && ongoing && (
+          {!mine && ongoing && !review && (
             <button
               className="together-cheer"
               title={cheered ? '已为 TA 加油' : togetherCopy[room.relationship].cheer}
@@ -127,7 +131,7 @@ export function FlagCard({
                 拆惊喜
               </>
             ) : review ? (
-              '看看成果'
+              '去验收'
             ) : mine && ongoing && ['active', 'changes'].includes(flag.status) ? (
               '提交成果'
             ) : (

@@ -43,3 +43,4 @@ import '../features/appearance/classic-controls.css';
 import '../features/together/together.css';
 import '../features/together/memory-timeline.css';
 import '../features/together/flag-editor.css';
+import '../features/together/review.css';

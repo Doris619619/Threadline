@@ -16,6 +16,7 @@ import { BindingPanel } from './binding';
 import { SpaceSettings } from './settings';
 import { FlagEditor } from './flag-editor';
 import { FlagDetail } from './flag-detail';
+import { ReviewEntry } from './review';
 import type { Flag, Room, SpaceEvent } from './types';
 /** 页面使用当前关系或显式打开的旧空间；旧空间不会污染导航绑定状态。 */
 export function TogetherPanel() {
@@ -196,6 +197,7 @@ function RoomContent({ room, onSettings }: { room: Room; onSettings: () => void 
           </button>
         )}
       </div>
+      <ReviewEntry room={room} onOpen={setDetail} />
       <FlagLanes room={room} mode={tab} onOpen={setDetail} />
       <button
         className="together-ended-toggle"

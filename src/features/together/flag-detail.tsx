@@ -7,6 +7,7 @@ import { useAccountTimezone } from '@/features/settings/account-timezone-provide
 import { useTogether } from './state';
 import { readEvents, checkSpaceError } from './repository';
 import { SpaceDialog } from './dialog';
+import { ReviewSubmission } from './review';
 import { useSpaceCommand } from './use-command';
 import { togetherCopy, memberName, address, statusLabel } from './copy';
 import { spaceTime, isLate } from './time';
@@ -66,16 +67,23 @@ export function FlagDetail({
   const flag = query.data;
   const copy = togetherCopy[room.relationship];
   const mine = flag.owner_id === user;
-  const partner = memberName(room, user === room.user_a ? room.user_b : room.user_a);
   const ended = !!room.ended_at || flag.status === 'cancelled';
   const cheered = events.data?.some((item) => item.kind === 'cheered');
   const surprised = events.data?.some((item) => item.kind === 'surprise');
+  const submission = events.data?.filter((item) => item.kind === 'submitted').at(-1);
+  const review = !mine && flag.status === 'submitted' && !ended;
   return (
     <SpaceDialog title={flag.title} onClose={onClose} drawer>
       <div className="together-detail-meta">
         <div className="together-detail-owner">
           <span>{memberName(room, flag.owner_id)}</span>
-          <span className="together-detail-status">{statusLabel[flag.status]}</span>
+          <span className="together-detail-status">
+            {review
+              ? '待我验收'
+              : mine && flag.status === 'submitted'
+                ? '等对方验收'
+                : statusLabel[flag.status]}
+          </span>
         </div>
         <time dateTime={flag.deadline} title={timezoneLabel(zone)}>
           截止 {spaceTime(flag.deadline, zone)}
@@ -87,6 +95,25 @@ export function FlagDetail({
           <p className="together-prewrap">{flag.description}</p>
         </section>
       )}
+      {query.error && <p role="alert">{query.error.message}</p>}
+      {events.isPending && <p role="status">正在读取成果…</p>}
+      {events.error && (
+        <p role="alert">
+          {events.error.message}
+          <button onClick={() => void events.refetch()}>重新读取</button>
+        </p>
+      )}
+      {flag.status === 'submitted' && submission && (
+        <ReviewSubmission
+          room={room}
+          submission={submission}
+          mine={mine}
+          zone={zone}
+          canReview={review && !query.error && !events.error}
+          onApprove={() => setAction({ kind: 'approve', flag })}
+          onChanges={() => setAction({ kind: 'changes', flag })}
+        />
+      )}
       {flag.reward && (
         <section>
           <h3>完成后的奖励</h3>
@@ -96,15 +123,16 @@ export function FlagDetail({
       {!ended && flag.status !== 'completed' && isLate(flag) && (
         <p className="together-muted">{copy.overdue}</p>
       )}
-      {flag.first_submitted_at && (
+      {flag.first_submitted_at && flag.status !== 'submitted' && (
         <p>
           首次提交：{spaceTime(flag.first_submitted_at, zone)} ·{' '}
           {isLate(flag) ? '截止后提交' : '按时提交'}
         </p>
       )}
-      {flag.status === 'submitted' && mine && <p>{address(copy.waiting, partner)}</p>}
       {flag.status === 'completed' && (
-        <p className="together-completed">{copy.approved}</p>
+        <p className="together-completed">
+          {mine ? copy.approved : '已验收通过，这份努力由你见证。'}
+        </p>
       )}
       {flag.cancelled_reason && <p>{flag.cancelled_reason}</p>}
       {notice && (
@@ -123,24 +151,13 @@ export function FlagDetail({
               {copy.submit}
             </button>
           )}
-          {!mine && flag.status === 'submitted' && (
-            <>
-              <button
-                className="together-primary"
-                onClick={() => setAction({ kind: 'approve', flag })}
-              >
-                {copy.approve}
+          {!mine &&
+            !['submitted', 'completed', 'cancelled'].includes(flag.status) &&
+            !cheered && (
+              <button onClick={() => setAction({ kind: 'cheer', flag })}>
+                {copy.cheer}
               </button>
-              <button onClick={() => setAction({ kind: 'changes', flag })}>
-                {copy.changes}
-              </button>
-            </>
-          )}
-          {!mine && !['completed', 'cancelled'].includes(flag.status) && !cheered && (
-            <button onClick={() => setAction({ kind: 'cheer', flag })}>
-              {copy.cheer}
-            </button>
-          )}
+            )}
           {!mine && flag.status === 'completed' && !surprised && (
             <button onClick={() => setAction({ kind: 'surprise', flag })}>
               送个小惊喜
@@ -169,16 +186,8 @@ export function FlagDetail({
           }}
         />
       )}
-      <section className="together-timeline">
-        <h3>这件事的过程</h3>
-        {query.error && <p role="alert">{query.error.message}</p>}
-        {events.isPending && <p role="status">正在读取记录…</p>}
-        {events.error && (
-          <p role="alert">
-            {events.error.message}
-            <button onClick={() => void events.refetch()}>重新读取</button>
-          </p>
-        )}
+      <details className="together-timeline" open={flag.status !== 'submitted'}>
+        <summary>这件事的过程</summary>
         {events.data?.map((item) => (
           <article key={item.id}>
             <strong>
@@ -196,7 +205,7 @@ export function FlagDetail({
             )}
           </article>
         ))}
-      </section>
+      </details>
     </SpaceDialog>
   );
 }

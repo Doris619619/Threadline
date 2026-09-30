@@ -101,6 +101,14 @@ test('微信成果、对方验收、昵称与本地时区', async ({ page }) => 
   await submit.getByLabel('成果说明').fill('成果已发微信，请看看。');
   await submit.getByRole('button', { name: '确认发送，交给对方验收' }).click();
   await expect(submit).toHaveCount(0);
+  await expect(
+    page.getByRole('dialog').getByText('等对方验收', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole('dialog')
+      .getByRole('button', { name: '我看见啦，真的很棒 ❤️', exact: true }),
+  ).toHaveCount(0);
   await page
     .getByRole('dialog')
     .getByRole('button', { name: '关闭', exact: true })
@@ -113,8 +121,15 @@ test('微信成果、对方验收、昵称与本地时区', async ({ page }) => 
   await expect(
     page.getByRole('region', { name: '我的 flag', exact: true }),
   ).not.toContainText(title);
-  await page.getByRole('button', { name: title, exact: true }).click();
+  const reviewEntry = page.getByRole('complementary', { name: '待我验收' });
+  await expect(reviewEntry).toContainText(title);
+  await page.getByRole('button', { name: '我们的回忆', exact: true }).click();
+  await reviewEntry.getByRole('button', { name: '去验收', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('10:00');
+  await expect(page.getByRole('region', { name: '最新成果' })).toContainText(
+    '成果已发微信，请看看。',
+  );
+  await expect(page.locator('.together-timeline')).not.toHaveAttribute('open');
   await page
     .getByRole('button', { name: '还差一点点，再给我看看嘛。', exact: true })
     .click();
@@ -126,12 +141,15 @@ test('微信成果、对方验收、昵称与本地时区', async ({ page }) => 
     .getByRole('dialog')
     .getByRole('button', { name: '关闭', exact: true })
     .click();
+  await expect(reviewEntry).toHaveCount(0);
   await choosePreview(page, '查看身份', '0');
+  await page.getByRole('button', { name: '正在进行', exact: true }).click();
   await page.getByRole('button', { name: title, exact: true }).click();
   await page
     .getByRole('button', { name: '我做到啦，第一时间给你看。', exact: true })
     .click();
   await page.getByLabel('已通过微信发送成果').check();
+  await page.getByLabel('成果说明').fill('订正已补充，微信里是新照片。');
   await page.getByRole('button', { name: '确认发送，交给对方验收' }).click();
   await expect(
     page.getByRole('dialog', { name: '我做到啦，第一时间给你看。' }),
@@ -141,7 +159,13 @@ test('微信成果、对方验收、昵称与本地时区', async ({ page }) => 
     .getByRole('button', { name: '关闭', exact: true })
     .click();
   await choosePreview(page, '查看身份', '1');
-  await page.getByRole('button', { name: title, exact: true }).click();
+  await reviewEntry.getByRole('button', { name: '去验收', exact: true }).click();
+  await expect(page.getByRole('region', { name: '最新成果' })).toContainText(
+    '订正已补充，微信里是新照片。',
+  );
+  await expect(page.getByRole('region', { name: '最新成果' })).not.toContainText(
+    '成果已发微信，请看看。',
+  );
   await page
     .getByRole('button', { name: '我看见啦，真的很棒 ❤️', exact: true })
     .click();
@@ -149,9 +173,7 @@ test('微信成果、对方验收、昵称与本地时区', async ({ page }) => 
   await approval.getByLabel('留一句夸奖').fill('说到做到，真棒！');
   await approval.getByRole('button', { name: '我看见啦，真的很棒 ❤️' }).click();
   await expect(approval).toHaveCount(0);
-  await expect(page.getByRole('dialog')).toContainText(
-    '你的认真和努力，我都有好好看见',
-  );
+  await expect(page.getByRole('dialog')).toContainText('已验收通过，这份努力由你见证');
   await page.getByRole('button', { name: '送个小惊喜', exact: true }).click();
   const surprise = page.getByRole('dialog', { name: '送个小惊喜' });
   await surprise.getByLabel('给对方的小惊喜').fill('照片已经发到微信啦。');
@@ -162,6 +184,7 @@ test('微信成果、对方验收、昵称与本地时区', async ({ page }) => 
     .getByRole('dialog')
     .getByRole('button', { name: '关闭', exact: true })
     .click();
+  await expect(reviewEntry).toHaveCount(0);
   await page.getByRole('button', { name: '我们的回忆', exact: true }).click();
   await expect(page.getByRole('button', { name: title, exact: true })).toBeVisible();
   const memory = page.locator('.together-memory-entry').filter({
@@ -246,7 +269,18 @@ test('成果抽屉保留样式，桌面靠右、手机全屏，验收弹窗居�
     const note = page.locator('.together-note').filter({
       has: page.getByRole('button', { name: '读完那本书的第三章', exact: true }),
     });
-    await note.getByRole('button', { name: '看看成果' }).click();
+    const entry = page.getByRole('complementary', { name: '待我验收' });
+    await expect(entry).toBeVisible();
+    const entryBounds = await entry.boundingBox();
+    const myFlags = await page
+      .getByRole('region', { name: '我的 flag', exact: true })
+      .boundingBox();
+    expect(entryBounds!.y + entryBounds!.height).toBeLessThan(myFlags!.y);
+    const opener = (width === 1366 ? note : entry).getByRole('button', {
+      name: '去验收',
+      exact: true,
+    });
+    await opener.click();
     const drawer = page.getByRole('dialog', {
       name: '读完那本书的第三章',
       exact: true,
@@ -263,6 +297,9 @@ test('成果抽屉保留样式，桌面靠右、手机全屏，验收弹窗居�
       exact: true,
     });
     await expect(approve).toBeVisible();
+    await expect(drawer.getByRole('region', { name: '最新成果' })).toContainText(
+      '三个句子已经发给你啦。',
+    );
     expect((await approve.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     expect(await drawer.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(
       true,
@@ -286,7 +323,7 @@ test('成果抽屉保留样式，桌面靠右、手机全屏，验收弹窗居�
     await expect(approve).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await expect(note.getByRole('button', { name: '看看成果' })).toBeFocused();
+    await expect(opener).toBeFocused();
     await page.getByRole('button', { name: '立个 flag', exact: true }).click();
     const editor = page.getByRole('dialog', { name: '立个 flag', exact: true });
     await editor.getByText('补充说明', { exact: true }).click();
