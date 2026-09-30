@@ -1,0 +1,97 @@
+/** @fileoverview 回忆按查看者本地日期归档；左侧显示日期与时刻，右侧保留目标、奖励与惊喜。 */
+'use client';
+import { ArrowUpRight, Check, Gift, Mail } from 'lucide-react';
+import { accountClockParts } from '@/lib/account-clock';
+import { spaceTime } from './time';
+import type { Flag } from './types';
+
+/** 对已加载页统一分组；日期地标带所属分栏名称，双方同一天完成时仍能被读屏区分。 */
+export function MemoryTimeline({
+  flags,
+  label,
+  zone,
+  surprises,
+  onOpen,
+}: {
+  flags: Flag[];
+  label: string;
+  zone: string;
+  surprises: Set<string>;
+  onOpen: (flag: Flag) => void;
+}) {
+  const days = new Map<string, Flag[]>();
+  for (const flag of flags) {
+    const day = accountClockParts(new Date(flag.completed_at!), zone).date;
+    const group = days.get(day) ?? [];
+    group.push(flag);
+    days.set(day, group);
+  }
+  return (
+    <div className="together-memories">
+      {Array.from(days, ([day, entries]) => (
+        <section
+          className="together-memory-day"
+          key={day}
+          aria-label={`${label} · ${day}`}
+        >
+          <h3>
+            <time dateTime={day}>
+              <b>
+                {day.slice(0, 4)}年{Number(day.slice(5, 7))}月{Number(day.slice(8))}日
+              </b>
+            </time>
+            <span className="together-memory-rule" aria-hidden="true" />
+          </h3>
+          <ol>
+            {entries.map((flag) => (
+              <li key={flag.id} className="together-memory-entry">
+                <span className="together-memory-dot" aria-hidden="true">
+                  <Check size={12} />
+                </span>
+                <time
+                  className="together-memory-time"
+                  dateTime={flag.completed_at!}
+                  title={`${spaceTime(flag.completed_at!, zone)} · ${zone}`}
+                >
+                  {accountClockParts(new Date(flag.completed_at!), zone).time.slice(
+                    0,
+                    5,
+                  )}
+                  <span>已见证</span>
+                </time>
+                <div className="together-memory-content">
+                  <button
+                    className="together-memory-title"
+                    onClick={() => onOpen(flag)}
+                  >
+                    {flag.title}
+                    <ArrowUpRight size={16} aria-hidden="true" />
+                  </button>
+                  {(flag.reward || surprises.has(flag.id)) && (
+                    <div className="together-memory-footer">
+                      {flag.reward && (
+                        <span className="together-memory-reward">
+                          <Gift size={14} aria-hidden="true" />
+                          <span>{flag.reward}</span>
+                        </span>
+                      )}
+                      {surprises.has(flag.id) && (
+                        <button
+                          className="together-memory-surprise"
+                          onClick={() => onOpen(flag)}
+                        >
+                          <Mail size={15} aria-hidden="true" />
+                          拆惊喜
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))}
+    </div>
+  );
+}

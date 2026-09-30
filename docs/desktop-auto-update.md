@@ -32,6 +32,8 @@
 
 ## 发布与配置
 
+0.1.10 新增需双方确认绑定的两人空间，包含验收提交绑定、窄屏和离线重试修复；使用规则与部署顺序见 [版本说明](release-0.1.10.md)。
+
 源码、NSIS 安装包、blockmap 和 latest.yml 统一位于公开的 `Doris619619/Threadline` 仓库，下载入口为 https://github.com/Doris619619/Threadline/releases/latest 。客户端匿名读取公开更新源，不包含 GitHub token 或 Supabase 管理员密钥。
 
 源码仓库 Actions 需配置：

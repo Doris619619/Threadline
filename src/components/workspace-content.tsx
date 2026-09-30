@@ -9,9 +9,14 @@ const HabitsPanel = dynamic(
   () => import('@/features/habits/habits-panel').then((module) => module.HabitsPanel),
   { ssr: false, loading: () => <p role="status">正在打开习惯…</p> },
 );
-/** 保留既有其他栏目分发，仅把独立习惯页与任务执行逻辑隔离。 */
+const TogetherPanel = dynamic(
+  () => import('@/features/together/panel').then((module) => module.TogetherPanel),
+  { ssr: false, loading: () => <p role="status">正在打开两人空间…</p> },
+);
+/** 独立习惯与两人空间按需加载；工作站仍然只承载个人任务执行。 */
 export function WorkspaceContent() {
   const { active } = useWorkspaceView();
   const { isWorkstation } = useDesktopWindow();
+  if (!isWorkstation && active === 'together') return <TogetherPanel />;
   return !isWorkstation && active === 'habits' ? <HabitsPanel /> : <TaskDashboard />;
 }

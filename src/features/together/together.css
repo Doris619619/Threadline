@@ -1,0 +1,930 @@
+/* 文件用途：两人空间的紧凑关系页头、统一约定便笺和轻量表单，颜色跟随应用主题。 */
+.together-preview {
+  min-height: 100dvh;
+  background: var(--background);
+}
+.together-page {
+  --together-ink: var(--text-primary);
+  --together-tone: var(--accent-text);
+  --together-soft: var(--accent-soft);
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 44px 32px 64px;
+  color: var(--text-primary);
+}
+.together-page[data-relationship='couple'] {
+  --together-tone: color-mix(in srgb, var(--daily-accent) 75%, var(--text-primary));
+  --together-soft: color-mix(in srgb, var(--daily-accent) 8%, var(--surface));
+}
+.together-page button,
+.together-dialog button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+  transition:
+    background 180ms,
+    border-color 180ms;
+}
+.together-page button:disabled,
+.together-dialog button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.together-page :focus-visible,
+.together-dialog :focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 4px;
+}
+.together-page .together-primary,
+.together-dialog .together-primary {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  color: var(--surface);
+}
+.together-heading {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 32px;
+}
+.together-identity,
+.together-heading-tools {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+}
+.together-heading-text {
+  min-width: 0;
+}
+.together-heading h1 {
+  margin: 0 0 8px;
+  font-size: 25px;
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: -0.04em;
+}
+.together-byline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.together-byline > span:first-child {
+  overflow-wrap: anywhere;
+}
+.together-pair {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  position: relative;
+}
+.together-person {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--together-tone);
+  font-size: 20px;
+  transform: rotate(-7deg);
+  box-shadow: 0 2px 2px color-mix(in srgb, var(--text-primary) 3%, transparent);
+}
+.together-person:last-child {
+  background: var(--together-soft);
+  transform: rotate(7deg);
+}
+.together-pair-link {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 26px;
+  margin: 0 -3px;
+  color: var(--together-tone);
+  z-index: 1;
+}
+.together-pair:hover .together-pair-link {
+  animation: together-heart 250ms ease-out;
+}
+.together-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.together-score svg {
+  color: var(--together-tone);
+}
+.together-clock {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.8;
+  text-align: right;
+  white-space: nowrap;
+}
+.together-clock time,
+.together-clock span {
+  display: block;
+}
+.together-clock span {
+  font-size: 11px;
+}
+.together-heading-tools {
+  gap: 12px;
+  flex-shrink: 0;
+}
+.together-page .together-icon-button {
+  border: 0;
+  padding: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+}
+.together-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-strong);
+}
+.together-toolbar > button {
+  font-size: 13px;
+}
+.together-tabs {
+  display: flex;
+  gap: 20px;
+}
+.together-tabs button {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 8px 0;
+  font-size: 14px;
+  position: relative;
+}
+.together-tabs button[aria-pressed='true'] {
+  color: var(--text-primary);
+  font-weight: 650;
+}
+.together-tabs button[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  height: 2px;
+  background: var(--text-primary);
+  left: 0;
+  right: 0;
+  animation: together-tab 180ms ease-out;
+}
+.together-lanes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+.together-lane {
+  min-width: 0;
+}
+.together-lane-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.together-lane-heading small {
+  font-size: 12px;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.together-lane-list {
+  display: grid;
+  gap: 18px;
+}
+/* 对方栏同时读取待验收与进行中，存在任一目标或加载反馈时不显示空状态。 */
+.together-lane-list:has(.together-note, [role='status'], [role='alert'])
+  > .together-board-empty {
+  display: none;
+}
+.together-note {
+  position: relative;
+  min-width: 0;
+  padding: 21px 22px 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px 22px 14px 14px;
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--border) 65%, transparent);
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    border-color 200ms;
+}
+.together-note::after {
+  content: '';
+  position: absolute;
+  width: 17px;
+  height: 17px;
+  right: 0;
+  top: 0;
+  border-radius: 0 20px 0 4px;
+  background: var(--background);
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  transition:
+    width 200ms,
+    height 200ms;
+  pointer-events: none;
+}
+@media (hover: hover) {
+  .together-note:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--text-primary) 5%, transparent);
+    border-color: var(--border-strong);
+  }
+  .together-note:hover::after {
+    width: 21px;
+    height: 21px;
+  }
+}
+.together-note[data-review='true'] {
+  border-color: color-mix(in srgb, var(--together-tone) 30%, var(--border));
+  background: var(--together-soft);
+}
+.together-note-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-right: 6px;
+}
+.together-note-author {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.together-note-author > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.together-note-author i {
+  font-style: normal;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface-secondary);
+  color: var(--together-tone);
+  font-size: 11px;
+}
+.together-note-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.together-status-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.together-note[data-review='true'] .together-note-status {
+  color: var(--together-tone);
+}
+.together-page .together-note-title {
+  display: block;
+  padding: 0;
+  margin: 20px 0 12px;
+  text-align: left;
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.55;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+.together-note-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-bottom: 22px;
+}
+.together-note-footer {
+  margin: 0 -22px;
+  padding: 9px 12px 9px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px dashed var(--border-strong);
+  background: color-mix(in srgb, var(--surface-secondary) 50%, transparent);
+  border-radius: 0 0 14px 14px;
+}
+.together-note-reward {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.together-note-reward svg {
+  flex-shrink: 0;
+  color: var(--together-tone);
+}
+.together-note-reward span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.together-note-actions {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  flex-shrink: 0;
+}
+.together-page .together-note-open {
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  padding: 8px 8px;
+  white-space: nowrap;
+}
+.together-page .together-note-open.is-review {
+  color: var(--together-tone);
+  font-weight: 600;
+}
+.together-page .together-cheer {
+  border: 0;
+  background: transparent;
+  color: var(--together-tone);
+  width: 44px;
+  padding: 8px;
+}
+.together-page .together-cheer[data-sent='true'] {
+  opacity: 1;
+}
+.together-cheer:hover svg {
+  transform: scale(1.15);
+}
+.together-cheer svg {
+  transition: transform 180ms;
+}
+.together-note-loved {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  color: var(--together-tone);
+}
+.together-note-feedback {
+  position: absolute;
+  right: 16px;
+  bottom: 58px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  padding: 6px 9px;
+  border-radius: 7px;
+  box-shadow: var(--shadow-card);
+  color: var(--together-tone);
+  font-size: 11px;
+  animation: together-heart 250ms ease-out;
+}
+.together-note-seal {
+  position: absolute;
+  right: 23px;
+  bottom: 86px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--together-tone);
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  transform: rotate(-12deg);
+}
+.together-board-empty {
+  border: 1px dashed var(--border-strong);
+  border-radius: 14px;
+  padding: 36px 24px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.8;
+  min-height: 205px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+}
+.together-board-empty p {
+  margin: 12px 0 0;
+  max-width: 230px;
+}
+.together-note-skeleton {
+  min-height: 224px;
+  background: var(--surface-secondary);
+  border-radius: 14px;
+}
+.together-page .together-load-more {
+  grid-column: 1 / -1;
+  justify-self: center;
+  font-size: 12px;
+}
+.together-page .together-ended-toggle {
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-top: 22px;
+  padding-left: 0;
+}
+.together-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.together-muted,
+.together-page small,
+.together-dialog small {
+  color: var(--text-secondary);
+}
+.together-preview-dock {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 20;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.together-preview-dock > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 30px;
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  list-style: none;
+}
+.together-preview-dock > summary::-webkit-details-marker {
+  display: none;
+}
+.together-preview-dock > summary span {
+  color: var(--text-primary);
+}
+.together-preview-controls {
+  position: absolute;
+  bottom: 54px;
+  right: 0;
+  width: 280px;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-popover);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-size: 12px;
+}
+.together-preview-controls label {
+  display: grid;
+  gap: 7px;
+}
+.together-preview-controls select,
+.together-preview-controls button {
+  min-height: 44px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-primary);
+  padding: 8px;
+}
+.together-binding,
+.together-empty {
+  max-width: 500px;
+  margin: 64px auto;
+}
+.together-binding h2,
+.together-empty h2 {
+  font-size: 23px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.together-binding p,
+.together-empty p {
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+.together-binding-icon {
+  color: var(--accent-text);
+  margin-bottom: 12px;
+}
+.together-page label,
+.together-dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  margin: 18px 0 10px;
+}
+.together-page input,
+.together-page select,
+.together-dialog input,
+.together-dialog select,
+.together-dialog textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 16px;
+}
+.together-optional {
+  color: var(--text-secondary);
+  font-weight: 400;
+  white-space: nowrap;
+}
+.together-dialog textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+.together-page fieldset,
+.together-dialog fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.together-dialog form .together-primary {
+  margin-top: 20px;
+}
+.together-invite {
+  border-left: 2px solid var(--accent-border);
+  padding: 4px 0 4px 18px;
+  margin-top: 20px;
+}
+.together-invite code {
+  display: block;
+  font-size: 19px;
+  letter-spacing: 0.05em;
+  overflow-wrap: anywhere;
+}
+.together-invite small {
+  display: block;
+  margin: 12px 0;
+}
+.together-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+.together-dialog {
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-surface);
+  padding: 24px;
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  margin: auto;
+  box-shadow: var(--shadow-window);
+}
+.together-dialog::backdrop {
+  background: rgb(0 0 0 / 35%);
+}
+.together-dialog > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  align-items: flex-start;
+}
+.together-dialog > header h2 {
+  font-size: 21px;
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.together-dialog > header button {
+  border: 0;
+  flex-shrink: 0;
+  padding: 10px;
+}
+.together-dialog.is-drawer {
+  margin: 0 0 0 auto;
+  width: min(560px, 100vw);
+  /* 覆盖原生 dialog 的默认最大宽度，手机端才能真正铺满视口。 */
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  border-radius: 0;
+  animation: together-enter 180ms ease-out;
+}
+.together-dialog section {
+  margin-top: 24px;
+}
+.together-dialog h3 {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.together-dialog p {
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+.together-detail-meta {
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.together-detail-owner {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.together-detail-status {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.together-detail-meta time {
+  display: block;
+  line-height: 1.8;
+}
+.together-prewrap {
+  white-space: pre-wrap;
+}
+.together-timeline article {
+  border-left: 1px solid var(--border-strong);
+  padding: 0 0 24px 16px;
+  margin-left: 3px;
+}
+.together-timeline strong {
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 550;
+}
+.together-timeline time {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-top: 6px;
+}
+.together-timeline p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+.together-dialog details {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.together-dialog summary {
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.together-dialog .together-check {
+  flex-direction: row;
+  align-items: center;
+  min-height: 44px;
+}
+.together-check input {
+  width: 20px;
+  min-height: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.together-dialog .together-danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.together-error {
+  color: var(--danger);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.together-error button {
+  margin-left: 8px;
+}
+.together-room-notice {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.together-affection {
+  color: var(--daily-accent);
+  animation: together-heart 250ms ease-out;
+}
+.together-history-link {
+  display: flex !important;
+  flex-direction: column;
+  align-items: flex-start !important;
+  width: 100%;
+  margin-bottom: 8px;
+  text-align: left;
+}
+.together-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-size: 11px;
+  margin-left: 4px;
+}
+.together-room-notice {
+  margin: 0 0 14px;
+  font-size: 12px;
+}
+.together-room-notice summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+}
+@keyframes together-enter {
+  from {
+    transform: translateX(18px);
+    opacity: 0.5;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes together-heart {
+  50% {
+    transform: scale(1.12);
+  }
+}
+@keyframes together-tab {
+  from {
+    transform: scaleX(0.4);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@media (max-width: 760px) {
+  .together-page {
+    padding: 28px 20px 72px;
+  }
+  .together-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding-bottom: 22px;
+  }
+  .together-identity {
+    gap: 14px;
+    flex: 1;
+  }
+  .together-heading h1 {
+    font-size: 23px;
+  }
+  .together-person {
+    width: 35px;
+    height: 43px;
+    border-radius: 12px;
+    font-size: 17px;
+  }
+  .together-pair-link {
+    width: 20px;
+  }
+  .together-byline {
+    font-size: 11px;
+    gap: 6px 10px;
+  }
+  .together-heading-tools {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .together-clock {
+    display: flex;
+    text-align: left;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 11px;
+    white-space: normal;
+  }
+  .together-clock span {
+    font-size: inherit;
+  }
+  .together-heading-tools .together-icon-button {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+  .together-heading-text {
+    padding-right: 32px;
+  }
+  .together-lanes {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+  .together-tabs {
+    gap: 18px;
+  }
+  .together-tabs button {
+    font-size: 13px;
+  }
+  .together-toolbar {
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .together-toolbar > button {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+  .together-note {
+    padding: 18px 18px 0;
+  }
+  .together-note-title {
+    font-size: 18px !important;
+  }
+  .together-note-footer {
+    margin: 0 -18px;
+    padding-left: 18px;
+    padding-right: 10px;
+  }
+  .together-binding,
+  .together-empty {
+    margin: 32px 0;
+  }
+  .together-dialog {
+    padding: 20px 16px;
+  }
+  .together-dialog.is-drawer {
+    width: 100%;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .together-page *,
+  .together-dialog,
+  .together-dialog * {
+    animation: none !important;
+    transition: none !important;
+  }
+  .together-note:hover {
+    transform: none;
+  }
+}

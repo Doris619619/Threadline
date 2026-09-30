@@ -1,0 +1,105 @@
+/* 文件用途：待验收入口与成果摘要的轻量层级，沿用主题色并保持手机操作可达。 */
+.together-review-entry {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  margin: 0 0 24px;
+  border: 1px solid var(--accent-border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.together-review-entry > svg {
+  color: var(--accent-text);
+  flex-shrink: 0;
+}
+.together-review-entry-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+.together-review-entry-text strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.together-review-entry-text strong span {
+  color: var(--accent-text);
+  margin-left: 6px;
+}
+.together-review-entry-text > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.together-review-entry > button {
+  flex-shrink: 0;
+  color: var(--accent-text);
+  gap: 6px;
+}
+.together-dialog .together-submission {
+  padding: 18px;
+  border: 1px solid var(--accent-border);
+  border-radius: 12px;
+  background: var(--surface-secondary);
+}
+.together-submission-heading {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+.together-dialog .together-submission h3 {
+  font-size: 15px;
+  color: var(--text-primary);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.together-submission-heading > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.together-submission > time {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-top: 8px;
+}
+.together-dialog .together-submission-hint {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 12px 0 0;
+}
+.together-review-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+.together-review-actions > button {
+  width: 100%;
+  white-space: normal;
+}
+.together-review-actions > button:not(.together-primary) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+@media (max-width: 600px) {
+  .together-review-entry {
+    padding: 12px;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .together-review-entry > svg {
+    display: none;
+  }
+  .together-dialog .together-submission {
+    padding: 14px;
+  }
+}

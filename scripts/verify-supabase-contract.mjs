@@ -353,7 +353,7 @@ if (
   );
 rejectPattern(/annotation_strokes/i, 'Annotation must remain local-only');
 rejectPattern(/status\s*=\s*'purged'|\b'purged'\b/i, 'purged is not a TaskStatus');
-// 旧任务工作区继续 last-write-wins；习惯、时区和个人偏好有各自显式版本，不扩大任务模型边界。
+// 旧任务工作区继续 last-write-wins；习惯、时区、个人偏好与两人空间使用独立版本，不扩大任务模型边界。
 const legacyMigrations = (
   await Promise.all(
     migrationFiles
@@ -361,7 +361,8 @@ const legacyMigrations = (
         (name) =>
           !name.endsWith('_habits.sql') &&
           !name.endsWith('_account_timezone.sql') &&
-          !name.endsWith('_account_preferences.sql'),
+          !name.endsWith('_account_preferences.sql') &&
+          name !== '202609280001_together.sql',
       )
       .map((name) => readFile(join(migrationsDirectory, name), 'utf8')),
   )
