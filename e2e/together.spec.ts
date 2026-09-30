@@ -369,75 +369,106 @@ test('成果抽屉保留样式，桌面靠右、手机全屏，验收弹窗居�
   await page.screenshot({ path: 'docs/screenshots/together/editor-mobile-dark.png' });
 });
 
-test('已有账号邀请、昵称恢复和关系确认', async ({ page }) => {
-  await page.goto('/together-preview');
-  await choosePreview(page, '查看身份', '2');
-  await expect(
-    page.getByRole('heading', { name: '两人空间', exact: true }),
-  ).toBeVisible();
-  await expect(
-    page
-      .getByLabel('先告诉对方怎么称呼你')
-      .or(page.getByRole('button', { name: '输入邀请码', exact: true })),
-  ).toBeVisible();
-  if (await page.getByLabel('先告诉对方怎么称呼你').isVisible()) {
-    await page.getByLabel('先告诉对方怎么称呼你').fill('朋友小夏');
+for (const relationship of ['friends', 'couple'] as const) {
+  test(`已有账号 ${relationship} 绑定后解锁、昵称恢复和关系确认`, async ({ page }) => {
+    const initialTitle = relationship === 'friends' ? '我们的自习室' : '同频';
+    const nextRelationship = relationship === 'friends' ? 'couple' : 'friends';
+    const nextTitle = relationship === 'friends' ? '同频' : '我们的自习室';
+    await page.goto('/together-preview');
+    await choosePreview(page, '查看身份', '2');
+    await expect(
+      page.getByRole('heading', { name: '两人空间', exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: '立个 flag', exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: '我们的回忆', exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page
+        .getByLabel('先告诉对方怎么称呼你')
+        .or(page.getByRole('button', { name: '输入邀请码', exact: true })),
+    ).toBeVisible();
+    if (await page.getByLabel('先告诉对方怎么称呼你').isVisible()) {
+      await page.getByLabel('先告诉对方怎么称呼你').fill('朋友小夏');
+      await page.getByRole('button', { name: '保存称呼', exact: true }).click();
+    }
+    await expect(
+      page
+        .getByRole('button', { name: '生成邀请码' })
+        .or(page.locator('.together-invite code')),
+    ).toBeVisible();
+    await page.getByLabel('我们的关系').selectOption(relationship);
+    if (await page.getByRole('button', { name: '生成邀请码' }).isVisible())
+      await page.getByRole('button', { name: '生成邀请码' }).click();
+    const code = await page.locator('.together-invite code').innerText();
+    await expect(
+      page.getByRole('button', { name: '立个 flag', exact: true }),
+    ).toHaveCount(0);
+    await choosePreview(page, '查看身份', '3');
+    await expect(
+      page
+        .getByLabel('先告诉对方怎么称呼你')
+        .or(page.getByRole('button', { name: '输入邀请码', exact: true })),
+    ).toBeVisible();
+    if (await page.getByLabel('先告诉对方怎么称呼你').isVisible()) {
+      await page.getByLabel('先告诉对方怎么称呼你').fill('朋友小冬');
+      await page.getByRole('button', { name: '保存称呼', exact: true }).click();
+    }
+    await page.getByRole('button', { name: '输入邀请码', exact: true }).click();
+    await page.getByLabel('对方的邀请码').fill(code);
+    await page.getByRole('button', { name: '查看邀请', exact: true }).click();
+    await expect(page.locator('.together-invite')).toContainText('朋友小夏');
+    await expect(page.locator('.together-invite')).toContainText(
+      relationship === 'friends' ? '好朋友' : '情侣',
+    );
+    await expect(
+      page.getByRole('button', { name: '立个 flag', exact: true }),
+    ).toHaveCount(0);
+    await page.getByRole('button', { name: '接受邀请', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: initialTitle, exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: '立个 flag', exact: true }),
+    ).toBeVisible();
+    await expect(page.locator('.together-score')).toHaveCount(
+      relationship === 'friends' ? 0 : 1,
+    );
+    await page.getByRole('button', { name: '空间设置', exact: true }).click();
+    await page.getByLabel('给对方的昵称').fill('小太阳');
     await page.getByRole('button', { name: '保存称呼', exact: true }).click();
-  }
-  await expect(
-    page
-      .getByRole('button', { name: '生成邀请码' })
-      .or(page.locator('.together-invite code')),
-  ).toBeVisible();
-  if (await page.getByRole('button', { name: '生成邀请码' }).isVisible())
-    await page.getByRole('button', { name: '生成邀请码' }).click();
-  const code = await page.locator('.together-invite code').innerText();
-  await choosePreview(page, '查看身份', '3');
-  await expect(
-    page
-      .getByLabel('先告诉对方怎么称呼你')
-      .or(page.getByRole('button', { name: '输入邀请码', exact: true })),
-  ).toBeVisible();
-  if (await page.getByLabel('先告诉对方怎么称呼你').isVisible()) {
-    await page.getByLabel('先告诉对方怎么称呼你').fill('朋友小冬');
-    await page.getByRole('button', { name: '保存称呼', exact: true }).click();
-  }
-  await page.getByRole('button', { name: '输入邀请码', exact: true }).click();
-  await page.getByLabel('对方的邀请码').fill(code);
-  await page.getByRole('button', { name: '查看邀请', exact: true }).click();
-  await expect(page.locator('.together-invite')).toContainText('朋友小夏');
-  await page.getByRole('button', { name: '接受邀请', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: '我们的自习室', exact: true }),
-  ).toBeVisible();
-  await expect(page.locator('.together-score')).toHaveCount(0);
-  await page.getByRole('button', { name: '空间设置', exact: true }).click();
-  await page.getByLabel('给对方的昵称').fill('小太阳');
-  await page.getByRole('button', { name: '保存称呼', exact: true }).click();
-  await expect(page.locator('.together-byline')).toContainText('小太阳');
-  await choosePreview(page, '查看身份', '2');
-  await page.getByRole('button', { name: '空间设置', exact: true }).click();
-  await page.getByRole('button', { name: '恢复我的展示名', exact: true }).click();
-  await expect(page.locator('.together-byline')).toContainText('朋友小夏');
-  await page.getByRole('button', { name: '空间设置', exact: true }).click();
-  await page.getByLabel('关系类型').selectOption('couple');
-  await page.getByRole('button', { name: '请对方确认关系', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: '我们的自习室', exact: true }),
-  ).toBeVisible();
-  await choosePreview(page, '查看身份', '3');
-  await page.getByRole('button', { name: '空间设置', exact: true }).click();
-  await page.getByRole('button', { name: '确认关系', exact: true }).click();
-  await expect(page.getByRole('heading', { name: '同频', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '空间设置', exact: true }).click();
-  await page.getByText('解除绑定', { exact: true }).click();
-  await page
-    .getByRole('button', { name: '解除并结束未完成的 flag', exact: true })
-    .click();
-  await expect(
-    page.getByRole('heading', { name: '两人空间', exact: true }),
-  ).toBeVisible();
-});
+    await expect(page.locator('.together-byline')).toContainText('小太阳');
+    await choosePreview(page, '查看身份', '2');
+    await page.getByRole('button', { name: '空间设置', exact: true }).click();
+    await page.getByRole('button', { name: '恢复我的展示名', exact: true }).click();
+    await expect(page.locator('.together-byline')).toContainText('朋友小夏');
+    await page.getByRole('button', { name: '空间设置', exact: true }).click();
+    await page.getByLabel('关系类型').selectOption(nextRelationship);
+    await page.getByRole('button', { name: '请对方确认关系', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: initialTitle, exact: true }),
+    ).toBeVisible();
+    await choosePreview(page, '查看身份', '3');
+    await page.getByRole('button', { name: '空间设置', exact: true }).click();
+    await page.getByRole('button', { name: '确认关系', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: nextTitle, exact: true }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: '空间设置', exact: true }).click();
+    await page.getByText('解除绑定', { exact: true }).click();
+    await page
+      .getByRole('button', { name: '解除并结束未完成的 flag', exact: true })
+      .click();
+    await expect(
+      page.getByRole('heading', { name: '两人空间', exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: '立个 flag', exact: true }),
+    ).toHaveCount(0);
+  });
+}
 
 test('长称呼、键盘退出、减少动态效果与错误输入修正', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 844 });

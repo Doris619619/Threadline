@@ -110,6 +110,24 @@ try {
   for (const [i, user] of users.entries())
     await command(db, user, 'profile', { name: `成员${i + 1}` });
   const invitation = await command(db, a, 'invite', { relationship: 'couple' });
+  check(
+    (await asUser(db, a, 'select * from together_rooms')).rows.length === 0,
+    'inviting alone does not unlock a room',
+  );
+  await rejects(
+    () =>
+      command(db, a, 'create_flag', {
+        room_id: invitation.id,
+        title: '尚未绑定',
+        deadline: '2026-10-01T14:00:00Z',
+        timezone: 'UTC',
+      }),
+    'FORBIDDEN',
+  );
+  await rejects(
+    () => command(db, a, 'accept_invite', { id: invitation.id }),
+    'INVITE_SELF',
+  );
   await rejects(
     () => asUser(db, a, 'select together_preview_invite($1)', [invitation.code]),
     'INVITE_SELF',
@@ -124,11 +142,22 @@ try {
     'invite preview has only display name',
   );
   const request = crypto.randomUUID();
+  check(
+    (await asUser(db, b, 'select * from together_memberships')).rows.length === 0,
+    'previewing an invitation does not bind the recipient',
+  );
   const room = await command(db, b, 'accept_invite', { id: invitation.id }, request);
   check(
     (await command(db, b, 'accept_invite', { id: invitation.id }, request)).id ===
       room.id,
     'binding retry is idempotent',
+  );
+  check(
+    (await asUser(db, a, 'select * from together_memberships')).rows[0].room_id ===
+      room.id &&
+      (await asUser(db, b, 'select * from together_memberships')).rows[0].room_id ===
+        room.id,
+    'accepting binds both accounts to exactly the same room',
   );
   await rejects(
     () => command(db, b, 'profile', { name: '变更' }, request),

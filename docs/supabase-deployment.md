@@ -4,7 +4,7 @@
 
 ## 两人空间迁移
 
-新功能先应用 `202609280001_together.sql`，再发布客户端。新增独立成员 RLS、幂等 RPC 与 rooms/memberships Realtime，不放宽个人数据权限。成果图片改为微信发送，应用只记录主动声明与验收，因此不需要 Storage 或清理 Cron。部署步骤、测试边界及 localhost 展示见 [两人空间](together-space.md)。
+新功能依次应用 `202609280001_together.sql` 与 `202609300001_together_review_safety.sql`，再发布客户端。新增独立成员 RLS、幂等 RPC 与 rooms Realtime，不放宽个人数据权限。成果图片改为微信发送，应用只记录主动声明与验收，因此不需要 Storage 或清理 Cron。部署步骤、测试边界及 localhost 展示见 [两人空间](together-space.md)。
 
 ## 需要在 Supabase 完成的操作
 
