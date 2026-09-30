@@ -1,6 +1,6 @@
 /** @fileoverview 目标优先的轻量编辑器；属性集中排列，默认账号当天截止，提交后由服务端锁定。 */
 'use client';
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import {
   CalendarDays,
   ChevronDown,
@@ -27,6 +27,7 @@ export function FlagEditor({
 }) {
   const { user } = useTogether();
   const command = useSpaceCommand();
+  const goalRef = useRef<HTMLTextAreaElement>(null);
   const [zone] = useState(getAccountTimezone);
   const [title, setTitle] = useState(flag?.title ?? '');
   const [reward, setReward] = useState(flag?.reward ?? '');
@@ -57,6 +58,7 @@ export function FlagEditor({
     <SpaceDialog
       title={flag ? '编辑 flag' : '立个 flag'}
       className="together-editor"
+      initialFocusRef={goalRef}
       onClose={onClose}
       {...command}
     >
@@ -65,7 +67,7 @@ export function FlagEditor({
           <label className="together-editor-goal">
             <span className="sr-only">目标</span>
             <textarea
-              autoFocus
+              ref={goalRef}
               required
               rows={2}
               maxLength={100}

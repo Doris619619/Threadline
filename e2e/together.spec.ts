@@ -10,6 +10,66 @@ async function choosePreview(page: Page, label: string, value?: string) {
   await page.locator('.together-preview-dock > summary').click();
 }
 
+/** 验证真实输入焦点不会侵入标签；覆盖自动聚焦、鼠标、键盘和系统高对比度。 */
+test('创建表单的焦点留在字段内，不遮挡标签或改变布局', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/together-preview');
+  for (const mode of ['light', 'dark']) {
+    for (const width of [1366, 320]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.getByRole('button', { name: '立个 flag', exact: true }).click();
+      const editor = page.getByRole('dialog', { name: '立个 flag', exact: true });
+      const goal = editor.getByLabel('目标', { exact: true });
+      const reward = editor.getByLabel('完成后的奖励（选填）');
+      await expect(goal).toBeFocused();
+      const unfocusedBounds = await reward.boundingBox();
+      // 焦点不得向外扩张，必须仍有可见指示；同时记录用户实际看到的聚焦画面。
+      for (const [field, name] of [
+        [goal, 'goal'],
+        [reward, 'reward'],
+      ] as const) {
+        await field.click();
+        await expect(field).toBeFocused();
+        const indicator = await field.evaluate((node) => {
+          const style = getComputedStyle(node);
+          return { outline: style.outlineStyle, shadow: style.boxShadow };
+        });
+        expect(indicator.outline).toBe('none');
+        expect(indicator.shadow).toContain('inset');
+        expect(indicator.shadow).not.toContain('rgba(0, 0, 0, 0)');
+        if (mode === 'dark')
+          await editor.screenshot({
+            path: `docs/screenshots/together/editor-focus-${name}-${width === 1366 ? 'desktop' : 'mobile'}.png`,
+          });
+      }
+      expect(await reward.boundingBox()).toEqual(unfocusedBounds);
+      const label = await editor
+        .locator('.together-editor-caption')
+        .last()
+        .boundingBox();
+      expect(unfocusedBounds!.y - label!.y - label!.height).toBeGreaterThanOrEqual(6);
+      // 用实际 Tab/Enter 走到折叠说明，再进入文本框，验证焦点不会丢失。
+      await page.keyboard.press('Tab');
+      await expect(editor.locator('summary')).toBeFocused();
+      await page.keyboard.press('Enter');
+      await page.keyboard.press('Tab');
+      const notes = editor.getByLabel('怎样算完成（选填）');
+      await expect(notes).toBeFocused();
+      await expect(notes).toHaveCSS('outline-offset', '-2px');
+      expect(
+        await editor.evaluate((node) => node.scrollWidth <= node.clientWidth),
+      ).toBe(true);
+      await page.emulateMedia({ forcedColors: 'active' });
+      await reward.click();
+      await expect(reward).toHaveCSS('outline-style', 'solid');
+      await expect(reward).toHaveCSS('outline-offset', '-2px');
+      await page.emulateMedia({ forcedColors: 'none' });
+      await page.keyboard.press('Escape');
+    }
+    if (mode === 'light') await choosePreview(page, '切换深浅色');
+  }
+});
+
 test('微信成果、对方验收、昵称与本地时区', async ({ page }) => {
   await page.goto('/together-preview');
   await expect(page.getByRole('heading', { name: '同频', exact: true })).toBeVisible();

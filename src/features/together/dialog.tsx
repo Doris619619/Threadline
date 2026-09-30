@@ -1,9 +1,16 @@
 /** @fileoverview 原生模态承载编辑和右侧详情，提供焦点隔离、Escape 退出与返回焦点。 */
 'use client';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-/** 桌面抽屉与手机全屏共用原生 dialog；忙碌时阻止误关闭。 */
+/** 共用原生模态；可见后聚焦可选的字段引用，关闭后返回打开者，忙碌时阻止误关闭。 */
 export function SpaceDialog({
   title,
   children,
@@ -12,6 +19,7 @@ export function SpaceDialog({
   error = '',
   drawer = false,
   className = '',
+  initialFocusRef,
 }: {
   title: string;
   children: ReactNode;
@@ -20,6 +28,7 @@ export function SpaceDialog({
   error?: string;
   drawer?: boolean;
   className?: string;
+  initialFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const id = useId();
@@ -28,11 +37,13 @@ export function SpaceDialog({
   useEffect(() => {
     const dialog = ref.current;
     dialog?.showModal();
+    // React autoFocus 可能先于 showModal 执行；可见后再聚焦指定字段。
+    initialFocusRef?.current?.focus({ preventScroll: true });
     return () => {
       dialog?.close();
       previous?.focus();
     };
-  }, [previous]);
+  }, [previous, initialFocusRef]);
   return createPortal(
     <dialog
       ref={ref}

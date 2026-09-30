@@ -30,8 +30,8 @@
 }
 .together-editor .together-editor-goal textarea {
   border: 0;
-  border-radius: 6px;
-  padding: 4px 0;
+  border-radius: 0;
+  padding: 4px 0 10px;
   min-height: 82px;
   max-height: 180px;
   background: transparent;
@@ -40,6 +40,7 @@
   line-height: 1.55;
   letter-spacing: -0.03em;
   resize: none;
+  box-shadow: inset 0 -1px var(--border);
 }
 .together-editor .together-editor-goal textarea::placeholder {
   color: var(--text-secondary);
@@ -57,7 +58,7 @@
 .together-editor label.together-editor-property {
   margin: 0;
   padding: 12px 0 8px;
-  gap: 0;
+  gap: 6px;
 }
 .together-editor-property + .together-editor-property {
   border-top: 1px solid var(--border);
@@ -78,10 +79,16 @@
 .together-editor .together-editor-property input {
   border: 0;
   background: transparent;
-  padding: 7px 0 3px;
+  padding: 4px 0 8px;
   min-height: 44px;
   font-size: 16px;
-  border-radius: 4px;
+  border-radius: 0;
+}
+/* 无边框字段的焦点留在输入区内，避免通用外描边盖住相邻标签。 */
+.together-dialog.together-editor .together-editor-goal textarea:focus-visible,
+.together-dialog.together-editor .together-editor-property input:focus-visible {
+  outline: none;
+  box-shadow: inset 0 -2px var(--accent-text);
 }
 .together-editor details.together-editor-notes {
   margin: 14px 0 0;
@@ -115,6 +122,19 @@
   border-color: var(--border);
   border-radius: 10px;
   line-height: 1.6;
+}
+.together-dialog.together-editor .together-editor-notes textarea:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: -2px;
+}
+/* 系统高对比度模式不显示 box-shadow，改用控件内部的系统焦点描边。 */
+@media (forced-colors: active) {
+  .together-dialog.together-editor .together-editor-goal textarea:focus-visible,
+  .together-dialog.together-editor .together-editor-property input:focus-visible,
+  .together-dialog.together-editor .together-editor-notes textarea:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
 }
 .together-editor-footer {
   position: sticky;
