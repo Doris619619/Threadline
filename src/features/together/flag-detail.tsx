@@ -70,7 +70,10 @@ export function FlagDetail({
   const ended = !!room.ended_at || flag.status === 'cancelled';
   const cheered = events.data?.some((item) => item.kind === 'cheered');
   const surprised = events.data?.some((item) => item.kind === 'surprise');
-  const submission = events.data?.filter((item) => item.kind === 'submitted').at(-1);
+  // 独立查询可能一新一旧；只把当前指针匹配的事件作为待验收成果。
+  const submission = events.data?.find(
+    (item) => item.kind === 'submitted' && item.id === flag.current_submission_id,
+  );
   const review = !mine && flag.status === 'submitted' && !ended;
   return (
     <SpaceDialog title={flag.title} onClose={onClose} drawer>
@@ -97,6 +100,10 @@ export function FlagDetail({
       )}
       {query.error && <p role="alert">{query.error.message}</p>}
       {events.isPending && <p role="status">正在读取成果…</p>}
+      {flag.status === 'submitted' &&
+        !submission &&
+        !events.isPending &&
+        !events.error && <p role="status">正在核对本次成果，读取完成后才能验收。</p>}
       {events.error && (
         <p role="alert">
           {events.error.message}
@@ -254,6 +261,9 @@ function FlagAction({
               room_id: room.id,
               flag_id: flag.id,
               version: flag.version,
+              ...(action === 'approve' || action === 'changes'
+                ? { expected_submission_id: flag.current_submission_id }
+                : {}),
               body,
               ...(action === 'submit' ? { wechat_sent: sent } : {}),
             })

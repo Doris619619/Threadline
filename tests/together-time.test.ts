@@ -6,10 +6,31 @@ import {
   localDeadline,
   isLate,
   spaceTime,
+  shortSpaceTime,
+  invalidSpaceTime,
+  validSpaceTime,
 } from '@/features/together/time';
 import { togetherCopy, address, memberName } from '@/features/together/copy';
 import type { Flag, Room } from '@/features/together/types';
 describe('two-person time and copy', () => {
+  it.each([
+    'infinity',
+    '-infinity',
+    'invalid',
+    '',
+    '1899-12-31T23:59:59Z',
+    '+010000-01-01T00:00:00Z',
+  ])('contains an invalid stored instant: %s', (instant) => {
+    expect(validSpaceTime(instant)).toBe(false);
+    expect(spaceTime(instant, 'Asia/Shanghai')).toBe(invalidSpaceTime);
+    expect(shortSpaceTime(instant, 'America/New_York')).toBe(invalidSpaceTime);
+    expect(localDeadline(instant, 'Asia/Shanghai')).toBe('');
+  });
+  it('accepts historical deadlines and rejects input beyond the database bounds', () => {
+    expect(deadlineInstant('2000-01-01T12:00', 'UTC')).toBe('2000-01-01T12:00:00Z');
+    expect(() => deadlineInstant('1899-12-31T23:59', 'UTC')).toThrow('1900');
+    expect(() => deadlineInstant('+010000-01-01T00:00', 'UTC')).toThrow('9999');
+  });
   it('shows one instant in each viewer timezone', () => {
     expect(localDeadline('2026-09-28T14:00:00Z', 'Asia/Shanghai')).toBe(
       '2026-09-28T22:00',

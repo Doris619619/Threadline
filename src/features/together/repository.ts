@@ -14,6 +14,8 @@ export const spaceErrors: Record<string, string> = {
   SELF_REVIEW: '这一步需要对方来完成。',
   FLAG_LOCKED: '成果提交后，目标与约定不能修改。',
   INVALID_STATE: '状态已经变化，请刷新查看。',
+  SUBMISSION_CONFLICT: '待验收的成果已经变化，请重新打开并查看本次成果。',
+  INVALID_DEADLINE: '截止时间无效，请填写 1900–9999 年范围内的有效时间。',
   REASON_REQUIRED: '请填写需要补充的内容或惊喜说明。',
   WECHAT_REQUIRED: '请先通过微信发送成果，再确认提交。',
   REQUEST_REUSED: '请求内容已经变化，请重新打开后操作。',
@@ -21,6 +23,8 @@ export const spaceErrors: Record<string, string> = {
 };
 /** 服务端明确回滚的写入可以修改后重交；网络未知结果仍需沿用原请求。 */
 export class RejectedSpaceCommand extends Error {}
+/** 本次尝试在发送前终止；不代表同一请求的更早尝试未到达服务器。 */
+export class UnsentSpaceCommand extends Error {}
 /** JSON 对象键顺序不影响同一意图比较，数组顺序仍然保留。 */
 function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
@@ -58,8 +62,17 @@ export async function executeCommand(
       .eq('request_id', command.id)
       .abortSignal(AbortSignal.timeout(10000))
       .maybeSingle();
-  const previous = await confirm();
-  checkSpaceError(previous.error);
+  const previous = await confirm()
+    .then((response) => {
+      checkSpaceError(response.error);
+      return response;
+    })
+    .catch((error: unknown) => {
+      // 确认读取失败时，本次尝试尚未发出 RPC；Hook 仍保留更早未知尝试的锁。
+      throw new UnsentSpaceCommand(
+        error instanceof Error ? error.message : '暂时无法核对请求，请重试。',
+      );
+    });
   if (previous.data) {
     if (
       canonical(previous.data.input) !==

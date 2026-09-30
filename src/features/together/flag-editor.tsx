@@ -11,7 +11,13 @@ import {
 import { getAccountTimezone, timezoneLabel } from '@/lib/account-clock';
 import { togetherCopy, memberName, address } from './copy';
 import { SpaceDialog } from './dialog';
-import { defaultDeadline, localDeadline, deadlineInstant } from './time';
+import {
+  defaultDeadline,
+  localDeadline,
+  deadlineInstant,
+  validSpaceTime,
+  invalidSpaceTime,
+} from './time';
 import { useSpaceCommand } from './use-command';
 import { useTogether } from './state';
 import type { Flag, Room } from './types';
@@ -62,6 +68,9 @@ export function FlagEditor({
       onClose={onClose}
       {...command}
     >
+      {flag && !validSpaceTime(flag.deadline) && (
+        <p role="alert">{invalidSpaceTime}，请重新填写截止时间。</p>
+      )}
       <form onSubmit={(event) => void save(event)}>
         <fieldset disabled={command.busy}>
           <label className="together-editor-goal">

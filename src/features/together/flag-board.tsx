@@ -134,6 +134,7 @@ export function FlagList({
       {mode === 'completed' ? (
         <MemoryTimeline
           flags={flags}
+          label={owner === 'mine' ? '我的回忆' : '对方的回忆'}
           zone={zone}
           onOpen={onOpen}
           surprises={

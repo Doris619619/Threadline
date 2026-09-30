@@ -1,6 +1,12 @@
 /** @fileoverview 在真实 PostgreSQL 引擎执行两人空间 SQL/RLS/幂等与状态机；不模拟业务结果。 */
 import assert from 'node:assert/strict';
-import { createDatabase, asUser, command, users } from './together/database.mjs';
+import {
+  createDatabase,
+  applySafetyMigration,
+  asUser,
+  command,
+  users,
+} from './together/database.mjs';
 const db = await createDatabase();
 const [a, b, c, d] = users;
 let checks = 0;
@@ -15,6 +21,88 @@ async function rejects(fn, marker) {
   checks++;
 }
 try {
+  // 在旧 RPC 下留下 S1/S2 和 infinity，验证真实追加迁移的兼容性。
+  const legacy = await createDatabase({ safety: false });
+  try {
+    await command(legacy, a, 'profile', { name: '旧成员 A' });
+    await command(legacy, b, 'profile', { name: '旧成员 B' });
+    const invite = await command(legacy, a, 'invite', { relationship: 'friends' });
+    const oldRoom = await command(legacy, b, 'accept_invite', { id: invite.id });
+    const draft = {
+      room_id: oldRoom.id,
+      title: '升级前目标',
+      deadline: '2000-01-01T00:00:00Z',
+      timezone: 'UTC',
+    };
+    let oldFlag = (await command(legacy, a, 'create_flag', draft)).flag;
+    oldFlag = (
+      await command(legacy, a, 'submit', {
+        room_id: oldRoom.id,
+        flag_id: oldFlag.id,
+        version: oldFlag.version,
+        wechat_sent: true,
+      })
+    ).flag;
+    oldFlag = (
+      await command(legacy, b, 'changes', {
+        room_id: oldRoom.id,
+        flag_id: oldFlag.id,
+        version: oldFlag.version,
+        body: '补充',
+      })
+    ).flag;
+    const latest = await command(legacy, a, 'submit', {
+      room_id: oldRoom.id,
+      flag_id: oldFlag.id,
+      version: oldFlag.version,
+      wechat_sent: true,
+    });
+    const corrupt = (
+      await command(legacy, a, 'create_flag', { ...draft, deadline: 'infinity' })
+    ).flag;
+    await applySafetyMigration(legacy);
+    const migrated = (
+      await asUser(legacy, a, 'select * from together_flags where id=$1', [oldFlag.id])
+    ).rows[0];
+    check(
+      migrated.current_submission_id === latest.event_id,
+      'upgrade binds the latest legacy submission',
+    );
+    check(
+      (
+        await legacy.query(
+          'select deadline::text as deadline from together_flags where id=$1',
+          [corrupt.id],
+        )
+      ).rows[0].deadline === 'infinity',
+      'upgrade preserves legacy anomalies without inventing a deadline',
+    );
+    check(
+      (
+        await command(legacy, b, 'approve', {
+          room_id: oldRoom.id,
+          flag_id: oldFlag.id,
+          version: migrated.version,
+          expected_submission_id: latest.event_id,
+        })
+      ).flag.status === 'completed',
+      'legacy valid submission remains reviewable',
+    );
+    check(
+      Date.parse(
+        (
+          await command(legacy, a, 'edit_flag', {
+            ...draft,
+            flag_id: corrupt.id,
+            version: corrupt.version,
+          })
+        ).flag.deadline,
+      ) === Date.parse(draft.deadline),
+      'legacy editable anomaly can be corrected',
+    );
+  } finally {
+    await legacy.close();
+  }
   await rejects(
     () => command(db, null, 'profile', { name: '匿名' }),
     'permission denied',
@@ -76,6 +164,7 @@ try {
       ...payload,
       flag_id: flag.id,
       version: flag.version,
+      expected_submission_id: flag.current_submission_id,
       timezone: 'America/New_York',
     })
   ).flag;
@@ -100,6 +189,54 @@ try {
     () => command(db, a, 'create_flag', { ...payload, title: 'x'.repeat(101) }),
     'check constraint',
   );
+  for (const deadline of [
+    'infinity',
+    '-infinity',
+    '1899-12-31T23:59:59Z',
+    '10000-01-01T00:00:00Z',
+    'not-a-date',
+    null,
+  ]) {
+    await rejects(
+      () => command(db, a, 'create_flag', { ...payload, deadline }),
+      'INVALID_DEADLINE',
+    );
+    await rejects(
+      () =>
+        command(db, a, 'edit_flag', {
+          ...payload,
+          flag_id: flag.id,
+          version: flag.version,
+          deadline,
+        }),
+      'INVALID_DEADLINE',
+    );
+  }
+  await rejects(
+    () =>
+      db.query("update together_flags set deadline='infinity' where id=$1", [flag.id]),
+    'together_deadline_supported',
+  );
+  check(
+    (await asUser(db, a, 'select * from together_flags')).rows.length === 1,
+    'invalid creates leave no extra flags',
+  );
+  for (const deadline of [
+    '1900-01-01T00:00:00Z',
+    '2000-01-01T00:00:00Z',
+    '9999-12-31T23:59:59Z',
+    payload.deadline,
+  ]) {
+    flag = (
+      await command(db, a, 'edit_flag', {
+        ...payload,
+        flag_id: flag.id,
+        version: flag.version,
+        deadline,
+      })
+    ).flag;
+    check(!!flag, 'valid historical and boundary dates remain editable');
+  }
   const cheerId = crypto.randomUUID();
   const beforeCheer = flag.version;
   const cheer = await command(
@@ -129,6 +266,7 @@ try {
         room_id: room.id,
         flag_id: flag.id,
         version: flag.version,
+        expected_submission_id: flag.current_submission_id,
       }),
     'unique constraint',
   );
@@ -138,6 +276,7 @@ try {
         room_id: room.id,
         flag_id: flag.id,
         version: flag.version,
+        expected_submission_id: flag.current_submission_id,
         wechat_sent: false,
       }),
     'WECHAT_REQUIRED',
@@ -148,6 +287,7 @@ try {
         room_id: room.id,
         flag_id: flag.id,
         version: flag.version,
+        expected_submission_id: flag.current_submission_id,
         wechat_sent: true,
       }),
     'FORBIDDEN',
@@ -157,17 +297,21 @@ try {
       room_id: room.id,
       flag_id: flag.id,
       version: flag.version,
+      expected_submission_id: flag.current_submission_id,
       wechat_sent: true,
       body: '微信已发送',
     })
   ).flag;
   const first = flag.first_submitted_at;
+  const firstSubmission = flag.current_submission_id;
+  check(!!firstSubmission, 'submission points to its event');
   await rejects(
     () =>
       command(db, a, 'approve', {
         room_id: room.id,
         flag_id: flag.id,
         version: flag.version,
+        expected_submission_id: flag.current_submission_id,
       }),
     'SELF_REVIEW',
   );
@@ -177,6 +321,7 @@ try {
         ...payload,
         flag_id: flag.id,
         version: flag.version,
+        expected_submission_id: flag.current_submission_id,
       }),
     'FLAG_LOCKED',
   );
@@ -186,6 +331,7 @@ try {
         room_id: room.id,
         flag_id: flag.id,
         version: flag.version,
+        expected_submission_id: flag.current_submission_id,
         body: '',
       }),
     'REASON_REQUIRED',
@@ -195,6 +341,7 @@ try {
       room_id: room.id,
       flag_id: flag.id,
       version: flag.version,
+      expected_submission_id: flag.current_submission_id,
       body: '补一下订正',
     })
   ).flag;
@@ -203,17 +350,56 @@ try {
       room_id: room.id,
       flag_id: flag.id,
       version: flag.version,
+      expected_submission_id: flag.current_submission_id,
       wechat_sent: true,
       body: '订正也发了',
     })
   ).flag;
   check(first === flag.first_submitted_at, 'supplement preserves first submission');
+  check(
+    flag.current_submission_id !== firstSubmission,
+    'resubmission changes the submission ID',
+  );
+  for (const action of ['approve', 'changes']) {
+    for (const expected of [undefined, null, firstSubmission, crypto.randomUUID()]) {
+      await rejects(
+        () =>
+          command(db, b, action, {
+            room_id: room.id,
+            flag_id: flag.id,
+            version: flag.version,
+            expected_submission_id: expected,
+            body: '不能审错成果',
+          }),
+        'SUBMISSION_CONFLICT',
+      );
+    }
+  }
+  const unchanged = (
+    await asUser(db, b, 'select * from together_flags where id=$1', [flag.id])
+  ).rows[0];
+  check(
+    unchanged.status === 'submitted' && unchanged.version === flag.version,
+    'rejected reviews preserve status and version',
+  );
+  check(
+    (
+      await asUser(
+        db,
+        b,
+        "select * from together_events where flag_id=$1 and kind='approved'",
+        [flag.id],
+      )
+    ).rows.length === 0,
+    'rejected reviews create no approval event',
+  );
   const staleVersion = flag.version;
   flag = (
     await command(db, b, 'approve', {
       room_id: room.id,
       flag_id: flag.id,
       version: flag.version,
+      expected_submission_id: flag.current_submission_id,
       body: '真的很棒',
     })
   ).flag;
@@ -231,6 +417,7 @@ try {
     room_id: room.id,
     flag_id: flag.id,
     version: flag.version,
+    expected_submission_id: flag.current_submission_id,
     body: '照片发微信啦',
   });
   let current = (

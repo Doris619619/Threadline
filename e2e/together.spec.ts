@@ -15,7 +15,7 @@ test('创建表单的焦点留在字段内，不遮挡标签或改变布局', as
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/together-preview');
   for (const mode of ['light', 'dark']) {
-    for (const width of [1366, 320]) {
+    for (const width of [1366, 390, 320]) {
       await page.setViewportSize({ width, height: 900 });
       await page.getByRole('button', { name: '立个 flag', exact: true }).click();
       const editor = page.getByRole('dialog', { name: '立个 flag', exact: true });
@@ -43,6 +43,22 @@ test('创建表单的焦点留在字段内，不遮挡标签或改变布局', as
           });
       }
       expect(await reward.boundingBox()).toEqual(unfocusedBounds);
+      expect(await editor.evaluate((node) => node.scrollLeft)).toBe(0);
+      const deadline = editor.getByLabel('截止时间');
+      await deadline.fill('2026-10-01T22:00');
+      await deadline.focus();
+      await expect(deadline).toHaveValue('2026-10-01T22:00');
+      const dateBounds = await deadline.boundingBox();
+      const propertyBounds = await deadline.locator('..').boundingBox();
+      expect(dateBounds!.x).toBeGreaterThanOrEqual(propertyBounds!.x);
+      expect(dateBounds!.x + dateBounds!.width).toBeLessThanOrEqual(
+        propertyBounds!.x + propertyBounds!.width,
+      );
+      expect(
+        await deadline.evaluate((node) => node.scrollWidth <= node.clientWidth),
+      ).toBe(true);
+      expect(await editor.evaluate((node) => node.scrollLeft)).toBe(0);
+      await reward.focus();
       const label = await editor
         .locator('.together-editor-caption')
         .last()
@@ -196,7 +212,9 @@ test('微信成果、对方验收、昵称与本地时区', async ({ page }) => 
     timeZone: 'America/New_York',
   }).format(new Date(completedAt!));
   await expect(
-    page.getByRole('region', { name: localDay, exact: true }).filter({ has: memory }),
+    page
+      .getByRole('region', { name: `对方的回忆 · ${localDay}`, exact: true })
+      .filter({ has: memory }),
   ).toHaveCount(1);
   await memory.getByRole('button', { name: '拆惊喜', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('照片已经发到微信啦。');

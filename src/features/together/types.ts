@@ -29,6 +29,7 @@ export type Flag = {
   status: FlagStatus;
   version: number;
   first_submitted_at: string | null;
+  current_submission_id: string | null;
   completed_at: string | null;
   created_at: string;
   cancelled_reason: string | null;

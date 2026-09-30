@@ -36,6 +36,7 @@
 
 | 文案 / 模板                                                                  | 来源                                                        |
 | ---------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| ，请重新填写截止时间。                                                       | flag-editor.tsx                                             |
 | · 已见证                                                                     | flag-card.tsx                                               |
 | （选填）                                                                     | flag-editor.tsx                                             |
 | ${memberName(room, room.user_a)}与${memberName(room, room.user_b)}           | panel.tsx                                                   |
@@ -63,12 +64,14 @@
 | 待补充                                                                       | copy.ts                                                     |
 | 待我验收                                                                     | flag-card.tsx、flag-detail.tsx、review.tsx                  |
 | 待验收                                                                       | copy.ts                                                     |
+| 待验收的成果已经变化，请重新打开并查看本次成果。                             | repository.ts                                               |
 | 当前离线，输入已保留，请联网后重试。                                         | state.tsx                                                   |
 | 等 TA 立下一个小目标。                                                       | flag-board.tsx                                              |
 | 等待 TA 验收                                                                 | copy.ts                                                     |
 | 等对方验收                                                                   | flag-card.tsx、flag-detail.tsx                              |
 | 第一个小目标，想请对方见证什么？                                             | copy.ts                                                     |
 | 对方的 flag                                                                  | flag-board.tsx                                              |
+| 对方的回忆                                                                   | flag-board.tsx                                              |
 | 对方的邀请码                                                                 | binding.tsx                                                 |
 | 对方送来了一份额外奖励。                                                     | copy.ts                                                     |
 | 对方想绑定为${relationshipLabel[room.proposed_relationship!]}                | settings.tsx                                                |
@@ -106,6 +109,7 @@
 | 截止                                                                         | flag-card.tsx、flag-detail.tsx                              |
 | 截止后提交                                                                   | flag-detail.tsx                                             |
 | 截止时间                                                                     | flag-editor.tsx                                             |
+| 截止时间无效，请填写 1900–9999 年范围内的有效时间。                          | repository.ts                                               |
 | 解除绑定                                                                     | settings.tsx                                                |
 | 解除并结束未完成的 flag                                                      | settings.tsx                                                |
 | 今天想完成什么？                                                             | copy.ts                                                     |
@@ -138,6 +142,7 @@
 | 请确认已经看过微信里的成果，并符合这条 flag 的约定。                         | flag-detail.tsx                                             |
 | 请使用已有账号登录后开启两人空间。                                           | state.tsx                                                   |
 | 请使用已有账号登录后开启两人空间。当前演示不连接真实账号。                   | panel.tsx                                                   |
+| 请填写 1900–9999 年的有效时间；夏令时缺失或重复的时刻需重新选择。            | time.ts                                                     |
 | 请填写需要补充的内容或惊喜说明。                                             | repository.ts                                               |
 | 请先填写空间展示名。                                                         | repository.ts                                               |
 | 请先通过微信发送成果，再确认提交。                                           | repository.ts                                               |
@@ -153,6 +158,7 @@
 | 日                                                                           | memory-timeline.tsx                                         |
 | 上次提交结果尚未确认，请先按原内容重试，或关闭后核对最新记录。               | use-command.ts                                              |
 | 生成邀请码                                                                   | binding.tsx                                                 |
+| 时间数据异常，请联系空间成员核对                                             | time.ts                                                     |
 | 实时连接暂不可用，回到页面会重新读取。                                       | state.tsx                                                   |
 | 首次提交：                                                                   | flag-detail.tsx                                             |
 | 输入邀请码                                                                   | binding.tsx                                                 |
@@ -169,6 +175,7 @@
 | 微信已发送                                                                   | review.tsx                                                  |
 | 我                                                                           | flag-card.tsx                                               |
 | 我的 flag                                                                    | flag-board.tsx                                              |
+| 我的回忆                                                                     | flag-board.tsx                                              |
 | 我看见啦，真的很棒 ❤️                                                        | copy.ts                                                     |
 | 我们的关系                                                                   | binding.tsx                                                 |
 | 我们的回忆                                                                   | panel.tsx                                                   |
@@ -205,12 +212,12 @@
 | 月                                                                           | memory-timeline.tsx                                         |
 | 再看一些                                                                     | flag-board.tsx                                              |
 | 在这里留一句奖励说明；照片或其他礼物通过微信发送。                           | flag-detail.tsx                                             |
+| 暂时无法核对请求，请重试。                                                   | repository.ts                                               |
 | 暂时无法完成操作，请重试。                                                   | use-command.ts                                              |
 | 暂时无法完成操作，输入已保留，请检查网络后重试。                             | repository.ts                                               |
 | 怎样算完成                                                                   | flag-detail.tsx、flag-editor.tsx                            |
 | 找一个人，见证彼此的小目标。                                                 | binding.tsx、panel.tsx                                      |
 | 这段关系已结束，记录只读。                                                   | repository.ts                                               |
-| 这个时间无效，或在夏令时切换时出现两次；请换一个明确的时间。                 | time.ts                                                     |
 | 这件事的过程                                                                 | flag-detail.tsx                                             |
 | 这件事完成了，对方见证了你的努力。                                           | copy.ts                                                     |
 | 这项操作已经完成，请刷新查看。                                               | repository.ts                                               |
@@ -223,6 +230,7 @@
 | 正在读取空间资料…                                                            | binding.tsx                                                 |
 | 正在读取目标                                                                 | flag-board.tsx                                              |
 | 正在读取时间…                                                                | clock.tsx                                                   |
+| 正在核对本次成果，读取完成后才能验收。                                       | flag-detail.tsx                                             |
 | 正在进行                                                                     | panel.tsx                                                   |
 | 执行人取消                                                                   | supabase/migrations/202609280001_together.sql               |
 | 只读                                                                         | panel.tsx                                                   |

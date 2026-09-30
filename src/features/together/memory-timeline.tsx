@@ -5,14 +5,16 @@ import { accountClockParts } from '@/lib/account-clock';
 import { spaceTime } from './time';
 import type { Flag } from './types';
 
-/** 对已加载的所有页统一分组，翻页后同一天不会出现重复日期标题。 */
+/** 对已加载页统一分组；日期地标带所属分栏名称，双方同一天完成时仍能被读屏区分。 */
 export function MemoryTimeline({
   flags,
+  label,
   zone,
   surprises,
   onOpen,
 }: {
   flags: Flag[];
+  label: string;
   zone: string;
   surprises: Set<string>;
   onOpen: (flag: Flag) => void;
@@ -27,7 +29,11 @@ export function MemoryTimeline({
   return (
     <div className="together-memories">
       {Array.from(days, ([day, entries]) => (
-        <section className="together-memory-day" key={day} aria-label={day}>
+        <section
+          className="together-memory-day"
+          key={day}
+          aria-label={`${label} · ${day}`}
+        >
           <h3>
             <time dateTime={day}>
               <b>

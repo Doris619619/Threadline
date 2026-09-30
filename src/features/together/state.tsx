@@ -11,7 +11,12 @@ import {
 import { QueryClient, useQuery } from '@tanstack/react-query';
 import { useOptionalCloudRuntime } from '@/features/auth/cloud-runtime-provider';
 import { beginCloudWrite } from '@/lib/cloud-write-guard';
-import { checkSpaceError, executeCommand, readRooms } from './repository';
+import {
+  checkSpaceError,
+  executeCommand,
+  readRooms,
+  UnsentSpaceCommand,
+} from './repository';
 import type { Command, CommandResult, Room } from './types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 type Store = {
@@ -136,8 +141,9 @@ export function TogetherSession({
   }, [client, user, cache, realtime]);
   /** 稳定请求由表单持有；账号退出后不刷新或更新前一会话。 */
   const run = async (command: Command) => {
-    if (!client) throw new Error('请使用已有账号登录后开启两人空间。');
-    if (!navigator.onLine) throw new Error('当前离线，输入已保留，请联网后重试。');
+    if (!client) throw new UnsentSpaceCommand('请使用已有账号登录后开启两人空间。');
+    if (!navigator.onLine)
+      throw new UnsentSpaceCommand('当前离线，输入已保留，请联网后重试。');
     const end = beginCloudWrite();
     try {
       const result = await executeCommand(client, user, command);

@@ -1,7 +1,11 @@
 /** @fileoverview 验证微信成果写入在响应丢失、服务端拒绝与请求 ID 重用时的恢复边界。 */
 import { describe, expect, it, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { executeCommand, RejectedSpaceCommand } from '@/features/together/repository';
+import {
+  executeCommand,
+  RejectedSpaceCommand,
+  UnsentSpaceCommand,
+} from '@/features/together/repository';
 
 const command = {
   id: 'stable-request',
@@ -32,6 +36,16 @@ function transport(reads: unknown[], write: unknown) {
 }
 
 describe('together command recovery', () => {
+  it('marks failure before the RPC as unsent', async () => {
+    const { client, rpc } = transport(
+      [{ data: null, error: { message: 'network down' } }],
+      null,
+    );
+    await expect(executeCommand(client, 'actor', command)).rejects.toBeInstanceOf(
+      UnsentSpaceCommand,
+    );
+    expect(rpc).not.toHaveBeenCalled();
+  });
   it('returns a previously committed result without sending a second mutation', async () => {
     const { client, rpc } = transport([{ data: saved, error: null }], null);
     expect(await executeCommand(client, 'actor', command)).toEqual(saved.result);

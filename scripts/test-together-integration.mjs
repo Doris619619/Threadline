@@ -113,11 +113,13 @@ try {
       room_id: room.id,
       flag_id: flag.id,
       version: submitted.version,
+      expected_submission_id: submitted.current_submission_id,
     }),
     cmd(partner, 'changes', {
       room_id: room.id,
       flag_id: flag.id,
       version: submitted.version,
+      expected_submission_id: submitted.current_submission_id,
       body: '并行补充请求',
     }),
   ]);
@@ -138,6 +140,12 @@ try {
   const ids = accounts.map((user) => user.id);
   if (room) {
     await success(admin.from('together_requests').delete().in('actor', ids));
+    await success(
+      admin
+        .from('together_flags')
+        .update({ current_submission_id: null })
+        .eq('room_id', room.id),
+    );
     await success(admin.from('together_events').delete().eq('room_id', room.id));
     await success(admin.from('together_flags').delete().eq('room_id', room.id));
     await success(admin.from('together_memberships').delete().eq('room_id', room.id));

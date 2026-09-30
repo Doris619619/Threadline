@@ -2,7 +2,7 @@
 import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
-  testMatch: 'together.spec.ts',
+  testMatch: ['together.spec.ts', 'together-regressions.spec.ts'],
   workers: 1,
   fullyParallel: false,
   timeout: 45000,

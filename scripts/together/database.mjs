@@ -8,8 +8,8 @@ export const users = [
   '33333333-3333-4333-8333-333333333333',
   '44444444-4444-4444-8444-444444444444',
 ];
-/** 新建内存数据库并完整执行仓库迁移；只模拟 Supabase 提供的基础身份环境。 */
-export async function createDatabase() {
+/** 新建内存数据库；升级回归可显式停在旧迁移，默认完整执行全部两人空间迁移。 */
+export async function createDatabase({ safety = true } = {}) {
   const db = new PGlite({ extensions: { pgcrypto } });
   await db.exec(`create schema auth; create schema private; create schema extensions;
     create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
@@ -26,7 +26,20 @@ export async function createDatabase() {
       'utf8',
     ),
   );
+  if (safety) await applySafetyMigration(db);
   return db;
+}
+/** 在已有两人空间数据上追加安全迁移，供新库初始化与旧库升级回归共用。 */
+export async function applySafetyMigration(db) {
+  await db.exec(
+    await readFile(
+      new URL(
+        '../../supabase/migrations/202609300001_together_review_safety.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  );
 }
 /** 每次操作用独立事务设置本地会话身份，回滚后不污染下一用户。 */
 export async function asUser(db, user, query, params = []) {
@@ -104,6 +117,7 @@ export async function seedPreview(db) {
       room_id: room.id,
       flag_id: f3.id,
       version: submitted.version,
+      expected_submission_id: submitted.current_submission_id,
       body: '说到做到的小桃，今天也很厉害。',
     })
   ).flag;
