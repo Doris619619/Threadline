@@ -1,4 +1,4 @@
-/** @fileoverview 供本地 Supabase runner 验证阶段跨账号拒绝与同账号双客户端 Realtime，复用一次性测试账户。 */
+/** @fileoverview 供 Supabase runner 按任务 ID 验证逐项项目归属、跨账号拒绝与双客户端 Realtime。 */
 import assert from 'node:assert/strict';
 
 /** 按实际数据库错误提前失败，不把 API 错误当成空数据。 */
@@ -57,6 +57,7 @@ export async function testStagePlanCommands(owner, writer, outsider, reader) {
       .is('deleted_at', null),
   );
   const projectId = projects.find((project) => !project.is_fallback).id;
+  const fallbackProjectId = projects.find((project) => project.is_fallback).id;
   const foreignProjectId = confirmed(
     await outsider
       .from('projects')
@@ -84,7 +85,15 @@ export async function testStagePlanCommands(owner, writer, outsider, reader) {
   try {
     const first = confirmed(await writer.rpc('create_stage_plan', args));
     assert.equal(first.tasks.length, 16);
-    assert.ok(first.tasks.slice(0, 8).every((task) => task.project_id === projectId));
+    // RPC 按创建时间/UUID 返回，不保证输入顺序；逐个 ID 检查全部显式和默认归属。
+    const returnedTasks = new Map(first.tasks.map((task) => [task.id, task]));
+    assert.equal(returnedTasks.size, tasks.length);
+    for (const task of tasks) {
+      assert.equal(
+        returnedTasks.get(task.id)?.project_id,
+        task.projectId ?? fallbackProjectId,
+      );
+    }
     confirmed(await writer.rpc('create_stage_plan', args));
     const extra = { id: crypto.randomUUID(), title: '追加项目任务', projectId };
     const appendArgs = {
