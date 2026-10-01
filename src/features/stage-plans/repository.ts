@@ -93,6 +93,7 @@ export class StagePlanRepository {
           p_stage_id: stageId,
           p_task_id: task.id,
           p_title: task.title,
+          p_project_id: task.projectId ?? null,
         }),
       ) as Row,
     );

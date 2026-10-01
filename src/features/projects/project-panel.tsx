@@ -2,7 +2,7 @@
 
 'use client';
 
-import { ChevronRight, FolderKanban } from 'lucide-react';
+import { ChevronRight, FolderKanban, MoreHorizontal } from 'lucide-react';
 import { CottageNavIcon } from '@/features/appearance/cottage-sprite';
 import { PlanObjectIcon } from '@/features/stage-plans/object-icon';
 import { forwardRef, useImperativeHandle, useState, type CSSProperties } from 'react';
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { ManagementDialog } from '@/components/ui/management-dialog';
 import { getLocalDateKey } from '@/lib/local-date';
 import type { Project, Task } from '@/types/domain';
+import { ProjectDetail } from './project-detail';
 
 type ProjectDialog =
   | { mode: 'create' }
@@ -26,12 +27,15 @@ type ProjectPanelProps = {
   onUpdateProject: (id: string, name: string, color: string) => Promise<void>;
   onSetProjectArchived: (id: string, archived: boolean) => Promise<void>;
   onDeleteProject: (id: string) => Promise<void>;
+  onOpenProject?: (id: string) => void;
+  detailProject?: Project;
+  onBackProject?: () => void;
 };
 
 /** 保留受限创建 handle，供其他组合视图复用现有项目表单。 */
 export type ProjectPanelHandle = { openCreate: () => void };
 
-/** 渲染只包含名称、颜色和生命周期操作的项目管理区。 */
+/** 项目卡片进入原 Task 总览；独立管理入口保持名称、颜色和生命周期命令。 */
 export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
   function ProjectPanel(
     {
@@ -42,6 +46,9 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
       onUpdateProject,
       onSetProjectArchived,
       onDeleteProject,
+      onOpenProject,
+      detailProject,
+      onBackProject,
     },
     ref,
   ) {
@@ -103,72 +110,99 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
 
     return (
       <section
-        className="manager-section plan-section"
-        aria-labelledby="project-manager-heading"
+        className={detailProject ? 'project-panel' : 'manager-section plan-section'}
+        aria-labelledby={detailProject ? undefined : 'project-manager-heading'}
       >
-        <div className="manager-section-heading plan-section-heading">
-          <div>
-            <h2 id="project-manager-heading">
-              <CottageNavIcon name="projects">
-                <FolderKanban size={23} />
-              </CottageNavIcon>
-              项目 <span>{items.length}</span>
-            </h2>
-            <p>管理长期目标与任务，专注于持续推进的方向。</p>
-          </div>
-          <button type="button" className="plan-create-link" onClick={openCreate}>
-            + 新建项目
-          </button>
-        </div>
-        <div className="manager-card manager-card--projects">
-          <div className="manager-list manager-list--projects">
-            {items
-              .filter((project) =>
-                project.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
-              )
-              .map((project) => (
-                <button
-                  aria-label={`管理项目 ${project.name}`}
-                  className="manager-row project-grid-card"
-                  style={
-                    {
-                      '--project-color': project.color,
-                      backgroundColor:
-                        'color-mix(in srgb, ' + project.color + ' 13%, var(--surface))',
-                    } as CSSProperties
-                  }
-                  key={project.id}
-                  onClick={() => {
-                    setError(undefined);
-                    setDialog({ mode: 'manage', project });
-                  }}
-                  type="button"
-                >
-                  <PlanObjectIcon name={project.name} kind="project" />
-                  <span className="manager-primary">{project.name}</span>
-                  <span className="project-task-count">
-                    {
-                      tasks.filter(
-                        (task) =>
-                          task.projectId === project.id &&
-                          task.status !== 'trashed' &&
-                          task.status !== 'abandoned',
-                      ).length
-                    }{' '}
-                    个任务
-                  </span>
-                  {project.status === 'archived' && !project.isFallback && (
-                    <span className="manager-status">已归档</span>
-                  )}
-                  <ChevronRight
-                    aria-hidden="true"
-                    className="manager-row-chevron"
-                    size={20}
-                  />
-                </button>
-              ))}
-          </div>
-        </div>
+        {detailProject ? (
+          <ProjectDetail
+            key={detailProject.id}
+            project={detailProject}
+            onBack={() => onBackProject?.()}
+            onManage={() => {
+              setError(undefined);
+              setDialog({ mode: 'manage', project: detailProject });
+            }}
+          />
+        ) : (
+          <>
+            <div className="manager-section-heading plan-section-heading">
+              <div>
+                <h2 id="project-manager-heading">
+                  <CottageNavIcon name="projects">
+                    <FolderKanban size={23} />
+                  </CottageNavIcon>
+                  项目 <span>{items.length}</span>
+                </h2>
+                <p>管理长期目标与任务，专注于持续推进的方向。</p>
+              </div>
+              <button type="button" className="plan-create-link" onClick={openCreate}>
+                + 新建项目
+              </button>
+            </div>
+            <div className="manager-card manager-card--projects">
+              <div className="manager-list manager-list--projects">
+                {items
+                  .filter((project) =>
+                    project.name
+                      .toLocaleLowerCase()
+                      .includes(search.toLocaleLowerCase()),
+                  )
+                  .map((project) => (
+                    <article
+                      className="manager-row project-grid-card"
+                      style={
+                        {
+                          '--project-color': project.color,
+                          backgroundColor:
+                            'color-mix(in srgb, ' +
+                            project.color +
+                            ' 13%, var(--surface))',
+                        } as CSSProperties
+                      }
+                      key={project.id}
+                    >
+                      <button
+                        className="project-card-main"
+                        type="button"
+                        data-project-card-id={project.id}
+                        aria-label={`查看项目 ${project.name}`}
+                        onClick={() => {
+                          if (onOpenProject) onOpenProject(project.id);
+                          else setDialog({ mode: 'manage', project });
+                        }}
+                      >
+                        <PlanObjectIcon name={project.name} kind="project" />
+                        <span className="manager-primary">{project.name}</span>
+                        <span className="project-task-count">
+                          {tasks.filter((task) => task.projectId === project.id).length}{' '}
+                          个任务
+                        </span>
+                        {project.status === 'archived' && !project.isFallback && (
+                          <span className="manager-status">已归档</span>
+                        )}
+                        <ChevronRight
+                          aria-hidden="true"
+                          className="manager-row-chevron"
+                          size={20}
+                        />
+                      </button>
+                      <button
+                        className="project-card-manage"
+                        aria-label={`管理项目 ${project.name}`}
+                        onClick={() => {
+                          setError(undefined);
+                          setDialog({ mode: 'manage', project });
+                        }}
+                        type="button"
+                      >
+                        <MoreHorizontal size={18} aria-hidden="true" />
+                      </button>
+                    </article>
+                  ))}
+              </div>
+            </div>
+          </>
+        )}
         {dialog && (
           <ManagementDialog
             busy={busy}

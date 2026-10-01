@@ -3,7 +3,7 @@
 'use client';
 
 import { Search, FolderKanban } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import type { Daily } from '@/features/daily/types';
 import { DailyTemplateManager } from '@/features/daily/daily-template-manager';
 import { ProjectPanel } from '@/features/projects/project-panel';
@@ -53,8 +53,52 @@ export function ProjectManagementPage({
   const [creatingStage, setCreatingStage] = useState(false);
   const [localSearch, setLocalSearch] = useState('');
   const search = stages?.search ?? localSearch;
+  const [projectId, setProjectId] = useState<string>();
+  const project = projects.find((item) => item.id === projectId);
+  const projectReturn = useRef<
+    { id: string; scroll: number; pending: boolean } | undefined
+  >(undefined);
+  /** 项目详情返回后恢复计划列表的搜索、阶段筛选、滚动和原卡片焦点。 */
+  useLayoutEffect(() => {
+    const saved = projectReturn.current;
+    if (project || !saved?.pending) return;
+    const main = document.querySelector('.tl-main');
+    if (main) main.scrollTop = saved.scroll;
+    window.scrollTo?.(0, saved.scroll);
+    Array.from(document.querySelectorAll<HTMLButtonElement>('[data-project-card-id]'))
+      .find((card) => card.dataset.projectCardId === saved.id)
+      ?.focus({ preventScroll: true });
+    saved.pending = false;
+  }, [project]);
+  /** 点击卡片进入完整任务总览；不改变工作日期或列表过滤条件。 */
+  const openProject = (id: string) => {
+    projectReturn.current = {
+      id,
+      scroll: Math.max(
+        document.querySelector('.tl-main')?.scrollTop ?? 0,
+        window.scrollY,
+      ),
+      pending: true,
+    };
+    setProjectId(id);
+  };
+  const projectPanel = (
+    <ProjectPanel
+      items={projects}
+      tasks={tasks}
+      search={search}
+      onCreateProject={onCreateProject}
+      onUpdateProject={onUpdateProject}
+      onSetProjectArchived={onSetProjectArchived}
+      onDeleteProject={onDeleteProject}
+      onOpenProject={openProject}
+      detailProject={project}
+      onBackProject={() => setProjectId(undefined)}
+    />
+  );
 
   if (stages?.detailId) return <StageDetail key={stages.detailId} />;
+  if (project) return projectPanel;
   return (
     <section className="project-panel" data-testid="project-panel">
       <header className="project-page-heading">
@@ -93,15 +137,7 @@ export function ProjectManagementPage({
           <StageBoard onCreate={() => setCreatingStage(true)} />
         </>
       )}
-      <ProjectPanel
-        items={projects}
-        tasks={tasks}
-        search={search}
-        onCreateProject={onCreateProject}
-        onUpdateProject={onUpdateProject}
-        onSetProjectArchived={onSetProjectArchived}
-        onDeleteProject={onDeleteProject}
-      />
+      {projectPanel}
       <DailyTemplateManager
         items={dailyTemplates}
         search={search}
@@ -112,6 +148,7 @@ export function ProjectManagementPage({
       />
       {creatingStage && stages && (
         <StageEditor
+          projects={projects}
           onClose={() => setCreatingStage(false)}
           onSaved={(plan) => {
             stages.setSearch('');

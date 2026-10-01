@@ -3,7 +3,7 @@ import { addLocalDateDays, parseLocalDateKey } from '@/lib/local-date';
 import type { StagePlan, Task } from '@/types/domain';
 
 export type StageStatus = 'active' | 'upcoming' | 'past';
-export type StageTaskDraft = { id: string; title: string };
+export type StageTaskDraft = { id: string; title: string; projectId?: string };
 export type StagePlanDraft = Pick<
   StagePlan,
   'id' | 'name' | 'startDate' | 'endDate' | 'homeVisible'

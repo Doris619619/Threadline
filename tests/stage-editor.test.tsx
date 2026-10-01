@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { StageEditor } from '@/features/stage-plans/editor';
+import type { Project } from '@/types/domain';
 const commands = vi.hoisted(() => ({ create: vi.fn(), update: vi.fn() }));
 vi.mock('@/features/stage-plans/state', () => ({ useStagePlans: () => commands }));
 afterEach(cleanup);
@@ -51,4 +52,84 @@ it('allows an empty initial checklist and preserves IDs/input after failed submi
   await waitFor(() => expect(close).toHaveBeenCalledTimes(1));
   expect(commands.create.mock.calls[0][0]).toEqual(commands.create.mock.calls[1][0]);
   expect(commands.create.mock.calls[0][0].tasks).toEqual([]);
+});
+
+it('edits and removes draft rows while retaining IDs and each chosen project through retry', async () => {
+  const projects: Project[] = [
+    {
+      id: 'other',
+      name: '其他',
+      color: '#888888',
+      status: 'active',
+      isFallback: true,
+      createdAt: '2026-10-01',
+    },
+    {
+      id: 'work',
+      name: '工作',
+      color: '#3979e8',
+      status: 'active',
+      createdAt: '2026-10-01',
+    },
+  ];
+  commands.create.mockRejectedValueOnce(new Error('网络失败'));
+  render(<StageEditor onClose={vi.fn()} projects={projects} />);
+  fillName();
+  const input = screen.getByLabelText('阶段任务名称');
+  fireEvent.change(input, { target: { value: '默认项目' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  const firstId = screen
+    .getByLabelText('任务草稿 1')
+    .closest('[data-stage-draft-id]')
+    ?.getAttribute('data-stage-draft-id');
+  fireEvent.change(screen.getByLabelText('阶段任务项目'), {
+    target: { value: 'work' },
+  });
+  fireEvent.change(input, { target: { value: '工作任务' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  fireEvent.change(input, { target: { value: '移除这一项' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  fireEvent.change(screen.getByLabelText('任务草稿 1'), {
+    target: { value: '修改后仍在其他项目' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: '移除草稿 移除这一项' }));
+  expect(input).toHaveFocus();
+  expect(screen.getAllByRole('textbox', { name: /任务草稿/ })).toHaveLength(2);
+  fireEvent.click(screen.getByRole('button', { name: '创建阶段' }));
+  await screen.findByText('网络失败');
+  fireEvent.click(screen.getByRole('button', { name: '创建阶段' }));
+  await waitFor(() => expect(commands.create).toHaveBeenCalledTimes(2));
+  const draft = commands.create.mock.calls[0][0];
+  expect(draft.tasks).toEqual([
+    { id: firstId, title: '修改后仍在其他项目', projectId: 'other' },
+    { id: expect.any(String), title: '工作任务', projectId: 'work' },
+  ]);
+  expect(commands.create.mock.calls[1][0]).toEqual(draft);
+});
+
+it('keeps mobile steps short and preserves task IDs when returning to stage details', async () => {
+  const width = window.innerWidth;
+  Object.defineProperty(window, 'innerWidth', { value: 320, configurable: true });
+  try {
+    render(<StageEditor onClose={vi.fn()} />);
+    fillName();
+    expect(screen.queryByLabelText('阶段任务名称')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '下一步' }));
+    const input = screen.getByLabelText('阶段任务名称');
+    fireEvent.change(input, { target: { value: '手机任务' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    const id = screen
+      .getByLabelText('任务草稿 1')
+      .closest('[data-stage-draft-id]')
+      ?.getAttribute('data-stage-draft-id');
+    fireEvent.click(screen.getByRole('button', { name: '上一步' }));
+    expect(screen.getByLabelText('阶段名称')).not.toHaveValue('');
+    fireEvent.click(screen.getByRole('button', { name: '下一步' }));
+    expect(screen.getByLabelText('任务草稿 1')).toHaveValue('手机任务');
+    fireEvent.click(screen.getByRole('button', { name: '创建阶段' }));
+    await waitFor(() => expect(commands.create).toHaveBeenCalledOnce());
+    expect(commands.create.mock.calls[0][0].tasks[0].id).toBe(id);
+  } finally {
+    Object.defineProperty(window, 'innerWidth', { value: width, configurable: true });
+  }
 });

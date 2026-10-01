@@ -2,8 +2,16 @@
 
 'use client';
 
-import { useEffect, useLayoutEffect, useId, useRef, type ReactNode } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useId,
+  useRef,
+  type ReactNode,
+  type CSSProperties,
+} from 'react';
 import { createPortal } from 'react-dom';
+import { cn } from '@/lib/cn';
 
 type ManagementDialogProps = {
   title: string;
@@ -12,6 +20,8 @@ type ManagementDialogProps = {
   initialFocusSelector?: string;
   busy?: boolean;
   error?: string;
+  className?: string;
+  backdropStyle?: CSSProperties;
 };
 
 /** 返回 Dialog 内可通过键盘获得焦点的启用控件，供初始聚焦与 Tab 环绕共用。 */
@@ -36,6 +46,8 @@ export function ManagementDialog({
   initialFocusSelector = '[data-management-initial-focus]',
   busy = false,
   error,
+  className,
+  backdropStyle,
 }: ManagementDialogProps) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
@@ -92,12 +104,12 @@ export function ManagementDialog({
   }, [initialFocusSelector]);
 
   return createPortal(
-    <div className="manager-dialog-backdrop">
+    <div className="manager-dialog-backdrop" style={backdropStyle}>
       <section
         aria-labelledby={titleId}
         aria-modal="true"
         aria-busy={busy}
-        className="manager-dialog"
+        className={cn('manager-dialog', className)}
         ref={dialogRef}
         role="dialog"
         tabIndex={-1}

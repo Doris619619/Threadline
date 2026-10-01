@@ -1,0 +1,164 @@
+/** @fileoverview 项目卡片的大面积任务入口及轻量总览；状态过滤换行，长清单使用页面滚动。 */
+.manager-list--projects .project-grid-card {
+  position: relative;
+  display: block;
+  padding: 0;
+}
+.project-card-main {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  min-height: 154px;
+  padding: var(--space-4);
+  grid-template-columns: 32px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: var(--space-3);
+  border: 0;
+  border-radius: inherit;
+  color: var(--text-primary);
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.project-card-main .manager-primary {
+  grid-column: 2 / -1;
+  padding-right: var(--space-4);
+}
+.project-card-manage {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  display: grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.project-card-manage:hover {
+  background: var(--accent-soft);
+}
+.project-detail {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: var(--space-4);
+}
+.project-detail-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.project-detail-heading > div {
+  min-width: 0;
+}
+.project-detail-heading > button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.project-detail-heading h1 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 32px;
+  overflow-wrap: anywhere;
+}
+.project-detail-heading p {
+  margin: var(--space-2) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+}
+.project-detail-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.project-task-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.project-task-filters button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target);
+  padding: 0 var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  background: transparent;
+  font: inherit;
+  font-size: var(--text-secondary-size);
+  cursor: pointer;
+}
+.project-task-filters button[aria-pressed='true'] {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  border-color: var(--border-subtle);
+}
+.project-task-filters button span {
+  font-variant-numeric: tabular-nums;
+}
+.project-detail-list {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  min-width: 0;
+}
+.project-detail-list > div + div {
+  border-top: 1px solid var(--border-subtle);
+}
+.plan-task-content {
+  min-width: 0;
+}
+.plan-task-content .stage-task-title {
+  display: block;
+  width: 100%;
+  padding-bottom: var(--space-1);
+}
+.plan-task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  padding-bottom: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.project-task-history {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.project-history-mark {
+  text-align: center;
+}
+@media (max-width: 760px) {
+  .project-detail-heading h1 {
+    font-size: 28px;
+  }
+  .project-detail-toolbar > .plan-search {
+    width: 100%;
+  }
+  .project-detail-list {
+    padding: var(--space-2) var(--space-3);
+  }
+}

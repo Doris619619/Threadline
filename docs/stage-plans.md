@@ -12,11 +12,21 @@
 
 创建默认开启「显示在首页」，清单可为零项。Enter 连续收集任务，中文输入法选词 Enter 不提交。未按 Enter 的最后一项随创建提交。阶段和全部首批任务共用一次数据库事务；阶段 ID 与任务 ID 从草稿开始保持稳定，网络超时重试不会产生第二份记录。失败保留表单。
 
-Task 只有新增的可选 `stagePlanId`，仍具有原 `projectId`。阶段内新项默认属于现有「其他」项目，无日期、无时间；项目归属、预计分钟和时间继续通过原任务表单编辑。普通待安排池（首页及日历）排除所有阶段关联项。隐藏、结束、退回未安排均保留阶段归属。
+创建表单使用一份可直接修改标题、移除草稿的清单，底部连续输入，归属项目在输入旁选择；长草稿仅在清单内部滚动，确认操作保持可见。首页显示与确认操作同列，窄手机分行；320px 日期改为上下排列，防止原生日期文字截断。参考 [Things 清单](https://culturedcode.com/things/features/)、[Todoist Quick Add](https://www.todoist.com/help/todoist/features/use-task-quick-add-in-todoist-va4Lhpzz) 和 [TickTick 添加任务](https://help.ticktick.com/articles/7055782422935240704) 的连续输入与轻量属性组织，沿用 Threadline 现有主题。
+
+手机创建分两步：名称、日期和首页显示 → 选填任务清单；上一步/下一步保留全部草稿和稳定 ID。弹窗高度最多占可见区域的 80%，不按桌面表单缩小成接近满屏的长窗口。`visualViewport` 订阅可见高度与偏移，软键盘打开时重新定位；实际设备键盘还需手工验收，浏览器自动化使用 520px 短视口验证输入和确认区边界。桌面继续一页完成，手机编辑已有阶段仍为单步短表单。
+
+Task 只有新增的可选 `stagePlanId`，仍具有原 `projectId`。阶段内创建与追加均可选择活跃项目，默认属于现有「其他」项目，无日期、无时间；项目归属、预计分钟和时间继续通过原任务表单编辑。阶段清单显示真实项目名称。普通待安排池（首页及日历）排除所有阶段关联项。隐藏、结束、退回未安排均保留阶段归属。
 
 首页在普通待安排上方展示**全部**符合条件的阶段；清单不截断、不分页、不默认折叠。首页和详情复用摘要与列表，顺序为未安排 → 已安排 → 已完成。数量和进度按有效 Task 派生；已放弃和回收站任务在详情折叠历史区保留，并从进度分母排除。完成后仍在阶段内，取消完成回到原安排组。
 
 未安排任务的「→ 今天」调用原 `transition_task(scheduled)`，设置账号今天及待填时间状态。Task ID 不变；同一任务同时出现在阶段与日程。首页查看其他工作日期时切回账号今天，保证今日日程可见。其他日期与改期复用原弹窗及数据库规则，允许超出阶段范围；标签为今天、明天或月日，跨年补年份。
+
+## 项目任务总览
+
+项目卡片主体进入完整任务总览，右上角 `···` 沿用原管理弹窗。默认「全部」直接从原任务真源按 `projectId` 汇总，不受工作区日期、阶段或待安排位置限制；以 Task ID 去重，同一任务在阶段与日程中出现不会生成两行。提供全部、未安排、已安排、已完成、已放弃、回收站筛选及标题搜索，每项显示真实阶段名称、状态和已有预计分钟。已放弃/回收站保留只读回顾，恢复继续使用原入口。
+
+有效任务复用原完成、编辑和改期能力；更换项目后立即离开旧项目总览并出现在新项目内。项目卡片数量与默认全部集合一致。返回计划恢复搜索、阶段筛选、滚动位置及项目卡片焦点，原创建、归档、恢复、删除规则保持原实现。
 
 ## 隐藏、历史与删除
 
@@ -31,10 +41,13 @@ Task 只有新增的可选 `stagePlanId`，仍具有原 `projectId`。阶段内�
 - `rules.ts`：日期、三组状态、普通待安排隔离。
 - `repository.ts`：分页读取全部阶段，映射原 Task，事务 RPC 回包。
 - `state.tsx`：账号 React Query 缓存、写保护、防重入、确认结果合并、首页隐藏回滚；显式测试和无云 Preview 使用本地适配器。
-- `editor.tsx`：稳定草稿 ID、连续清单与中文输入法保护。
-- `board.tsx`、`summary.tsx`、`task-list.tsx`：列表、首页、详情和原任务编辑/日期入口。详情是工作台内容视图，保留列表筛选、搜索、滚动与返回焦点，Web/PWA 与 Electron 共用。
+- `editor.tsx`、`draft-list.tsx`、`editor-viewport.ts`：稳定草稿 ID、可编辑连续清单、项目选择、中文输入法保护，以及手机两步流程和可见视口定位。
+- `board.tsx`、`summary.tsx`、`task-list.tsx`：列表、首页、详情和原任务编辑/日期入口；`task-row.tsx` 供阶段与项目共用原 Task 操作。详情是工作台内容视图，保留列表筛选、搜索、滚动与返回焦点，Web/PWA 与 Electron 共用。
+- `projects/project-detail.tsx`、`project-task-rules.ts`：跨日期的同项目原 Task 总览、去重、状态筛选和搜索；不产生新的任务集合或缓存真源。
 
 迁移：`supabase/migrations/202610010001_stage_plans.sql`。阶段按 owner RLS 隔离，任务通过 `(owner_id, stage_plan_id)` 外键保证同账号关联。父阶段行锁串行化追加/移除/删除，任务归属触发器拒绝关联已删除阶段。
+
+随后应用 `202610010002_stage_task_projects.sql`，创建 JSON 草稿支持逐项 `projectId`，追加 RPC 使用默认可空的第四个项目参数，旧三参数请求仍使用「其他」。只有同账号、活跃且未删除的项目可以接收新任务；锁定项目状态避免并发归档/删除穿过校验。非法项目令整批创建回滚，已确认任务重试不受项目后续归档影响，不新增重复记录。
 
 | RPC                    | 语义                                   |
 | ---------------------- | -------------------------------------- |
@@ -52,12 +65,14 @@ Task 只有新增的可选 `stagePlanId`，仍具有原 `projectId`。阶段内�
 
 单元/组件测试覆盖日期边界、完整分组、中文 Enter、失败重试、隐藏回滚、防重入、换号旧回包隔离和 Preview 历史保留。浏览器 `stage-plans.spec.ts` 通过创建 16 项任务的真实路径检查 ID/记录数不变、改期/完成/取消完成、隐藏/撤销/恢复、删除保留、账号午夜和过去详情；`ui-stage-plans.spec.ts` 检查深浅色、完整长清单、长标题、焦点、axe 及 1440/1366/1280/1024 和 430/390/375/320px 布局。
 
-本地验证：89 个单元/组件文件共 446 项（首次完整运行发现 CSS token 缺少 fallback，修正后的针对性回归通过）；PostgreSQL 合同 20 项；现有业务与阶段浏览器回归 108 项，10 项按原定义只在桌面运行；阶段布局矩阵 9 项；创建入口、页面结构和 axe 回归通过。Web 构建、nonce CSP、Electron 静态前端与修改文件格式检查通过。全仓默认格式检查含 Windows CRLF 告警；保留换行后仍有 28 个未修改的既有格式问题，本次未批量重排无关源文件。
+类型、lint、全部 90 文件 449 项单元/组件、PostgreSQL 合同 29 项及 SQL 静态合同通过。此前基础功能与阶段浏览器回归 108 项、阶段布局矩阵 9 项通过；本次最终无云 Preview 桌面、320px 与 iPhone WebKit 共 15 项通过，包含项目汇总、归属编辑、手机两步、80% 上限、短视口、明暗主题与 axe。Web 构建、nonce CSP、Electron 静态前端与修改文件格式检查通过。全仓仍有 28 个未修改的既有格式问题，本次未批量重排无关源文件。
 
-最终无云演示构建的桌面、320px 与 iPhone WebKit 共 9 项通过，覆盖演示阶段同一 Task、Daily、刷新持久化、每日收尾、弹窗边界及云数据隔离。首开使用小屋深色与思源宋体，已有外观选择继续优先；正式客户端默认值保持原有规则。共享任务/收尾确认按钮改用主题的前景色，保证像素深色模式下可读。
+无云演示构建在桌面、320px 与 iPhone WebKit 覆盖演示阶段同一 Task、Daily、刷新持久化、每日收尾、弹窗边界及云数据隔离；本次追加可编辑清单、16 项逐项项目归属、项目跨视图汇总与筛选，以及真实明暗主题截图。Linux WebKit 首次与刷新均单独等待工作台 hydration 就绪，不放宽后续保存/数据断言。PostgreSQL 合同增加逐项项目、追加幂等、跨账号拒绝、批量回滚与归档后重试，共 29 项。首开使用小屋深色与思源宋体，已有外观选择继续优先；正式客户端默认值保持原有规则。
 
-先部署数据库迁移，再发布客户端。旧客户端不会复制阶段任务，但旧待安排视图不了解阶段归属，因此多端应同步更新以获得完整的计划语义。此分支未执行生产迁移、发布、真实 iPhone/PWA 设备或 Electron 安装包验收；本机 Docker 未运行，真实 Supabase 双客户端检查需由 CI/部署前环境完成。
+先按顺序部署两项阶段数据库迁移，再发布客户端。旧客户端不会复制阶段任务，但旧待安排视图不了解阶段归属，因此多端应同步更新以获得完整的计划语义。此分支未执行生产迁移、发布、真实 iPhone/PWA 设备或 Electron 安装包验收；本机 Docker 未运行，真实 Supabase 双客户端检查需由 CI/部署前环境完成。
 
 截图使用虚构演示数据：[桌面深色](screenshots/stage-plans/ui-layout-desktop-1440-dark.png)、[桌面浅色](screenshots/stage-plans/ui-layout-desktop-1440-light.png)、[手机深色](screenshots/stage-plans/ui-layout-mobile-390-dark.png)、[320px 浅色](screenshots/stage-plans/ui-layout-mobile-320-light.png)。
 
 用户本机演示首屏：[localhost 计划页](screenshots/stage-plans/localhost-preview.png)。示例阶段日期按演示首开当天生成，不写入正式账号。
+
+本次更新：[桌面创建](screenshots/stage-plans/stage-editor-desktop-dark.png)、[手机基本信息](screenshots/stage-plans/stage-editor-mobile-info.png)、[手机清单](screenshots/stage-plans/stage-editor-mobile-tasks.png)、[短视口](screenshots/stage-plans/stage-editor-mobile-short.png)、[项目总览](screenshots/stage-plans/project-overview-desktop-light.png)、[手机项目总览](screenshots/stage-plans/project-overview-mobile-dark.png)。

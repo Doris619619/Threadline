@@ -1,132 +1,18 @@
 /** @fileoverview 首页和详情共用完整阶段任务视图；安排、编辑和完成复用原 Task 命令。 */
 'use client';
-import { useState, useRef } from 'react';
-import { MoreHorizontal } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { TaskActionsPopover } from '@/features/tasks/components/task-actions-popover';
+import { useState } from 'react';
+
 import { TaskDialog, RescheduleDialog } from '@/features/tasks/components/task-dialogs';
 import { useTaskCreateAndEdit } from '@/features/tasks/hooks/use-task-create-and-edit';
 import { useWorkspaceData } from '@/features/workspace/workspace-data-context';
 import { useWorkspaceView } from '@/components/app-shell';
 import { useAccountToday } from '@/features/settings/account-timezone-provider';
-import { useGuardedAction } from '@/hooks/use-guarded-action';
+
 import { addLocalDateDays } from '@/lib/local-date';
 import type { Task } from '@/types/domain';
 import { useStagePlans } from './state';
-import { stageTaskDateLabel, stageTaskGroups } from './rules';
-
-/** 小型直接操作有独立忙状态和错误，长标题完整换行，不把动作藏进菜单。 */
-function StageTaskRow({
-  task,
-  today,
-  onEdit,
-  onDate,
-  onToday,
-  onToggle,
-  onRemove,
-}: {
-  task: Task;
-  today: string;
-  onEdit: () => void;
-  onDate: () => void;
-  onToday: () => Promise<void>;
-  onToggle: () => Promise<unknown>;
-  onRemove: () => Promise<void>;
-}) {
-  const [menu, setMenu] = useState(false);
-  const anchor = useRef<HTMLButtonElement>(null);
-  const { busy, error, run } = useGuardedAction();
-  return (
-    <div
-      className={'stage-task-row' + (task.completed ? ' is-completed' : '')}
-      data-stage-task-id={task.id}
-      aria-busy={busy}
-    >
-      <Checkbox
-        checked={task.completed}
-        aria-label={(task.completed ? '取消完成 ' : '完成 ') + task.title}
-        disabled={busy}
-        onChange={() => void run(onToggle)}
-      />
-      <button className="stage-task-title" type="button" onClick={onEdit}>
-        {task.title}
-      </button>
-      <div className="stage-task-actions">
-        {!task.completed && task.status === 'waiting' ? (
-          <button
-            type="button"
-            className="stage-today"
-            disabled={busy}
-            onClick={() => void run(onToday)}
-          >
-            → 今天
-          </button>
-        ) : (
-          !task.completed && (
-            <time dateTime={task.date}>{stageTaskDateLabel(task.date, today)}</time>
-          )
-        )}
-        <button
-          ref={anchor}
-          type="button"
-          aria-label={task.title + '更多操作'}
-          aria-expanded={menu}
-          disabled={busy}
-          onClick={() => setMenu((open) => !open)}
-        >
-          <MoreHorizontal size={17} aria-hidden="true" />
-        </button>
-        {menu && (
-          <TaskActionsPopover
-            anchor={anchor}
-            label={task.title + '阶段任务操作'}
-            className="waiting-task-menu"
-            role="menu"
-            onClose={() => setMenu(false)}
-          >
-            {!task.completed && (
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setMenu(false);
-                  onDate();
-                }}
-              >
-                安排到其他日期
-              </button>
-            )}
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setMenu(false);
-                onEdit();
-              }}
-            >
-              编辑
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setMenu(false);
-                void run(onRemove);
-              }}
-            >
-              从阶段计划移除
-            </button>
-          </TaskActionsPopover>
-        )}
-      </div>
-      {error && (
-        <p className="form-error" role="alert">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
+import { stageTaskGroups } from './rules';
+import { PlanTaskRow } from './task-row';
 
 /** 三组固定顺序且不截断；详情额外保留已放弃/已删除历史。 */
 export function StageTaskList({
@@ -199,10 +85,13 @@ export function StageTaskList({
             <p className="stage-empty-group">暂无{label}任务</p>
           )}
           {groups[key].map((task) => (
-            <StageTaskRow
+            <PlanTaskRow
               key={task.id}
               task={task}
               today={today}
+              metadata={
+                data.projects.find((project) => project.id === task.projectId)?.name
+              }
               onEdit={() => setEditing(task)}
               onDate={() => setDating(task)}
               onToday={() => scheduleToday(task)}

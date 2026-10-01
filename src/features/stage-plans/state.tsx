@@ -16,6 +16,7 @@ import { usePersistentState } from '@/hooks/use-persistent-state';
 import { beginCloudWrite } from '@/lib/cloud-write-guard';
 import { isPreviewDemo } from '@/lib/workspace-runtime';
 import { createDemoStagePlans } from '@/features/workspace/stage-demo-seed';
+import { resolveActiveProject } from '@/lib/project-rules';
 import type { StagePlan, Task, Project } from '@/types/domain';
 import { StagePlanRepository } from './repository';
 import {
@@ -277,18 +278,21 @@ function LocalStagePlans({
       throw new Error('阶段已改变，请重新查看后保存。');
     return plan;
   };
-  /** 新项默认属于现有 fallback 项目，不要求填写日期或时间。 */
-  const newTask = (id: string, stageId: string, title: string): Task => {
-    const fallback =
-      projects.find((project) => project.isFallback) ??
-      projects.find((project) => project.status === 'active');
-    if (!fallback) throw new Error('请先创建可用项目。');
+  /** 新项属于明确选择的活跃项目；省略时采用 fallback，不把失效归属静默改投其他项目。 */
+  const newTask = (
+    id: string,
+    stageId: string,
+    title: string,
+    projectId?: string,
+  ): Task => {
+    const project = resolveActiveProject(projects, projectId);
+    if (!project) throw new Error('所选项目已归档或不可用，请重新选择。');
     if (!title.trim() || title.trim().length > 200)
       throw new Error('任务名称需要 1–200 个字符。');
     const now = new Date().toISOString();
     return {
       id,
-      projectId: fallback.id,
+      projectId: project.id,
       stagePlanId: stageId,
       title: title.trim(),
       status: 'waiting',
@@ -304,7 +308,9 @@ function LocalStagePlans({
     if (error) throw new Error(error);
     const existing = latest.current.find((plan) => plan.id === draft.id);
     if (existing) return existing;
-    const added = draft.tasks.map((task) => newTask(task.id, draft.id, task.title));
+    const added = draft.tasks.map((task) =>
+      newTask(task.id, draft.id, task.title, task.projectId),
+    );
     const now = new Date().toISOString();
     const plan: StagePlan = {
       id: draft.id,
@@ -338,7 +344,7 @@ function LocalStagePlans({
   const append = async (stageId: string, draft: StageTaskDraft) => {
     requirePlan(stageId);
     if (taskRows.current.some((task) => task.id === draft.id)) return;
-    const task = newTask(draft.id, stageId, draft.title);
+    const task = newTask(draft.id, stageId, draft.title, draft.projectId);
     updateTasks((rows) => [...rows, task]);
   };
   /** 移除只解除关联。 */

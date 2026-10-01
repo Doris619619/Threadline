@@ -6,22 +6,29 @@ import { Button } from '@/components/ui/button';
 import { useGuardedAction } from '@/hooks/use-guarded-action';
 import { useAccountToday } from '@/features/settings/account-timezone-provider';
 import { addLocalDateDays } from '@/lib/local-date';
-import type { StagePlan } from '@/types/domain';
+import type { StagePlan, Project } from '@/types/domain';
+import { resolveActiveProject } from '@/lib/project-rules';
 import { useStagePlans } from './state';
 import { validateStageDraft, type StageTaskDraft } from './rules';
+import { StageDraftList } from './draft-list';
+import { useStageEditorViewport } from './editor-viewport';
 
 /** 新建阶段可以零项清单；未按 Enter 的最后一项也随确认提交。 */
 export function StageEditor({
   plan,
   onClose,
   onSaved,
+  projects = [],
 }: {
   plan?: StagePlan;
   onClose: () => void;
   onSaved?: (plan: StagePlan) => void;
+  projects?: Project[];
 }) {
   const today = useAccountToday();
   const stages = useStagePlans();
+  const { mobile, backdropStyle } = useStageEditorViewport();
+  const [step, setStep] = useState<'details' | 'tasks'>('details');
   const [id] = useState(() => plan?.id ?? crypto.randomUUID());
   const [name, setName] = useState(plan?.name ?? '');
   const [startDate, setStart] = useState(plan?.startDate ?? today);
@@ -33,7 +40,25 @@ export function StageEditor({
     title: '',
   }));
   const input = useRef<HTMLInputElement>(null);
+  const form = useRef<HTMLFormElement>(null);
   const { busy, error, setError, run } = useGuardedAction();
+  /** 手机步骤切换只移动输入焦点，不重新初始化草稿；已有阶段保持原编辑焦点规则。 */
+  useEffect(() => {
+    if (!mobile || plan) return;
+    const target =
+      step === 'tasks'
+        ? input.current
+        : form.current?.querySelector<HTMLInputElement>(
+            '[data-management-initial-focus]',
+          );
+    target?.focus();
+  }, [mobile, plan, step]);
+  /** 手机先确认名称和日期，再进入选填清单；前后切换不丢草稿或生成新的 ID。 */
+  const next = () => {
+    const message = validateStageDraft({ name, startDate, endDate });
+    setError(message);
+    if (!message) setStep('tasks');
+  };
   /** Enter 只收集有效项，保持输入焦点；真正写入发生在阶段确认时。 */
   const add = () => {
     if (!pending.title.trim()) return;
@@ -41,8 +66,19 @@ export function StageEditor({
       setError('任务名称不能超过 200 个字符。');
       return;
     }
-    setItems((rows) => [...rows, { ...pending, title: pending.title.trim() }]);
-    setPending({ id: crypto.randomUUID(), title: '' });
+    setItems((rows) => [
+      ...rows,
+      {
+        ...pending,
+        title: pending.title.trim(),
+        projectId: pending.projectId ?? resolveActiveProject(projects)?.id,
+      },
+    ]);
+    setPending((row) => ({
+      id: crypto.randomUUID(),
+      title: '',
+      projectId: row.projectId,
+    }));
     input.current?.focus();
   };
   /** 验证名称日期后提交事务；网络失败保留每一个清单 ID 和输入。 */
@@ -54,12 +90,19 @@ export function StageEditor({
         startDate,
         endDate,
         homeVisible,
-        tasks: pending.title.trim()
+        tasks: (pending.title.trim()
           ? [...items, { ...pending, title: pending.title.trim() }]
-          : items,
+          : items
+        ).map((item) => ({
+          ...item,
+          title: item.title.trim(),
+          projectId: item.projectId ?? resolveActiveProject(projects)?.id,
+        })),
       };
       const message = validateStageDraft(draft);
       if (message) throw new Error(message);
+      if (draft.tasks.some((item) => !item.title || item.title.length > 200))
+        throw new Error('每项任务需要 1–200 个字符，请填写或移除空白项。');
       const saved = plan
         ? await stages.update(plan, {
             name: name.trim(),
@@ -77,106 +120,111 @@ export function StageEditor({
       onClose={onClose}
       busy={busy}
       error={error}
+      className="stage-editor-dialog"
+      backdropStyle={backdropStyle}
     >
       <form
         className="stage-editor"
+        ref={form}
         onSubmit={(event) => {
           event.preventDefault();
-          submit();
+          if (mobile && !plan && step === 'details') next();
+          else submit();
         }}
       >
-        <fieldset disabled={busy}>
-          <label>
-            阶段名称
-            <input
-              data-management-initial-focus
-              aria-label="阶段名称"
-              value={name}
-              maxLength={80}
-              required
-              onChange={(event) => setName(event.target.value)}
-              placeholder="例如：国庆假期"
-            />
-          </label>
-          <div className="stage-date-fields">
+        {(!mobile || plan || step === 'details') && (
+          <div className="stage-editor-fields">
             <label>
-              开始日期
+              阶段名称
               <input
-                aria-label="阶段开始日期"
-                type="date"
+                data-management-initial-focus
+                aria-label="阶段名称"
+                value={name}
+                maxLength={80}
                 required
-                value={startDate}
-                onChange={(event) => setStart(event.target.value)}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="例如：国庆假期"
               />
             </label>
-            <label>
-              结束日期
-              <input
-                aria-label="阶段结束日期"
-                type="date"
-                required
-                value={endDate}
-                onChange={(event) => setEnd(event.target.value)}
-              />
-            </label>
-          </div>
-          <label className="stage-visible-field">
-            <input
-              type="checkbox"
-              checked={homeVisible}
-              onChange={(event) => setVisible(event.target.checked)}
-            />
-            显示在首页
-          </label>
-          {!plan && (
-            <div className="stage-draft-list">
-              <p>先列出这段时间想完成的事，日期和几点可以以后再安排。</p>
-              {items.map((item) => (
-                <div className="stage-draft-item" key={item.id}>
-                  <span>{item.title}</span>
-                  <button
-                    type="button"
-                    aria-label={'移除草稿 ' + item.title}
-                    onClick={() =>
-                      setItems((rows) => rows.filter((row) => row.id !== item.id))
-                    }
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-              <div className="stage-quick-input">
+            <div className="stage-date-fields">
+              <label>
+                开始日期
                 <input
-                  ref={input}
-                  aria-label="阶段任务名称"
-                  maxLength={200}
-                  placeholder="输入任务，按 Enter 连续添加"
-                  value={pending.title}
-                  onChange={(event) =>
-                    setPending((row) => ({ ...row, title: event.target.value }))
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      if (!event.nativeEvent.isComposing && event.keyCode !== 229)
-                        add();
-                    }
-                  }}
+                  aria-label="阶段开始日期"
+                  type="date"
+                  required
+                  value={startDate}
+                  onChange={(event) => setStart(event.target.value)}
                 />
-                <button type="button" onClick={add}>
-                  添加
-                </button>
-              </div>
+              </label>
+              <label>
+                结束日期
+                <input
+                  aria-label="阶段结束日期"
+                  type="date"
+                  required
+                  value={endDate}
+                  onChange={(event) => setEnd(event.target.value)}
+                />
+              </label>
             </div>
-          )}
-        </fieldset>
+          </div>
+        )}
+        {mobile && !plan && step === 'tasks' && (
+          <p className="stage-mobile-summary">{name}</p>
+        )}
+        {!plan && (!mobile || step === 'tasks') && (
+          <StageDraftList
+            items={items}
+            pending={pending.title}
+            projects={projects}
+            projectId={pending.projectId ?? resolveActiveProject(projects)?.id}
+            onProjectChange={(projectId) =>
+              setPending((row) => ({ ...row, projectId }))
+            }
+            inputRef={input}
+            onPendingChange={(title) => setPending((row) => ({ ...row, title }))}
+            onChange={(itemId, title) =>
+              setItems((rows) =>
+                rows.map((row) => (row.id === itemId ? { ...row, title } : row)),
+              )
+            }
+            onRemove={(itemId) => {
+              setItems((rows) => rows.filter((row) => row.id !== itemId));
+              input.current?.focus();
+            }}
+            onAdd={add}
+          />
+        )}
         <footer>
-          <Button type="button" variant="quiet" disabled={busy} onClick={onClose}>
-            取消
-          </Button>
-          <Button type="submit" disabled={busy}>
-            {plan ? '保存' : '创建阶段'}
-          </Button>
+          {(!mobile || plan || step === 'details') && (
+            <label className="stage-visible-field">
+              <input
+                type="checkbox"
+                checked={homeVisible}
+                onChange={(event) => setVisible(event.target.checked)}
+              />
+              <span className="stage-visible-check" aria-hidden="true">
+                ✓
+              </span>
+              <span>显示在首页</span>
+            </label>
+          )}
+          <div className="stage-editor-actions">
+            <Button
+              type="button"
+              variant="quiet"
+              disabled={busy}
+              onClick={
+                mobile && !plan && step === 'tasks' ? () => setStep('details') : onClose
+              }
+            >
+              {mobile && !plan && step === 'tasks' ? '上一步' : '取消'}
+            </Button>
+            <Button type="submit" variant="primary" disabled={busy}>
+              {plan ? '保存' : mobile && step === 'details' ? '下一步' : '创建阶段'}
+            </Button>
+          </div>
         </footer>
       </form>
     </ManagementDialog>
@@ -184,7 +232,13 @@ export function StageEditor({
 }
 
 /** 阶段详情内快速追加真实 Task；成功后重置 ID，失败保留输入供重试。 */
-export function StageAddTask({ stageId }: { stageId: string }) {
+export function StageAddTask({
+  stageId,
+  projects,
+}: {
+  stageId: string;
+  projects: Project[];
+}) {
   const stages = useStagePlans();
   const [draft, setDraft] = useState<StageTaskDraft>(() => ({
     id: crypto.randomUUID(),
@@ -202,15 +256,23 @@ export function StageAddTask({ stageId }: { stageId: string }) {
     if (!draft.title.trim()) return;
     submitted.current = true;
     void run(async () => {
-      await stages.append(stageId, { ...draft, title: draft.title.trim() });
-      setDraft({ id: crypto.randomUUID(), title: '' });
+      await stages.append(stageId, {
+        ...draft,
+        title: draft.title.trim(),
+        projectId: draft.projectId ?? resolveActiveProject(projects)?.id,
+      });
+      setDraft((row) => ({
+        id: crypto.randomUUID(),
+        title: '',
+        projectId: row.projectId,
+      }));
       input.current?.focus();
     });
   };
   return (
     <div className="stage-add-task">
       <form
-        className="stage-quick-input"
+        className="stage-quick-input stage-quick-input--project"
         onSubmit={(event) => {
           event.preventDefault();
           submit();
@@ -234,6 +296,22 @@ export function StageAddTask({ stageId }: { stageId: string }) {
               event.preventDefault();
           }}
         />
+        <select
+          aria-label="阶段任务项目"
+          disabled={busy}
+          value={draft.projectId ?? resolveActiveProject(projects)?.id ?? ''}
+          onChange={(event) =>
+            setDraft((row) => ({ ...row, projectId: event.target.value }))
+          }
+        >
+          {projects
+            .filter((project) => project.status === 'active')
+            .map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+        </select>
         <button type="submit" disabled={busy || !draft.title.trim()}>
           + 添加任务
         </button>

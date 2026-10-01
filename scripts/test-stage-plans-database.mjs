@@ -208,6 +208,118 @@ try {
       ]),
     'STAGE_NOT_FOUND',
   );
+  const work = (await asUser(a, "select id from projects where name='工作'")).rows[0]
+    .id;
+  const foreignProject = (await asUser(b, 'select id from projects where is_fallback'))
+    .rows[0].id;
+  const selectedStage = crypto.randomUUID();
+  const selectedTask = crypto.randomUUID();
+  const selected = (
+    await asUser(a, 'select create_stage_plan($1,$2,$3,$4,$5,$6) as result', [
+      selectedStage,
+      '归属测试',
+      '2026-10-01',
+      '2026-10-08',
+      true,
+      JSON.stringify([{ id: selectedTask, title: '工作项', projectId: work }]),
+    ])
+  ).rows[0].result;
+  check(selected.tasks[0].project_id === work, 'create preserves chosen project');
+  const extraTask = crypto.randomUUID();
+  await asUser(a, 'select append_stage_task($1,$2,$3,$4)', [
+    selectedStage,
+    extraTask,
+    '追加工作项',
+    work,
+  ]);
+  await asUser(a, 'select append_stage_task($1,$2,$3,$4)', [
+    selectedStage,
+    extraTask,
+    '追加工作项',
+    work,
+  ]);
+  check(
+    (await asUser(a, 'select * from tasks where id=$1', [extraTask])).rows[0]
+      .project_id === work,
+    'append preserves chosen project and retry',
+  );
+  await rejects(
+    () =>
+      asUser(a, 'select append_stage_task($1,$2,$3,$4)', [
+        selectedStage,
+        crypto.randomUUID(),
+        '跨账号项目',
+        foreignProject,
+      ]),
+    'ACTIVE_PROJECT_NOT_FOUND',
+  );
+  const rejectedStage = crypto.randomUUID();
+  await rejects(
+    () =>
+      asUser(a, 'select create_stage_plan($1,$2,$3,$4,$5,$6)', [
+        rejectedStage,
+        '隔离测试',
+        '2026-10-01',
+        '2026-10-08',
+        true,
+        JSON.stringify([
+          { id: crypto.randomUUID(), title: '有效', projectId: work },
+          { id: crypto.randomUUID(), title: '无权项目', projectId: foreignProject },
+        ]),
+      ]),
+    'ACTIVE_PROJECT_NOT_FOUND',
+  );
+  check(
+    (await asUser(a, 'select id from stage_plans where id=$1', [rejectedStage])).rows
+      .length === 0,
+    'bad project rolls back entire stage batch',
+  );
+  await asUser(a, 'select transition_task($1,$2,$3,$4)', [
+    selectedTask,
+    'scheduled',
+    today,
+    'UTC',
+  ]);
+  check(
+    (await asUser(a, 'select * from tasks where id=$1', [selectedTask])).rows[0]
+      .project_id === work,
+    'schedule retains project',
+  );
+  await asUser(
+    a,
+    "update projects set status='archived', archived_at=now() where id=$1",
+    [work],
+  );
+  await rejects(
+    () =>
+      asUser(a, 'select append_stage_task($1,$2,$3,$4)', [
+        selectedStage,
+        crypto.randomUUID(),
+        '归档项目',
+        work,
+      ]),
+    'ACTIVE_PROJECT_NOT_FOUND',
+  );
+  await asUser(a, 'select append_stage_task($1,$2,$3,$4)', [
+    selectedStage,
+    extraTask,
+    '追加工作项',
+    work,
+  ]);
+  check(
+    (await asUser(a, 'select id from tasks where stage_plan_id=$1', [selectedStage]))
+      .rows.length === 2,
+    'confirmed retry still succeeds after project archive',
+  );
+  await asUser(a, 'select soft_delete_stage_plan($1,$2)', [
+    selectedStage,
+    selected.plan.updated_at,
+  ]);
+  check(
+    (await asUser(a, 'select * from tasks where id=$1', [selectedTask])).rows[0]
+      .project_id === work,
+    'stage removal retains chosen project',
+  );
   console.log('Stage plans PostgreSQL: ' + checks + ' checks passed.');
 } catch (error) {
   console.error('Stage database check failed:', error.message, error.code ?? '');

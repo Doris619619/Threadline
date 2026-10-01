@@ -1,14 +1,290 @@
 /** @fileoverview 从无登录的真实 Preview 入口验证演示交互、刷新持久化与云端隔离。 */
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { openWorkspaceSection } from './support/workspace';
+import type { Task } from '@/types/domain';
+import { projectTaskState } from '@/features/projects/project-task-rules';
+
+/** Linux WebKit 的首次模块 hydration 独立等待；数据和操作断言仍使用默认时限。 */
+async function awaitDemoWorkspace(page: Page) {
+  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByLabel('演示模式说明')).toBeVisible();
+}
+
+/** 常规三项清单在实际明暗主题下保持轻量，日期可读、草稿可编辑，截图不使用压力测试标题。 */
+test('keeps stage creation and project overview readable in both themes', async ({
+  page,
+}, info) => {
+  test.setTimeout(90_000);
+  await page.goto('/');
+  await awaitDemoWorkspace(page);
+  for (const scheme of ['dark', 'light'] as const) {
+    await openWorkspaceSection(page, '设置');
+    await page.getByRole('button', { name: '外观', exact: true }).click();
+    await page
+      .getByRole('button', { name: scheme === 'dark' ? '深色' : '浅色', exact: true })
+      .click();
+    await expect(page.locator('html')).toHaveAttribute('data-color-scheme', scheme);
+    await openWorkspaceSection(page, '计划');
+    await page.getByRole('button', { name: '+ 新建阶段', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: '新建阶段', exact: true });
+    await dialog.getByLabel('阶段名称', { exact: true }).fill('国庆假期');
+    if (page.viewportSize()!.width <= 760) {
+      expect((await dialog.boundingBox())!.height).toBeLessThanOrEqual(
+        page.viewportSize()!.height * 0.8 + 1,
+      );
+      await page.screenshot({
+        path: info.outputPath('stage-details-' + scheme + '.png'),
+      });
+      await dialog.getByRole('button', { name: '下一步', exact: true }).click();
+    }
+    const input = dialog.getByLabel('阶段任务名称', { exact: true });
+    for (const [title, project] of [
+      ['整理课程笔记', '课程'],
+      ['完成访学申请材料', '工作'],
+      ['读完一本书', '生活'],
+    ]) {
+      await dialog
+        .getByLabel('阶段任务项目', { exact: true })
+        .selectOption({ label: project });
+      await input.fill(title);
+      await input.press('Enter');
+    }
+    await dialog
+      .getByRole('list', { name: '阶段任务草稿' })
+      .evaluate((el) => (el.scrollTop = 0));
+    const title = dialog.getByLabel('任务草稿 1', { exact: true });
+    expect(await title.evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(
+      true,
+    );
+    const footer = (await dialog.locator('footer').boundingBox())!;
+    expect(footer.y + footer.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+    const composer = (await dialog.locator('.stage-draft-composer').boundingBox())!;
+    const project = (await dialog
+      .getByLabel('阶段任务项目', { exact: true })
+      .boundingBox())!;
+    expect(composer.y + composer.height).toBeLessThanOrEqual(footer.y);
+    expect(project.y + project.height).toBeLessThanOrEqual(footer.y);
+    if (page.viewportSize()!.width <= 760)
+      expect((await dialog.boundingBox())!.height).toBeLessThanOrEqual(
+        page.viewportSize()!.height * 0.8 + 1,
+      );
+    expect(
+      (await new AxeBuilder({ page }).include('.stage-editor-dialog').analyze())
+        .violations,
+    ).toEqual([]);
+    await page.screenshot({ path: info.outputPath('stage-editor-' + scheme + '.png') });
+    if (page.viewportSize()!.width <= 760 && scheme === 'dark') {
+      const viewport = page.viewportSize()!;
+      await page.setViewportSize({ width: viewport.width, height: 520 });
+      await input.focus();
+      await expect
+        .poll(async () => (await dialog.boundingBox())!.height)
+        .toBeLessThanOrEqual(417);
+      const compactFooter = (await dialog.locator('footer').boundingBox())!;
+      const compactInput = (await input.boundingBox())!;
+      expect(compactFooter.y + compactFooter.height).toBeLessThanOrEqual(520);
+      expect(compactInput.y + compactInput.height).toBeLessThanOrEqual(compactFooter.y);
+      await page.screenshot({ path: info.outputPath('stage-editor-short.png') });
+      await page.setViewportSize(viewport);
+      await dialog.getByRole('button', { name: '上一步', exact: true }).click();
+      await expect(dialog.getByLabel('阶段名称', { exact: true })).toHaveValue(
+        '国庆假期',
+      );
+      await dialog.getByRole('button', { name: '下一步', exact: true }).click();
+      await expect(
+        dialog.getByRole('list', { name: '阶段任务草稿' }).getByRole('listitem'),
+      ).toHaveCount(3);
+    }
+    await dialog.getByRole('button', { name: '关闭', exact: true }).click();
+    await page.getByRole('button', { name: '查看项目 其他', exact: true }).click();
+    const detail = page.getByRole('region', { name: '项目任务 其他', exact: true });
+    expect(
+      (await new AxeBuilder({ page }).include('.project-detail').analyze()).violations,
+    ).toEqual([]);
+    expect(await detail.evaluate((el) => el.scrollWidth > el.clientWidth + 1)).toBe(
+      false,
+    );
+    await page.screenshot({
+      path: info.outputPath('project-overview-' + scheme + '.png'),
+    });
+    await detail.getByRole('button', { name: '返回计划', exact: true }).click();
+  }
+});
+
+/** 通过真正创建入口验证长草稿编辑、每项项目归属、同 Task 的项目汇总和状态过滤。 */
+test('keeps the stage composer compact and projects aggregate the same tasks across views', async ({
+  page,
+}, info) => {
+  await page.goto('/');
+  await awaitDemoWorkspace(page);
+  await openWorkspaceSection(page, '计划');
+  await page.getByRole('button', { name: '+ 新建阶段', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '新建阶段', exact: true });
+  await dialog.getByLabel('阶段名称', { exact: true }).fill('项目汇总验收');
+  const flag = dialog.getByRole('checkbox', { name: '显示在首页', exact: true });
+  await expect(flag).toBeChecked();
+  const label = (await dialog.locator('.stage-visible-field').boundingBox())!;
+  const check = (await dialog.locator('.stage-visible-check').boundingBox())!;
+  expect(
+    Math.abs(check.y + check.height / 2 - label.y - label.height / 2),
+  ).toBeLessThan(2);
+  if (page.viewportSize()!.width <= 380) {
+    const dates = await dialog.locator('.stage-date-fields input').all();
+    const start = (await dates[0].boundingBox())!;
+    const end = (await dates[1].boundingBox())!;
+    expect(end.y).toBeGreaterThan(start.y + start.height);
+    expect(start.width).toBeGreaterThanOrEqual(200);
+  }
+  if (page.viewportSize()!.width <= 760)
+    await dialog.getByRole('button', { name: '下一步', exact: true }).click();
+  const input = dialog.getByLabel('阶段任务名称', { exact: true });
+  const project = dialog.getByLabel('阶段任务项目', { exact: true });
+  await project.selectOption({ label: '工作' });
+  const workId = await project.inputValue();
+  for (let i = 0; i < 16; i++) {
+    if (i === 8) await project.selectOption({ label: '课程' });
+    await input.fill('汇总任务 ' + i);
+    await input.press('Enter');
+    await expect(input).toBeFocused();
+  }
+  await expect(
+    dialog.getByRole('list', { name: '阶段任务草稿' }).getByRole('listitem'),
+  ).toHaveCount(16);
+  const firstId = await dialog
+    .getByLabel('任务草稿 1', { exact: true })
+    .locator('..')
+    .getAttribute('data-stage-draft-id');
+  const longTitle =
+    '汇总任务：准备课程报告、整理访学材料，确认每项事情都保留在所属项目中。'.repeat(3);
+  await dialog.getByLabel('任务草稿 1', { exact: true }).fill(longTitle);
+  await input.click();
+  const scroll = await dialog
+    .getByRole('list', { name: '阶段任务草稿' })
+    .evaluate((el) => ({ height: el.clientHeight, total: el.scrollHeight }));
+  expect(scroll.total).toBeGreaterThan(scroll.height);
+  const bounds = (await dialog.boundingBox())!;
+  const viewport = page.viewportSize()!;
+  const footer = (await dialog.locator('footer').boundingBox())!;
+  expect(footer.y + footer.height).toBeLessThanOrEqual(viewport.height);
+  expect(bounds.y).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
+  expect(await dialog.evaluate((el) => el.scrollWidth > el.clientWidth + 1)).toBe(
+    false,
+  );
+  if (viewport.width <= 380) {
+    const title = (await dialog
+      .getByLabel('任务草稿 1', { exact: true })
+      .boundingBox())!;
+    expect(title.width).toBeGreaterThanOrEqual(130);
+  }
+  const accessibility = await new AxeBuilder({ page })
+    .include('.stage-editor-dialog')
+    .analyze();
+  expect(accessibility.violations).toEqual([]);
+  await page.screenshot({ path: info.outputPath('stage-editor.png') });
+  await dialog.getByRole('button', { name: '创建阶段', exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  const snapshot = () =>
+    page.evaluate(
+      () =>
+        JSON.parse(
+          localStorage.getItem('threadline.preview-demo.v1:threadline.tasks.v1')!,
+        ) as Task[],
+    );
+  const before = await snapshot();
+  const staged = before.filter((task) => task.title.startsWith('汇总任务'));
+  expect(staged).toHaveLength(16);
+  expect(staged.find((task) => task.title === longTitle)?.id).toBe(firstId);
+  expect(staged.filter((task) => task.projectId === workId)).toHaveLength(8);
+  await page.getByRole('button', { name: '查看项目 工作', exact: true }).click();
+  const detail = page.getByRole('region', { name: '项目任务 工作', exact: true });
+  await expect(detail).toBeVisible();
+  const allWork = before.filter((task) => task.projectId === workId);
+  await expect(detail.locator('[data-project-task-id]')).toHaveCount(allWork.length);
+  const row = detail.locator('[data-project-task-id="' + firstId + '"]');
+  await row.getByRole('button', { name: '→ 今天', exact: true }).click();
+  await expect(row.locator('time')).toHaveText('今天');
+  await row.getByRole('checkbox').check();
+  const after = await snapshot();
+  expect(after.length).toBe(before.length);
+  const original = after.find((task) => task.id === firstId)!;
+  expect(original.completed).toBe(true);
+  expect(original.projectId).toBe(workId);
+  expect(original.stagePlanId).toBe(staged[0].stagePlanId);
+  for (const [filter, label] of [
+    ['waiting', '未安排'],
+    ['scheduled', '已安排'],
+    ['completed', '已完成'],
+  ] as const) {
+    await detail
+      .getByRole('group', { name: '项目任务筛选' })
+      .getByRole('button', { name: new RegExp('^' + label + ' ') })
+      .click();
+    await expect(detail.locator('[data-project-task-id]')).toHaveCount(
+      after.filter(
+        (task) => task.projectId === workId && projectTaskState(task) === filter,
+      ).length,
+    );
+  }
+  await detail
+    .getByRole('group', { name: '项目任务筛选' })
+    .getByRole('button', { name: /^全部 / })
+    .click();
+  await detail.getByLabel('搜索项目任务').fill('汇总任务');
+  await expect(detail.locator('[data-project-task-id]')).toHaveCount(8);
+  await detail.getByLabel('搜索项目任务').fill('');
+  expect(
+    (await new AxeBuilder({ page }).include('.project-detail').analyze()).violations,
+  ).toEqual([]);
+  expect(await detail.evaluate((el) => el.scrollWidth > el.clientWidth + 1)).toBe(
+    false,
+  );
+  await page.screenshot({ path: info.outputPath('project-detail.png') });
+  await detail.getByRole('button', { name: '返回计划', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: '查看项目 工作', exact: true }),
+  ).toBeFocused();
+  await page
+    .getByRole('button', { name: '查看阶段 项目汇总验收', exact: true })
+    .click();
+  await page
+    .getByLabel('阶段任务项目', { exact: true })
+    .selectOption({ label: 'AI研究' });
+  await page.getByLabel('添加阶段任务', { exact: true }).fill('追加到科研项目');
+  await page.getByRole('button', { name: '+ 添加任务', exact: true }).click();
+  const final = await snapshot();
+  const added = final.find((task) => task.title === '追加到科研项目')!;
+  expect(added.stagePlanId).toBe(original.stagePlanId);
+  expect(added.projectId).not.toBe(workId);
+  await page.getByRole('button', { name: '返回计划', exact: true }).click();
+  await page.getByRole('button', { name: '查看项目 AI研究', exact: true }).click();
+  const addedRow = page.locator('[data-project-task-id="' + added.id + '"]');
+  await expect(addedRow).toBeVisible();
+  await addedRow.getByRole('button', { name: '追加到科研项目', exact: true }).click();
+  const editing = page.getByRole('dialog');
+  await editing
+    .getByRole('combobox', { name: '项目', exact: true })
+    .selectOption({ label: '生活' });
+  await editing.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(editing).not.toBeVisible();
+  await expect(addedRow).toHaveCount(0);
+  const changed = await snapshot();
+  expect(changed.length).toBe(final.length);
+  expect(changed.find((task) => task.id === added.id)?.stagePlanId).toBe(
+    added.stagePlanId,
+  );
+  await page.getByRole('button', { name: '返回计划', exact: true }).click();
+  await page.getByRole('button', { name: '查看项目 生活', exact: true }).click();
+  await expect(page.locator('[data-project-task-id="' + added.id + '"]')).toBeVisible();
+});
 
 /** 首开演示阶段与原 Task 共用身份，操作与刷新不访问云数据或旧本地任务。 */
 test('keeps stage demo task identity and stage membership after scheduling and reload', async ({
   page,
 }) => {
   await page.goto('/');
-  await expect(page.getByLabel('演示模式说明')).toBeVisible();
+  await awaitDemoWorkspace(page);
   const stage = page.locator('.home-stage-card').filter({ hasText: '国庆假期' });
   await expect(stage.locator('.stage-task-row')).toHaveCount(16);
   const snapshot = () =>
@@ -31,6 +307,7 @@ test('keeps stage demo task identity and stage membership after scheduling and r
   ).toBeVisible();
   await expect(stage.locator('.stage-task-row')).toHaveCount(16);
   await page.reload();
+  await awaitDemoWorkspace(page);
   await expect(stage.locator('.stage-task-row')).toHaveCount(16);
   const after = await snapshot();
   expect(after.length).toBe(before.length);
@@ -64,8 +341,7 @@ test('opens an interactive isolated demo and persists Daily and newly created ta
   });
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
-  await expect(page.getByLabel('演示模式说明')).toBeVisible();
-  await expect(page.locator('.dashboard')).toBeVisible();
+  await awaitDemoWorkspace(page);
   const daily = page.getByRole('region', { name: 'Daily 算法训练', exact: true });
   await expect(
     daily.getByText('完成一道动态规划题并整理思路', { exact: true }),
@@ -107,6 +383,7 @@ test('opens an interactive isolated demo and persists Daily and newly created ta
   await schedule.getByTitle('保存任务').click();
   await expect(schedule.getByText('演示：整理今日笔记', { exact: true })).toBeVisible();
   await page.reload();
+  await awaitDemoWorkspace(page);
   await expect(daily.locator('textarea')).toHaveCount(0);
   await expect(
     daily.getByLabel('算法训练 完成一道动态规划题并整理思路实际耗时'),
@@ -182,7 +459,7 @@ test('keeps scheduled metadata compact and close-day controls inside the viewpor
   page,
 }, info) => {
   await page.goto('/');
-  await expect(page.locator('.dashboard')).toBeVisible();
+  await awaitDemoWorkspace(page);
   const row = page.locator('.timeline-row').filter({ hasText: '领域论文' });
   if (info.project.name !== 'preview-desktop') {
     const parts = await row

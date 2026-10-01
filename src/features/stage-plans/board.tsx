@@ -259,7 +259,7 @@ export function HomeStagePlans() {
 /** 完整详情与首页共享摘要和列表，删除阶段明确说明任务保留。 */
 export function StageDetail() {
   const stages = useStagePlans();
-  const { tasks } = useWorkspaceData();
+  const { tasks, projects } = useWorkspaceData();
   const today = useAccountToday();
   const plan = stages.plans.find((item) => item.id === stages.detailId);
   const [edit, setEdit] = useState(false);
@@ -314,14 +314,16 @@ export function StageDetail() {
         </div>
       </header>
       <StageSummary plan={plan} tasks={tasks} today={today} />
-      <StageAddTask stageId={plan.id} />
+      <StageAddTask stageId={plan.id} projects={projects} />
       <StageTaskList stageId={plan.id} showHistory />
       {error && (
         <p className="form-error" role="alert">
           {error}
         </p>
       )}
-      {edit && <StageEditor plan={plan} onClose={() => setEdit(false)} />}
+      {edit && (
+        <StageEditor plan={plan} projects={projects} onClose={() => setEdit(false)} />
+      )}
       {deleting && (
         <ManagementDialog
           title={'删除阶段“' + plan.name + '”？'}

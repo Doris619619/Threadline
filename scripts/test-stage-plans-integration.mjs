@@ -49,12 +49,29 @@ async function awaitEvent(events, matches) {
 
 /** 阶段与清单共用原 Task；观察客户端独立认证，另一个账号不能读写关联。 */
 export async function testStagePlanCommands(owner, writer, outsider, reader) {
+  const projects = confirmed(
+    await writer
+      .from('projects')
+      .select('id, is_fallback')
+      .eq('status', 'active')
+      .is('deleted_at', null),
+  );
+  const projectId = projects.find((project) => !project.is_fallback).id;
+  const foreignProjectId = confirmed(
+    await outsider
+      .from('projects')
+      .select('id')
+      .eq('status', 'active')
+      .is('deleted_at', null)
+      .limit(1),
+  )[0].id;
   const { events, channel } = await observe(reader, owner);
   const id = crypto.randomUUID();
   const date = new Date().toISOString().slice(0, 10);
   const tasks = Array.from({ length: 16 }, (_, i) => ({
     id: crypto.randomUUID(),
     title: '阶段验收' + i,
+    ...(i < 8 ? { projectId } : {}),
   }));
   const args = {
     p_id: id,
@@ -67,7 +84,23 @@ export async function testStagePlanCommands(owner, writer, outsider, reader) {
   try {
     const first = confirmed(await writer.rpc('create_stage_plan', args));
     assert.equal(first.tasks.length, 16);
+    assert.ok(first.tasks.slice(0, 8).every((task) => task.project_id === projectId));
     confirmed(await writer.rpc('create_stage_plan', args));
+    const extra = { id: crypto.randomUUID(), title: '追加项目任务', projectId };
+    const appendArgs = {
+      p_stage_id: id,
+      p_task_id: extra.id,
+      p_title: extra.title,
+      p_project_id: projectId,
+    };
+    confirmed(await writer.rpc('append_stage_task', appendArgs));
+    confirmed(await writer.rpc('append_stage_task', appendArgs));
+    const invalidProject = await writer.rpc('append_stage_task', {
+      ...appendArgs,
+      p_task_id: crypto.randomUUID(),
+      p_project_id: foreignProjectId,
+    });
+    assert.match(invalidProject.error?.message ?? '', /ACTIVE_PROJECT_NOT_FOUND/);
     await awaitEvent(
       events,
       (event) => event.table === 'stage_plans' && event.payload.new.id === id,
@@ -105,6 +138,7 @@ export async function testStagePlanCommands(owner, writer, outsider, reader) {
       await reader.from('tasks').select('*').eq('id', tasks[0].id).single(),
     );
     assert.equal(scheduled.stage_plan_id, id);
+    assert.equal(scheduled.project_id, projectId);
     assert.equal(scheduled.scheduled_date, date);
     const changes = await Promise.all(
       [writer, reader].map((client, i) =>
@@ -140,12 +174,13 @@ export async function testStagePlanCommands(owner, writer, outsider, reader) {
         .select('*')
         .in(
           'id',
-          tasks.map((task) => task.id),
+          [...tasks, extra].map((task) => task.id),
         ),
     );
-    assert.equal(retained.length, 16);
+    assert.equal(retained.length, 17);
     assert.ok(retained.every((task) => task.stage_plan_id === null));
     assert.equal(retained.find((task) => task.id === tasks[0].id).scheduled_date, date);
+    assert.equal(retained.find((task) => task.id === extra.id).project_id, projectId);
     console.log(
       'Stage plans Supabase: RLS, same Task, concurrent version check and two-client Realtime passed.',
     );

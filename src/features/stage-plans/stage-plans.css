@@ -659,18 +659,6 @@ html:is([data-theme='cottage'], [data-theme='classic'])
 .stage-history-row small {
   flex-shrink: 0;
 }
-.stage-editor,
-.stage-editor fieldset {
-  display: grid;
-  min-width: 0;
-  gap: var(--space-4);
-}
-.stage-editor fieldset {
-  padding: 0;
-  margin: 0;
-  border: 0;
-}
-.stage-editor input:not([type='checkbox']),
 .stage-quick-input input {
   min-width: 0;
   width: 100%;
@@ -682,45 +670,6 @@ html:is([data-theme='cottage'], [data-theme='classic'])
   color: var(--text-primary);
   background: var(--surface);
   box-sizing: border-box;
-}
-.stage-date-fields {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--space-3);
-}
-.stage-editor .stage-visible-field {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: var(--touch-target);
-  font-size: var(--text-body-size);
-}
-.stage-draft-list {
-  display: grid;
-  gap: var(--space-2);
-  min-width: 0;
-}
-.stage-draft-list p {
-  color: var(--text-secondary);
-  font-size: var(--text-secondary-size);
-  margin: 0;
-  line-height: 1.6;
-}
-.stage-draft-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: start;
-  gap: var(--space-2);
-  overflow-wrap: anywhere;
-}
-.stage-draft-item button {
-  flex-shrink: 0;
-  min-width: var(--touch-target);
-  min-height: var(--touch-target);
-  border: 0;
-  color: var(--text-secondary);
-  background: transparent;
-  cursor: pointer;
 }
 .stage-quick-input {
   display: grid;
@@ -833,10 +782,6 @@ html:is([data-theme='cottage'], [data-theme='classic'])
   .stage-task-actions button {
     min-width: var(--touch-target);
   }
-  .stage-date-fields {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .stage-editor input,
   .stage-quick-input input {
     font-size: 16px;
   }
