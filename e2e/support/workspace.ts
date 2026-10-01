@@ -36,10 +36,10 @@ const localStorageKeys = [
   'threadline.desktop-compact-presentation.v3',
 ] as const;
 
-/** load 事件早于 React 的本地数据水合；首开与刷新共用有上限的页面就绪条件。 */
+/** load 早于水合；CI trace 中刷新超过 5s 后正常载入，只给就绪条件 30s 上限。 */
 export async function waitForLocalAdapterWorkspace(page: Page) {
+  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole('heading', { name: '任务大厅' })).toBeVisible();
-  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 10_000 });
 }
 
 /** 保留当前用例的数据刷新，先确认页面已载入，再由调用者验证业务结果。 */
