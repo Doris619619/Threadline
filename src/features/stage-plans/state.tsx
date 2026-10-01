@@ -138,11 +138,21 @@ function CloudStagePlans({ children }: { children: ReactNode }) {
   });
   const pending = useRef(new Set<string>());
   const [hidden, setHidden] = useState<Set<string>>(new Set());
-  /** 只合并本次确认且未过期的任务回包，不覆盖其他任务或已经收到的新状态。 */
+  /** 只合并未过期任务；已确认删除的父阶段不能被旧回包恢复归属。 */
   const acceptTasks = async (rows: Task[]) => {
     await client.cancelQueries({ queryKey: taskKey, exact: true });
+    const deletedStageIds = new Set(
+      (client.getQueryData<StagePlan[]>(key) ?? [])
+        .filter((plan) => plan.deletedAt)
+        .map((plan) => plan.id),
+    );
+    const confirmed = rows.map((task) =>
+      task.stagePlanId && deletedStageIds.has(task.stagePlanId)
+        ? { ...task, stagePlanId: undefined }
+        : task,
+    );
     client.setQueryData<Task[]>(taskKey, (current = []) =>
-      mergeConfirmedRows(current, rows),
+      mergeConfirmedRows(current, confirmed),
     );
   };
   /** 刷新失败不能让已成功事务被误报为创建失败。 */
@@ -166,13 +176,11 @@ function CloudStagePlans({ children }: { children: ReactNode }) {
       end();
     }
   };
-  /** 只接受未过期的服务器版本；软删除移出可见列表，延迟回包不回退实时新值。 */
+  /** 删除版本仍留在缓存参与比较；展示层隐藏，旧确认不能重现已删除阶段。 */
   const acceptPlan = async (plan: StagePlan) => {
     await client.cancelQueries({ queryKey: key, exact: true });
     client.setQueryData<StagePlan[]>(key, (rows = []) =>
-      plan.deletedAt
-        ? rows.filter((row) => row.id !== plan.id)
-        : mergeConfirmedRows(rows, [plan]),
+      mergeConfirmedRows(rows, [plan]),
     );
   };
   /** 创建和首批清单共用一个事务，失败保留草稿 ID。 */
@@ -233,9 +241,11 @@ function CloudStagePlans({ children }: { children: ReactNode }) {
   return (
     <NavigationProvider
       data={{
-        plans: (query.data ?? []).map((plan) =>
-          hidden.has(plan.id) ? { ...plan, homeVisible: false } : plan,
-        ),
+        plans: (query.data ?? [])
+          .filter((plan) => !plan.deletedAt)
+          .map((plan) =>
+            hidden.has(plan.id) ? { ...plan, homeVisible: false } : plan,
+          ),
         loading: query.isPending,
         error: query.error ? '阶段计划暂不可用，请重试。' : undefined,
         retry: () => {

@@ -1,4 +1,4 @@
-/** @fileoverview 阶段的分页查询和事务 RPC；任务回包沿用原 Task mapper。 */
+/** @fileoverview 阶段分页与事务 RPC；保留删除版本防止旧回包重现，任务沿用原 mapper。 */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { mapTask } from '@/lib/supabase/workspace-repository';
 import { readAllRows } from '@/lib/supabase/pagination';
@@ -38,13 +38,12 @@ function checked(result: {
 /** 每个命令只发送一次；事务回包直接更新缓存，刷新失败不被误报为创建失败。 */
 export class StagePlanRepository {
   constructor(private readonly client: SupabaseClient) {}
-  /** 读取全部未删除阶段，避免 Supabase 默认行数上限截断历史。 */
+  /** 读取全部阶段版本；删除标记参与缓存排序，展示层隐藏，分页不截断历史。 */
   async list(signal?: AbortSignal): Promise<StagePlan[]> {
     return (
       await readAllRows(this.client, 'stage_plans', {
         signal,
         sort: 'created_at',
-        nullColumn: 'deleted_at',
       })
     ).map(mapStagePlan);
   }

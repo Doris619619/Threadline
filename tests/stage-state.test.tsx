@@ -1,4 +1,4 @@
-/** @fileoverview 验证云阶段读取局部失败、隐藏回滚、防重入与账号切换期间的缓存隔离。 */
+/** @fileoverview 验证阶段局部读取、隐藏回滚、防重入、换号隔离和迟到回包的版本与删除边界。 */
 import { useState } from 'react';
 import {
   act,
@@ -225,4 +225,45 @@ it('does not roll newer realtime stage or task rows back when a delayed transact
   await act(async () => resolve({ plan, tasks: [oldTask] }));
   expect(client.getQueryData(['workspace', 'a', 'stage-plans'])).toEqual([newerPlan]);
   expect(client.getQueryData(['workspace', 'a', 'tasks'])).toEqual([newerTask]);
+});
+
+it('keeps a remotely deleted stage hidden and its tasks detached when an older creation response arrives', async () => {
+  let resolve!: (bundle: { plan: StagePlan; tasks: Task[] }) => void;
+  mocks.create.mockReturnValue(
+    new Promise((done) => {
+      resolve = done;
+    }),
+  );
+  const { client } = setup();
+  await waitFor(() =>
+    expect(screen.getByTestId('plans')).toHaveTextContent('冲刺:true'),
+  );
+  fireEvent.click(screen.getByText('创建'));
+  const oldTask: Task = {
+    id: 'deleted-stage-task',
+    projectId: 'other',
+    stagePlanId: plan.id,
+    title: '保留任务',
+    status: 'waiting',
+    completed: false,
+    importance: 'normal',
+    createdAt: plan.createdAt,
+    updatedAt: plan.updatedAt,
+  };
+  const deletedPlan = {
+    ...plan,
+    deletedAt: '2026-10-01T00:00:01Z',
+    updatedAt: '2026-10-01T00:00:01Z',
+  };
+  const detachedTask = { ...oldTask, stagePlanId: undefined };
+  await act(async () => {
+    client.setQueryData(['workspace', 'a', 'stage-plans'], [deletedPlan]);
+    client.setQueryData(['workspace', 'a', 'tasks'], [detachedTask]);
+  });
+  // 刷新未返回时也不能借旧确认重新显示阶段或恢复已经清除的归属。
+  mocks.list.mockReturnValue(new Promise(() => {}));
+  await act(async () => resolve({ plan, tasks: [oldTask] }));
+  expect(client.getQueryData(['workspace', 'a', 'tasks'])).toEqual([detachedTask]);
+  expect(client.getQueryData(['workspace', 'a', 'stage-plans'])).toEqual([deletedPlan]);
+  expect(screen.getByTestId('plans')).toBeEmptyDOMElement();
 });
