@@ -81,10 +81,9 @@ function renderPanel({
   return { ...props, ...renderResult };
 }
 
-/** 通过项目页唯一入口选择创建类型，保持测试与实际菜单路径一致。 */
+/** 通过各区域创建入口打开 Dialog，保持测试与实际用户路径一致。 */
 function openCreateMenu(target: '新建项目' | '新建 Daily') {
-  fireEvent.click(screen.getByRole('button', { name: '新建' }));
-  fireEvent.click(screen.getByRole('menuitem', { name: target }));
+  fireEvent.click(screen.getByRole('button', { name: '+ ' + target, exact: true }));
 }
 
 describe('ProjectManagementPage', () => {
@@ -121,6 +120,7 @@ describe('ProjectManagementPage', () => {
     expect(screen.getByText('2 项 · 90 分钟')).toBeVisible();
     expect(screen.queryByText(/Daily 历史/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/所属项目/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('清单 · 2 项'));
     expect(screen.getByText('词汇背诵')).toBeVisible();
     expect(screen.getByText('30 分钟')).toBeVisible();
     expect(screen.getByRole('button', { name: '管理清单项 词汇背诵' })).toBeVisible();
@@ -135,6 +135,7 @@ describe('ProjectManagementPage', () => {
     });
 
     expect(container.querySelector('.daily-manager-inset')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('清单 · 0 项'));
     expect(screen.getByRole('button', { name: '添加清单项' })).toBeVisible();
   });
 
@@ -183,6 +184,7 @@ describe('ProjectManagementPage', () => {
     expect(document.activeElement).toBe(screen.getByLabelText('Daily 名称'));
     fireEvent.keyDown(document, { key: 'Escape' });
 
+    fireEvent.click(screen.getByText('清单 · 2 项'));
     fireEvent.click(screen.getByRole('button', { name: '添加清单项' }));
     expect(screen.getByRole('dialog', { name: '添加到已有 Daily' })).toBeVisible();
     expect(document.activeElement).toBe(screen.getByLabelText('选择已有 Daily'));
@@ -305,6 +307,7 @@ describe('ProjectManagementPage', () => {
       ]),
     );
 
+    fireEvent.click(screen.getByText('清单 · 2 项'));
     fireEvent.click(screen.getByRole('button', { name: '管理清单项 词汇背诵' }));
     fireEvent.click(
       within(screen.getByRole('dialog', { name: '词汇背诵' })).getByRole('button', {
@@ -370,6 +373,7 @@ describe('ProjectManagementPage', () => {
       expect.objectContaining({ id: 'daily-1', title: '归档后仍可改名' }),
     );
 
+    fireEvent.click(screen.getByText('清单 · 2 项'));
     fireEvent.click(screen.getByRole('button', { name: '管理清单项 词汇背诵' }));
     fireEvent.click(
       within(screen.getByRole('dialog', { name: '词汇背诵' })).getByRole('button', {

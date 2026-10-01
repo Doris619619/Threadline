@@ -5,6 +5,7 @@
 import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 import { getDailyActualMinutes, isDailyCompleted } from '@/features/daily/daily-rules';
 import { addLocalDateDays } from '@/lib/local-date';
+import { isGeneralWaitingTask } from '@/features/stage-plans/rules';
 import type { CloseRecord, Project, Task, TaskTimeEntry } from '@/types/domain';
 
 /**
@@ -47,7 +48,7 @@ export function useTaskDashboardData({
     if (right.plannedStartTime) return 1;
     return 0;
   });
-  const waiting = tasks.filter((task) => task.status === 'waiting' && !task.completed);
+  const waiting = tasks.filter(isGeneralWaitingTask);
   const done = shown.filter((task) => task.completed).length;
   const actual = taskTimeEntriesAuthoritative
     ? taskTimeEntries

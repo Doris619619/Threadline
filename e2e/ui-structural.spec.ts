@@ -30,8 +30,8 @@ const primaryWorkspaceViews: WorkspaceViewContract[] = [
     keyControl: (page) => page.getByRole('heading', { name: '今日日程', exact: true }),
   },
   {
-    label: '规划',
-    heading: '规划',
+    label: '日历',
+    heading: '日历',
     panelTestId: 'calendar-panel',
     keyControl: (page) =>
       page
@@ -40,10 +40,10 @@ const primaryWorkspaceViews: WorkspaceViewContract[] = [
         .first(),
   },
   {
-    label: '项目',
-    heading: '项目',
+    label: '计划',
+    heading: '计划',
     panelTestId: 'project-panel',
-    keyControl: (page) => page.getByRole('button', { name: '新建', exact: true }),
+    keyControl: (page) => page.getByRole('button', { name: '+ 新建项目', exact: true }),
   },
   {
     label: '洞察',
@@ -67,8 +67,8 @@ async function expectPrimaryViewContract(page: Page, view: WorkspaceViewContract
   await expect(page.getByRole('heading', { level: 1, name: view.heading })).toHaveCount(
     1,
   );
-  if (view.label === '项目') {
-    await expect(page.locator('h1').filter({ hasText: /^项目$/ })).toHaveCount(1);
+  if (view.label === '计划') {
+    await expect(page.locator('h1').filter({ hasText: /^计划$/ })).toHaveCount(1);
   }
   await expect(panel).toHaveCount(1);
   await expect(panel).toBeVisible();

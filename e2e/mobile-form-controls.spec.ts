@@ -175,7 +175,7 @@ test.describe('iPhone text control zoom guard', () => {
     await expectNoUnexpectedHorizontalOverflow(page);
     await page.getByRole('button', { name: '关闭', exact: true }).click();
 
-    await openWorkspaceSection(page, '项目');
+    await openWorkspaceSection(page, '计划');
     await openProjectCreateDialog(page, '新建项目');
     await expectVisibleTextControlsAtLeast16px(page, '新建项目 Dialog');
     await expectNoUnexpectedHorizontalOverflow(page);

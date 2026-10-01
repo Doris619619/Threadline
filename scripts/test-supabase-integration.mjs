@@ -1,6 +1,7 @@
 /** @fileoverview 用本地 Supabase 验证 Auth/RLS/Realtime、任务账本、项目软删除与独立 Daily 的真实写入边界。 */
 
 import { testIssue49Commands } from './test-issue49-integration.mjs';
+import { testStagePlanCommands } from './test-stage-plans-integration.mjs';
 import { spawnSync } from 'node:child_process';
 import { createClient } from '@supabase/supabase-js';
 
@@ -864,6 +865,19 @@ try {
     'Fallback project was deletable',
   );
   await testIssue49Commands(ownerA.client, ownerB.client, fallback.id);
+  const stageReader = createClient(status.API_URL, status.PUBLISHABLE_KEY, options);
+  try {
+    const login = await stageReader.auth.signInWithPassword({
+      email: `threadline-a-${suffix}@example.test`,
+      password,
+    });
+    if (login.error) throw login.error;
+    await stageReader.realtime.setAuth(login.data.session.access_token);
+    await testStagePlanCommands(ownerA.id, ownerA.client, ownerB.client, stageReader);
+  } finally {
+    stageReader.realtime.disconnect();
+    await stageReader.auth.signOut();
+  }
 } finally {
   let cleanupError;
   for (const [client, channel] of channels) {

@@ -3,7 +3,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readSupabasePublicConfig } from '@/lib/supabase/config';
-import { SupabaseWorkspaceRepository } from '@/lib/supabase/workspace-repository';
+import {
+  mapTask,
+  SupabaseWorkspaceRepository,
+} from '@/lib/supabase/workspace-repository';
 import type { Task } from '@/types/domain';
 
 /** 构造数据库 task row，覆盖 date、墙钟、datetime-local 与审计 instant 的不同映射语义。 */
@@ -31,6 +34,16 @@ function databaseTaskRow(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+it('keeps task stage membership and microsecond update versions for delayed-response comparisons', () => {
+  const task = mapTask(
+    databaseTaskRow({
+      stage_plan_id: 'stage',
+      updated_at: '2026-08-20T02:00:00.123456+08:00',
+    }),
+  );
+  expect(task.stagePlanId).toBe('stage');
+  expect(task.updatedAt).toBe('2026-08-20T02:00:00.123456+08:00');
+});
 
 /** 构造包含需要被持久化的所有任务字段的领域对象。 */
 function taskFixture(overrides: Partial<Task> = {}): Task {

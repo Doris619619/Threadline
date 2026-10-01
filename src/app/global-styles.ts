@@ -44,3 +44,6 @@ import '../features/together/together.css';
 import '../features/together/memory-timeline.css';
 import '../features/together/flag-editor.css';
 import '../features/together/review.css';
+import '../features/stage-plans/stage-plans.css';
+import '../features/stage-plans/stage-editor.css';
+import '../features/projects/project-detail.css';

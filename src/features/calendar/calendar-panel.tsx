@@ -1,5 +1,6 @@
 /** @fileoverview 规划工作台：独立浏览日期、周/月选日及可持久化的普通任务安排。 */
 'use client';
+import { isGeneralWaitingTask } from '@/features/stage-plans/rules';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ManagementDialog } from '@/components/ui/management-dialog';
@@ -55,7 +56,7 @@ export function CalendarPanel() {
   const selectedTasks = tasks.filter((task) => selectedIds.includes(task.id));
   const waitingRef = useRef<HTMLDetailsElement>(null);
   const days = useMemo(() => groupPlanningTasks(tasks), [tasks]);
-  const waiting = tasks.filter((task) => task.status === 'waiting' && !task.completed);
+  const waiting = tasks.filter(isGeneralWaitingTask);
   const { saveTask } = useTaskCreateAndEdit({
     createTask,
     createProject,
@@ -192,7 +193,7 @@ export function CalendarPanel() {
     >
       {view === 'month' && (
         <header className="planning-heading">
-          <h1 tabIndex={-1}>规划</h1>
+          <h1 tabIndex={-1}>日历</h1>
         </header>
       )}
       {error && selectedTasks.length === 0 && !waitingOpen && (

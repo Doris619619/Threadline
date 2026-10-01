@@ -1,7 +1,7 @@
 {
   "name": "threadline",
   "productName": "Threadline",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "个人任务工作台的 Web、PWA 与 Windows Electron 桌面应用。",
   "private": true,
   "type": "module",
@@ -46,6 +46,7 @@
     "test:supabase:integration": "node scripts/test-supabase-integration.mjs",
     "test:supabase:browser": "node scripts/test-supabase-browser.mjs",
     "test:together:db": "node scripts/test-together-database.mjs",
+    "test:stage:db": "node scripts/test-stage-plans-database.mjs",
     "test:together:integration": "node scripts/test-together-integration.mjs",
     "test:together:e2e": "playwright test --config playwright.together.config.ts",
     "test:together:copy": "node scripts/generate-together-copy.mjs --check",

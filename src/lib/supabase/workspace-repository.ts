@@ -61,11 +61,12 @@ function mapProject(row: JsonRecord): Project {
   };
 }
 
-/** 将 task row 映射为显式 date、wall-clock 与 timestamptz 领域对象。 */
-function mapTask(row: JsonRecord): Task {
+/** 映射 Task 的业务日期与墙钟；更新版本保留 PostgreSQL 微秒，避免延迟回包比较丢精度。 */
+export function mapTask(row: JsonRecord): Task {
   return {
     id: String(row.id),
     projectId: String(row.project_id),
+    stagePlanId: (row.stage_plan_id as string | null) ?? undefined,
     title: String(row.title),
     date: (row.scheduled_date as string | null) ?? undefined,
     schedulePendingTime: Boolean(row.schedule_pending_time),
@@ -89,7 +90,8 @@ function mapTask(row: JsonRecord): Task {
     abandonedAt: fromDatabaseInstant((row.abandoned_at as string | null) ?? null),
     deletedAt: fromDatabaseVersionInstant((row.deleted_at as string | null) ?? null),
     createdAt: fromDatabaseInstant(String(row.created_at)) ?? String(row.created_at),
-    updatedAt: fromDatabaseInstant(String(row.updated_at)) ?? String(row.updated_at),
+    updatedAt:
+      fromDatabaseVersionInstant(String(row.updated_at)) ?? String(row.updated_at),
   };
 }
 

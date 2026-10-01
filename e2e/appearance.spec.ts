@@ -118,10 +118,10 @@ test('keeps a single planning pool and aligns project arrows and trash actions',
   page,
 }) => {
   await bootstrapLocalAdapterWorkspace(page, 'appearance-layout');
-  await openWorkspaceSection(page, '规划');
+  await openWorkspaceSection(page, '日历');
   await expect(page.locator('.planning-inbox')).toHaveCount(0);
   await expect(page.locator('.planning-waiting > summary')).toHaveCount(1);
-  await openWorkspaceSection(page, '项目');
+  await openWorkspaceSection(page, '计划');
   await expect(page.getByText('管理长期事项与 Daily 模板')).toHaveCount(0);
   const rows = await page
     .locator('.manager-list--projects .manager-row')
@@ -246,7 +246,7 @@ test('keeps all pink calendar heat levels readable and enlarged task titles wide
     localStorage.setItem('threadline.tasks.v1', JSON.stringify([...tasks, ...extra]));
   });
   await page.reload();
-  await openWorkspaceSection(page, '规划');
+  await openWorkspaceSection(page, '日历');
   await expect(
     page.locator('[data-date="2026-08-04"] .planning-date-count'),
   ).toHaveText('12 项');

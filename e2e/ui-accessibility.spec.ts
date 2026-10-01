@@ -111,14 +111,14 @@ test.describe('accessibility smoke', () => {
   test('does not add critical or serious axe violations on Calendar', async ({
     page,
   }) => {
-    await openWorkspaceSection(page, '规划');
+    await openWorkspaceSection(page, '日历');
     await expectNoNewBlockingAxeViolations(page, 'Calendar');
   });
 
   test('does not add critical or serious axe violations on Projects', async ({
     page,
   }) => {
-    await openWorkspaceSection(page, '项目');
+    await openWorkspaceSection(page, '计划');
     await expectNoNewBlockingAxeViolations(page, 'Projects');
   });
 
@@ -144,11 +144,11 @@ test.describe('accessibility smoke', () => {
       page.getByRole('link', { name: 'Threadline', exact: true }),
       2,
     );
-    const calendar = page.getByRole('button', { name: '规划', exact: true });
+    const calendar = page.getByRole('button', { name: '日历', exact: true });
     await calendar.focus();
     await expect(calendar).toBeFocused();
     await page.keyboard.press('Enter');
-    await expect(page.getByRole('heading', { level: 1, name: '规划' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: '日历' })).toBeVisible();
 
     await openWorkspaceSection(page, '首页');
     const finishDay = page.getByRole('button', { name: '结束今天', exact: true });
@@ -165,19 +165,13 @@ test.describe('accessibility smoke', () => {
     await expect(dialog).toBeHidden();
   });
 
-  test('traps focus and restores the unified project-page trigger for management dialogs', async ({
+  test('traps focus and restores each section create trigger for management dialogs', async ({
     page,
   }) => {
-    await openWorkspaceSection(page, '项目');
-    const createTrigger = page.getByRole('button', { name: '新建', exact: true });
+    await openWorkspaceSection(page, '计划');
+    const createTrigger = page.getByRole('button', { name: '+ 新建项目', exact: true });
     await createTrigger.focus();
     await createTrigger.press('Enter');
-    const projectCreateOption = page.getByRole('menuitem', {
-      name: '新建项目',
-      exact: true,
-    });
-    await expect(projectCreateOption).toBeVisible();
-    await projectCreateOption.press('Enter');
     const projectDialog = page.getByRole('dialog', { name: '新建项目' });
     await expect(projectDialog).toBeVisible();
     await expectFocusInsideDialog(projectDialog);
@@ -193,6 +187,8 @@ test.describe('accessibility smoke', () => {
     await expectFocusInsideDialog(dailyDialog);
     await page.keyboard.press('Escape');
     await expect(dailyDialog).toBeHidden();
-    await expect(createTrigger).toBeFocused();
+    await expect(
+      page.getByRole('button', { name: '+ 新建 Daily', exact: true }).first(),
+    ).toBeFocused();
   });
 });

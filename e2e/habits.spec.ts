@@ -183,7 +183,7 @@ test.describe('account timezone independent of the operating system', () => {
     await expect(sleep).toContainText('01:05');
     await page.getByRole('button', { name: '起床了', exact: true }).click();
     await expect(page.getByTestId('habit-wake')).toContainText('01:10');
-    await openWorkspaceSection(page, '规划');
+    await openWorkspaceSection(page, '日历');
     await expect(page.locator('.planning-panel')).toContainText('2026');
     await openWorkspaceSection(page, '首页');
     await expect(page.locator('time[datetime="2026-09-13"]')).toContainText('09-13');

@@ -46,6 +46,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test:together:copy
       - run: pnpm test:together:db
+      - run: pnpm test:stage:db
       - run: pnpm test:coverage
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium webkit

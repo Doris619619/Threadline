@@ -45,6 +45,10 @@ Insights 使用 `insights.css`（主页面及手机响应式规则）、`insight
 
 ## 当前独立维护项
 
+- `src/features/stage-plans/stage-plans.css` 拥有计划页阶段/项目/Daily 网格、首页完整阶段清单与详情响应式规则，最后加载以覆盖旧列表布局和像素主题的旧包围框；颜色继续来自现有主题变量。旧 `projects.css` 继续拥有原管理弹窗与基础表单，其他页面的像素装饰保持原归属。
+- 其后加载 `stage-editor.css`，仅拥有阶段短表单、连续草稿清单与项目选择；`projects/project-detail.css` 拥有项目卡片任务入口、跨日期总览和项目/阶段共用任务行的信息排版。共用行渲染位于 `stage-plans/task-row.tsx`，动作仍调用原任务命令。
+- 手机阶段创建采用两步短表单；`editor-viewport.ts` 订阅可见视口，只为此弹窗提供软键盘后的高度与定位。`ManagementDialog` 的可选遮罩样式保持其余管理弹窗原行为；80% 高度与清单滚动边界由阶段样式维护。
+
 - History、Review、Stats 的代码和样式只维持可构建性，不删除、不重新接入。
 
 ## 外观设置（2026-09-08）

@@ -88,7 +88,7 @@ test('classic light and dark windows remain readable throughout the app', async 
       'data-color-scheme',
       colorScheme,
     );
-    for (const section of ['首页', '规划', '项目', '洞察', '节律', '设置'] as const) {
+    for (const section of ['首页', '日历', '计划', '洞察', '节律', '设置'] as const) {
       await openWorkspaceSection(page, section);
       await page.clock.runFor(350);
       await expect(page.locator('h1').first()).toHaveCSS(

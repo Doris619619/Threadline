@@ -14,6 +14,8 @@ Threadline 的测试目标是阻止功能、云端边界、桌面壳和明显布
 
 ## 分层与命令
 
+阶段计划增加 `pnpm test:stage:db`：在隔离 PostgreSQL 执行原迁移、阶段 RPC/RLS、事务和历史清理规则，不代替网络同步验收。原 `test:supabase:integration` 包含同账号两个独立客户端的阶段/任务 Realtime 检查。浏览器阶段业务只在 desktop/mobile/WebKit 各执行一次；`ui-stage-plans.spec.ts` 随布局项目验证深浅色和全部长清单，不建立像素快照基线。详见 [阶段计划](stage-plans.md)。
+
 | 层                     | 命令                          | 负责的风险                                                                                              |
 | ---------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------- |
 | Unit / component       | `pnpm test`                   | 纯规则、mapper、状态和局部组件行为。                                                                    |
@@ -29,7 +31,7 @@ Threadline 的测试目标是阻止功能、云端边界、桌面壳和明显布
 
 `test:e2e` 只让既有功能用例运行一次 desktop 和一次 mobile；布局矩阵的 8 个 Chrome viewport（含 320/375/390/430px 手机宽度）与一条 `iPhone 13` device preset/WebKit 回归只收集 `ui-layout-matrix.spec.ts`。因此不会把整套业务流乘以所有尺寸。
 
-`test:preview` 使用独立配置，关闭 test adapter 并以 `VERCEL_ENV=preview`、空 URL/key 构建真实演示。它只在桌面、320px 手机和 iPhone WebKit 各跑演示编辑和每日收尾两条流程，覆盖最新草稿保存屏障与失败阻止收尾，不启动 Supabase/Docker。设置 `THREADLINE_PREVIEW_URL` 后可通过 `pnpm exec playwright test --config playwright.preview.config.ts` 对已部署页面复用同一验收；每个用例使用全新浏览器上下文，不修改其他访问者的演示数据。
+`test:preview` 使用独立配置，关闭 test adapter 并以 `VERCEL_ENV=preview`、空 URL/key 构建真实演示。在桌面、320px 手机和 iPhone WebKit 覆盖演示编辑、每日收尾、阶段同 Task 身份、可编辑 16 项草稿、项目归属与完整项目汇总，并保存真实明暗主题截图；不启动 Supabase/Docker。首开与刷新先单独等待 `.dashboard` hydration（10 秒），再按原默认时限检查数据和操作，避免 Linux WebKit 尚在载入时误报丢数据。设置 `THREADLINE_PREVIEW_URL` 后可通过 `pnpm exec playwright test --config playwright.preview.config.ts` 对已部署页面复用同一验收；每个用例使用全新浏览器上下文，不修改其他访问者的演示数据。
 
 ## UI 与无障碍边界
 

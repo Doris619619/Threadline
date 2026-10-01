@@ -1,4 +1,5 @@
 /** @fileoverview Defines device appearance preferences and the CSP-compatible pre-paint bootstrap. */
+import { isPreviewDemo } from '@/lib/workspace-runtime';
 
 export type AppearanceTheme = 'blue' | 'anya' | 'cottage' | 'classic';
 export type AppearanceFont = 'default' | 'source-han-sans' | 'source-han-serif';
@@ -10,9 +11,13 @@ export type AppearancePreferences = {
 };
 export const appearanceStorageKey = 'threadline.appearance.v1';
 export const defaultAppearance: AppearancePreferences = {
-  theme: process.env.NEXT_PUBLIC_THREADLINE_THEME === 'anya' ? 'anya' : 'blue',
-  font: 'default',
-  colorMode: 'system',
+  theme: isPreviewDemo()
+    ? 'cottage'
+    : process.env.NEXT_PUBLIC_THREADLINE_THEME === 'anya'
+      ? 'anya'
+      : 'blue',
+  font: isPreviewDemo() ? 'source-han-serif' : 'default',
+  colorMode: isPreviewDemo() ? 'dark' : 'system',
 };
 
 /** Validate untrusted local preferences without accepting arbitrary attributes or font URLs. */
@@ -50,6 +55,6 @@ export const appearanceBootstrap = `(() => {
   const root = document.documentElement;
   root.dataset.theme = value ? (value.theme === 'classic' ? 'classic' : value.theme === 'cottage' ? 'cottage' : value.theme === 'anya' ? 'anya' : 'blue') : ${JSON.stringify(defaultAppearance.theme)};
   root.dataset.font = value && ['source-han-sans', 'source-han-serif'].includes(value.font) ? value.font : 'default';
-  const mode = value && value.colorMode;
+  const mode = (value && value.colorMode) || ${JSON.stringify(defaultAppearance.colorMode)};
   root.dataset.colorScheme = mode === 'dark' || (mode !== 'light' && typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
 })();`;

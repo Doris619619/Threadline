@@ -28,6 +28,7 @@ function desktopLayoutProject(name: string, width: number, height: number) {
       '**/ui-layout-matrix.spec.ts',
       '**/ui-task-period.spec.ts',
       '**/ui-habits.spec.ts',
+      '**/ui-stage-plans.spec.ts',
     ],
     use: {
       ...devices['Desktop Chrome'],
@@ -45,6 +46,7 @@ function mobileLayoutProject(name: string, width: number, height: number) {
       '**/ui-layout-matrix.spec.ts',
       '**/ui-task-period.spec.ts',
       '**/ui-habits.spec.ts',
+      '**/ui-stage-plans.spec.ts',
     ],
     use: {
       ...devices['iPhone 13'],
@@ -89,6 +91,7 @@ export default defineConfig({
         '**/classic.spec.ts',
         '**/interaction-feedback.spec.ts',
         '**/habits.spec.ts',
+        '**/stage-plans.spec.ts',
       ],
       use: { ...devices['iPhone 13'], browserName: 'webkit' },
     },
@@ -141,6 +144,7 @@ export default defineConfig({
         '**/ui-layout-matrix.spec.ts',
         '**/ui-task-period.spec.ts',
         '**/ui-habits.spec.ts',
+        '**/ui-stage-plans.spec.ts',
       ],
       use: { ...devices['iPhone 13'], browserName: 'webkit' },
     },

@@ -8,7 +8,7 @@ import {
 
 test.beforeEach(async ({ page }, info) => {
   await bootstrapLocalAdapterWorkspace(page, `planning.${info.testId}`);
-  await openWorkspaceSection(page, '规划');
+  await openWorkspaceSection(page, '日历');
 });
 
 /** 桌面默认展开、手机按需展开；不因断点差异把已经打开的任务池关闭。 */
@@ -155,7 +155,7 @@ async function fillMonth(page: Page) {
     );
   });
   await page.reload();
-  await openWorkspaceSection(page, '规划');
+  await openWorkspaceSection(page, '日历');
 }
 
 /** 同时检查整页水平边界与 serious/critical 可访问性债务，包含实际热力文字对比。 */
@@ -339,7 +339,7 @@ async function fillTimeline(page: Page) {
     );
   });
   await page.reload();
-  await openWorkspaceSection(page, '规划');
+  await openWorkspaceSection(page, '日历');
   await page.getByRole('button', { name: /^2026-08-23，/ }).click();
 }
 
@@ -393,7 +393,7 @@ test('renders proportional time blocks and preserves detail, editing, completion
   await page.locator('.planning-completed > summary').click();
   await expect(page.locator('.planning-completed').getByRole('checkbox')).toBeChecked();
   await page.reload();
-  await openWorkspaceSection(page, '规划');
+  await openWorkspaceSection(page, '日历');
   await page.getByRole('button', { name: /^2026-08-23，/ }).click();
   await expect(first).toHaveCount(0);
   await second.click();
@@ -475,7 +475,7 @@ test('expands dense overlaps without hiding tasks and keeps empty days as a time
     );
   });
   await page.reload();
-  await openWorkspaceSection(page, '规划');
+  await openWorkspaceSection(page, '日历');
   await page.getByRole('button', { name: /^2026-08-23，/ }).click();
   await page.getByRole('button', { name: /5 项重叠安排/ }).click();
   const detail = page.getByRole('dialog', { name: '重叠安排' });
