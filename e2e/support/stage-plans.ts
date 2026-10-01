@@ -2,7 +2,7 @@
 import { expect, type Page } from '@playwright/test';
 import type { StagePlan } from '@/types/domain';
 
-/** 通过表单创建阶段，只有最低字段，清单不填写日程时间。 */
+/** 通过真实表单创建阶段；手机先进入清单步骤，任务不填写日程时间。 */
 export async function createStage(
   page: Page,
   name: string,
@@ -15,6 +15,8 @@ export async function createStage(
   await dialog.getByLabel('阶段名称', { exact: true }).fill(name);
   await dialog.getByLabel('阶段开始日期').fill(start);
   await dialog.getByLabel('阶段结束日期').fill(end);
+  const next = dialog.getByRole('button', { name: '下一步', exact: true });
+  if (await next.isVisible()) await next.click();
   for (let i = 1; i <= count; i++) {
     await dialog.getByLabel('阶段任务名称', { exact: true }).fill(name + '任务' + i);
     await dialog.getByLabel('阶段任务名称', { exact: true }).press('Enter');

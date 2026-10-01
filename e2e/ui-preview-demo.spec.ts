@@ -5,9 +5,9 @@ import { openWorkspaceSection } from './support/workspace';
 import type { Task } from '@/types/domain';
 import { projectTaskState } from '@/features/projects/project-task-rules';
 
-/** Linux WebKit 的首次模块 hydration 独立等待；数据和操作断言仍使用默认时限。 */
+/** 冷启动含动态业务模块及本地 hydration；CI trace 显示 WebKit 会超过 10s，后续操作仍用默认时限。 */
 async function awaitDemoWorkspace(page: Page) {
-  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByLabel('演示模式说明')).toBeVisible();
 }
 
@@ -314,6 +314,35 @@ test('keeps stage demo task identity and stage membership after scheduling and r
   await awaitDemoWorkspace(page);
   const stage = page.locator('.home-stage-card').filter({ hasText: '国庆假期' });
   await expect(stage.locator('.stage-task-row')).toHaveCount(16);
+  const alignment = await stage
+    .locator('.stage-task-row')
+    .first()
+    .evaluate((row) => {
+      const check = row.querySelector('.tl-checkbox > span')!.getBoundingClientRect();
+      const project = row.querySelector('.tl-project-tag')!.getBoundingClientRect();
+      const title = row.querySelector<HTMLElement>('.stage-task-title')!;
+      const titleBox = title.getBoundingClientRect();
+      const style = getComputedStyle(title);
+      return {
+        checkCenter: check.top + check.height / 2,
+        firstLineCenter:
+          titleBox.top +
+          parseFloat(style.paddingTop) +
+          parseFloat(style.lineHeight) / 2,
+        projectCenter: project.top + project.height / 2,
+        projectRight: project.right,
+        titleLeft: titleBox.left,
+        extraMetadata: row.querySelectorAll('.plan-task-meta').length,
+      };
+    });
+  expect(
+    Math.abs(alignment.checkCenter - alignment.firstLineCenter),
+  ).toBeLessThanOrEqual(2);
+  expect(
+    Math.abs(alignment.projectCenter - alignment.firstLineCenter),
+  ).toBeLessThanOrEqual(2);
+  expect(alignment.projectRight).toBeLessThanOrEqual(alignment.titleLeft);
+  expect(alignment.extraMetadata).toBe(0);
   const snapshot = () =>
     page.evaluate(() =>
       JSON.parse(
