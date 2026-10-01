@@ -1,4 +1,4 @@
-/** @fileoverview 阶段创建中的轻量清单编辑器；逐项项目下拉、行内修改与连续输入均只更新草稿。 */
+/** @fileoverview 阶段连续清单编辑器；随所选名称伸缩的原生项目下拉与行内修改只更新草稿。 */
 'use client';
 
 import { useEffect, useId, useLayoutEffect, useRef, type RefObject } from 'react';
@@ -20,7 +20,7 @@ type StageDraftListProps = {
   onItemProjectChange: (itemId: string, projectId: string) => void;
 };
 
-/** 与首页一致使用原生项目下拉；只列活跃项目，手机沿用系统选择器而不另开大弹窗。 */
+/** 当前名称决定可见宽度，原生 select 覆盖完整点击区；键盘与手机仍使用系统选择器。 */
 function DraftProjectPicker({
   projects,
   projectId,
@@ -33,11 +33,16 @@ function DraftProjectPicker({
   onChange: (projectId: string) => void;
 }) {
   if (!projects.length) return null;
+  const selectedName = projects.find((project) => project.id === projectId)?.name;
   return (
     <span className="stage-draft-project-picker">
+      <span className="stage-draft-project-value" aria-hidden="true">
+        {selectedName ?? '选择项目'}
+      </span>
+      <ChevronDown size={14} aria-hidden="true" />
       <select
         aria-label={label}
-        title={projects.find((project) => project.id === projectId)?.name}
+        title={selectedName}
         value={projectId ?? ''}
         onChange={(event) => onChange(event.target.value)}
       >
@@ -49,7 +54,6 @@ function DraftProjectPicker({
             </option>
           ))}
       </select>
-      <ChevronDown size={14} aria-hidden="true" />
     </span>
   );
 }
