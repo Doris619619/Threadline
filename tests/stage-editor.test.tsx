@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { StageEditor } from '@/features/stage-plans/editor';
-import type { Project } from '@/types/domain';
+import type { Project, StagePlan } from '@/types/domain';
 const commands = vi.hoisted(() => ({ create: vi.fn(), update: vi.fn() }));
 vi.mock('@/features/stage-plans/state', () => ({ useStagePlans: () => commands }));
 afterEach(cleanup);
@@ -16,6 +16,38 @@ function fillName() {
     target: { value: '国庆假期' },
   });
 }
+it('keeps the opening version when realtime replaces the stage while its draft is open', async () => {
+  const opening: StagePlan = {
+    id: 'stage',
+    name: '原阶段',
+    startDate: '2026-10-01',
+    endDate: '2026-10-08',
+    homeVisible: true,
+    createdAt: '2026-10-01T00:00:00Z',
+    updatedAt: '2026-10-01T00:00:00.123456Z',
+  };
+  const remote = {
+    ...opening,
+    name: '另一台设备修改',
+    updatedAt: '2026-10-01T00:00:00.123457Z',
+  };
+  commands.update.mockImplementation(async (baseline: StagePlan) => {
+    if (baseline.updatedAt !== remote.updatedAt)
+      throw new Error('阶段已在其他设备修改，草稿已保留。');
+    return remote;
+  });
+  const close = vi.fn();
+  const view = render(<StageEditor plan={opening} onClose={close} />);
+  fireEvent.change(screen.getByLabelText('阶段名称'), {
+    target: { value: '本机草稿' },
+  });
+  view.rerender(<StageEditor plan={remote} onClose={close} />);
+  fireEvent.click(screen.getByRole('button', { name: '保存', exact: true }));
+  await screen.findByText('阶段已在其他设备修改，草稿已保留。');
+  expect(commands.update.mock.calls[0][0]).toEqual(opening);
+  expect(screen.getByLabelText('阶段名称')).toHaveValue('本机草稿');
+  expect(close).not.toHaveBeenCalled();
+});
 it('adds many items through Enter and commits a final unsubmitted line in one transaction', async () => {
   render(<StageEditor onClose={vi.fn()} />);
   fillName();

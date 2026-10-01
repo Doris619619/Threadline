@@ -11,7 +11,7 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { StagePlansProvider, useStagePlans } from '@/features/stage-plans/state';
-import type { StagePlan } from '@/types/domain';
+import type { StagePlan, Task } from '@/types/domain';
 import { lockForDesktopUpdate } from '@/lib/cloud-write-guard';
 
 const mocks = vi.hoisted(() => ({
@@ -179,4 +179,50 @@ it('does not apply an old account creation response into the new account stage o
   await act(async () => resolve({ plan, tasks: [] }));
   expect(client.getQueryData(['workspace', 'b', 'stage-plans'])).toEqual([]);
   expect(client.getQueryData(['workspace', 'b', 'tasks'])).toBeUndefined();
+});
+
+it('does not roll newer realtime stage or task rows back when a delayed transaction response arrives', async () => {
+  let resolve!: (bundle: { plan: StagePlan; tasks: Task[] }) => void;
+  mocks.create.mockReturnValue(
+    new Promise((done) => {
+      resolve = done;
+    }),
+  );
+  const { client } = setup();
+  await waitFor(() =>
+    expect(screen.getByTestId('plans')).toHaveTextContent('冲刺:true'),
+  );
+  fireEvent.click(screen.getByText('创建'));
+  const oldTask: Task = {
+    id: 'task',
+    projectId: 'other',
+    stagePlanId: plan.id,
+    title: '任务',
+    status: 'waiting',
+    completed: false,
+    importance: 'normal',
+    createdAt: plan.createdAt,
+    updatedAt: plan.updatedAt,
+  };
+  const newerPlan = {
+    ...plan,
+    name: '另一台设备的新阶段名',
+    updatedAt: '2026-10-01T00:00:00.123457Z',
+  };
+  const newerTask = {
+    ...oldTask,
+    completed: true,
+    status: 'active' as const,
+    date: '2026-10-01',
+    updatedAt: '2026-10-01T00:00:00.123457Z',
+  };
+  await act(async () => {
+    client.setQueryData(['workspace', 'a', 'stage-plans'], [newerPlan]);
+    client.setQueryData(['workspace', 'a', 'tasks'], [newerTask]);
+  });
+  // 后续刷新尚未返回，确认回包自身就必须保留已经观察到的新版本。
+  mocks.list.mockReturnValue(new Promise(() => {}));
+  await act(async () => resolve({ plan, tasks: [oldTask] }));
+  expect(client.getQueryData(['workspace', 'a', 'stage-plans'])).toEqual([newerPlan]);
+  expect(client.getQueryData(['workspace', 'a', 'tasks'])).toEqual([newerTask]);
 });

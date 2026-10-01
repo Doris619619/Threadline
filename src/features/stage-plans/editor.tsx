@@ -1,4 +1,4 @@
-/** @fileoverview 阶段短表单与连续清单草稿，稳定 ID、失败保留和中文 Enter 保护。 */
+/** @fileoverview 阶段短表单与连续清单草稿；固定打开时版本、稳定 ID、失败保留与中文 Enter 保护。 */
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { ManagementDialog } from '@/components/ui/management-dialog';
@@ -29,6 +29,8 @@ export function StageEditor({
   const stages = useStagePlans();
   const { mobile, backdropStyle } = useStageEditorViewport();
   const [step, setStep] = useState<'details' | 'tasks'>('details');
+  // 草稿基准固定为打开弹窗时的版本，实时刷新不能给旧输入换成新版并发令牌。
+  const [openingPlan] = useState(plan);
   const [id] = useState(() => plan?.id ?? crypto.randomUUID());
   const [name, setName] = useState(plan?.name ?? '');
   const [startDate, setStart] = useState(plan?.startDate ?? today);
@@ -108,8 +110,8 @@ export function StageEditor({
       if (message) throw new Error(message);
       if (draft.tasks.some((item) => !item.title || item.title.length > 200))
         throw new Error('每项任务需要 1–200 个字符，请填写或移除空白项。');
-      const saved = plan
-        ? await stages.update(plan, {
+      const saved = openingPlan
+        ? await stages.update(openingPlan, {
             name: name.trim(),
             startDate,
             endDate,

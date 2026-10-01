@@ -19,6 +19,7 @@ import { createDemoStagePlans } from '@/features/workspace/stage-demo-seed';
 import { resolveActiveProject } from '@/lib/project-rules';
 import type { StagePlan, Task, Project } from '@/types/domain';
 import { StagePlanRepository } from './repository';
+import { mergeConfirmedRows } from './confirmed-cache';
 import {
   validateStageDraft,
   type StagePlanChanges,
@@ -137,14 +138,12 @@ function CloudStagePlans({ children }: { children: ReactNode }) {
   });
   const pending = useRef(new Set<string>());
   const [hidden, setHidden] = useState<Set<string>>(new Set());
-  /** 只合并本次已确认任务，不用整表快照覆盖其他任务。 */
+  /** 只合并本次确认且未过期的任务回包，不覆盖其他任务或已经收到的新状态。 */
   const acceptTasks = async (rows: Task[]) => {
     await client.cancelQueries({ queryKey: taskKey, exact: true });
-    client.setQueryData<Task[]>(taskKey, (current = []) => {
-      const byId = new Map(current.map((task) => [task.id, task]));
-      rows.forEach((task) => byId.set(task.id, task));
-      return [...byId.values()];
-    });
+    client.setQueryData<Task[]>(taskKey, (current = []) =>
+      mergeConfirmedRows(current, rows),
+    );
   };
   /** 刷新失败不能让已成功事务被误报为创建失败。 */
   const refresh = () => {
@@ -167,13 +166,13 @@ function CloudStagePlans({ children }: { children: ReactNode }) {
       end();
     }
   };
-  /** 用服务器精确版本替换对应阶段；软删除移出可见列表。 */
+  /** 只接受未过期的服务器版本；软删除移出可见列表，延迟回包不回退实时新值。 */
   const acceptPlan = async (plan: StagePlan) => {
     await client.cancelQueries({ queryKey: key, exact: true });
     client.setQueryData<StagePlan[]>(key, (rows = []) =>
       plan.deletedAt
         ? rows.filter((row) => row.id !== plan.id)
-        : [...rows.filter((row) => row.id !== plan.id), plan],
+        : mergeConfirmedRows(rows, [plan]),
     );
   };
   /** 创建和首批清单共用一个事务，失败保留草稿 ID。 */
