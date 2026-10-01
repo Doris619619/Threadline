@@ -6,12 +6,13 @@
 
 - **两人空间**位于桌面侧栏与手机「更多」；绑定后按好友/情侣显示自习室或小窝。独立数据缓存与加载不进入任务统计，待验收数量同步到入口。页面以查看者账号时区展示日期与实时钟，微信成果声明经过对方验收后完成。详见 [两人空间](together-space.md)。
 
-完整工作台使用：首页、规划、项目、洞察、习惯、节律、设置。桌面端显示侧栏；移动端固定显示首页、规划、项目、习惯，并通过“更多”进入洞察、节律和设置。入口按显式 ID 分组。
+完整工作台使用：首页、日历、计划、洞察、习惯、节律、两人空间、设置。两人空间绑定后沿用好友/情侣称呼。桌面端显示侧栏；手机底栏显示首页、日历、计划、习惯，“更多”进入其余页面。内部 ID 仍为 calendar/projects，避免更改持久化导航与窗口状态。
 
 - **习惯**独立记录起床、睡觉和工作效率，提供周/月统计、两张时间趋势图与历史月历。账号时区和版本化目标仅作用于本领域，不使用首页工作日期，不进入任务 analytics。`WorkspaceContent` 在完整工作台分发独立页面，工作站优先走既有逻辑。详细口径见 [习惯](habits.md)。
 
-- **首页**保留今日日程、Daily、待安排和每日收尾。
-- **规划**以雾蓝热力月历为首页：点日进入独立的周条与当天清单，返回保留原月份；待安排可从月历入口或当天详情进入。日期为主、数量为辅，支持今天起的安排和双向改期。完成项保留日计数，Daily 不进入规划。详见 [任务规划](task-planning.md)。
+- **首页**保留今日日程、Daily、待安排和每日收尾；右侧顺序为全部开启首页显示且尚未结束的阶段 → 普通待安排 → Daily。阶段三组清单完整显示，未来阶段可提前出现，结束按账号自然日派生。
+- **日历**以雾蓝热力月历为首页：点日进入独立周条与当天清单，返回保留原月份。阶段任务安排后和其他原 Task 一起进入日历；普通待安排池只显示没有阶段归属的任务。支持今天起的安排和双向改期，Daily 不进入日历。详见 [任务规划](task-planning.md)。
+- **计划**按阶段计划、项目、Daily 排列，各区有明确创建入口。阶段是原 Task 的可选归属，状态和完成数从任务真源派生；隐藏与结束均保留关联，删除或移除归属才让未安排项回到普通待安排。完整详情使用工作台视图，兼容 Electron 静态导出。详见 [阶段计划](stage-plans.md)。
 - **洞察**默认本周，通过当天、本周、本月、自定义分段选择范围；首屏展示实际投入、范围内 active 普通任务完成数/总数和主要投入项目，待安排、放弃和回收站不计入完成统计。下方按实际分钟展示每日趋势与项目占比；无数据收起空图形。预计与实际仅比较同时具有两种记录的任务，缺少预计不视为零，报告采用同一比较口径。
 - **记录（保留模块，当前未接入导航）**只搜索当前可靠可得的 Task、HistoryEvent、DailyHistory 与 CloseRecord；它不是 Event Sourcing。
 - **节律**记录生理期开始、结束和历史补录。独立的 `period_records` 按账号隔离并实时同步；旧 `rhythm_marks` 保留为旧日期标记，不推断完整经期或参与统计。两者均不进入 analytics、PDF 或记录搜索。字段、约束与失败行为见 [预计时长与生理期记录](task-estimates-and-periods.md)。
@@ -37,7 +38,7 @@ History / Records 的正式 Daily 历史只来自 `daily_history_entries`。Insi
 
 启动时，`StartupProgressProvider` 只聚合状态：认证运行时的 `getSession()` 与 `initializeWorkspace()` 分别驱动前两阶段；`WorkspaceDataProvider` 的八组 query 加 Annotation/高亮本机 hydration 驱动“加载工作区数据”；同一 Provider 的 `workspace:${ownerId}` channel 仅在 Supabase 报告 `SUBSCRIBED` 后完成“开启实时同步”。数据 hydration 成功即允许工作台使用；Realtime 的 `CHANNEL_ERROR`、`TIMED_OUT` 或非清理中的 `CLOSED` 会保留失败状态并显示非阻塞提示，绝不被映射为已订阅。
 
-Task 的 `abandoned` 是永久保留的业务历史状态；`purged` 不是 TaskStatus。只有 `trashed + deleted_at 超过 30 天` 才由受保护的数据库函数物理删除。History FK 不级联删除 task history，并保存标题/项目/日期 snapshot。旧业务 localStorage key 在云账号初始化后清理，不迁移旧数据。
+Task 的 `abandoned` 是永久保留的业务历史状态；`purged` 不是 TaskStatus。只有未关联阶段的 `trashed + deleted_at 超过 30 天` 才由受保护的数据库函数物理删除；仍关联阶段的任务保留回顾。History FK 不级联删除 task history，并保存标题/项目/日期 snapshot。旧业务 localStorage key 在云账号初始化后清理，不迁移旧数据。
 
 ## 报告导出
 

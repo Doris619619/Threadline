@@ -3,6 +3,7 @@
 import type { Daily } from '@/features/daily/types';
 import { createInitialTasks } from '@/features/workspace/workspace-seed';
 import { getLocalDateKey } from '@/lib/local-date';
+import { createDemoStageTasks } from './stage-demo-seed';
 
 /** 保留今日、重要与普通三种任务，减少首屏滚动并展示分类。 */
 export function createDemoTasks(today = getLocalDateKey()) {
@@ -12,7 +13,8 @@ export function createDemoTasks(today = getLocalDateKey()) {
       task.id === 'adapter'
         ? { ...task, title: '提交课程项目材料', importance: 'important' as const }
         : task,
-    );
+    )
+    .concat(createDemoStageTasks(today));
 }
 
 /** 每个浏览器首开创建独立示例；子项计划固定，执行状态留给访问者操作。 */

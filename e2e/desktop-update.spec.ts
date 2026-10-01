@@ -140,7 +140,7 @@ test('keeps update actions visible across navigation, themes, download and compa
   );
   await page.screenshot({ path: testInfo.outputPath('titlebar-scrolled.png') });
   await page.evaluate(() => window.scrollTo(0, 0));
-  await openWorkspaceSection(page, '项目');
+  await openWorkspaceSection(page, '计划');
   await expect(entry).toBeVisible();
   await openWorkspaceSection(page, '设置');
   await page.getByRole('button', { name: '外观', exact: true }).click();

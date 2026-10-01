@@ -146,7 +146,7 @@ test('pixel palette is readable across planning projects insights rhythm and set
   await chooseTheme(page, '皮卡小屋');
   for (const scheme of ['light', 'dark'] as const) {
     await setScheme(page, scheme);
-    for (const section of ['规划', '项目', '洞察', '节律', '设置'] as const) {
+    for (const section of ['日历', '计划', '洞察', '节律', '设置'] as const) {
       await openWorkspaceSection(page, section);
       await page.clock.runFor(350);
       await checkAccessibility(page);
@@ -167,7 +167,7 @@ test('personal sprites load and decorative effects are finite and respect reduce
   await bootstrapLocalAdapterWorkspace(page, 'cottage-effects');
   await chooseTheme(page, '皮卡小屋');
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await openWorkspaceSection(page, '项目');
+  await openWorkspaceSection(page, '计划');
   await expect(page.locator('.cottage-sidebar-furniture')).toHaveAttribute(
     'data-furniture',
     'claw',

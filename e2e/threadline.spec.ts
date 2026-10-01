@@ -69,10 +69,10 @@ async function openSettingsData(page: Page) {
 }
 
 test('gives every workspace destination a distinct working page', async ({ page }) => {
-  await openWorkspaceSection(page, '规划');
+  await openWorkspaceSection(page, '日历');
   await expect(page.getByTestId('calendar-panel')).toBeVisible();
 
-  await openWorkspaceSection(page, '项目');
+  await openWorkspaceSection(page, '计划');
   await expect(page.locator('.project-panel')).toBeVisible();
 
   await openWorkspaceSection(page, '洞察');
@@ -122,7 +122,7 @@ test('keeps Web and PWA in the full workspace even when stale desktop preference
 test('keeps the source calendar month when returning from a cross-month day', async ({
   page,
 }) => {
-  await openWorkspaceSection(page, '规划');
+  await openWorkspaceSection(page, '日历');
   await page.getByRole('button', { name: '上个月' }).click();
   await expect(page.getByRole('heading', { name: '2026年7月' })).toBeVisible();
   await page.getByRole('button', { name: /^2026-08-01，/ }).click();
@@ -620,7 +620,7 @@ test('keeps a newly created waiting task visible across selected dates', async (
 });
 
 test('creates a Daily definition that appears on following dates', async ({ page }) => {
-  await openWorkspaceSection(page, '项目');
+  await openWorkspaceSection(page, '计划');
   await openProjectCreateDialog(page, '新建 Daily');
   await page.getByLabel('Daily 名称').fill('晚间复盘');
   await page.getByRole('button', { name: '创建', exact: true }).click();
@@ -659,7 +659,7 @@ test('daily subtask completion completes its parent and parent undo clears child
 });
 
 test('manages Daily independently with planned checklist items', async ({ page }) => {
-  await openWorkspaceSection(page, '项目');
+  await openWorkspaceSection(page, '计划');
   await openProjectCreateDialog(page, '新建 Daily');
   await page.getByLabel('Daily 名称').fill('阅读训练');
   await page.getByRole('button', { name: '+ 添加清单项' }).click();
@@ -668,6 +668,11 @@ test('manages Daily independently with planned checklist items', async ({ page }
   await page.getByRole('button', { name: '创建', exact: true }).click();
   await expect(page.getByText('阅读训练', { exact: true })).toBeVisible();
   await expect(page.getByText('1 项 · 20 分钟')).toBeVisible();
+  await page
+    .locator('.daily-manager-row')
+    .filter({ hasText: '阅读训练' })
+    .locator('summary')
+    .click();
   await expect(page.getByText('整理笔记', { exact: true })).toBeVisible();
   await expect(page.getByLabel('新 Daily 所属项目')).toHaveCount(0);
   await page.getByRole('button', { name: '添加清单项' }).last().click();
@@ -791,7 +796,7 @@ test('shows task and daily data in unified insight periods', async ({ page }) =>
 });
 
 test('edits a project from its management menu', async ({ page }) => {
-  await openWorkspaceSection(page, '项目');
+  await openWorkspaceSection(page, '计划');
   await page.getByRole('button', { name: '管理项目 AI研究', exact: true }).click();
   await page.getByRole('button', { name: '修改项目', exact: true }).click();
   await page.getByLabel('项目名称', { exact: true }).fill('AI 实验室');

@@ -1,6 +1,57 @@
 /** @fileoverview 从无登录的真实 Preview 入口验证演示交互、刷新持久化与云端隔离。 */
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { openWorkspaceSection } from './support/workspace';
+
+/** 首开演示阶段与原 Task 共用身份，操作与刷新不访问云数据或旧本地任务。 */
+test('keeps stage demo task identity and stage membership after scheduling and reload', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.getByLabel('演示模式说明')).toBeVisible();
+  const stage = page.locator('.home-stage-card').filter({ hasText: '国庆假期' });
+  await expect(stage.locator('.stage-task-row')).toHaveCount(16);
+  const snapshot = () =>
+    page.evaluate(() =>
+      JSON.parse(
+        localStorage.getItem('threadline.preview-demo.v1:threadline.tasks.v1')!,
+      ),
+    );
+  const before = await snapshot();
+  const item = before.find(
+    (task: { stagePlanId?: string; status: string }) =>
+      task.stagePlanId === 'demo-stage-holiday' && task.status === 'waiting',
+  );
+  await stage
+    .locator('[data-stage-task-id="' + item.id + '"]')
+    .getByRole('button', { name: '→ 今天', exact: true })
+    .click();
+  await expect(
+    page.locator('.schedule-panel').getByText(item.title, { exact: true }),
+  ).toBeVisible();
+  await expect(stage.locator('.stage-task-row')).toHaveCount(16);
+  await page.reload();
+  await expect(stage.locator('.stage-task-row')).toHaveCount(16);
+  const after = await snapshot();
+  expect(after.length).toBe(before.length);
+  expect(after.find((task: { id: string }) => task.id === item.id).stagePlanId).toBe(
+    'demo-stage-holiday',
+  );
+  await openWorkspaceSection(page, '计划');
+  await expect(page.getByRole('button', { name: '新建', exact: true })).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: '+ 新建阶段', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: '+ 新建项目', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: '+ 新建 Daily', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: '查看阶段 国庆假期', exact: true }),
+  ).toBeVisible();
+});
 
 test('opens an interactive isolated demo and persists Daily and newly created tasks', async ({
   page,

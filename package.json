@@ -46,6 +46,7 @@
     "test:supabase:integration": "node scripts/test-supabase-integration.mjs",
     "test:supabase:browser": "node scripts/test-supabase-browser.mjs",
     "test:together:db": "node scripts/test-together-database.mjs",
+    "test:stage:db": "node scripts/test-stage-plans-database.mjs",
     "test:together:integration": "node scripts/test-together-integration.mjs",
     "test:together:e2e": "playwright test --config playwright.together.config.ts",
     "test:together:copy": "node scripts/generate-together-copy.mjs --check",

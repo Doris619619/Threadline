@@ -106,12 +106,14 @@ test('uses local Supabase Auth and persists a task through a real browser sessio
   await completeFirstRun(page);
 
   await expect(page.getByRole('heading', { name: '任务大厅' })).toBeVisible();
-  await page.getByRole('button', { name: '项目', exact: true }).click();
+  await page.getByRole('button', { name: '计划', exact: true }).click();
   await expect(page.locator('.project-panel')).toBeVisible();
   await expect(
-    page.getByRole('heading', { level: 1, name: '项目', exact: true }),
+    page.getByRole('heading', { level: 1, name: '计划', exact: true }),
   ).toHaveCount(1);
-  await expect(page.getByRole('button', { name: '新建', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: '+ 新建项目', exact: true }),
+  ).toBeVisible();
 
   await page.getByRole('button', { name: '首页', exact: true }).click();
   const waitingPanel = page.locator('.waiting-panel');

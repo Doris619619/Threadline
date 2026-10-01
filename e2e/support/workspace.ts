@@ -12,6 +12,7 @@ const localStorageKeys = [
   'threadline.profile.preview.v1',
   'threadline.tasks.v1',
   'threadline.projects.v1',
+  'threadline.stage-plans.v1',
   'threadline.daily-by-date.v1',
   'threadline.daily-history.v1',
   'threadline.daily-templates.v1',
@@ -82,7 +83,7 @@ export async function openWorkspaceSection(page: Page, label: string) {
     await desktopTarget.click();
     return;
   }
-  if (['首页', '规划', '项目', '习惯'].includes(label)) {
+  if (['首页', '日历', '计划', '习惯'].includes(label)) {
     await mobileNavigation.getByRole('button', { name: label, exact: true }).click();
     return;
   }
@@ -90,13 +91,15 @@ export async function openWorkspaceSection(page: Page, label: string) {
   await mobileNavigation.getByRole('button', { name: label, exact: true }).click();
 }
 
-/** 通过项目页面唯一的新建菜单进入指定 Dialog，避免测试绕过实际用户路径。 */
+/** 通过计划页面各区域的明确创建入口进入指定 Dialog，避免测试绕过实际用户路径。 */
 export async function openProjectCreateDialog(
   page: Page,
   target: '新建项目' | '新建 Daily',
 ) {
-  await page.getByRole('button', { name: '新建', exact: true }).click();
-  await page.getByRole('menuitem', { name: target, exact: true }).click();
+  await page
+    .getByRole('button', { name: '+ ' + target, exact: true })
+    .first()
+    .click();
   await expect(page.getByRole('dialog', { name: target, exact: true })).toBeVisible();
 }
 

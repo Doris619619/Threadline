@@ -36,7 +36,9 @@ function CloseTaskRow({ task, tomorrow }: { task: Task; tomorrow: string }) {
               移到明天
             </option>
             <option value="date">指定日期</option>
-            <option value="waiting">放回待安排</option>
+            <option value="waiting">
+              {task.stagePlanId ? '放回阶段未安排' : '放回待安排'}
+            </option>
             <option value="abandoned">放弃</option>
           </select>
           <ChevronDown size={16} aria-hidden="true" />
@@ -299,7 +301,9 @@ export function TaskDialog({
       title={
         isWaiting
           ? editing
-            ? '修改待安排事项'
+            ? editing.stagePlanId
+              ? '编辑阶段任务'
+              : '修改待安排事项'
             : '添加待安排事项'
           : editing
             ? '编辑任务'

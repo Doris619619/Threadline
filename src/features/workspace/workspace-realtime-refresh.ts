@@ -4,6 +4,7 @@ import type { QueryClient } from '@tanstack/react-query';
 const queriesByTable: Record<string, string[]> = {
   projects: ['projects'],
   tasks: ['tasks'],
+  stage_plans: ['stage-plans'],
   task_time_entries: ['task-time-entries'],
   daily_templates: ['daily'],
   daily_template_items: ['daily'],

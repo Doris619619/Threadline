@@ -62,10 +62,11 @@ function mapProject(row: JsonRecord): Project {
 }
 
 /** 将 task row 映射为显式 date、wall-clock 与 timestamptz 领域对象。 */
-function mapTask(row: JsonRecord): Task {
+export function mapTask(row: JsonRecord): Task {
   return {
     id: String(row.id),
     projectId: String(row.project_id),
+    stagePlanId: (row.stage_plan_id as string | null) ?? undefined,
     title: String(row.title),
     date: (row.scheduled_date as string | null) ?? undefined,
     schedulePendingTime: Boolean(row.schedule_pending_time),

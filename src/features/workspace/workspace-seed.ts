@@ -116,10 +116,11 @@ function makeWaitingTask(id: string, projectId: string, title: string): Task {
   };
 }
 
-/** 判断回收站任务是否超过 30 天保留期。 */
+/** 普通回收站保留 30 天；阶段历史仍有关联时永久保留供回顾。 */
 function isTrashExpired(task: Task): boolean {
   return (
     task.status === 'trashed' &&
+    !task.stagePlanId &&
     task.deletedAt !== undefined &&
     new Date(task.deletedAt).getTime() < Date.now() - 30 * 24 * 60 * 60 * 1000
   );

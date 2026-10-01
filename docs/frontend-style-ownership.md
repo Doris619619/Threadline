@@ -45,6 +45,8 @@ Insights 使用 `insights.css`（主页面及手机响应式规则）、`insight
 
 ## 当前独立维护项
 
+- `src/features/stage-plans/stage-plans.css` 拥有计划页阶段/项目/Daily 网格、首页完整阶段清单与详情响应式规则，最后加载以覆盖旧列表布局和像素主题的旧包围框；颜色继续来自现有主题变量。旧 `projects.css` 继续拥有原管理弹窗与基础表单，其他页面的像素装饰保持原归属。
+
 - History、Review、Stats 的代码和样式只维持可构建性，不删除、不重新接入。
 
 ## 外观设置（2026-09-08）

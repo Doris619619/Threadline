@@ -10,6 +10,7 @@ import {
   type SetStateAction,
 } from 'react';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
+import { StagePlansProvider } from '@/features/stage-plans/state';
 import type {
   AnnotationStroke,
   CloseRecord,
@@ -176,7 +177,13 @@ export function WorkspaceContextProviders({
                             value={values.surfaceActions}
                           >
                             {notice}
-                            {children}
+                            <StagePlansProvider
+                              tasks={values.taskState.tasks}
+                              projects={values.projectState.projects}
+                              updateTasks={values.taskActions.updateTasks}
+                            >
+                              {children}
+                            </StagePlansProvider>
                           </WorkspaceSurfaceActionsContext.Provider>
                         </WorkspaceSurfaceStateContext.Provider>
                       </HistoryActionsContext.Provider>

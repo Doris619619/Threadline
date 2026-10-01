@@ -13,16 +13,17 @@ it('coalesces transaction events while preserving independent affected queries a
     refresh.notify('tasks');
     refresh.notify('history_events');
     refresh.notify('workstation_entries');
+    refresh.notify('stage_plans');
   }
   expect(invalidate).not.toHaveBeenCalled();
   vi.advanceTimersByTime(40);
   expect(invalidate.mock.calls).toEqual(
-    ['tasks', 'history', 'workstation'].map((key) => [
+    ['tasks', 'history', 'workstation', 'stage-plans'].map((key) => [
       { queryKey: ['workspace', 'account', key], exact: true },
     ]),
   );
   refresh.notify('daily_entries');
   refresh.dispose();
   vi.runAllTimers();
-  expect(invalidate).toHaveBeenCalledTimes(3);
+  expect(invalidate).toHaveBeenCalledTimes(4);
 });

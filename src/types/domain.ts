@@ -5,6 +5,17 @@
 export type Id = string;
 export type TaskStatus = 'active' | 'waiting' | 'abandoned' | 'trashed';
 export type ProjectStatus = 'active' | 'archived';
+/** 日期范围代表计划周期；是否已结束按账号自然日派生，永不自动删除。 */
+export type StagePlan = {
+  id: Id;
+  name: string;
+  startDate: string;
+  endDate: string;
+  homeVisible: boolean;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string;
+};
 export type Project = {
   id: Id;
   name: string;
@@ -20,6 +31,8 @@ export type Project = {
 export type Task = {
   id: Id;
   projectId: Id;
+  /** 独立于项目的阶段归属；安排和完成只改变任务状态，不移除关联。 */
+  stagePlanId?: Id;
   title: string;
   date?: string;
   /** 已进入某个业务日但尚未填写开始时间，仅表示待填时间 UI 状态。 */

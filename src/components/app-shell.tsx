@@ -58,15 +58,15 @@ const navigation = [
   { id: 'home', label: '首页', icon: Home, description: '安排、执行、记录今天' },
   {
     id: 'calendar',
-    label: '规划',
+    label: '日历',
     icon: CalendarDays,
     description: '查看未来任务与跨日安排',
   },
   {
     id: 'projects',
-    label: '项目',
+    label: '计划',
     icon: FolderKanban,
-    description: '管理长期事项与任务归属',
+    description: '管理阶段计划、长期项目和 Daily',
   },
   {
     id: 'insights',

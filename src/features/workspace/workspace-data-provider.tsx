@@ -248,6 +248,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     const tables = [
       'projects',
       'tasks',
+      'stage_plans',
       'task_time_entries',
       'daily_templates',
       'daily_template_items',

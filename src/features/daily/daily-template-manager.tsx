@@ -2,7 +2,9 @@
 
 'use client';
 
-import { Circle, Plus, Trash2 } from 'lucide-react';
+import { Circle, Plus, Trash2, Repeat } from 'lucide-react';
+import { CottageNavIcon } from '@/features/appearance/cottage-sprite';
+import { PlanObjectIcon } from '@/features/stage-plans/object-icon';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useGuardedAction } from '@/hooks/use-guarded-action';
@@ -21,6 +23,7 @@ type DialogMode =
   | 'edit-item';
 type DailyTemplateManagerProps = {
   items: Daily[];
+  search?: string;
   onCreate: (daily: Daily) => Promise<void>;
   onSave: (daily: Daily) => Promise<void>;
   onSetStatus: (id: string, status: Status) => Promise<void>;
@@ -117,7 +120,7 @@ export const DailyTemplateManager = forwardRef<
   DailyTemplateManagerHandle,
   DailyTemplateManagerProps
 >(function DailyTemplateManager(
-  { items, onCreate, onSave, onSetStatus, onSetItemStatus },
+  { items, search = '', onCreate, onSave, onSetStatus, onSetItemStatus },
   ref,
 ) {
   const [mode, setMode] = useState<DialogMode>();
@@ -270,89 +273,112 @@ export const DailyTemplateManager = forwardRef<
       close();
     });
 
-  /** 将现有 Daily 创建流程以受限 handle 交给项目页唯一入口调用。 */
+  /** 外部调用与区域按钮复用现有 Daily 创建流程。 */
   useImperativeHandle(ref, () => ({ openCreate }));
 
   return (
     <section
-      className="manager-section"
+      className="manager-section plan-section"
       aria-labelledby="daily-template-manager-heading"
     >
-      <div className="manager-section-heading">
-        <h2 id="daily-template-manager-heading">
-          Daily <span>{visible.length}</span>
-        </h2>
+      <div className="manager-section-heading plan-section-heading">
+        <div>
+          <h2 id="daily-template-manager-heading">
+            <CottageNavIcon name="rhythm">
+              <Repeat size={23} />
+            </CottageNavIcon>
+            Daily <span>{visible.length}</span>
+          </h2>
+          <p>管理重复性任务，建立稳定的日常节奏。</p>
+        </div>
+        <button type="button" className="plan-create-link" onClick={openCreate}>
+          + 新建 Daily
+        </button>
       </div>
       {visible.length > 0 && (
         <div className="manager-card manager-card--daily">
           <div className="manager-list manager-list--daily">
-            {visible.map((daily) => {
-              const activeItems = daily.children.filter(
-                (item) => !item.deletedAt && item.active !== false,
-              );
-              const visibleItems = daily.children.filter((item) => !item.deletedAt);
-              const total = activeItems.reduce(
-                (sum, item) => sum + (item.plannedDurationMinutes ?? 0),
-                0,
-              );
-              return (
-                <div className="daily-manager-row" key={daily.id}>
-                  <button
-                    aria-haspopup="dialog"
-                    aria-label={`管理 Daily ${daily.title}`}
-                    className="daily-disclosure"
-                    onClick={() => openTemplateManage(daily)}
-                    type="button"
-                  >
-                    <span aria-hidden="true" className="daily-template-dot" />
-                    <span>{daily.title}</span>
-                    <span className="manager-status">
-                      {daily.active === false
-                        ? '已归档'
-                        : `${activeItems.length} 项 · ${planned(total)}`}
-                    </span>
-                  </button>
-                  <div className="daily-manager-items">
-                    {visibleItems.length > 0 && (
-                      <div className="daily-manager-inset">
-                        {visibleItems.map((item) => {
-                          const itemId = item.templateItemId ?? item.id;
-                          if (!itemId) return null;
-                          return (
-                            <button
-                              aria-haspopup="dialog"
-                              aria-label={`管理清单项 ${item.title}`}
-                              className="daily-manager-item"
-                              key={itemId}
-                              onClick={() => openItemManage(daily, itemId)}
-                              type="button"
-                            >
-                              <Circle aria-hidden="true" size={20} strokeWidth={1.6} />
-                              <span>{item.title}</span>
-                              <span>
-                                {item.active === false
-                                  ? '已归档'
-                                  : planned(item.plannedDurationMinutes ?? 0)}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {daily.active !== false && (
-                      <button
-                        className="manager-inline-action"
-                        onClick={() => openAppend(daily.id)}
-                        type="button"
-                      >
-                        <Plus aria-hidden="true" size={20} strokeWidth={1.8} />
-                        添加清单项
-                      </button>
-                    )}
+            {visible
+              .filter((daily) =>
+                daily.title.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
+              )
+              .map((daily) => {
+                const activeItems = daily.children.filter(
+                  (item) => !item.deletedAt && item.active !== false,
+                );
+                const visibleItems = daily.children.filter((item) => !item.deletedAt);
+                const total = activeItems.reduce(
+                  (sum, item) => sum + (item.plannedDurationMinutes ?? 0),
+                  0,
+                );
+                return (
+                  <div className="daily-manager-row" key={daily.id}>
+                    <button
+                      aria-haspopup="dialog"
+                      aria-label={`管理 Daily ${daily.title}`}
+                      className="daily-disclosure"
+                      onClick={() => openTemplateManage(daily)}
+                      type="button"
+                    >
+                      <PlanObjectIcon name={daily.title} kind="daily" />
+                      <span>{daily.title}</span>
+                      <span className="manager-status">
+                        {daily.active === false
+                          ? '已归档'
+                          : `${activeItems.length} 项 · ${planned(total)}`}
+                      </span>
+                    </button>
+                    <details className="daily-manager-items">
+                      <summary>清单 · {visibleItems.length} 项</summary>
+                      {visibleItems.length > 0 && (
+                        <div className="daily-manager-inset">
+                          {visibleItems.map((item) => {
+                            const itemId = item.templateItemId ?? item.id;
+                            if (!itemId) return null;
+                            return (
+                              <button
+                                aria-haspopup="dialog"
+                                aria-label={`管理清单项 ${item.title}`}
+                                className="daily-manager-item"
+                                key={itemId}
+                                onClick={() => openItemManage(daily, itemId)}
+                                type="button"
+                              >
+                                <Circle
+                                  aria-hidden="true"
+                                  size={20}
+                                  strokeWidth={1.6}
+                                />
+                                <span>{item.title}</span>
+                                <span>
+                                  {item.active === false
+                                    ? '已归档'
+                                    : planned(item.plannedDurationMinutes ?? 0)}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {daily.active !== false && (
+                        <button
+                          className="manager-inline-action"
+                          onClick={() => openAppend(daily.id)}
+                          type="button"
+                        >
+                          <Plus aria-hidden="true" size={20} strokeWidth={1.8} />
+                          添加清单项
+                        </button>
+                      )}
+                    </details>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            <button className="daily-create-card" type="button" onClick={openCreate}>
+              <Plus aria-hidden="true" size={28} strokeWidth={1.5} />
+              <span>新建 Daily</span>
+              <small>建立一个新的日常清单</small>
+            </button>
           </div>
         </div>
       )}

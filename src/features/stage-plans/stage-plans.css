@@ -1,0 +1,858 @@
+/* 文件用途：计划卡片、首页阶段和详情共用主题变量，兼容像素外观与手机单列。 */
+.project-panel {
+  width: 100%;
+  max-width: none;
+  gap: var(--space-5);
+}
+
+.project-create-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.project-page-heading {
+  flex-wrap: wrap;
+  padding: var(--space-4) var(--space-5) var(--space-3);
+}
+.project-page-heading h1 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: 36px;
+  line-height: 1.25;
+}
+.plan-page-icon {
+  display: inline-flex;
+  align-items: center;
+}
+.plan-page-icon > .cottage-furniture {
+  display: none;
+}
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .plan-page-icon
+  > .cottage-nav-icon {
+  display: none;
+}
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .plan-page-icon
+  > .cottage-furniture {
+  display: block;
+  width: 52px;
+  height: 52px;
+}
+.project-page-heading p {
+  margin: var(--space-3) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--text-body-size);
+}
+.plan-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.plan-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  min-height: var(--touch-target);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-secondary);
+}
+.plan-search input {
+  width: 190px;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  outline-offset: 3px;
+}
+.project-create-trigger {
+  width: auto;
+  min-width: 108px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-control);
+  gap: var(--space-2);
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+.project-create-trigger span {
+  display: inline;
+  font-size: var(--text-body-size);
+  font-weight: 600;
+}
+.plan-section {
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.plan-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+}
+.plan-section-heading > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  min-width: 0;
+}
+html .project-panel .plan-section-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: 23px;
+  flex-shrink: 0;
+  color: var(--text-primary);
+}
+.plan-section-heading h2 span:not(.cottage-nav-icon):not(.cottage-standard-icon) {
+  color: var(--text-secondary);
+}
+.plan-section-heading p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+  line-height: 1.5;
+}
+.plan-create-link {
+  flex-shrink: 0;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-3);
+  color: var(--accent-text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+.stage-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  justify-self: start;
+  padding: var(--space-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface-secondary);
+}
+.stage-tabs button {
+  min-height: var(--touch-target);
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-4);
+  font: inherit;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+}
+.stage-tabs button[aria-selected='true'] {
+  background: var(--accent-soft);
+  color: var(--text-primary);
+}
+.stage-tabs button span {
+  margin-left: var(--space-2);
+  font-variant-numeric: tabular-nums;
+}
+.stage-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+.stage-plan-card {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-card);
+}
+.stage-plan-card.is-home-visible {
+  border-color: var(--accent);
+}
+.stage-card-main {
+  display: grid;
+  gap: var(--space-3);
+  min-height: 145px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.stage-card-main h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  overflow-wrap: anywhere;
+  margin: 0;
+  padding-right: 90px;
+  font-size: 19px;
+  line-height: 1.5;
+  align-items: start;
+}
+.stage-plan-card .stage-pin {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-4);
+  margin: 0;
+  border-radius: 999px;
+  padding: 0 var(--space-3);
+  background: transparent;
+}
+.stage-plan-card .stage-pin[aria-pressed='false'] {
+  background: var(--surface-secondary);
+}
+.stage-card-chevron {
+  position: absolute;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  color: var(--text-secondary);
+}
+.stage-plan-card .stage-counts {
+  padding-right: var(--space-5);
+}
+.stage-plan-card .stage-progress {
+  margin-top: var(--space-5);
+}
+.project-panel .plan-object-icon .cottage-sprite {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+.project-panel .stage-plan-card .stage-range {
+  padding-left: 44px;
+}
+.project-panel .daily-manager-row {
+  background: color-mix(in srgb, var(--accent-soft) 35%, var(--surface));
+}
+.project-panel .stage-card-main:hover {
+  background: transparent;
+}
+.stage-pin {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-3);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-secondary-size);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.stage-pin[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+.stage-range {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+  overflow-wrap: anywhere;
+}
+.stage-progress {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-4) 0 var(--space-3);
+}
+.stage-progress span {
+  color: var(--accent-text);
+  font-size: var(--text-secondary-size);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.stage-progress progress {
+  width: 100%;
+  height: 10px;
+  border: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-secondary);
+  accent-color: var(--accent);
+}
+.stage-progress progress::-webkit-progress-bar {
+  background: var(--surface-secondary);
+  border-radius: 8px;
+}
+.stage-progress progress::-webkit-progress-value {
+  background: var(--accent);
+  border-radius: 8px;
+}
+.stage-counts {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+  line-height: 1.6;
+}
+.project-panel .manager-card.manager-card--projects,
+.project-panel .manager-card.manager-card--daily {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+/* 页面已有显式像素图标，移除旧列表标题自动追加的第二个图标。 */
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .project-panel
+  .project-page-heading
+  h1::after,
+html:is([data-theme='cottage'], [data-theme='classic'])
+  .project-panel
+  .plan-section-heading
+  h2::before {
+  content: none;
+}
+
+.project-panel .daily-manager-items > summary {
+  min-height: var(--touch-target);
+  align-content: center;
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+  cursor: pointer;
+}
+.manager-list--projects,
+.manager-list--daily {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 195px), 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+.manager-list--projects .manager-row {
+  min-width: 0;
+  min-height: 138px;
+  grid-template-columns: 32px minmax(0, 1fr) 20px;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.manager-list--projects .manager-row:first-child {
+  border-top: 1px solid var(--border-subtle);
+}
+.project-grid-card .manager-primary {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 18px;
+}
+.project-task-count {
+  grid-column: 2;
+  color: color-mix(in srgb, var(--text-secondary) 85%, var(--text-primary));
+  font-size: var(--text-secondary-size);
+}
+.project-grid-card .manager-status {
+  grid-column: 2;
+  color: color-mix(in srgb, var(--text-secondary) 85%, var(--text-primary));
+}
+.project-grid-card .manager-row-chevron {
+  grid-column: 3;
+  grid-row: 2;
+}
+.project-grid-card > .cottage-nav-icon .cottage-standard-icon {
+  color: var(--project-color, var(--accent));
+}
+.project-grid-card > .cottage-nav-icon .cottage-sprite,
+.daily-disclosure > .cottage-nav-icon .cottage-sprite {
+  width: 32px;
+  height: 32px;
+}
+.manager-list--daily {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 245px), 1fr));
+}
+.daily-create-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  padding: var(--space-4);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-card);
+  background: transparent;
+  color: var(--accent-text);
+  font: inherit;
+  cursor: pointer;
+}
+.daily-create-card small {
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+}
+.daily-manager-row,
+.daily-manager-row + .daily-manager-row {
+  min-width: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.daily-disclosure {
+  padding: var(--space-4);
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: var(--space-3);
+}
+.daily-disclosure > span:nth-child(2) {
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  font-size: 18px;
+}
+.daily-disclosure .manager-status {
+  grid-column: 2;
+  white-space: normal;
+  font-size: var(--text-secondary-size);
+}
+.daily-manager-items {
+  padding: 0 var(--space-3) var(--space-3);
+}
+.daily-manager-item {
+  padding: var(--space-2);
+  gap: var(--space-2);
+  grid-template-columns: 16px minmax(0, 1fr);
+  min-height: 52px;
+}
+.daily-manager-item > span:first-of-type {
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.daily-manager-item > span:last-of-type {
+  grid-column: 2;
+  font-size: var(--text-secondary-size);
+}
+.home-stage-plans {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.home-stage-card {
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+.home-stage-card > header {
+  display: flex;
+  gap: var(--space-2);
+  align-items: start;
+  justify-content: space-between;
+}
+.stage-title-link {
+  border: 0;
+  padding: 0;
+  color: var(--text-primary);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+.stage-title-link h2 {
+  font-size: var(--text-section-size);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.stage-hide {
+  min-height: var(--touch-target);
+  padding: 0;
+  border: 0;
+  font: inherit;
+  font-size: var(--text-secondary-size);
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.stage-task-groups {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+.stage-task-group h3 {
+  margin: 0 0 var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+  font-weight: 600;
+}
+.stage-task-group h3 span {
+  margin-left: var(--space-2);
+  font-variant-numeric: tabular-nums;
+}
+.stage-task-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: start;
+  padding: var(--space-1) 0;
+}
+.stage-task-title {
+  min-width: 0;
+  padding: var(--space-2) 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  line-height: 1.5;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.stage-task-row.is-completed .stage-task-title {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}
+.stage-task-actions {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 2px;
+}
+.stage-task-actions button {
+  min-width: 32px;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-1);
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+.stage-task-actions .stage-today {
+  color: var(--accent-text);
+  font-size: var(--text-secondary-size);
+  white-space: nowrap;
+}
+.stage-task-actions time {
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+  max-width: 6.5em;
+  overflow-wrap: anywhere;
+}
+.stage-task-row .form-error {
+  grid-column: 1 / -1;
+}
+.stage-empty-group,
+.stage-history-note {
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+  margin: var(--space-2) 0;
+}
+.stage-toast {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-3);
+  color: var(--text-primary);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  overflow-wrap: anywhere;
+}
+.stage-toast button {
+  min-height: var(--touch-target);
+  background: transparent;
+  color: var(--accent-text);
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.stage-detail {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 960px;
+  margin: 0 auto;
+  min-width: 0;
+}
+.stage-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target);
+  width: fit-content;
+  padding: 0;
+  background: transparent;
+  color: var(--accent-text);
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.stage-detail-heading {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.stage-detail-heading h1 {
+  margin: 0;
+  font-size: var(--text-page-size);
+  overflow-wrap: anywhere;
+}
+.stage-detail-heading > div {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.stage-detail-heading > div > button {
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+.stage-detail > .stage-task-groups {
+  padding: var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+}
+.stage-history {
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+}
+.stage-history summary {
+  min-height: var(--touch-target);
+  cursor: pointer;
+}
+.stage-history-row {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  padding: var(--space-2) 0;
+  overflow-wrap: anywhere;
+}
+.stage-history-row small {
+  flex-shrink: 0;
+}
+.stage-editor,
+.stage-editor fieldset {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-4);
+}
+.stage-editor fieldset {
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+.stage-editor input:not([type='checkbox']),
+.stage-quick-input input {
+  min-width: 0;
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  background: var(--surface);
+  box-sizing: border-box;
+}
+.stage-date-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-3);
+}
+.stage-editor .stage-visible-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target);
+  font-size: var(--text-body-size);
+}
+.stage-draft-list {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.stage-draft-list p {
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+  margin: 0;
+  line-height: 1.6;
+}
+.stage-draft-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: var(--space-2);
+  overflow-wrap: anywhere;
+}
+.stage-draft-item button {
+  flex-shrink: 0;
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  border: 0;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+}
+.stage-quick-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.stage-quick-input button {
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font: inherit;
+  min-height: var(--touch-target);
+  cursor: pointer;
+}
+.plan-empty {
+  color: var(--text-secondary);
+  font-size: var(--text-body-size);
+  line-height: 1.6;
+  margin: var(--space-3) 0;
+}
+:is(
+  .plan-create-link,
+  .stage-pin,
+  .stage-task-actions button,
+  .stage-hide,
+  .stage-title-link,
+  .stage-card-main
+):hover {
+  background-color: var(--accent-soft);
+}
+:is(.stage-plan-card, .project-grid-card, .daily-manager-row) {
+  transition:
+    border-color var(--motion-fast) ease,
+    background-color var(--motion-fast) ease;
+}
+@media (max-width: 760px) {
+  .project-page-heading {
+    padding: 0;
+    gap: var(--space-4);
+  }
+  .project-page-heading h1 {
+    font-size: 30px;
+  }
+  .project-page-heading > div,
+  .plan-heading-actions {
+    width: 100%;
+  }
+  .plan-heading-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .plan-search input {
+    width: 100%;
+    font-size: 16px;
+  }
+  .project-create-trigger {
+    min-width: 0;
+    min-height: var(--touch-target);
+    padding: 0 var(--space-3);
+  }
+  .plan-section {
+    padding: var(--space-4);
+  }
+  .plan-section-heading {
+    align-items: start;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .plan-section-heading > div {
+    flex: 1 1 150px;
+    gap: var(--space-2);
+  }
+  .plan-section-heading h2 {
+    font-size: 20px;
+  }
+  .plan-section-heading p {
+    flex-basis: 100%;
+  }
+  .stage-tabs {
+    width: 100%;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .stage-tabs button {
+    padding: 0 var(--space-1);
+    font-size: var(--text-secondary-size);
+  }
+  .stage-plan-grid,
+  .manager-list--projects,
+  .manager-list--daily {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .manager-list--projects .manager-row {
+    min-height: 110px;
+  }
+  .stage-detail > .stage-task-groups {
+    padding: var(--space-3);
+  }
+  .stage-task-row {
+    grid-template-columns: var(--touch-target) minmax(0, 1fr);
+  }
+  .stage-task-actions {
+    grid-column: 2;
+    justify-content: flex-end;
+  }
+  .stage-task-actions button {
+    min-width: var(--touch-target);
+  }
+  .stage-date-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .stage-editor input,
+  .stage-quick-input input {
+    font-size: 16px;
+  }
+  .stage-task-title {
+    font-size: 1rem;
+  }
+}
+@media (min-width: 761px) and (max-width: 1199px) {
+  .stage-plan-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage-plan-card,
+  .project-grid-card,
+  .daily-manager-row {
+    transition: none;
+  }
+}

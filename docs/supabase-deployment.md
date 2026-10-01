@@ -2,6 +2,12 @@
 
 # Supabase、Vercel 与跨端验收
 
+## 阶段计划迁移
+
+在现有 main 迁移之后应用 `202610010001_stage_plans.sql`，再发布新客户端。迁移新增账号隔离的阶段表、Task 同账号关联、事务 RPC 与阶段 Realtime；原项目、Daily 和任务流转接口保持兼容。阶段关联的回收站任务不再参与 30 天物理清理。阶段删除会在同一事务清除任务关联而保留任务；清除关联后的普通回收站任务恢复原清理规则。
+
+用 `pnpm test:stage:db` 在隔离 PostgreSQL 执行全套原始迁移与阶段合同；`pnpm test:supabase:integration` 还包含同账号双客户端阶段/任务 Realtime、跨账号拒绝和并发版本检查。前者不验证网络同步，后者要求运行本地 Docker/Supabase。字段、发布顺序和截图见 [阶段计划](stage-plans.md)。
+
 ## 两人空间迁移
 
 新功能依次应用 `202609280001_together.sql` 与 `202609300001_together_review_safety.sql`，再发布客户端。新增独立成员 RLS、幂等 RPC 与 rooms Realtime，不放宽个人数据权限。成果图片改为微信发送，应用只记录主动声明与验收，因此不需要 Storage 或清理 Cron。部署步骤、测试边界及 localhost 展示见 [两人空间](together-space.md)。

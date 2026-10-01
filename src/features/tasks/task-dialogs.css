@@ -94,7 +94,7 @@
 }
 
 .task-dialog footer button[type='submit'] {
-  color: white;
+  color: var(--text-on-accent);
   background: var(--accent);
 }
 

@@ -176,7 +176,7 @@ test.describe('compact viewport layout matrix', () => {
   test('keeps Daily draft names and planned minutes editable without horizontal overflow', async ({
     page,
   }) => {
-    await openWorkspaceSection(page, '项目');
+    await openWorkspaceSection(page, '计划');
     await openProjectCreateDialog(page, '新建 Daily');
     await page.getByRole('button', { name: '+ 添加清单项', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: '新建 Daily' });
@@ -196,20 +196,20 @@ test.describe('compact viewport layout matrix', () => {
     await expectNoUnexpectedHorizontalOverflow(page);
   });
 
-  test('keeps the grouped project page singular, contained, and reachable through one create entry', async ({
+  test('keeps the grouped project page singular, contained, and reachable through explicit section entries', async ({
     page,
   }, testInfo) => {
-    await openWorkspaceSection(page, '项目');
+    await openWorkspaceSection(page, '计划');
     const panel = page.getByTestId('project-panel');
-    const newTrigger = page.getByRole('button', { name: '新建', exact: true });
+    const newTrigger = page.getByRole('button', { name: '+ 新建项目', exact: true });
 
     await expect(
-      page.getByRole('heading', { level: 1, name: '项目', exact: true }),
+      page.getByRole('heading', { level: 1, name: '计划', exact: true }),
     ).toHaveCount(1);
-    await expect(page.locator('h1').filter({ hasText: /^项目$/ })).toHaveCount(1);
+    await expect(page.locator('h1').filter({ hasText: /^计划$/ })).toHaveCount(1);
     await expect(page.locator('.tl-header')).toHaveCount(0);
     await expect(panel).toBeVisible();
-    await expect(panel.getByRole('heading', { name: /我的项目/ })).toBeVisible();
+    await expect(panel.getByRole('heading', { name: /^项目/ })).toBeVisible();
     await expect(panel.getByRole('heading', { name: /Daily/ })).toBeVisible();
     await expectElementWithinHorizontalViewport(page, panel, '项目管理页面');
     await expectNoUnexpectedHorizontalOverflow(page);
