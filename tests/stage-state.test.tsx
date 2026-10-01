@@ -265,5 +265,6 @@ it('keeps a remotely deleted stage hidden and its tasks detached when an older c
   await act(async () => resolve({ plan, tasks: [oldTask] }));
   expect(client.getQueryData(['workspace', 'a', 'tasks'])).toEqual([detachedTask]);
   expect(client.getQueryData(['workspace', 'a', 'stage-plans'])).toEqual([deletedPlan]);
-  expect(screen.getByTestId('plans')).toBeEmptyDOMElement();
+  // Query 缓存已确认；React Query 的批量通知仍需等待展示层完成提交。
+  await waitFor(() => expect(screen.getByTestId('plans')).toBeEmptyDOMElement());
 });
