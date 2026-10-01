@@ -89,9 +89,7 @@ export function StageTaskList({
               key={task.id}
               task={task}
               today={today}
-              metadata={
-                data.projects.find((project) => project.id === task.projectId)?.name
-              }
+              project={data.projects.find((project) => project.id === task.projectId)}
               onEdit={() => setEditing(task)}
               onDate={() => setDating(task)}
               onToday={() => scheduleToday(task)}

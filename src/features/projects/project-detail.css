@@ -125,11 +125,6 @@
 .plan-task-content {
   min-width: 0;
 }
-.plan-task-content .stage-task-title {
-  display: block;
-  width: 100%;
-  padding-bottom: var(--space-1);
-}
 .plan-task-meta {
   display: flex;
   flex-wrap: wrap;

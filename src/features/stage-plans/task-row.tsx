@@ -3,11 +3,12 @@
 import { useState, useRef, type ReactNode } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ProjectTag } from '@/components/ui/project-tag';
 import { TaskActionsPopover } from '@/features/tasks/components/task-actions-popover';
 import { useGuardedAction } from '@/hooks/use-guarded-action';
-import type { Task } from '@/types/domain';
+import type { Project, Task } from '@/types/domain';
 import { stageTaskDateLabel } from './rules';
-/** 小型直接操作有独立忙状态和错误，长标题完整换行，不把动作藏进菜单。 */
+/** 项目与标题首行并排；直接操作有独立忙状态和错误，长标题完整换行。 */
 export function PlanTaskRow({
   task,
   today,
@@ -17,6 +18,7 @@ export function PlanTaskRow({
   onToggle,
   onRemove,
   metadata,
+  project,
 }: {
   task: Task;
   today: string;
@@ -26,6 +28,7 @@ export function PlanTaskRow({
   onToggle: () => Promise<unknown>;
   onRemove?: () => Promise<void>;
   metadata?: ReactNode;
+  project?: Project;
 }) {
   const [menu, setMenu] = useState(false);
   const anchor = useRef<HTMLButtonElement>(null);
@@ -43,9 +46,16 @@ export function PlanTaskRow({
         onChange={() => void run(onToggle)}
       />
       <div className="plan-task-content">
-        <button className="stage-task-title" type="button" onClick={onEdit}>
-          {task.title}
-        </button>
+        <div className="plan-task-title-line">
+          {project && (
+            <span className="plan-task-project">
+              <ProjectTag name={project.name} color={project.color} />
+            </span>
+          )}
+          <button className="stage-task-title" type="button" onClick={onEdit}>
+            {task.title}
+          </button>
+        </div>
         {metadata && <div className="plan-task-meta">{metadata}</div>}
       </div>
       <div className="stage-task-actions">

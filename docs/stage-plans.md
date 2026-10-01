@@ -20,6 +20,10 @@
 
 Task 只有新增的可选 `stagePlanId`，仍具有原 `projectId`。阶段内创建与追加均可选择活跃项目，默认属于现有「其他」项目，无日期、无时间；项目归属、预计分钟和时间继续通过原任务表单编辑。阶段清单显示真实项目名称。普通待安排池（首页及日历）排除所有阶段关联项。隐藏、结束、退回未安排均保留阶段归属。
 
+阶段任务行复用今日日程的 `ProjectTag`，项目名位于标题左侧，不单独占据第二行。复选框、项目标签和标题首行对齐；长标题完整换行，长项目名限宽省略，窄手机仍允许操作另起一行，点击区域保持 44px。
+
+阶段编辑的并发基准固定为打开弹窗时的完整记录。实时刷新不会给旧草稿替换版本；其他设备已修改时数据库拒绝覆盖并保留本机输入。阶段事务确认回包按精确时间版本合并，任务 `updatedAt` 保留 PostgreSQL 微秒，迟到的旧回包不能覆盖缓存中较新的阶段或任务状态。
+
 首页在普通待安排上方展示**全部**符合条件的阶段；清单不截断、不分页、不默认折叠。首页和详情复用摘要与列表，顺序为未安排 → 已安排 → 已完成。数量和进度按有效 Task 派生；已放弃和回收站任务在详情折叠历史区保留，并从进度分母排除。完成后仍在阶段内，取消完成回到原安排组。
 
 未安排任务的「→ 今天」调用原 `transition_task(scheduled)`，设置账号今天及待填时间状态。Task ID 不变；同一任务同时出现在阶段与日程。首页查看其他工作日期时切回账号今天，保证今日日程可见。其他日期与改期复用原弹窗及数据库规则，允许超出阶段范围；标签为今天、明天或月日，跨年补年份。
@@ -43,6 +47,7 @@ Task 只有新增的可选 `stagePlanId`，仍具有原 `projectId`。阶段内�
 - `rules.ts`：日期、三组状态、普通待安排隔离。
 - `repository.ts`：分页读取全部阶段，映射原 Task，事务 RPC 回包。
 - `state.tsx`：账号 React Query 缓存、写保护、防重入、确认结果合并、首页隐藏回滚；显式测试和无云 Preview 使用本地适配器。
+- `confirmed-cache.ts`：按完整时间版本合并确认回包，保留缓存中较新的任务与阶段。
 - `editor.tsx`、`draft-list.tsx`、`editor-viewport.ts`：稳定草稿 ID、可编辑连续清单、项目选择、中文输入法保护，以及手机两步流程和可见视口定位。
 - `board.tsx`、`summary.tsx`、`task-list.tsx`：列表、首页、详情和原任务编辑/日期入口；`task-row.tsx` 供阶段与项目共用原 Task 操作。详情是工作台内容视图，保留列表筛选、搜索、滚动与返回焦点，Web/PWA 与 Electron 共用。
 - `projects/project-detail.tsx`、`project-task-rules.ts`：跨日期的同项目原 Task 总览、去重、状态筛选和搜索；不产生新的任务集合或缓存真源。
@@ -67,20 +72,18 @@ Task 只有新增的可选 `stagePlanId`，仍具有原 `projectId`。阶段内�
 
 单元/组件测试覆盖日期边界、完整分组、中文 Enter、失败重试、隐藏回滚、防重入、换号旧回包隔离和 Preview 历史保留。浏览器 `stage-plans.spec.ts` 通过创建 16 项任务的真实路径检查 ID/记录数不变、改期/完成/取消完成、隐藏/撤销/恢复、删除保留、账号午夜和过去详情；`ui-stage-plans.spec.ts` 检查深浅色、完整长清单、长标题、焦点、axe 及 1440/1366/1280/1024 和 430/390/375/320px 布局。
 
-类型、lint、全部 90 文件 449 项单元/组件、PostgreSQL 合同 29 项及 SQL 静态合同通过。此前基础功能与阶段浏览器回归 108 项、阶段布局矩阵 9 项通过；本次最终无云 Preview 桌面、320px 与 iPhone WebKit 共 15 项通过，包含项目汇总、归属编辑、手机两步、80% 上限、短视口、明暗主题与 axe。Web 构建、nonce CSP、Electron 静态前端与修改文件格式检查通过。全仓仍有 28 个未修改的既有格式问题，本次未批量重排无关源文件。
+合并前审计后，类型、全仓 lint、全部 90 文件 452 项单元/组件、PostgreSQL 合同 29 项及 SQL 静态合同通过。无云 Preview 桌面、320px 与 iPhone WebKit 共 15 项通过，包含 16 项逐项项目归属、项目汇总、同 Task 安排与完成、手机两步、80% 弹窗上限、短视口、明暗主题与 axe；额外按首行实际几何位置核对复选框、项目和标题中心误差小于 2px。Web 构建与 nonce CSP 通过。
 
-逐项项目下拉追加验证：相关 3 文件 16 项单元/组件测试通过，桌面、320px 与 iPhone WebKit 共 6 项真实 Preview 验证通过，覆盖修改单条项目不影响其他项或下一条、稳定 ID、失败重试、手机返回保留、明暗主题及短视口。类型、修改范围 lint、Web 构建和 nonce CSP 通过，截图同步更新。
+项目选择器另测量 1280px Chromium、320px Chromium 与 390px WebKit：「工作」桌面宽 60px，手机宽 68px，长名上限 144px，点击高度均为 44px；长名不撑大所在列或造成横向溢出。全仓有 28 个未修改的既有格式问题，本次不批量重排无关源文件。
 
-选择器宽度调整追加验证：5 项阶段编辑器组件测试和桌面、320px、iPhone WebKit 共 3 项真实 Preview 检查通过。另在 1280px Chromium、320px Chromium 与 390px WebKit 测量短名和长名：「工作」桌面宽 60px，手机宽 68px，长名上限 144px，点击高度均为 44px；长名不会撑大所在列或造成横向溢出。保留原生选择器的焦点和完整选项，类型、修改范围 lint、格式、Web 构建及 nonce CSP 检查通过。
+云端合同按 Task ID 核对所有显式项目与默认「其他」归属，不假设 RPC 回包顺序与输入一致。Linux CI 保留真实 Supabase 双客户端、完整浏览器与 Windows Electron 门禁；以 PR #52 最终提交的检查结果作为合并依据。合并前审计、已复现问题与修复证据见 [审计记录](stage-plans-audit.md)。
 
-云端合同按 Task ID 核对所有显式项目与默认「其他」归属，不假设 RPC 回包顺序与输入一致；回包保持既有创建时间/UUID 排序。`72da453` 的真实 Supabase、Linux Preview（含 WebKit）和 Windows Electron CI 已通过。此前 Linux WebKit 曾停在首开工作台加载，保留跨平台门禁；新 UI 提交继续单独等待 CI，不用上一提交结果替代。
-
-无云演示构建在桌面、320px 与 iPhone WebKit 覆盖演示阶段同一 Task、Daily、刷新持久化、每日收尾、弹窗边界及云数据隔离；本次追加可编辑清单、16 项逐项项目归属、项目跨视图汇总与筛选，以及真实明暗主题截图。Linux WebKit 首次与刷新均单独等待工作台 hydration 就绪，不放宽后续保存/数据断言。PostgreSQL 合同增加逐项项目、追加幂等、跨账号拒绝、批量回滚与归档后重试，共 29 项。首开使用小屋深色与思源宋体，已有外观选择继续优先；正式客户端默认值保持原有规则。
-
-先按顺序部署两项阶段数据库迁移，再发布客户端。旧客户端不会复制阶段任务，但旧待安排视图不了解阶段归属，因此多端应同步更新以获得完整的计划语义。此分支未执行生产迁移、发布、真实 iPhone/PWA 设备或 Electron 安装包验收；本机 Docker 未运行，真实 Supabase 双客户端检查需由 CI/部署前环境完成。
+先按顺序部署两项阶段数据库迁移，再发布客户端。旧客户端不会复制阶段任务，但旧待安排视图不了解阶段归属，因此多端应同步更新。实体 iPhone 键盘/PWA 和用户设备上的 Windows 安装体验仍需手工验收；本机浏览器与 CI 模拟不代替设备验收。
 
 截图使用虚构演示数据：[桌面深色](screenshots/stage-plans/ui-layout-desktop-1440-dark.png)、[桌面浅色](screenshots/stage-plans/ui-layout-desktop-1440-light.png)、[手机深色](screenshots/stage-plans/ui-layout-mobile-390-dark.png)、[320px 浅色](screenshots/stage-plans/ui-layout-mobile-320-light.png)。
 
 用户本机演示首屏：[localhost 计划页](screenshots/stage-plans/localhost-preview.png)。示例阶段日期按演示首开当天生成，不写入正式账号。
 
 本次更新：[桌面创建](screenshots/stage-plans/stage-editor-desktop-dark.png)、[手机基本信息](screenshots/stage-plans/stage-editor-mobile-info.png)、[手机清单](screenshots/stage-plans/stage-editor-mobile-tasks.png)、[短视口](screenshots/stage-plans/stage-editor-mobile-short.png)、[项目总览](screenshots/stage-plans/project-overview-desktop-light.png)、[手机项目总览](screenshots/stage-plans/project-overview-mobile-dark.png)。
+
+首页任务行首组截图：[桌面浅色](screenshots/stage-plans/stage-home-inline-1440-light.png)、[桌面深色](screenshots/stage-plans/stage-home-inline-1440-dark.png)、[320px 浅色](screenshots/stage-plans/stage-home-inline-320-light.png)、[320px 深色](screenshots/stage-plans/stage-home-inline-320-dark.png)。截图截取首组以展示对齐，产品仍显示全部 16 项任务。
