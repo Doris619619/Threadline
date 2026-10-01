@@ -1,4 +1,4 @@
-/** @fileoverview 从无登录的真实 Preview 入口验证演示交互、刷新持久化与云端隔离。 */
+/** @fileoverview 从真实 Preview 验证演示交互、逐项项目下拉、手机边界、持久化与云端隔离。 */
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { openWorkspaceSection } from './support/workspace';
@@ -54,6 +54,16 @@ test('keeps stage creation and project overview readable in both themes', async 
       .getByRole('list', { name: '阶段任务草稿' })
       .evaluate((el) => (el.scrollTop = 0));
     const title = dialog.getByLabel('任务草稿 1', { exact: true });
+    const rowProject = dialog.getByLabel('任务草稿 1 项目', { exact: true });
+    await rowProject.selectOption({ label: 'AI研究' });
+    await expect(rowProject.locator('option:checked')).toHaveText('AI研究');
+    await expect(
+      dialog.getByLabel('任务草稿 2 项目', { exact: true }).locator('option:checked'),
+    ).toHaveText('工作');
+    await expect(
+      dialog.getByLabel('阶段任务项目', { exact: true }).locator('option:checked'),
+    ).toHaveText('生活');
+    await rowProject.selectOption({ label: '课程' });
     expect(await title.evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(
       true,
     );
@@ -95,6 +105,9 @@ test('keeps stage creation and project overview readable in both themes', async 
       await expect(
         dialog.getByRole('list', { name: '阶段任务草稿' }).getByRole('listitem'),
       ).toHaveCount(3);
+      await expect(
+        dialog.getByLabel('任务草稿 1 项目', { exact: true }).locator('option:checked'),
+      ).toHaveText('课程');
     }
     await dialog.getByRole('button', { name: '关闭', exact: true }).click();
     await page.getByRole('button', { name: '查看项目 其他', exact: true }).click();
@@ -155,6 +168,20 @@ test('keeps the stage composer compact and projects aggregate the same tasks acr
     .getByLabel('任务草稿 1', { exact: true })
     .locator('..')
     .getAttribute('data-stage-draft-id');
+  // 已收集任务可改项目再改回；身份及下一项选择不跟着变化。
+  await dialog
+    .getByLabel('任务草稿 1 项目', { exact: true })
+    .selectOption({ label: 'AI研究' });
+  await expect(project.locator('option:checked')).toHaveText('课程');
+  await dialog
+    .getByLabel('任务草稿 1 项目', { exact: true })
+    .selectOption({ label: '工作' });
+  expect(
+    await dialog
+      .getByLabel('任务草稿 1', { exact: true })
+      .locator('..')
+      .getAttribute('data-stage-draft-id'),
+  ).toBe(firstId);
   const longTitle =
     '汇总任务：准备课程报告、整理访学材料，确认每项事情都保留在所属项目中。'.repeat(3);
   await dialog.getByLabel('任务草稿 1', { exact: true }).fill(longTitle);

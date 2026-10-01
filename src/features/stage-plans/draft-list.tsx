@@ -1,8 +1,8 @@
-/** @fileoverview 阶段创建中的轻量清单编辑器；行内修改、连续输入及长草稿滚动均不写入数据库。 */
+/** @fileoverview 阶段创建中的轻量清单编辑器；逐项项目下拉、行内修改与连续输入均只更新草稿。 */
 'use client';
 
 import { useEffect, useId, useLayoutEffect, useRef, type RefObject } from 'react';
-import { CornerDownLeft, Plus, X } from 'lucide-react';
+import { ChevronDown, CornerDownLeft, Plus, X } from 'lucide-react';
 import type { StageTaskDraft } from './rules';
 import type { Project } from '@/types/domain';
 
@@ -17,7 +17,42 @@ type StageDraftListProps = {
   projects: Project[];
   projectId?: string;
   onProjectChange: (id: string) => void;
+  onItemProjectChange: (itemId: string, projectId: string) => void;
 };
+
+/** 与首页一致使用原生项目下拉；只列活跃项目，手机沿用系统选择器而不另开大弹窗。 */
+function DraftProjectPicker({
+  projects,
+  projectId,
+  label,
+  onChange,
+}: {
+  projects: Project[];
+  projectId?: string;
+  label: string;
+  onChange: (projectId: string) => void;
+}) {
+  if (!projects.length) return null;
+  return (
+    <span className="stage-draft-project-picker">
+      <select
+        aria-label={label}
+        title={projects.find((project) => project.id === projectId)?.name}
+        value={projectId ?? ''}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {projects
+          .filter((project) => project.status === 'active')
+          .map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
+            </option>
+          ))}
+      </select>
+      <ChevronDown size={14} aria-hidden="true" />
+    </span>
+  );
+}
 
 /** 单项草稿随文字自动增高，长标题完整换行；Enter 返回连续输入，中文选词不跳走。 */
 function DraftTaskRow({
@@ -26,11 +61,14 @@ function DraftTaskRow({
   inputRef,
   onChange,
   onRemove,
-  projectName,
-}: Pick<StageDraftListProps, 'inputRef' | 'onChange' | 'onRemove'> & {
+  projects,
+  onItemProjectChange,
+}: Pick<
+  StageDraftListProps,
+  'inputRef' | 'onChange' | 'onRemove' | 'projects' | 'onItemProjectChange'
+> & {
   item: StageTaskDraft;
   index: number;
-  projectName?: string;
 }) {
   const textarea = useRef<HTMLTextAreaElement>(null);
   useLayoutEffect(() => {
@@ -74,7 +112,12 @@ function DraftTaskRow({
           }
         }}
       />
-      <span className="stage-draft-project-name">{projectName}</span>
+      <DraftProjectPicker
+        projects={projects}
+        projectId={item.projectId}
+        label={'任务草稿 ' + (index + 1) + ' 项目'}
+        onChange={(projectId) => onItemProjectChange(item.id, projectId)}
+      />
       <button
         type="button"
         aria-label={'移除草稿 ' + item.title}
@@ -98,6 +141,7 @@ export function StageDraftList({
   projects,
   projectId,
   onProjectChange,
+  onItemProjectChange,
 }: StageDraftListProps) {
   const titleId = useId();
   const hintId = useId();
@@ -126,14 +170,17 @@ export function StageDraftList({
                 inputRef={inputRef}
                 onChange={onChange}
                 onRemove={onRemove}
-                projectName={
-                  projects.find((project) => project.id === item.projectId)?.name
-                }
+                projects={projects}
+                onItemProjectChange={onItemProjectChange}
               />
             ))}
           </ul>
         )}
-        <div className="stage-draft-composer">
+        <div
+          className={
+            'stage-draft-composer' + (projects.length ? ' has-project-picker' : '')
+          }
+        >
           <Plus size={18} aria-hidden="true" />
           <input
             ref={inputRef}
@@ -149,6 +196,12 @@ export function StageDraftList({
               if (!event.nativeEvent.isComposing && event.keyCode !== 229) onAdd();
             }}
           />
+          <DraftProjectPicker
+            projects={projects}
+            projectId={projectId}
+            label="阶段任务项目"
+            onChange={onProjectChange}
+          />
           <button type="button" onClick={onAdd} disabled={!pending.trim()}>
             添加 <CornerDownLeft size={14} aria-hidden="true" />
           </button>
@@ -156,24 +209,6 @@ export function StageDraftList({
       </div>
       <div className="stage-draft-settings">
         <p id={hintId}>Enter 连续添加</p>
-        {projects.length > 0 && (
-          <label className="stage-draft-project">
-            <span>归属项目</span>
-            <select
-              aria-label="阶段任务项目"
-              value={projectId ?? ''}
-              onChange={(event) => onProjectChange(event.target.value)}
-            >
-              {projects
-                .filter((project) => project.status === 'active')
-                .map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-            </select>
-          </label>
-        )}
       </div>
     </section>
   );

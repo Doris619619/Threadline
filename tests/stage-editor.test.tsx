@@ -1,4 +1,4 @@
-/** @fileoverview 验证连续新增清单、中文 Enter、零任务以及失败重试的稳定草稿身份。 */
+/** @fileoverview 验证连续清单、逐项项目下拉、中文 Enter、手机步骤与失败重试的稳定草稿身份。 */
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { StageEditor } from '@/features/stage-plans/editor';
@@ -54,7 +54,7 @@ it('allows an empty initial checklist and preserves IDs/input after failed submi
   expect(commands.create.mock.calls[0][0].tasks).toEqual([]);
 });
 
-it('edits and removes draft rows while retaining IDs and each chosen project through retry', async () => {
+it('changes projects per draft without changing the next task or stable IDs through retry', async () => {
   const projects: Project[] = [
     {
       id: 'other',
@@ -71,11 +71,20 @@ it('edits and removes draft rows while retaining IDs and each chosen project thr
       status: 'active',
       createdAt: '2026-10-01',
     },
+    {
+      id: 'archived',
+      name: '已归档项目',
+      color: '#888888',
+      status: 'archived',
+      createdAt: '2026-10-01',
+    },
   ];
   commands.create.mockRejectedValueOnce(new Error('网络失败'));
   render(<StageEditor onClose={vi.fn()} projects={projects} />);
   fillName();
   const input = screen.getByLabelText('阶段任务名称');
+  expect(screen.getByLabelText('阶段任务项目')).toHaveValue('other');
+  expect(screen.queryByRole('option', { name: '已归档项目' })).not.toBeInTheDocument();
   fireEvent.change(input, { target: { value: '默认项目' } });
   fireEvent.keyDown(input, { key: 'Enter' });
   const firstId = screen
@@ -89,8 +98,15 @@ it('edits and removes draft rows while retaining IDs and each chosen project thr
   fireEvent.keyDown(input, { key: 'Enter' });
   fireEvent.change(input, { target: { value: '移除这一项' } });
   fireEvent.keyDown(input, { key: 'Enter' });
+  fireEvent.change(screen.getByLabelText('任务草稿 1 项目'), {
+    target: { value: 'work' },
+  });
+  fireEvent.change(screen.getByLabelText('任务草稿 2 项目'), {
+    target: { value: 'other' },
+  });
+  expect(screen.getByLabelText('阶段任务项目')).toHaveValue('work');
   fireEvent.change(screen.getByLabelText('任务草稿 1'), {
-    target: { value: '修改后仍在其他项目' },
+    target: { value: '修改后属于工作项目' },
   });
   fireEvent.click(screen.getByRole('button', { name: '移除草稿 移除这一项' }));
   expect(input).toHaveFocus();
@@ -101,8 +117,8 @@ it('edits and removes draft rows while retaining IDs and each chosen project thr
   await waitFor(() => expect(commands.create).toHaveBeenCalledTimes(2));
   const draft = commands.create.mock.calls[0][0];
   expect(draft.tasks).toEqual([
-    { id: firstId, title: '修改后仍在其他项目', projectId: 'other' },
-    { id: expect.any(String), title: '工作任务', projectId: 'work' },
+    { id: firstId, title: '修改后属于工作项目', projectId: 'work' },
+    { id: expect.any(String), title: '工作任务', projectId: 'other' },
   ]);
   expect(commands.create.mock.calls[1][0]).toEqual(draft);
 });

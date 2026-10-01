@@ -81,6 +81,11 @@ export function StageEditor({
     }));
     input.current?.focus();
   };
+  /** 已添加草稿只修改自己的项目；保留任务 ID、标题以及下一条任务的项目选择。 */
+  const changeItemProject = (itemId: string, projectId: string) =>
+    setItems((rows) =>
+      rows.map((row) => (row.id === itemId ? { ...row, projectId } : row)),
+    );
   /** 验证名称日期后提交事务；网络失败保留每一个清单 ID 和输入。 */
   const submit = () =>
     void run(async () => {
@@ -182,6 +187,7 @@ export function StageEditor({
             onProjectChange={(projectId) =>
               setPending((row) => ({ ...row, projectId }))
             }
+            onItemProjectChange={changeItemProject}
             inputRef={input}
             onPendingChange={(title) => setPending((row) => ({ ...row, title }))}
             onChange={(itemId, title) =>
