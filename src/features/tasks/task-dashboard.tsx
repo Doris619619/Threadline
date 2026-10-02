@@ -271,11 +271,11 @@ export function TaskDashboard() {
     return <SettingsPanel tasks={tasks} onUpdateTask={update} />;
   return (
     <div className="dashboard dashboard-annotatable" data-testid="home-panel">
-      <div className="dashboard-overview">
+      <Surface className="dashboard-overview" variant="flat">
         <p className="home-summary" aria-live="polite">
           今日任务 {normalTaskTotal} · 已完成 {done}
         </p>
-        <Surface className="metric-strip" variant="flat">
+        <div className="metric-strip">
           <StatItem
             label="普通任务"
             value={
@@ -318,25 +318,27 @@ export function TaskDashboard() {
               </>
             }
           />
-        </Surface>
-        <button
-          type="button"
-          className="finish-day"
-          disabled={isDayClosed || preparingClose}
-          aria-busy={preparingClose}
-          title="整理未完成任务并保存今日记录"
-          onClick={() => void openCloseDialog()}
-        >
-          {isDayClosed ? (
-            <CircleCheck size={18} aria-hidden="true" />
-          ) : (
-            <Moon size={18} aria-hidden="true" />
-          )}
-          <span>
-            {isDayClosed ? '今日已结束' : preparingClose ? '正在保存…' : '结束今天'}
-          </span>
-        </button>
-      </div>
+        </div>
+        <div className="overview-close-action">
+          <button
+            type="button"
+            className="finish-day"
+            disabled={isDayClosed || preparingClose}
+            aria-busy={preparingClose}
+            title="整理未完成任务并保存今日记录"
+            onClick={() => void openCloseDialog()}
+          >
+            {isDayClosed ? (
+              <CircleCheck size={18} aria-hidden="true" />
+            ) : (
+              <Moon size={18} aria-hidden="true" />
+            )}
+            <span>
+              {isDayClosed ? '今日已结束' : preparingClose ? '正在保存…' : '结束今天'}
+            </span>
+          </button>
+        </div>
+      </Surface>
       <div
         className="dashboard-columns"
         style={{ '--schedule-ratio': `${scheduleRatio}fr` } as React.CSSProperties}

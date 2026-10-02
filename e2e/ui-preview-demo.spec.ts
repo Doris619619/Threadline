@@ -35,6 +35,16 @@ test('keeps day closing in the overview across themes', async ({ page }, info) =
       if (page.viewportSize()!.width <= 760) {
         const summary = (await page.locator('.home-summary').boundingBox())!;
         expect(Math.abs(summary.y - bounds.y)).toBeLessThan(2);
+      } else {
+        const overview = (await page.locator('.dashboard-overview').boundingBox())!;
+        const metrics = (await page.locator('.metric-strip').boundingBox())!;
+        expect(
+          overview.x + overview.width - bounds.x - bounds.width,
+        ).toBeGreaterThanOrEqual(16);
+        expect(
+          Math.abs(metrics.y + metrics.height / 2 - bounds.y - bounds.height / 2),
+        ).toBeLessThan(2);
+        await expect(page.locator('.metric-strip.tl-surface')).toHaveCount(0);
       }
       const violations = (
         await new AxeBuilder({ page }).include('.dashboard-overview').analyze()

@@ -110,7 +110,6 @@ export function ProjectManagementPage({
             </span>
             计划
           </h1>
-          <p>管理你的项目、阶段计划和 Daily，让每一段时间都有方向。</p>
         </div>
         <div className="plan-heading-actions">
           <label className="plan-search">

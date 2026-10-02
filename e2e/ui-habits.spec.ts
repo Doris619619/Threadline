@@ -10,6 +10,14 @@ import { expectNoUnexpectedHorizontalOverflow } from './support/layout';
 /** 检查真正可见的面板和卡片排列，防止主题仅通过无溢出检查却仍显示旧列表。 */
 async function expectHabitCardLayout(page: Page) {
   const width = page.viewportSize()!.width;
+  if (width >= 1280) {
+    const title = (await page.locator('.habit-page-header h1').boundingBox())!;
+    const clock = (await page.getByTestId('habit-clock').boundingBox())!;
+    expect(clock.x).toBeGreaterThan(title.x + title.width);
+    expect(
+      Math.abs(clock.y + clock.height / 2 - title.y - title.height / 2),
+    ).toBeLessThan(2);
+  }
   const today = page.locator(
     '.habit-today > .habit-check-row, .habit-today > .habit-efficiency-row',
   );

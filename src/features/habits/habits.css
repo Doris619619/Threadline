@@ -69,6 +69,13 @@
 .habit-page-header > div {
   min-width: 0;
 }
+/* 日期时钟紧随页标题，较窄窗口允许整组换行，设置按钮保持独立。 */
+.habit-page-intro {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+}
 .habit-caption,
 .habit-check-label small,
 .habit-record-value small,
@@ -494,7 +501,7 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 6px 12px;
-  margin-top: 6px;
+  margin: 0;
   font-size: 13px;
 }
 .habit-live-clock time {

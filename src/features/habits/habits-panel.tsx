@@ -79,7 +79,7 @@ export function HabitsPanel() {
   return (
     <div className="habits-panel" data-testid="habits-panel">
       <header className="habit-page-header">
-        <div>
+        <div className="habit-page-intro">
           <h1>
             <CottageNavIcon name="habits">
               <Sprout size={32} />
@@ -171,9 +171,6 @@ export function HabitsPanel() {
                   <CalendarDays size={24} aria-hidden="true" />
                   今日习惯
                 </h2>
-                <p className="habit-caption">
-                  记录今天的状态，让更好的自己每天靠近一点。
-                </p>
               </div>
               <HabitDayNavigation
                 date={historicalDate ?? today}
@@ -270,10 +267,9 @@ export function HabitsPanel() {
                   <small>已记录 {summary.efficiency.count} 天</small>
                 </div>
               </div>
-              <p className="habit-caption">
-                达标率仅计算已记录日，漏记不计入分母。
-                {summary.mixedTimezones ? '本区间按各条记录时区统计。' : ''}
-              </p>
+              {summary.mixedTimezones && (
+                <p className="habit-caption">本区间按各条记录时区统计。</p>
+              )}
             </div>
             <div className="habit-trends">
               {(['sleep', 'wake'] as const).map((kind) => (

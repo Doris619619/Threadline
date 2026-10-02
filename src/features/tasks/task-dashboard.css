@@ -9,17 +9,28 @@
   gap: 16px;
 }
 
-/* 收尾属于当天概览；放在任务列表之前，窄屏换行而不挤压统计或覆盖内容。 */
+/* 统计与收尾共用一个表面，操作区以细分隔线区分，避免小按钮悬在卡片外侧。 */
 .dashboard-overview {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 20px;
   min-width: 0;
+  padding: 16px 20px;
+  border-radius: 10px;
 }
 .dashboard-overview .metric-strip {
-  flex: 1 1 600px;
+  flex: 1 1 480px;
   min-width: 0;
+  padding: 0;
+}
+.overview-close-action {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  margin-left: auto;
+  padding-left: 20px;
+  border-left: 1px solid var(--border-subtle);
 }
 
 .workspace-loading {
@@ -1005,6 +1016,17 @@
 }
 
 @media (max-width: 760px) {
+  .dashboard-overview {
+    gap: 12px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .overview-close-action {
+    padding: 0;
+    border: 0;
+  }
   .home-summary {
     display: inline-flex;
     align-items: center;
