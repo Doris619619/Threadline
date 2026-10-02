@@ -59,7 +59,7 @@
 
 ## 输入焦点与阶段时间视图补充
 
-输入框静态边框保持 1px，聚焦只改变本身边框颜色，移除外描边和叠加阴影；组合任务输入由名称所在外壳承担焦点反馈，内层原生 input 不画第二个框。项目、估时和添加按钮位于输入行下方，独立获得焦点；按钮仍保留键盘焦点环。错误估时显示错误边框和提交提示，系统高对比模式使用 Highlight 轮廓，布局尺寸不随聚焦变化。主题样式不再重写独立输入框的焦点。
+输入框静态边框保持 1px，聚焦只改变本身边框颜色，移除外描边和叠加阴影；组合任务输入由名称所在外壳承担焦点反馈，内层原生 input 不画第二个框。桌面任务、项目和估时保持同排，独立获得焦点；桌面添加/移除操作也在行尾，手机窄屏保留自动换行，保证标题可读；按钮仍保留键盘焦点环。错误估时显示错误边框和提交提示，系统高对比模式使用 Highlight 轮廓，布局尺寸不随聚焦变化。主题样式不再重写独立输入框的焦点。
 
 参考微软 [Fluent Input 官方实现](https://github.com/microsoft/fluentui/blob/master/packages/react-components/react-input/library/src/components/Input/useInputStyles.styles.ts)：组合输入由外壳绘制状态，内部 input 无独立边框；Fluent 自身采用底部聚焦线，本项目按用户偏好采用单层周边细线。Google [Material Text field](https://material-web.dev/components/text-field/) 同样区分输入状态与错误状态；本项目保留可辨认反馈，不照搬浮动标签或动画。
 
