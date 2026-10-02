@@ -156,7 +156,7 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
                           backgroundColor:
                             'color-mix(in srgb, ' +
                             project.color +
-                            ' 13%, var(--surface))',
+                            ' 6%, var(--surface))',
                         } as CSSProperties
                       }
                       key={project.id}

@@ -30,6 +30,7 @@ import {
   EDGE_TAB_SIZE,
   normalizeWindowStates,
   resolveSafeWindowState,
+  fitWindowToWorkArea,
   type DesktopViewMode,
   type CompactPresentation,
   type LogicalWorkArea,
@@ -79,6 +80,8 @@ let windowIntent = 0;
 const stateAcknowledgements = new Map<number, () => void>();
 let suppressGeometryUntil = 0;
 let userGeometryTimer: ReturnType<typeof setTimeout> | undefined;
+let mainDisplaySignature = '';
+let completedMoveDisplay: Electron.Display | undefined;
 let intentionallyClosingEdge = false;
 let rebuildingMain = false;
 let reconcilingDisplays = false;
@@ -320,20 +323,23 @@ function applyMainNativeState(
   if (mode !== 'full' && mainWindow.isMaximized()) mainWindow.unmaximize();
   // 在任何原生尺寸约束变更之前抑制中间 resize，避免把最大宽度误存为用户尺寸。
   suppressGeometryUntil = Date.now() + 320;
+  completedMoveDisplay = undefined;
   if (userGeometryTimer) clearTimeout(userGeometryTimer);
   const compactLimits = mode === 'full' ? undefined : COMPACT_WINDOW_BOUNDS[mode];
   mainWindow.setAlwaysOnTop(mode !== 'full');
   mainWindow.setResizable(true);
   mainWindow.setMaximizable(mode === 'full');
   mainWindow.setMinimumSize(
-    compactLimits?.minWidth ?? 800,
-    compactLimits?.minHeight ?? 560,
+    compactLimits?.minWidth ?? Math.min(800, geometry.width),
+    compactLimits?.minHeight ?? Math.min(560, geometry.height),
   );
   mainWindow.setMaximumSize(
     compactLimits?.maxWidth ?? 0,
     compactLimits?.maxHeight ?? 0,
   );
   mainWindow.setBounds(geometry);
+  const display = screen.getDisplayMatching(mainWindow.getBounds());
+  mainDisplaySignature = `${display.id}:${display.scaleFactor}`;
 }
 
 /** 将 BrowserWindow 的真实最大化状态回传给 Main Renderer，避免 Renderer 猜测窗口状态。 */
@@ -352,6 +358,7 @@ function publishUserGeometry(): void {
     !mainWindow.isVisible() ||
     latestState.presentation === 'edge-collapsed' ||
     mainWindow.isMaximized() ||
+    mainWindow.isMinimized() ||
     Date.now() < suppressGeometryUntil
   ) {
     return;
@@ -366,10 +373,31 @@ function publishUserGeometry(): void {
       !mainWindow.isVisible() ||
       latestState.presentation === 'edge-collapsed' ||
       mainWindow.isMaximized() ||
+      mainWindow.isMinimized() ||
       Date.now() < suppressGeometryUntil
     )
       return;
-    const bounds = readFramelessGeometry(mainWindow);
+    let bounds = readFramelessGeometry(mainWindow);
+    const display =
+      completedMoveDisplay ?? screen.getDisplayMatching(mainWindow.getBounds());
+    completedMoveDisplay = undefined;
+    const signature = `${display.id}:${display.scaleFactor}`;
+    // 显示器参数未变化时，拖往另一块屏幕不会触发 display-metrics-changed。
+    // 仅在跨屏结束后校正，普通同屏移动仍保留用户位置。
+    if (mainDisplaySignature !== signature && latestState.mode === 'full') {
+      const fitted = fitWindowToWorkArea(bounds, display.workArea);
+      if (
+        ['x', 'y', 'width', 'height'].some(
+          (key) =>
+            bounds[key as keyof typeof bounds] !== fitted[key as keyof typeof fitted],
+        )
+      ) {
+        applyMainNativeState('full', fitted);
+        bounds = readFramelessGeometry(mainWindow);
+      }
+    }
+    mainDisplaySignature = signature;
+    latestState.windowStates[latestState.mode] = bounds;
     stateRevision += 1;
     mainWindow.webContents.send('desktop:geometry-changed', {
       geometry: {
@@ -383,6 +411,20 @@ function publishUserGeometry(): void {
       nativeRevision: stateRevision,
     });
   }, 180);
+}
+
+/** Windows 松手后的鼠标所在屏幕代表拖动目标；超宽窗口的大部分面积可能仍留在旧屏幕。 */
+function publishCompletedMove(): void {
+  if (
+    !mainWindow ||
+    mainWindow.isDestroyed() ||
+    mainWindow.isMaximized() ||
+    mainWindow.isMinimized() ||
+    Date.now() < suppressGeometryUntil
+  )
+    return;
+  completedMoveDisplay = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  publishUserGeometry();
 }
 
 /** 安全显示 Main，然后释放无状态 Edge，保持至少一个可见 surface 的切换不变量。 */
@@ -600,7 +642,16 @@ async function reconcileDisplayState(reason: string): Promise<void> {
   const intent = ++windowIntent;
   try {
     const mode = latestState.mode;
-    const geometry = resolveNativeBounds(mode, latestState.windowStates[mode]);
+    const currentGeometry =
+      mode === 'full' &&
+      mainWindow &&
+      !mainWindow.isDestroyed() &&
+      !mainWindow.isMinimized() &&
+      !mainWindow.isMaximized() &&
+      latestState.presentation === 'expanded'
+        ? readFramelessGeometry(mainWindow)
+        : latestState.windowStates[mode];
+    const geometry = resolveNativeBounds(mode, currentGeometry);
     latestState = {
       ...latestState,
       windowStates: { ...latestState.windowStates, [mode]: geometry },
@@ -997,6 +1048,8 @@ async function createMainWindow(): Promise<void> {
     ...initialBounds,
   });
   mainWindow = window;
+  const initialDisplay = screen.getDisplayMatching(window.getBounds());
+  mainDisplaySignature = `${initialDisplay.id}:${initialDisplay.scaleFactor}`;
   let userRequestedClose = false;
   window.once('ready-to-show', () => {
     mainReadyToShow = true;
@@ -1005,6 +1058,7 @@ async function createMainWindow(): Promise<void> {
     if (!window.isDestroyed()) recoverFromMainFailure('main-renderer-crashed');
   });
   window.on('move', publishUserGeometry);
+  window.on('moved', publishCompletedMove);
   window.on('resize', publishUserGeometry);
   window.on('maximize', publishMainWindowMaximizeState);
   window.on('unmaximize', publishMainWindowMaximizeState);

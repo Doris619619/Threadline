@@ -3,6 +3,7 @@
  */
 'use client';
 
+import { ProjectPicker } from '@/components/ui/project-picker';
 import { useAccountToday } from '@/features/settings/account-timezone-provider';
 import { ManagementDialog } from '@/components/ui/management-dialog';
 import { getLocalDateKey } from '@/lib/local-date';
@@ -344,21 +345,20 @@ export function TaskDialog({
 
         {isWaiting ? (
           <div className="task-form-grid" style={{ gridTemplateColumns: '1fr' }}>
-            <label>
-              项目
-              <select name="project" defaultValue={defaultProjectId}>
-                {projects
-                  .filter(
-                    (project) =>
-                      project.status === 'active' || project.id === editing?.projectId,
-                  )
-                  .map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
+            <div className="task-project-field">
+              <span>项目</span>
+              <TaskProjectPicker
+                key={editing?.id ?? 'new'}
+                name="project"
+                label="项目"
+                disabled={saving}
+                projects={projects.filter(
+                  (project) =>
+                    project.status === 'active' || project.id === editing?.projectId,
+                )}
+                initialValue={defaultProjectId}
+              />
+            </div>
             <label>
               重要性
               <select name="importance" defaultValue={editing?.importance ?? 'normal'}>
@@ -371,22 +371,20 @@ export function TaskDialog({
           <TaskTimingFields
             editing={editing}
             project={
-              <label className="task-form-project">
-                项目
-                <select name="project" defaultValue={defaultProjectId}>
-                  {projects
-                    .filter(
-                      (project) =>
-                        project.status === 'active' ||
-                        project.id === editing?.projectId,
-                    )
-                    .map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
+              <div className="task-form-project task-project-field">
+                <span>项目</span>
+                <TaskProjectPicker
+                  key={editing?.id ?? 'new'}
+                  name="project"
+                  label="项目"
+                  disabled={saving}
+                  projects={projects.filter(
+                    (project) =>
+                      project.status === 'active' || project.id === editing?.projectId,
+                  )}
+                  initialValue={defaultProjectId}
+                />
+              </div>
             }
           />
         )}
@@ -421,5 +419,32 @@ export function TaskDialog({
         </footer>
       </form>
     </ManagementDialog>
+  );
+}
+
+/** 表单生命周期内保存选择；关闭或更换任务时由 React 卸载/键重新初始化，失败重试保留选择。 */
+function TaskProjectPicker({
+  projects,
+  initialValue,
+  disabled,
+  name,
+  label,
+}: {
+  projects: Project[];
+  initialValue: string;
+  disabled: boolean;
+  name: string;
+  label: string;
+}) {
+  const [value, setValue] = useState(initialValue);
+  return (
+    <ProjectPicker
+      projects={projects}
+      value={value}
+      onChange={setValue}
+      disabled={disabled}
+      name={name}
+      label={label}
+    />
   );
 }

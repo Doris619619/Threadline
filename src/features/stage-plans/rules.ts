@@ -1,9 +1,25 @@
 /** @fileoverview 阶段日期、任务分组与普通待安排的纯规则；不复制任务或持久化结束状态。 */
 import { addLocalDateDays, parseLocalDateKey } from '@/lib/local-date';
 import type { StagePlan, Task } from '@/types/domain';
+import { parseEstimateMinutes } from '@/features/tasks/task-time';
 
 export type StageStatus = 'active' | 'upcoming' | 'past';
-export type StageTaskDraft = { id: string; title: string; projectId?: string };
+export type StageTaskDraft = {
+  id: string;
+  title: string;
+  projectId?: string;
+  estimateMinutes?: string;
+};
+
+/** 草稿保留原始分钟字符串；持久化只写原 Task 的预计字段，留空仍为待定。 */
+export function stageTaskPayload(draft: StageTaskDraft) {
+  return {
+    id: draft.id,
+    title: draft.title,
+    projectId: draft.projectId,
+    plannedDurationMinutes: parseEstimateMinutes(draft.estimateMinutes ?? ''),
+  };
+}
 export type StagePlanDraft = Pick<
   StagePlan,
   'id' | 'name' | 'startDate' | 'endDate' | 'homeVisible'

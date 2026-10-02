@@ -1,7 +1,7 @@
 /* 文件用途：计划卡片、首页阶段和详情共用主题变量，兼容像素外观与手机单列。 */
 .project-panel {
   width: 100%;
-  max-width: none;
+  max-width: 1440px;
   gap: var(--space-5);
 }
 
@@ -25,20 +25,13 @@
   display: inline-flex;
   align-items: center;
 }
-.plan-page-icon > .cottage-furniture {
-  display: none;
+.plan-page-icon {
+  width: 48px;
+  height: 48px;
 }
-html:is([data-theme='cottage'], [data-theme='classic'])
-  .plan-page-icon
-  > .cottage-nav-icon {
-  display: none;
-}
-html:is([data-theme='cottage'], [data-theme='classic'])
-  .plan-page-icon
-  > .cottage-furniture {
-  display: block;
-  width: 52px;
-  height: 52px;
+html .project-panel .plan-page-icon .cottage-sprite {
+  width: 44px;
+  height: 44px;
 }
 .project-page-heading p {
   margin: var(--space-3) 0 0;
@@ -113,6 +106,7 @@ html .project-panel .plan-section-heading h2 {
   gap: var(--space-3);
   margin: 0;
   font-size: 23px;
+  font-weight: 700;
   flex-shrink: 0;
   color: var(--text-primary);
 }
@@ -139,16 +133,15 @@ html .project-panel .plan-section-heading h2 {
 .stage-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
+  gap: 12px;
   justify-self: start;
-  padding: var(--space-1);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-control);
-  background: var(--surface-secondary);
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 .stage-tabs button {
   min-height: var(--touch-target);
-  border: 0;
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   padding: 0 var(--space-4);
   font: inherit;
@@ -157,6 +150,7 @@ html .project-panel .plan-section-heading h2 {
   cursor: pointer;
 }
 .stage-tabs button[aria-selected='true'] {
+  border-color: var(--accent-border);
   background: var(--accent-soft);
   color: var(--text-primary);
 }
@@ -166,7 +160,7 @@ html .project-panel .plan-section-heading h2 {
 }
 .stage-plan-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
   gap: var(--space-4);
 }
 .stage-plan-card {
@@ -179,12 +173,12 @@ html .project-panel .plan-section-heading h2 {
   box-shadow: var(--shadow-card);
 }
 .stage-plan-card.is-home-visible {
-  border-color: var(--accent);
+  border-color: var(--border);
 }
 .stage-card-main {
   display: grid;
   gap: var(--space-3);
-  min-height: 145px;
+  min-height: 116px;
   width: 100%;
   padding: 0;
   border: 0;
@@ -237,7 +231,9 @@ html .project-panel .plan-section-heading h2 {
   padding-left: 44px;
 }
 .project-panel .daily-manager-row {
-  background: color-mix(in srgb, var(--accent-soft) 35%, var(--surface));
+  background: var(--surface);
+  border-left: 3px solid var(--accent-soft);
+  min-height: 160px;
 }
 .project-panel .stage-card-main:hover {
   background: transparent;
@@ -334,13 +330,13 @@ html:is([data-theme='cottage'], [data-theme='classic'])
 .manager-list--projects,
 .manager-list--daily {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 195px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
   gap: var(--space-4);
   align-items: start;
 }
 .manager-list--projects .manager-row {
   min-width: 0;
-  min-height: 138px;
+  min-height: 120px;
   grid-template-columns: 32px minmax(0, 1fr) 20px;
   gap: var(--space-3);
   padding: var(--space-4);
@@ -381,7 +377,7 @@ html:is([data-theme='cottage'], [data-theme='classic'])
   height: 32px;
 }
 .manager-list--daily {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 245px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
 }
 .daily-create-card {
   display: flex;
@@ -389,7 +385,7 @@ html:is([data-theme='cottage'], [data-theme='classic'])
   gap: var(--space-2);
   align-items: center;
   justify-content: center;
-  min-height: 150px;
+  min-height: 160px;
   padding: var(--space-4);
   border: 1px dashed var(--border);
   border-radius: var(--radius-card);
@@ -830,4 +826,25 @@ html:is([data-theme='cottage'], [data-theme='classic'])
   .daily-manager-row {
     transition: none;
   }
+}
+
+/* 五列封顶，Daily 背景只属于独立卡片。 */
+@media (min-width: 1400px) {
+  .manager-list--projects {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+html .project-panel .manager-card--daily {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  border-radius: 0;
+}
+
+.manager-list--projects {
+  align-items: stretch;
+}
+.manager-list--projects .project-grid-card {
+  border-left: 3px solid
+    color-mix(in srgb, var(--project-color, var(--accent)) 40%, var(--surface));
 }

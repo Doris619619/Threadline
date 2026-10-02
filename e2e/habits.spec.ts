@@ -136,7 +136,12 @@ test('yesterday is directly editable without opening history and never records t
   await editor.getByLabel('睡觉时间', { exact: true }).fill('00:20');
   await editor.getByRole('button', { name: '保存记录', exact: true }).click();
   await expect(sleep).toContainText('00:20');
-  await expect(page.getByRole('heading', { name: '本周', exact: true })).toBeVisible();
+  await expect(
+    page.getByLabel('习惯统计范围').getByRole('button', { name: '周', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(
+    page.locator('.habit-range-header .habit-range-navigation'),
+  ).toContainText('2026年 08/17 – 08/23');
   await page.clock.setSystemTime(new Date('2026-08-24T04:01:00+08:00'));
   await page.clock.runFor(1100);
   await expect(navigation.getByLabel('记录日期')).toHaveValue('2026-07-31');

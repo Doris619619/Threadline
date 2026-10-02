@@ -21,6 +21,7 @@ import { StageEditor, StageAddTask } from './editor';
 import { StageSummary } from './summary';
 import { StageTaskList } from './task-list';
 import { PlanObjectIcon } from './object-icon';
+import { StageTimeChart } from './time-chart';
 
 /** 模块查询失败单独显示重试，避免把网络失败显示成空阶段。 */
 export function StageLoadNotice() {
@@ -315,6 +316,7 @@ export function StageDetail() {
       </header>
       <StageSummary plan={plan} tasks={tasks} today={today} />
       <StageAddTask stageId={plan.id} projects={projects} />
+      <StageTimeChart tasks={tasks} projects={projects} stageId={plan.id} />
       <StageTaskList stageId={plan.id} showHistory />
       {error && (
         <p className="form-error" role="alert">

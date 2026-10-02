@@ -1,5 +1,6 @@
 /** @fileoverview 阶段短表单与连续清单草稿；固定打开时版本、稳定 ID、失败保留与中文 Enter 保护。 */
 'use client';
+import { ProjectPicker } from '@/components/ui/project-picker';
 import { useState, useRef, useEffect } from 'react';
 import { ManagementDialog } from '@/components/ui/management-dialog';
 import { Button } from '@/components/ui/button';
@@ -9,8 +10,10 @@ import { addLocalDateDays } from '@/lib/local-date';
 import type { StagePlan, Project } from '@/types/domain';
 import { resolveActiveProject } from '@/lib/project-rules';
 import { useStagePlans } from './state';
-import { validateStageDraft, type StageTaskDraft } from './rules';
+import { validateStageDraft, stageTaskPayload, type StageTaskDraft } from './rules';
 import { StageDraftList } from './draft-list';
+import { StageEstimateInput } from './estimate-input';
+import { parseEstimateMinutes } from '@/features/tasks/task-time';
 import { useStageEditorViewport } from './editor-viewport';
 
 /** 新建阶段可以零项清单；未按 Enter 的最后一项也随确认提交。 */
@@ -64,6 +67,13 @@ export function StageEditor({
   /** Enter 只收集有效项，保持输入焦点；真正写入发生在阶段确认时。 */
   const add = () => {
     if (!pending.title.trim()) return;
+    try {
+      parseEstimateMinutes(pending.estimateMinutes ?? '');
+    } catch (error) {
+      setError((error as Error).message);
+      return;
+    }
+    setError(undefined);
     if (pending.title.trim().length > 200) {
       setError('任务名称不能超过 200 个字符。');
       return;
@@ -108,6 +118,7 @@ export function StageEditor({
       };
       const message = validateStageDraft(draft);
       if (message) throw new Error(message);
+      draft.tasks.forEach(stageTaskPayload);
       if (draft.tasks.some((item) => !item.title || item.title.length > 200))
         throw new Error('每项任务需要 1–200 个字符，请填写或移除空白项。');
       const saved = openingPlan
@@ -184,6 +195,17 @@ export function StageEditor({
           <StageDraftList
             items={items}
             pending={pending.title}
+            estimateMinutes={pending.estimateMinutes ?? ''}
+            onEstimateChange={(estimateMinutes) =>
+              setPending((row) => ({ ...row, estimateMinutes }))
+            }
+            onItemEstimateChange={(itemId, estimateMinutes) =>
+              setItems((rows) =>
+                rows.map((row) =>
+                  row.id === itemId ? { ...row, estimateMinutes } : row,
+                ),
+              )
+            }
             projects={projects}
             projectId={pending.projectId ?? resolveActiveProject(projects)?.id}
             onProjectChange={(projectId) =>
@@ -304,22 +326,21 @@ export function StageAddTask({
               event.preventDefault();
           }}
         />
-        <select
-          aria-label="阶段任务项目"
+        <ProjectPicker
+          compact
+          label="阶段任务项目"
           disabled={busy}
+          projects={projects.filter((project) => project.status === 'active')}
           value={draft.projectId ?? resolveActiveProject(projects)?.id ?? ''}
-          onChange={(event) =>
-            setDraft((row) => ({ ...row, projectId: event.target.value }))
+          onChange={(projectId) => setDraft((row) => ({ ...row, projectId }))}
+        />
+        <StageEstimateInput
+          value={draft.estimateMinutes ?? ''}
+          disabled={busy}
+          onChange={(estimateMinutes) =>
+            setDraft((row) => ({ ...row, estimateMinutes }))
           }
-        >
-          {projects
-            .filter((project) => project.status === 'active')
-            .map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-        </select>
+        />
         <button type="submit" disabled={busy || !draft.title.trim()}>
           + 添加任务
         </button>

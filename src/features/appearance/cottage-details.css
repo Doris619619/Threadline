@@ -59,7 +59,6 @@ html:is([data-theme='cottage'], [data-theme='classic'])
     .schedule-panel,
     .waiting-panel,
     .daily-panel,
-    .metric-strip,
     .planning-month,
     .planning-detail,
     .manager-card,
@@ -210,11 +209,11 @@ html:is([data-theme='cottage'], [data-theme='classic'])
   animation: cottage-check-spark 420ms steps(4, end) both;
 }
 html:is([data-theme='cottage'], [data-theme='classic'])
-  :is(.tl-button, .planning-add, .finish-day, .project-create-trigger) {
+  :is(.tl-button, .planning-add, .project-create-trigger) {
   border-radius: 3px;
 }
 html:is([data-theme='cottage'], [data-theme='classic'])
-  :is(.tl-button--primary, .planning-panel .planning-add, .finish-day) {
+  :is(.tl-button--primary, .planning-panel .planning-add) {
   color: var(--pixel-on-jade);
   background: var(--pixel-jade);
   box-shadow:
@@ -223,18 +222,16 @@ html:is([data-theme='cottage'], [data-theme='classic'])
     0 2px 0 var(--border);
 }
 html:is([data-theme='cottage'], [data-theme='classic'])
-  :is(.tl-button--primary, .planning-panel .planning-add, .finish-day):hover:not(
-    :disabled
-  ) {
+  :is(.tl-button--primary, .planning-panel .planning-add):hover:not(:disabled) {
   filter: brightness(1.08);
 }
 html:is([data-theme='cottage'], [data-theme='classic'])
-  :is(.tl-button, .planning-add, .finish-day):active:not(:disabled) {
+  :is(.tl-button, .planning-add):active:not(:disabled) {
   box-shadow: inset 0 2px 0 var(--border-strong);
   transform: translateY(1px);
 }
 html:is([data-theme='cottage'], [data-theme='classic'])
-  :is(.tl-input, .task-dialog input, .task-dialog select) {
+  :is(.tl-input, .task-dialog input, .task-dialog select):not(:focus) {
   border-radius: 3px;
   box-shadow: inset 1px 1px 0 var(--border-subtle);
 }
@@ -250,9 +247,7 @@ html:is([data-theme='cottage'], [data-theme='classic'])
 html:is([data-theme='cottage'], [data-theme='classic']) .planning-date-number {
   border-radius: 3px;
 }
-html:is([data-theme='cottage'], [data-theme='classic']) .finish-day span {
-  color: inherit;
-}
+
 html:is([data-theme='cottage'], [data-theme='classic'])
   .planning-date[aria-current='date']
   .planning-date-number {

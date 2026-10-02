@@ -1,19 +1,19 @@
-/** @fileoverview Independent Pika Classic palette, type proportions, original golden frames and theme chooser preview. */
+/** @fileoverview 皮卡经典的暖白语义色、文字层级、轻量面板与外观选择预览。 */
 html[data-theme='classic'] {
-  --background: #f6f1d4;
-  --surface: #fffef8;
-  --surface-secondary: #f8f4d0;
-  --border: #b99a55;
-  --border-subtle: #e8dca8;
+  --background: #faf8f3;
+  --surface: #fffefa;
+  --surface-secondary: #f5f1e8;
+  --border: #d8cdbb;
+  --border-subtle: #e9e1d5;
   --border-strong: #916019;
-  --text-primary: #252514;
-  --text-secondary: #645532;
-  --text-tertiary: #72603b;
+  --text-primary: #292722;
+  --text-secondary: #6b665d;
+  --text-tertiary: #746b60;
   --text-on-accent: #fffef1;
   --accent: #9e5100;
   --accent-hover: #874400;
   --accent-text: #915000;
-  --accent-soft: #ffedb5;
+  --accent-soft: #fff1cc;
   --accent-border: #d9a533;
   --daily-accent: #58720c;
   --success: #4b700d;
@@ -39,7 +39,7 @@ html[data-theme='classic'] {
   --pixel-on-jade: #fffef1;
   --pixel-sky: #e1f2df;
   --cottage-paper: #f8f4d0;
-  --classic-stripe: #f8f4d0;
+  --classic-stripe: #faf7f0;
   --classic-bar: #ffe44d;
   --classic-bar-shadow: #ffbd00;
   --classic-bar-text: #382600;
@@ -48,7 +48,8 @@ html[data-theme='classic'] {
   --classic-beam-highlight: #fff174;
   --classic-frame-image: url('/themes/classic/frame.svg');
   --classic-bracket-image: url('/themes/classic/bracket.svg');
-  --text-page-size: 1.5rem;
+  --shadow-card: 0 2px 8px rgb(80 55 20 / 3%);
+  --text-page-size: 1.75rem;
   --text-page-weight: 800;
   --text-section-size: 1.125rem;
   --text-section-weight: 700;
@@ -56,9 +57,9 @@ html[data-theme='classic'] {
   --text-secondary-size: 0.875rem;
   --text-label-size: 0.875rem;
   --text-caption-size: 0.8125rem;
-  --radius-control: 2px;
-  --radius-card: 2px;
-  --radius-surface: 3px;
+  --radius-control: 8px;
+  --radius-card: 10px;
+  --radius-surface: 10px;
 }
 html[data-theme='classic'][data-color-scheme='dark'] {
   --background: #242832;
@@ -120,24 +121,13 @@ html[data-theme='classic'] .brand-icon-classic {
 html[data-theme='classic'] .tl-brand-mark {
   background-image: url('/themes/classic/icon.svg');
 }
-/* Only actual windows receive ornamental frames; content cards keep the game's quiet inner borders. */
+/* 内容窗口保持安静的纸面层级，像素身份交给图标与人物。 */
 html[data-theme='classic'] :is(.cottage-wardrobe, .task-dialog, .manager-dialog) {
-  border: 2px solid var(--pixel-frame);
-  border-image: var(--classic-frame-image) 24 / 24px / 4px stretch;
-  border-radius: 0;
-  box-shadow: none;
-  background-color: var(--surface-secondary);
-  background-image: linear-gradient(
-    var(--classic-beam-highlight) 0 62%,
-    var(--classic-bar-shadow) 62% 79%,
-    var(--classic-bar) 79% 92%,
-    var(--pixel-frame) 92%
-  );
-  background-size: 100% 22px;
-  background-repeat: no-repeat;
-}
-html[data-theme='classic'] .tl-header > div > p {
-  display: none;
+  border: 1px solid var(--border-subtle);
+  border-image: none;
+  border-radius: 16px;
+  box-shadow: var(--shadow-window);
+  background: var(--surface);
 }
 html[data-theme='classic']
   :is(
@@ -147,13 +137,10 @@ html[data-theme='classic']
     .settings-detail > h1,
     .planning-heading h1
   ) {
-  display: table;
-  position: relative;
-  width: fit-content;
-  padding: 5px 18px;
-  background: var(--surface);
-  border-top: 1px solid var(--border-subtle);
-  font-weight: 800;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-weight: 700;
   line-height: 1.25;
 }
 html[data-theme='classic']
@@ -174,36 +161,13 @@ html[data-theme='classic']
     .settings-detail > h1,
     .planning-heading h1
   )::after {
-  content: '';
-  display: block;
-  position: absolute;
-  inset: -2px auto -2px -5px;
-  width: 12px;
-  height: auto;
-  margin: 0;
-  background: var(--classic-bracket-image) center / 100% 100% no-repeat;
-  animation: none;
-  transform: none;
-}
-html[data-theme='classic']
-  .mode-full
-  :is(
-    .tl-header h1,
-    .project-page-heading h1,
-    .settings-title,
-    .settings-detail > h1,
-    .planning-heading h1
-  )::after {
-  left: auto;
-  right: -5px;
-  transform: scaleX(-1);
+  content: none;
 }
 html[data-theme='classic']
   :is(
     .schedule-panel,
     .waiting-panel,
     .daily-panel,
-    .metric-strip,
     .planning-month,
     .planning-detail,
     .manager-card,
@@ -218,7 +182,7 @@ html[data-theme='classic']
   ) {
   border: 1px solid var(--border-subtle);
   border-image: none;
-  border-radius: 9px;
+  border-radius: var(--radius-card);
   box-shadow: none;
   background-color: var(--surface);
   background-image: none;
@@ -231,7 +195,7 @@ html[data-theme='classic']
   color: var(--text-primary);
 }
 html[data-theme='classic'] .tl-sidebar {
-  background-color: var(--surface-secondary);
+  background-color: var(--background);
   background-image: none;
   border-right: 1px solid var(--border-subtle);
   box-shadow: none;
@@ -243,24 +207,32 @@ html[data-theme='classic'] .tl-sidebar-item {
   color: var(--text-primary);
   font-size: 1rem;
   font-weight: 700;
-  border-radius: 0;
+  border-radius: var(--radius-control);
 }
 html[data-theme='classic'] .tl-sidebar-item.is-active {
-  background: var(--surface);
-  border: 1px solid var(--pixel-frame);
-  box-shadow:
-    inset 3px 0 var(--classic-bar),
-    inset -3px 0 var(--classic-bar),
-    0 2px 0 var(--border-subtle);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  box-shadow: inset 3px 0 var(--accent-border);
 }
 html[data-theme='classic'] .cottage-sidebar-scene {
-  border-bottom-color: var(--pixel-frame);
+  border-bottom: 1px solid var(--border-subtle);
 }
 html[data-theme='classic'] .cottage-wardrobe-trigger {
-  border: 2px solid var(--pixel-frame);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
   background: var(--surface);
+  box-shadow: none;
   font-size: 0.9375rem;
-  font-weight: 700;
+  font-weight: 600;
+}
+/* 管理列表自身不再形成第二层长框。 */
+html[data-theme='classic']
+  .project-panel
+  :is(.manager-card--projects, .manager-card--daily) {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
 }
 .appearance-theme-options {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -268,14 +240,14 @@ html[data-theme='classic'] .cottage-wardrobe-trigger {
 .appearance-preview--classic {
   border: 1px solid #e8dca8;
   border-radius: 5px;
-  background: #f9f5d0;
+  background: #faf8f3;
   color: #34290c;
 }
 .appearance-preview--classic .appearance-preview-heading {
   font-weight: 800;
   width: fit-content;
   padding: 4px 10px;
-  border-inline: 3px double #b37b0b;
+  border-inline: 0;
   background: #fffefa;
 }
 .appearance-preview--classic .appearance-preview-line {
@@ -283,7 +255,7 @@ html[data-theme='classic'] .cottage-wardrobe-trigger {
   padding: 6px;
 }
 .appearance-preview--classic .appearance-preview-line:nth-of-type(3) {
-  background: #f0e9b8;
+  background: #f5f1e8;
 }
 .appearance-preview--classic .appearance-preview-line i {
   border-radius: 0;

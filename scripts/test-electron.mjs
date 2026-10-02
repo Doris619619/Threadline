@@ -12,6 +12,7 @@ import { _electron as electron } from 'playwright';
 import { terminateOwnedProcess } from './desktop-build-runtime.mjs';
 import { testElectronLoginRace } from './test-electron-login-race.mjs';
 import { testElectronInteractionFeedback } from './test-electron-interaction-feedback.mjs';
+import { testElectronDisplayRecovery } from './test-electron-display-recovery.mjs';
 
 const rendererPort = process.env.THREADLINE_ELECTRON_E2E_PORT ?? '3123';
 const rendererUrl = `http://127.0.0.1:${rendererPort}`;
@@ -188,6 +189,7 @@ try {
     'maximize and restore must retain the normal window geometry',
   );
   await testElectronInteractionFeedback(application, page);
+  await testElectronDisplayRecovery(application);
   await page.getByRole('button', { name: '工作站', exact: true }).click();
   await page.getByTestId('workstation-panel').waitFor();
   assert.equal(
@@ -421,6 +423,10 @@ try {
 } catch (error) {
   exitCode = 1;
   console.error(error);
+  console.error(
+    'Electron windows at failure:',
+    await inspectWindows(application).catch(() => []),
+  );
 } finally {
   await application?.evaluate(({ app }) => app.exit(0)).catch(() => undefined);
   await Promise.race([

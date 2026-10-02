@@ -8,12 +8,51 @@ import {
   normalizeStartupWindowStates,
   normalizeDesktopViewMode,
   resolveSafeWindowState,
+  fitWindowToWorkArea,
   type LogicalWorkArea,
 } from '@/lib/desktop-window-policy';
 
 const primaryWorkArea: LogicalWorkArea = { x: 0, y: 0, width: 1920, height: 1040 };
 
 describe('desktop window policy', () => {
+  it('fits a large monitor window back inside a laptop work area even when a large strip remains visible', () => {
+    const laptop = { x: 0, y: 0, width: 1536, height: 920 };
+    const oversized = { x: -700, y: 40, width: 2400, height: 1400 };
+    expect(hasSufficientVisibleArea('full', oversized, [laptop])).toBe(true);
+    expect(resolveSafeWindowState('full', oversized, [laptop], laptop)).toEqual({
+      x: 0,
+      y: 0,
+      width: 1536,
+      height: 920,
+    });
+  });
+  it('preserves negative-coordinate displays and a window that already fits', () => {
+    const monitor = { x: -1920, y: -200, width: 1920, height: 1040 };
+    const normal = { x: -1800, y: -100, width: 1280, height: 840 };
+    expect(fitWindowToWorkArea(normal, monitor)).toEqual(normal);
+    expect(fitWindowToWorkArea({ ...normal, x: -2300, y: -400 }, monitor)).toEqual({
+      ...normal,
+      x: -1920,
+      y: -200,
+    });
+  });
+  it.each([1, 1.25, 1.5, 2])(
+    'fits to the already scaled DIP work area at scale %s without compounding DPI',
+    (scale) => {
+      const area = {
+        x: 0,
+        y: 0,
+        width: Math.floor(2880 / scale),
+        height: Math.floor(1760 / scale),
+      };
+      const fitted = fitWindowToWorkArea(
+        { x: -300, y: 80, width: 3000, height: 1800 },
+        area,
+      );
+      expect(fitted).toEqual({ ...area });
+      expect(fitWindowToWorkArea(fitted, area)).toEqual(fitted);
+    },
+  );
   it('migrates the retired mode and removes its saved geometry', () => {
     expect(normalizeDesktopViewMode('mini-today')).toBe('workstation');
     expect(normalizeDesktopViewMode('unknown')).toBe('full');

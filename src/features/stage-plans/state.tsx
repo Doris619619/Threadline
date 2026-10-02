@@ -1,5 +1,6 @@
 /** @fileoverview 阶段账号查询、受检命令及详情导航；阶段读取失败不阻塞原工作台。 */
 'use client';
+import { parseEstimateMinutes } from '@/features/tasks/task-time';
 import {
   createContext,
   useContext,
@@ -293,6 +294,7 @@ function LocalStagePlans({
     stageId: string,
     title: string,
     projectId?: string,
+    estimateMinutes?: string,
   ): Task => {
     const project = resolveActiveProject(projects, projectId);
     if (!project) throw new Error('所选项目已归档或不可用，请重新选择。');
@@ -304,6 +306,7 @@ function LocalStagePlans({
       projectId: project.id,
       stagePlanId: stageId,
       title: title.trim(),
+      plannedDurationMinutes: parseEstimateMinutes(estimateMinutes ?? ''),
       status: 'waiting',
       completed: false,
       importance: 'normal',
@@ -318,7 +321,7 @@ function LocalStagePlans({
     const existing = latest.current.find((plan) => plan.id === draft.id);
     if (existing) return existing;
     const added = draft.tasks.map((task) =>
-      newTask(task.id, draft.id, task.title, task.projectId),
+      newTask(task.id, draft.id, task.title, task.projectId, task.estimateMinutes),
     );
     const now = new Date().toISOString();
     const plan: StagePlan = {
@@ -353,7 +356,13 @@ function LocalStagePlans({
   const append = async (stageId: string, draft: StageTaskDraft) => {
     requirePlan(stageId);
     if (taskRows.current.some((task) => task.id === draft.id)) return;
-    const task = newTask(draft.id, stageId, draft.title, draft.projectId);
+    const task = newTask(
+      draft.id,
+      stageId,
+      draft.title,
+      draft.projectId,
+      draft.estimateMinutes,
+    );
     updateTasks((rows) => [...rows, task]);
   };
   /** 移除只解除关联。 */

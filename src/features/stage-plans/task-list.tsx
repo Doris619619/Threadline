@@ -13,6 +13,7 @@ import type { Task } from '@/types/domain';
 import { useStagePlans } from './state';
 import { stageTaskGroups } from './rules';
 import { PlanTaskRow } from './task-row';
+import { formatMinutes } from '@/features/tasks/task-time';
 
 /** 三组固定顺序且不截断；详情额外保留已放弃/已删除历史。 */
 export function StageTaskList({
@@ -90,6 +91,11 @@ export function StageTaskList({
               task={task}
               today={today}
               project={data.projects.find((project) => project.id === task.projectId)}
+              metadata={
+                task.plannedDurationMinutes !== undefined
+                  ? '预计 ' + formatMinutes(task.plannedDurationMinutes)
+                  : undefined
+              }
               onEdit={() => setEditing(task)}
               onDate={() => setDating(task)}
               onToday={() => scheduleToday(task)}

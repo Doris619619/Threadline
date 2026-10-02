@@ -1,6 +1,6 @@
 /** @fileoverview 习惯三行记录：当前日冻结点击时间，历史日逐项补录，已记录时间直接编辑。 */
 'use client';
-import { Moon, Sunrise } from 'lucide-react';
+import { Moon, Sunrise, Laptop } from 'lucide-react';
 import { useHabits } from './habit-state';
 import {
   EFFICIENCY_LABELS,
@@ -154,7 +154,8 @@ export function HabitToday({
         );
       })}
       <div className="habit-efficiency-row">
-        <div>
+        <Laptop aria-hidden="true" size={24} />
+        <div className="habit-efficiency-label">
           <strong>工作效率</strong>
           <small>
             {!historicalDate && businessToday !== today

@@ -1,14 +1,14 @@
 /* 文件用途：习惯页的紧凑打卡、时间趋势、月历及表单响应式样式；颜色继承所有外观主题。 */
 .habits-panel {
-  max-width: 1000px;
   box-sizing: border-box;
   width: 100%;
   margin: 0 auto;
-  padding: 20px 28px;
   color: var(--text-primary);
+  max-width: 1440px;
+  padding: 16px 0 28px;
 }
 /* WebKit 切换根主题时直接解析文本 token，避免深层继承保留上一明暗模式的颜色。 */
-.habits-panel :where(h1, h2, h3, p, strong, span, time, summary) {
+.habits-panel :where(h1, h2, h3, p, strong, b, span, time, summary) {
   color: var(--text-primary);
 }
 .habit-page-header,
@@ -23,11 +23,15 @@
   gap: 12px;
 }
 .habit-page-header {
-  margin-bottom: 20px;
+  padding: 0 20px;
+  margin-bottom: 24px;
 }
 .habit-page-header h1 {
   margin: 0;
-  font-size: var(--font-size-page, 26px);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 2.25rem;
 }
 .habits-panel h2,
 .habit-editor h3,
@@ -58,9 +62,19 @@
   gap: 8px;
   flex: 0 0 auto;
   white-space: nowrap;
+  border-color: var(--border);
+  background: var(--surface);
+  padding-inline: 16px;
 }
 .habit-page-header > div {
   min-width: 0;
+}
+/* 日期时钟紧随页标题，较窄窗口允许整组换行，设置按钮保持独立。 */
+.habit-page-intro {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 28px;
 }
 .habit-caption,
 .habit-check-label small,
@@ -72,9 +86,12 @@
 }
 .habit-today {
   color: var(--text-primary);
-  border-block: 1px solid var(--border-subtle);
   padding: 0;
   background: transparent;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  border: 0;
 }
 /* 日期导航独立于统计：原生日期输入兼容键盘和手机，窄屏允许返回按钮自然换行。 */
 .habit-day-navigation {
@@ -82,7 +99,10 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 4px;
-  margin-bottom: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  margin: 0;
+  padding: 0 4px;
 }
 .habit-day-navigation > button {
   min-width: 44px;
@@ -137,18 +157,18 @@
 }
 .habit-check-row {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
-  gap: 12px;
   align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border-subtle);
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 12px;
 }
 .habit-check-row > svg {
   color: var(--accent);
+  width: 28px;
+  height: 28px;
 }
 .habit-check-label,
 .habit-record-value,
-.habit-efficiency-row > div:first-child {
+.habit-efficiency-label {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -156,6 +176,8 @@
 .habit-record-value {
   text-align: right;
   font-variant-numeric: tabular-nums;
+  align-items: flex-end;
+  gap: 0;
 }
 .habit-record-value > strong {
   font-size: 21px;
@@ -170,8 +192,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 10px 0;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .habit-segments {
   display: inline-flex;
@@ -179,7 +201,7 @@
   background: var(--surface);
   border-radius: 9px;
   padding: 2px;
-  border: 0;
+  border: 1px solid var(--border-subtle);
 }
 .habit-segments button {
   border: 0;
@@ -189,10 +211,6 @@
 .habit-segments button[aria-pressed='true'] {
   background: var(--accent);
   color: var(--text-on-accent);
-}
-.habit-statistics,
-.habit-history {
-  margin-top: 24px;
 }
 .habit-range-header {
   display: flex;
@@ -220,17 +238,16 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   padding: 16px 0 4px;
+  gap: 12px;
 }
 .habit-summary > div {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 0 16px;
-  border-left: 1px solid var(--border);
-}
-.habit-summary > div:first-child {
-  padding-left: 0;
-  border-left: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 16px 20px;
+  background: color-mix(in srgb, var(--surface-secondary) 40%, var(--surface));
 }
 .habit-summary > div > span,
 .habit-summary small {
@@ -238,9 +255,10 @@
   font-size: 12px;
 }
 .habit-summary strong {
-  font-size: 26px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  font-size: 1.875rem;
+  line-height: 1.2;
 }
 .habit-summary strong small {
   margin-left: 4px;
@@ -248,13 +266,12 @@
 .habit-trends {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
   margin-top: 16px;
+  gap: 16px;
 }
 .habit-trend {
   min-width: 0;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
+  min-height: 280px;
 }
 .habit-average {
   font-size: 22px;
@@ -300,12 +317,6 @@
   margin-bottom: 4px;
   font-size: 12px;
 }
-.habit-efficiency-trend,
-.habit-regularity {
-  margin-top: 26px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border);
-}
 .habit-status-days {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -314,10 +325,15 @@
 }
 .habit-status-days button {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 6px;
   padding: 8px 2px;
+  flex-direction: row;
+  justify-content: center;
+  gap: 12px;
+  border: 1px solid var(--border-subtle);
+  min-height: 44px;
+  font-size: 13px;
+  background: var(--surface);
 }
 .habit-status-days small {
   color: var(--text-primary);
@@ -375,13 +391,20 @@
   color: var(--text-primary);
 }
 .habit-message {
-  border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 12px;
   margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 13px;
 }
 .habit-message p {
-  margin-top: 0;
+  flex: 1 1 240px;
+  margin: 0;
 }
 .habit-editor,
 .habit-settings-form {
@@ -458,18 +481,205 @@
   gap: 8px;
   margin: 12px 0;
 }
+
+/* 时间即编辑入口；以排版表达主次，避免为每个值增加操作框。 */
+.habits-panel .habit-time-button {
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 0 4px;
+  line-height: 1.2;
+}
+.habit-time-button:hover,
+.habit-time-button:focus-visible {
+  background: var(--surface);
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+.habit-live-clock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+.habit-live-clock time {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: baseline;
+}
+.habit-live-clock b {
+  font-size: 19px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.habit-live-clock > span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.habit-regularity > summary,
+.habit-history > summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 12px 0;
+  box-sizing: border-box;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.habit-history[open] > header {
+  margin: 12px 0;
+}
+.habits-panel button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* 所有主题共享卡片与网格布局，颜色、字体和图标继续读取用户外观偏好。 */
+.habit-panel-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.habit-panel-heading h2,
+.habit-range-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.habit-panel-heading p {
+  margin: 4px 0 0;
+}
+.habit-page-header h1 > .cottage-nav-icon {
+  width: 40px;
+  height: 40px;
+}
+html .habit-page-header h1 .cottage-sprite {
+  width: 40px;
+  height: 40px;
+}
+.habit-efficiency-row > svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.habit-efficiency-label {
+  margin-right: auto;
+}
+.habit-status-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 12px;
+}
+.habit-status-legend span,
+.habit-status-days button strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.habit-status-legend span::before,
+.habit-status-days button strong::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.habit-status-legend [data-status='good']::before,
+.habit-status-days [data-status='good'] strong::before {
+  background: var(--success);
+}
+.habit-status-legend [data-status='medium']::before,
+.habit-status-days [data-status='medium'] strong::before {
+  background: var(--warning);
+}
+.habit-status-legend [data-status='poor']::before,
+.habit-status-days [data-status='poor'] strong::before {
+  background: var(--danger);
+}
+.habit-calendar-spacer {
+  background: var(--surface-secondary);
+  opacity: 0.45;
+  border-radius: 6px;
+}
+
+:is(.habit-today-panel, .habit-overview-panel, .habit-trend, .habit-efficiency-trend) {
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+.habit-panel-heading h2 > svg,
+.habit-range-header h2 > svg {
+  color: var(--accent);
+}
+:is(.habit-check-row, .habit-efficiency-row) {
+  padding: 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-secondary) 40%, var(--surface));
+  min-width: 0;
+}
+.habit-check-label strong,
+.habit-efficiency-label strong {
+  font-size: 1rem;
+}
+.habit-efficiency-row .habit-segments button {
+  min-width: 36px;
+  padding: 4px 8px;
+}
+.habit-statistics {
+  margin-top: 16px;
+}
+.habit-summary > div > span {
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+}
+.habit-overview-panel > .habit-caption {
+  margin-bottom: 0;
+}
+.habit-efficiency-trend {
+  margin-top: 16px;
+}
+.habit-status-days button strong {
+  font-weight: 400;
+}
+:is(.habit-regularity, .habit-history) {
+  margin-top: 12px;
+  padding: 0 4px;
+  border-top: 0;
+}
+@media (max-width: 1100px) {
+  .habit-today {
+    grid-template-columns: 1fr;
+  }
+  .habit-summary > div {
+    padding: 12px;
+  }
+}
 @media (max-width: 760px) {
   .habits-panel {
-    padding: 16px 12px 28px;
+    padding: 0 0 24px;
   }
   .habit-page-header {
     margin-bottom: 16px;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 0;
   }
   .habit-today {
     padding: 0;
   }
   .habit-check-row {
     grid-template-columns: 20px minmax(0, 1fr) auto;
+    padding: 12px 8px;
     gap: 8px;
   }
 
@@ -491,7 +701,7 @@
     justify-content: space-between;
   }
   .habit-summary > div {
-    padding: 0 8px;
+    gap: 6px;
   }
   .habit-summary strong {
     font-size: 26px;
@@ -510,84 +720,6 @@
   .habit-calendar button {
     min-height: 54px;
   }
-}
-
-/* 时间即编辑入口；以排版表达主次，避免为每个值增加操作框。 */
-.habits-panel .habit-time-button {
-  font-size: 24px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  padding: 0 4px;
-  line-height: 1.2;
-}
-.habit-time-button:hover,
-.habit-time-button:focus-visible {
-  background: var(--surface);
-  text-decoration: underline;
-  text-underline-offset: 5px;
-}
-.habit-live-clock {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px 12px;
-  margin-top: 6px;
-  font-size: 13px;
-}
-.habit-live-clock time {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: baseline;
-}
-.habit-live-clock b {
-  font-size: 19px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-}
-.habit-live-clock > span {
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-.habit-record-value {
-  align-items: flex-end;
-  gap: 0;
-}
-.habit-regularity > summary,
-.habit-history > summary {
-  cursor: pointer;
-  min-height: 44px;
-  padding: 12px 0;
-  box-sizing: border-box;
-  font-size: 14px;
-  color: var(--text-primary);
-}
-.habit-history[open] > header {
-  margin: 12px 0;
-}
-.habit-message {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 12px;
-  padding: 8px 0;
-  border: 0;
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: 13px;
-}
-.habit-message p {
-  flex: 1 1 240px;
-  margin: 0;
-}
-.habits-panel button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-@media (max-width: 760px) {
-  .habit-page-header {
-    align-items: flex-start;
-    gap: 8px;
-  }
   .habit-live-clock {
     gap: 4px;
   }
@@ -597,10 +729,30 @@
   .habit-range-header {
     gap: 6px;
   }
-  .habit-summary > div {
-    gap: 6px;
-  }
   .habit-record-value .habit-time-button {
     font-size: 22px;
+  }
+  .habit-page-header h1 {
+    font-size: 1.875rem;
+    gap: 12px;
+  }
+
+  :is(
+    .habit-today-panel,
+    .habit-overview-panel,
+    .habit-trend,
+    .habit-efficiency-trend
+  ) {
+    padding: 12px;
+  }
+  .habit-summary {
+    grid-template-columns: 1fr;
+  }
+  .habit-status-days button {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .habit-panel-heading .habit-day-navigation {
+    width: 100%;
   }
 }

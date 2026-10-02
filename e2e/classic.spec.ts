@@ -1,4 +1,4 @@
-/** @fileoverview Validate the independent classic theme, readable window proportions, cross-page palettes and saved appearance. */
+/** @fileoverview Validate the refined classic palette, single-border windows, cross-page readability and saved appearance. */
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import {
@@ -93,7 +93,7 @@ test('classic light and dark windows remain readable throughout the app', async 
       await page.clock.runFor(350);
       await expect(page.locator('h1').first()).toHaveCSS(
         'color',
-        colorScheme === 'dark' ? 'rgb(255, 247, 212)' : 'rgb(37, 37, 20)',
+        colorScheme === 'dark' ? 'rgb(255, 247, 212)' : 'rgb(41, 39, 34)',
       );
       await accessible(page);
       if (testInfo.project.name === 'desktop')
@@ -113,7 +113,9 @@ test('classic wardrobe and all four choices fit mobile with enlarged text', asyn
   await page.getByRole('button', { name: '更多', exact: true }).click();
   await page.getByRole('button', { name: '我的装扮', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '我的装扮' });
-  await expect(dialog).toHaveCSS('border-image-source', /classic\/frame.svg/);
+  await expect(dialog).toHaveCSS('border-image-source', 'none');
+  await expect(dialog).toHaveCSS('border-top-width', '1px');
+  await expect(dialog).toHaveCSS('border-radius', '16px');
   await accessible(page);
   await page.screenshot({
     path: `docs/screenshots/classic/${testInfo.project.name}-wardrobe.png`,
@@ -143,14 +145,13 @@ test('classic task windows retain readable controls and a working close action',
     await page.clock.resume();
     await openSeededTaskEditor(page);
     const dialog = page.getByRole('dialog', { name: '编辑任务', exact: true });
-    await expect(dialog).toHaveCSS(
-      'border-image-source',
-      /classic\/frame(?:-dark)?.svg/,
-    );
+    await expect(dialog).toHaveCSS('border-image-source', 'none');
+    await expect(dialog).toHaveCSS('border-top-width', '1px');
+    await expect(dialog).toHaveCSS('border-radius', '16px');
     // A sticky touch hover menu must never cover the editor's project selector.
     await expect
       .poll(() =>
-        dialog.locator('select').evaluate((node) => {
+        dialog.getByRole('combobox', { name: '项目', exact: true }).evaluate((node) => {
           const rect = node.getBoundingClientRect();
           return node.contains(
             document.elementFromPoint(rect.right - 12, rect.bottom - 12),
