@@ -1,4 +1,4 @@
-/** @fileoverview 阶段短表单与按名称伸缩的项目下拉；清单内滚动，输入和确认操作保持可见。 */
+/** @fileoverview 阶段短表单与共用列宽的任务清单；清单内滚动，输入和确认操作保持可见。 */
 .manager-dialog-backdrop:has(.stage-editor-dialog) {
   touch-action: pan-y;
   overscroll-behavior: contain;
@@ -103,6 +103,7 @@
 }
 
 .stage-draft-sheet {
+  --stage-task-controls: 100px 88px 72px;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -129,7 +130,7 @@
 
 .stage-draft-item {
   display: grid;
-  grid-template-columns: 16px minmax(0, 1fr) auto 88px var(--touch-target);
+  grid-template-columns: 16px minmax(0, 1fr) var(--stage-task-controls);
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
@@ -253,14 +254,17 @@
   box-shadow: none;
 }
 .stage-draft-controls {
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--stage-task-controls);
   align-items: center;
   justify-content: flex-end;
   flex-wrap: nowrap;
   gap: 8px;
 }
-.stage-draft-controls > .project-picker {
-  max-width: 120px;
+.stage-draft-controls > .project-picker,
+.stage-draft-item > .project-picker {
+  width: 100%;
+  max-width: 100%;
 }
 .stage-draft-controls > button {
   display: inline-flex;
@@ -275,6 +279,7 @@
   color: var(--accent-text);
   font: inherit;
   font-size: var(--text-caption-size);
+  white-space: nowrap;
   cursor: pointer;
 }
 .stage-draft-controls > button:hover:not(:disabled) {
@@ -387,9 +392,19 @@
   }
 }
 
-/* 名称、项目、预计时间与操作同排；长标题在自己的列内换行。 */
-.stage-draft-item > .project-picker {
-  max-width: 120px;
+/* 上下行共用横向内距、边框占位和滚动槽，清单出现滚动条时也不移动项目与估时列。 */
+@media (min-width: 761px) {
+  .stage-draft-sheet ul,
+  .stage-draft-composer {
+    padding-inline: var(--space-3);
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+  }
+  .stage-draft-composer {
+    padding-block: var(--space-1);
+    overflow: hidden;
+    border: 1px solid transparent;
+  }
 }
 .stage-draft-item > .stage-estimate-input,
 .stage-draft-controls > .stage-estimate-input {
@@ -460,6 +475,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
   .stage-draft-controls {
+    display: flex;
     flex-wrap: wrap;
     gap: 4px;
   }
