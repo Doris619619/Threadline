@@ -187,12 +187,33 @@ export function resolveSafeWindowState(
   workAreas: LogicalWorkArea[],
   preferredArea?: LogicalWorkArea | null,
 ): WindowStateConfig {
-  if (hasSufficientVisibleArea(mode, state, workAreas)) return state;
+  if (hasSufficientVisibleArea(mode, state, workAreas)) {
+    if (mode !== 'full') return state;
+    const area =
+      preferredArea ??
+      workAreas.find((candidate) => hasSufficientVisibleArea(mode, state, [candidate]));
+    return area ? fitWindowToWorkArea(state, area) : state;
+  }
 
   const fallbackArea = preferredArea ?? workAreas[0];
   return fallbackArea
     ? getFallbackWindowState(mode, state, fallbackArea)
     : { ...state };
+}
+
+/** 跨屏或恢复完整窗口时，以 DIP 工作区夹取宽高和位置；不二次乘除显示缩放比例。 */
+export function fitWindowToWorkArea(
+  state: WindowStateConfig,
+  area: LogicalWorkArea,
+): WindowStateConfig {
+  const width = Math.min(state.width, area.width);
+  const height = Math.min(state.height, area.height);
+  return {
+    width: Math.round(width),
+    height: Math.round(height),
+    x: clamp(state.x ?? area.x, area.x, area.x + area.width - width),
+    y: clamp(state.y ?? area.y, area.y, area.y + area.height - height),
+  };
 }
 
 /** 停用视图的旧偏好迁移到工作站；未知模式回退完整工作台。 */
