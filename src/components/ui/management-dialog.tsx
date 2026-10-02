@@ -28,10 +28,13 @@ type ManagementDialogProps = {
 function getFocusableElements(container: HTMLElement): HTMLElement[] {
   return [
     ...container.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
     ),
   ].filter(
-    (element) => !element.hasAttribute('aria-hidden') && !element.matches(':disabled'),
+    (element) =>
+      !element.hasAttribute('aria-hidden') &&
+      !element.closest('[hidden]') &&
+      !element.matches(':disabled'),
   );
 }
 

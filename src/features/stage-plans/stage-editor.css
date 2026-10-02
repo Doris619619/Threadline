@@ -165,65 +165,9 @@
 
 .stage-draft-item textarea:focus-visible {
   outline: none;
-  box-shadow: inset 0 -1px var(--accent);
-}
-.stage-draft-project-picker {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-  width: max-content;
-  max-width: 144px;
-  min-width: var(--touch-target);
-  min-height: var(--touch-target);
-  padding: 0 var(--space-2);
-  box-sizing: border-box;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: var(--text-caption-size);
-}
-.stage-draft-project-value {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.stage-draft-project-picker > svg {
-  flex-shrink: 0;
-  pointer-events: none;
-}
-.stage-draft-item > .stage-draft-project-picker {
-  margin: var(--space-1) 0;
-}
-.stage-draft-project-picker select {
-  position: absolute;
-  inset: 0;
-  appearance: none;
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: var(--touch-target);
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: inherit;
-  opacity: 0;
-  font: inherit;
-  cursor: pointer;
-}
-.stage-draft-project-picker:has(select:hover:not(:disabled)) {
-  border-color: var(--border-strong);
-  background: var(--accent-soft);
-}
-.stage-draft-project-picker:has(select:focus-visible) {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-.stage-draft-project-picker:has(select:active:not(:disabled)) {
-  background: var(--accent-soft);
+  border-radius: 4px;
+  background: var(--surface-secondary);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 .stage-draft-settings {
   display: flex;
@@ -235,20 +179,8 @@
 .stage-quick-input--project {
   grid-template-columns: minmax(0, 1fr) minmax(80px, auto) auto;
 }
-.stage-quick-input--project select {
-  min-width: 0;
-  max-width: 180px;
-  min-height: var(--touch-target);
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  background: var(--surface);
-  color: var(--text-primary);
-  font: inherit;
-}
-
-.stage-draft-item button,
-.stage-draft-composer button {
+.stage-draft-item > button,
+.stage-draft-composer > button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -265,7 +197,7 @@
   cursor: pointer;
 }
 
-.stage-draft-item button:hover:not(:disabled) {
+.stage-draft-item > button:hover:not(:disabled) {
   color: var(--danger);
   background: var(--surface-secondary);
 }
@@ -288,8 +220,18 @@
   grid-template-columns: 16px minmax(0, 1fr) auto auto;
 }
 
-.stage-draft-composer:focus-within {
-  box-shadow: inset 0 -2px var(--accent);
+.stage-draft-composer:has(input:focus-visible) {
+  background: var(--surface-secondary);
+}
+.stage-draft-composer input:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.stage-editor-fields input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 .stage-draft-composer input {
@@ -310,15 +252,15 @@
   color: var(--text-secondary);
 }
 
-.stage-draft-composer button {
+.stage-draft-composer > button {
   color: var(--accent-text);
 }
 
-.stage-draft-composer button:hover:not(:disabled) {
+.stage-draft-composer > button:hover:not(:disabled) {
   background: var(--accent-soft);
 }
 
-.stage-draft-composer button:disabled {
+.stage-draft-composer > button:disabled {
   color: var(--text-secondary);
   opacity: 0.5;
   cursor: default;
@@ -411,14 +353,6 @@
   .stage-quick-input--project input {
     grid-column: 1 / -1;
   }
-  .stage-quick-input--project select {
-    max-width: none;
-    font-size: 16px;
-  }
-  .stage-draft-project-picker,
-  .stage-draft-project-picker select {
-    font-size: 16px;
-  }
   .stage-draft-composer.has-project-picker {
     grid-template-columns: 16px minmax(0, 1fr) auto;
     row-gap: 0;
@@ -430,8 +364,9 @@
     grid-column: 3;
     grid-row: 1;
   }
-  .stage-draft-composer > .stage-draft-project-picker {
+  .stage-draft-composer > .project-picker {
     grid-column: 2 / -1;
+    justify-self: start;
     margin-bottom: var(--space-1);
   }
 }
@@ -452,12 +387,12 @@
     grid-row: 1;
     margin-bottom: 0;
   }
-  .stage-draft-item > .stage-draft-project-picker {
+  .stage-draft-item > .project-picker {
     grid-column: 2;
     grid-row: 2;
     margin: 0 0 var(--space-2);
   }
-  .stage-draft-item button {
+  .stage-draft-item > button {
     grid-column: 3;
     grid-row: 1;
   }

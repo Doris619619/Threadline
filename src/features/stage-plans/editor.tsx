@@ -1,5 +1,6 @@
 /** @fileoverview 阶段短表单与连续清单草稿；固定打开时版本、稳定 ID、失败保留与中文 Enter 保护。 */
 'use client';
+import { ProjectPicker } from '@/components/ui/project-picker';
 import { useState, useRef, useEffect } from 'react';
 import { ManagementDialog } from '@/components/ui/management-dialog';
 import { Button } from '@/components/ui/button';
@@ -304,22 +305,14 @@ export function StageAddTask({
               event.preventDefault();
           }}
         />
-        <select
-          aria-label="阶段任务项目"
+        <ProjectPicker
+          compact
+          label="阶段任务项目"
           disabled={busy}
+          projects={projects.filter((project) => project.status === 'active')}
           value={draft.projectId ?? resolveActiveProject(projects)?.id ?? ''}
-          onChange={(event) =>
-            setDraft((row) => ({ ...row, projectId: event.target.value }))
-          }
-        >
-          {projects
-            .filter((project) => project.status === 'active')
-            .map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-        </select>
+          onChange={(projectId) => setDraft((row) => ({ ...row, projectId }))}
+        />
         <button type="submit" disabled={busy || !draft.title.trim()}>
           + 添加任务
         </button>

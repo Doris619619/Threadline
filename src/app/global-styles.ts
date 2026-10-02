@@ -47,3 +47,5 @@ import '../features/together/review.css';
 import '../features/stage-plans/stage-plans.css';
 import '../features/stage-plans/stage-editor.css';
 import '../features/projects/project-detail.css';
+
+import '../components/ui/project-picker.css';

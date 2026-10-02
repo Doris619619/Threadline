@@ -44,9 +44,7 @@ test('keeps stage creation and project overview readable in both themes', async 
       ['完成访学申请材料', '工作'],
       ['读完一本书', '生活'],
     ]) {
-      await dialog
-        .getByLabel('阶段任务项目', { exact: true })
-        .selectOption({ label: project });
+      await selectProject(dialog.getByLabel('阶段任务项目', { exact: true }), project);
       await input.fill(title);
       await input.press('Enter');
     }
@@ -55,15 +53,13 @@ test('keeps stage creation and project overview readable in both themes', async 
       .evaluate((el) => (el.scrollTop = 0));
     const title = dialog.getByLabel('任务草稿 1', { exact: true });
     const rowProject = dialog.getByLabel('任务草稿 1 项目', { exact: true });
-    await rowProject.selectOption({ label: 'AI研究' });
-    await expect(rowProject.locator('option:checked')).toHaveText('AI研究');
-    await expect(
-      dialog.getByLabel('任务草稿 2 项目', { exact: true }).locator('option:checked'),
-    ).toHaveText('工作');
-    await expect(
-      dialog.getByLabel('阶段任务项目', { exact: true }).locator('option:checked'),
-    ).toHaveText('生活');
-    await rowProject.selectOption({ label: '课程' });
+    await selectProject(rowProject, 'AI研究');
+    await expect(rowProject).toHaveText('AI研究');
+    await expect(dialog.getByLabel('任务草稿 2 项目', { exact: true })).toHaveText(
+      '工作',
+    );
+    await expect(dialog.getByLabel('阶段任务项目', { exact: true })).toHaveText('生活');
+    await selectProject(rowProject, '课程');
     expect(await title.evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(
       true,
     );
@@ -105,9 +101,9 @@ test('keeps stage creation and project overview readable in both themes', async 
       await expect(
         dialog.getByRole('list', { name: '阶段任务草稿' }).getByRole('listitem'),
       ).toHaveCount(3);
-      await expect(
-        dialog.getByLabel('任务草稿 1 项目', { exact: true }).locator('option:checked'),
-      ).toHaveText('课程');
+      await expect(dialog.getByLabel('任务草稿 1 项目', { exact: true })).toHaveText(
+        '课程',
+      );
     }
     await dialog.getByRole('button', { name: '关闭', exact: true }).click();
     await page.getByRole('button', { name: '查看项目 其他', exact: true }).click();
@@ -153,10 +149,15 @@ test('keeps the stage composer compact and projects aggregate the same tasks acr
     await dialog.getByRole('button', { name: '下一步', exact: true }).click();
   const input = dialog.getByLabel('阶段任务名称', { exact: true });
   const project = dialog.getByLabel('阶段任务项目', { exact: true });
-  await project.selectOption({ label: '工作' });
-  const workId = await project.inputValue();
+  await selectProject(project, '工作');
+  const workId = await page.evaluate(() => {
+    const projects = JSON.parse(
+      localStorage.getItem('threadline.preview-demo.v1:threadline.projects.v1')!,
+    ) as { id: string; name: string }[];
+    return projects.find((item) => item.name === '工作')!.id;
+  });
   for (let i = 0; i < 16; i++) {
-    if (i === 8) await project.selectOption({ label: '课程' });
+    if (i === 8) await selectProject(project, '课程');
     await input.fill('汇总任务 ' + i);
     await input.press('Enter');
     await expect(input).toBeFocused();
@@ -169,13 +170,9 @@ test('keeps the stage composer compact and projects aggregate the same tasks acr
     .locator('..')
     .getAttribute('data-stage-draft-id');
   // 已收集任务可改项目再改回；身份及下一项选择不跟着变化。
-  await dialog
-    .getByLabel('任务草稿 1 项目', { exact: true })
-    .selectOption({ label: 'AI研究' });
-  await expect(project.locator('option:checked')).toHaveText('课程');
-  await dialog
-    .getByLabel('任务草稿 1 项目', { exact: true })
-    .selectOption({ label: '工作' });
+  await selectProject(dialog.getByLabel('任务草稿 1 项目', { exact: true }), 'AI研究');
+  await expect(project).toHaveText('课程');
+  await selectProject(dialog.getByLabel('任务草稿 1 项目', { exact: true }), '工作');
   expect(
     await dialog
       .getByLabel('任务草稿 1', { exact: true })
@@ -275,9 +272,7 @@ test('keeps the stage composer compact and projects aggregate the same tasks acr
   await page
     .getByRole('button', { name: '查看阶段 项目汇总验收', exact: true })
     .click();
-  await page
-    .getByLabel('阶段任务项目', { exact: true })
-    .selectOption({ label: 'AI研究' });
+  await selectProject(page.getByLabel('阶段任务项目', { exact: true }), 'AI研究');
   await page.getByLabel('添加阶段任务', { exact: true }).fill('追加到科研项目');
   await page.getByRole('button', { name: '+ 添加任务', exact: true }).click();
   const final = await snapshot();
@@ -290,9 +285,10 @@ test('keeps the stage composer compact and projects aggregate the same tasks acr
   await expect(addedRow).toBeVisible();
   await addedRow.getByRole('button', { name: '追加到科研项目', exact: true }).click();
   const editing = page.getByRole('dialog');
-  await editing
-    .getByRole('combobox', { name: '项目', exact: true })
-    .selectOption({ label: '生活' });
+  await selectProject(
+    editing.getByRole('combobox', { name: '项目', exact: true }),
+    '生活',
+  );
   await editing.getByRole('button', { name: '保存', exact: true }).click();
   await expect(editing).not.toBeVisible();
   await expect(addedRow).toHaveCount(0);
@@ -600,4 +596,61 @@ test('keeps scheduled metadata compact and close-day controls inside the viewpor
   await expect(
     page.getByRole('button', { name: '今日已结束', exact: true }),
   ).toBeDisabled();
+});
+
+/** 通过真实项目菜单更换选择，兼容卡片表单与追加任务入口。 */
+async function selectProject(
+  trigger: import('@playwright/test').Locator,
+  name: string,
+) {
+  expect(
+    await trigger.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return (
+        style.display === 'flex' &&
+        parseFloat(style.paddingLeft) >= 8 &&
+        element.querySelector('i')!.getBoundingClientRect().width >= 8
+      );
+    }),
+  ).toBe(true);
+  await trigger.click();
+  await trigger
+    .page()
+    .locator('.project-picker-menu:popover-open')
+    .getByRole('option', { name, exact: true })
+    .click();
+}
+
+/** 点击日期与输入失败时不出现重复描边，错误反馈保留日期和名称供直接修正。 */
+test('keeps focused dates and validation feedback tidy', async ({ page }, info) => {
+  await page.goto('/');
+  await awaitDemoWorkspace(page);
+  await page.evaluate(() => {
+    document.documentElement.dataset.theme = 'classic';
+    document.documentElement.dataset.colorScheme = 'light';
+  });
+  await openWorkspaceSection(page, '计划');
+  await page.getByRole('button', { name: '+ 新建阶段', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '新建阶段', exact: true });
+  await dialog.getByLabel('阶段名称', { exact: true }).fill('日期校验与草稿保留');
+  await dialog.getByLabel('阶段开始日期').fill('2026-10-07');
+  await dialog.getByLabel('阶段结束日期').fill('2026-10-02');
+  const date = dialog.getByLabel('阶段开始日期');
+  await date.focus();
+  expect(await date.evaluate((node) => getComputedStyle(node).outlineStyle)).toBe(
+    'none',
+  );
+  await page.screenshot({ path: info.outputPath('date-focus.png') });
+  await dialog
+    .getByRole('button', {
+      name: page.viewportSize()!.width <= 760 ? '下一步' : '创建阶段',
+      exact: true,
+    })
+    .click();
+  await expect(dialog).toContainText('结束日期不能早于开始日期。');
+  await expect(dialog.getByLabel('阶段名称', { exact: true })).toHaveValue(
+    '日期校验与草稿保留',
+  );
+  await expect(dialog.getByLabel('阶段结束日期')).toHaveValue('2026-10-02');
+  await page.screenshot({ path: info.outputPath('validation-error.png') });
 });

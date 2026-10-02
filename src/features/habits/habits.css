@@ -148,7 +148,7 @@
 }
 .habit-check-label,
 .habit-record-value,
-.habit-efficiency-row > div:first-child {
+.habit-efficiency-label {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -602,5 +602,251 @@
   }
   .habit-record-value .habit-time-button {
     font-size: 22px;
+  }
+}
+
+/* 内容分组共享语义，经典主题采用参考图的纸面卡片与紧凑网格。 */
+.habit-panel-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.habit-panel-heading h2,
+.habit-range-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.habit-panel-heading p {
+  margin: 4px 0 0;
+}
+.habit-page-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.habit-page-header h1 > .cottage-nav-icon {
+  width: 40px;
+  height: 40px;
+}
+html .habit-page-header h1 .cottage-sprite {
+  width: 40px;
+  height: 40px;
+}
+.habit-efficiency-row > svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.habit-efficiency-label {
+  margin-right: auto;
+}
+.habit-status-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 12px;
+}
+.habit-status-legend span,
+.habit-status-days button strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.habit-status-legend span::before,
+.habit-status-days button strong::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.habit-status-legend [data-status='good']::before,
+.habit-status-days [data-status='good'] strong::before {
+  background: var(--success);
+}
+.habit-status-legend [data-status='medium']::before,
+.habit-status-days [data-status='medium'] strong::before {
+  background: var(--warning);
+}
+.habit-status-legend [data-status='poor']::before,
+.habit-status-days [data-status='poor'] strong::before {
+  background: var(--danger);
+}
+.habit-calendar-spacer {
+  background: var(--surface-secondary);
+  opacity: 0.45;
+  border-radius: 6px;
+}
+html[data-theme='classic'] .habits-panel {
+  max-width: 1440px;
+  padding: 16px 0 28px;
+}
+html[data-theme='classic'] .habit-page-header {
+  padding: 0 20px;
+  margin-bottom: 24px;
+}
+html[data-theme='classic'] .habit-page-header h1 {
+  font-size: 2.25rem;
+}
+html[data-theme='classic'] .habit-page-header > button {
+  border-color: var(--border);
+  background: var(--surface);
+  padding-inline: 16px;
+}
+html[data-theme='classic']
+  :is(
+    .habit-today-panel,
+    .habit-overview-panel,
+    .habit-trend,
+    .habit-efficiency-trend
+  ) {
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+html[data-theme='classic'] .habit-panel-heading h2 > svg,
+html[data-theme='classic'] .habit-range-header h2 > svg {
+  color: var(--accent);
+}
+html[data-theme='classic'] .habit-day-navigation {
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  margin: 0;
+  padding: 0 4px;
+}
+html[data-theme='classic'] .habit-today {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  border: 0;
+}
+html[data-theme='classic'] :is(.habit-check-row, .habit-efficiency-row) {
+  padding: 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-secondary) 40%, var(--surface));
+  min-width: 0;
+}
+html[data-theme='classic'] .habit-check-row {
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 12px;
+}
+html[data-theme='classic'] .habit-check-row > svg {
+  width: 28px;
+  height: 28px;
+}
+html[data-theme='classic'] .habit-efficiency-row {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+html[data-theme='classic'] .habit-check-label strong,
+html[data-theme='classic'] .habit-efficiency-label strong {
+  font-size: 1rem;
+}
+html[data-theme='classic'] .habit-segments {
+  border: 1px solid var(--border-subtle);
+}
+html[data-theme='classic'] .habit-efficiency-row .habit-segments button {
+  min-width: 36px;
+  padding: 4px 8px;
+}
+html[data-theme='classic'] .habit-statistics {
+  margin-top: 16px;
+}
+html[data-theme='classic'] .habit-summary {
+  gap: 12px;
+  padding-top: 16px;
+}
+html[data-theme='classic'] .habit-summary > div {
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 16px 20px;
+  background: color-mix(in srgb, var(--surface-secondary) 40%, var(--surface));
+}
+html[data-theme='classic'] .habit-summary > div > span {
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+}
+html[data-theme='classic'] .habit-summary strong {
+  font-size: 1.875rem;
+  line-height: 1.2;
+}
+html[data-theme='classic'] .habit-overview-panel > .habit-caption {
+  margin-bottom: 0;
+}
+html[data-theme='classic'] .habit-trends {
+  gap: 16px;
+}
+html[data-theme='classic'] .habit-trend {
+  min-height: 280px;
+}
+html[data-theme='classic'] .habit-efficiency-trend {
+  margin-top: 16px;
+}
+html[data-theme='classic'] .habit-status-days button {
+  flex-direction: row;
+  justify-content: center;
+  gap: 12px;
+  border: 1px solid var(--border-subtle);
+  min-height: 44px;
+  font-size: 13px;
+  background: var(--surface);
+}
+html[data-theme='classic'] .habit-status-days button strong {
+  font-weight: 400;
+}
+html[data-theme='classic'] :is(.habit-regularity, .habit-history) {
+  margin-top: 12px;
+  padding: 0 4px;
+  border-top: 0;
+}
+@media (max-width: 1100px) {
+  html[data-theme='classic'] .habit-today {
+    grid-template-columns: 1fr;
+  }
+  html[data-theme='classic'] .habit-summary > div {
+    padding: 12px;
+  }
+}
+@media (max-width: 760px) {
+  html[data-theme='classic'] .habits-panel {
+    padding: 0 0 24px;
+  }
+  html[data-theme='classic'] .habit-page-header {
+    padding: 0;
+  }
+  html[data-theme='classic'] .habit-page-header h1 {
+    font-size: 1.875rem;
+    gap: 12px;
+  }
+  html[data-theme='classic']
+    :is(
+      .habit-today-panel,
+      .habit-overview-panel,
+      .habit-trend,
+      .habit-efficiency-trend
+    ) {
+    padding: 12px;
+  }
+  html[data-theme='classic'] .habit-summary {
+    grid-template-columns: 1fr;
+  }
+  html[data-theme='classic'] .habit-status-days button {
+    flex-direction: column;
+    gap: 4px;
+  }
+  html[data-theme='classic'] .habit-check-row {
+    padding: 12px 8px;
+    gap: 8px;
+  }
+  .habit-panel-heading .habit-day-navigation {
+    width: 100%;
   }
 }

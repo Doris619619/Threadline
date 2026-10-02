@@ -8,8 +8,10 @@
   display: grid;
   width: 100%;
   min-width: 0;
-  min-height: 154px;
-  padding: var(--space-4);
+  min-height: 120px;
+  height: 100%;
+  padding: 24px 16px 16px;
+  grid-template-rows: minmax(24px, 1fr) auto;
   grid-template-columns: 32px minmax(0, 1fr) 20px;
   align-items: center;
   gap: var(--space-3);

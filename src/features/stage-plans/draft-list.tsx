@@ -2,8 +2,9 @@
 'use client';
 
 import { useEffect, useId, useLayoutEffect, useRef, type RefObject } from 'react';
-import { ChevronDown, CornerDownLeft, Plus, X } from 'lucide-react';
+import { CornerDownLeft, Plus, X } from 'lucide-react';
 import type { StageTaskDraft } from './rules';
+import { ProjectPicker } from '@/components/ui/project-picker';
 import type { Project } from '@/types/domain';
 
 type StageDraftListProps = {
@@ -19,44 +20,6 @@ type StageDraftListProps = {
   onProjectChange: (id: string) => void;
   onItemProjectChange: (itemId: string, projectId: string) => void;
 };
-
-/** 当前名称决定可见宽度，原生 select 覆盖完整点击区；键盘与手机仍使用系统选择器。 */
-function DraftProjectPicker({
-  projects,
-  projectId,
-  label,
-  onChange,
-}: {
-  projects: Project[];
-  projectId?: string;
-  label: string;
-  onChange: (projectId: string) => void;
-}) {
-  if (!projects.length) return null;
-  const selectedName = projects.find((project) => project.id === projectId)?.name;
-  return (
-    <span className="stage-draft-project-picker">
-      <span className="stage-draft-project-value" aria-hidden="true">
-        {selectedName ?? '选择项目'}
-      </span>
-      <ChevronDown size={14} aria-hidden="true" />
-      <select
-        aria-label={label}
-        title={selectedName}
-        value={projectId ?? ''}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        {projects
-          .filter((project) => project.status === 'active')
-          .map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.name}
-            </option>
-          ))}
-      </select>
-    </span>
-  );
-}
 
 /** 单项草稿随文字自动增高，长标题完整换行；Enter 返回连续输入，中文选词不跳走。 */
 function DraftTaskRow({
@@ -116,9 +79,10 @@ function DraftTaskRow({
           }
         }}
       />
-      <DraftProjectPicker
-        projects={projects}
-        projectId={item.projectId}
+      <ProjectPicker
+        compact
+        projects={projects.filter((project) => project.status === 'active')}
+        value={item.projectId ?? ''}
         label={'任务草稿 ' + (index + 1) + ' 项目'}
         onChange={(projectId) => onItemProjectChange(item.id, projectId)}
       />
@@ -174,7 +138,7 @@ export function StageDraftList({
                 inputRef={inputRef}
                 onChange={onChange}
                 onRemove={onRemove}
-                projects={projects}
+                projects={projects.filter((project) => project.status === 'active')}
                 onItemProjectChange={onItemProjectChange}
               />
             ))}
@@ -200,9 +164,10 @@ export function StageDraftList({
               if (!event.nativeEvent.isComposing && event.keyCode !== 229) onAdd();
             }}
           />
-          <DraftProjectPicker
-            projects={projects}
-            projectId={projectId}
+          <ProjectPicker
+            compact
+            projects={projects.filter((project) => project.status === 'active')}
+            value={projectId ?? ''}
             label="阶段任务项目"
             onChange={onProjectChange}
           />

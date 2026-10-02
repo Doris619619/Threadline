@@ -1,0 +1,142 @@
+/* 文件用途：统一项目菜单尺寸、留白和状态；顶层 popover 避免被表单滚动容器裁切。 */
+.project-picker {
+  display: inline-flex;
+  min-width: 0;
+  width: 100%;
+}
+html .project-picker .project-picker-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  margin: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  color: var(--text-primary);
+  background: var(--surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none;
+}
+.project-picker-trigger > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-picker-trigger > svg {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+.project-picker i,
+.project-picker-menu i {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--project-color, var(--accent));
+  flex-shrink: 0;
+}
+.project-picker--compact {
+  width: auto;
+  max-width: 150px;
+}
+html .project-picker--compact .project-picker-trigger {
+  font-size: var(--text-secondary-size);
+  background: var(--surface-secondary);
+}
+html .project-picker .project-picker-trigger:hover:not(:disabled) {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+}
+html .project-picker .project-picker-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+html .project-picker .project-picker-trigger:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+html .project-picker-menu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-popover);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-size: 0.9375rem;
+  font-family: var(--font-sans);
+  z-index: 100;
+}
+.project-picker-menu::backdrop {
+  background: transparent;
+}
+.project-picker-menu [role='listbox'] {
+  outline: none;
+}
+.project-picker-menu [role='option'] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.project-picker-menu [role='option'] > span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.project-picker-menu [role='option'][data-active='true'] {
+  background: var(--accent-soft);
+}
+.project-picker-menu [role='option'][aria-selected='true'] {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.project-picker-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 6px;
+}
+html .project-picker-menu .project-picker-search input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 16px;
+}
+.project-picker-empty {
+  padding: 12px;
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.task-project-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  align-content: start;
+  font-size: var(--text-secondary-size);
+  color: var(--text-secondary);
+}

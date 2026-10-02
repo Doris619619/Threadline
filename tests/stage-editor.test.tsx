@@ -1,5 +1,12 @@
 /** @fileoverview 验证连续清单、逐项项目下拉、中文 Enter、手机步骤与失败重试的稳定草稿身份。 */
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { StageEditor } from '@/features/stage-plans/editor';
 import type { Project, StagePlan } from '@/types/domain';
@@ -115,7 +122,9 @@ it('changes projects per draft without changing the next task or stable IDs thro
   render(<StageEditor onClose={vi.fn()} projects={projects} />);
   fillName();
   const input = screen.getByLabelText('阶段任务名称');
-  expect(screen.getByLabelText('阶段任务项目')).toHaveValue('other');
+  expect(screen.getByRole('combobox', { name: '阶段任务项目' })).toHaveTextContent(
+    '其他',
+  );
   expect(screen.queryByRole('option', { name: '已归档项目' })).not.toBeInTheDocument();
   fireEvent.change(input, { target: { value: '默认项目' } });
   fireEvent.keyDown(input, { key: 'Enter' });
@@ -123,20 +132,16 @@ it('changes projects per draft without changing the next task or stable IDs thro
     .getByLabelText('任务草稿 1')
     .closest('[data-stage-draft-id]')
     ?.getAttribute('data-stage-draft-id');
-  fireEvent.change(screen.getByLabelText('阶段任务项目'), {
-    target: { value: 'work' },
-  });
+  chooseProject('阶段任务项目', '工作');
   fireEvent.change(input, { target: { value: '工作任务' } });
   fireEvent.keyDown(input, { key: 'Enter' });
   fireEvent.change(input, { target: { value: '移除这一项' } });
   fireEvent.keyDown(input, { key: 'Enter' });
-  fireEvent.change(screen.getByLabelText('任务草稿 1 项目'), {
-    target: { value: 'work' },
-  });
-  fireEvent.change(screen.getByLabelText('任务草稿 2 项目'), {
-    target: { value: 'other' },
-  });
-  expect(screen.getByLabelText('阶段任务项目')).toHaveValue('work');
+  chooseProject('任务草稿 1 项目', '工作');
+  chooseProject('任务草稿 2 项目', '其他');
+  expect(screen.getByRole('combobox', { name: '阶段任务项目' })).toHaveTextContent(
+    '工作',
+  );
   fireEvent.change(screen.getByLabelText('任务草稿 1'), {
     target: { value: '修改后属于工作项目' },
   });
@@ -181,3 +186,13 @@ it('keeps mobile steps short and preserves task IDs when returning to stage deta
     Object.defineProperty(window, 'innerWidth', { value: width, configurable: true });
   }
 });
+
+/** 操作真实菜单，断言业务选择；顶层定位由浏览器测试负责。 */
+function chooseProject(label: string, name: string) {
+  fireEvent.click(screen.getByRole('combobox', { name: label }));
+  fireEvent.click(
+    within(screen.getByRole('listbox', { name: label + '选项' })).getByRole('option', {
+      name,
+    }),
+  );
+}

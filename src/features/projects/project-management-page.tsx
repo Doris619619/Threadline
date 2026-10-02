@@ -9,7 +9,6 @@ import { DailyTemplateManager } from '@/features/daily/daily-template-manager';
 import { ProjectPanel } from '@/features/projects/project-panel';
 import type { Project, Task } from '@/types/domain';
 import { CottageNavIcon } from '@/features/appearance/cottage-sprite';
-import { CottageFurniture } from '@/features/appearance/cottage-furniture';
 import { useOptionalStagePlans } from '@/features/stage-plans/state';
 import {
   StageBoard,
@@ -104,13 +103,12 @@ export function ProjectManagementPage({
       <header className="project-page-heading">
         <div>
           <h1>
-            计划
             <span className="plan-page-icon">
               <CottageNavIcon name="projects">
                 <FolderKanban size={30} />
               </CottageNavIcon>
-              <CottageFurniture name="claw" />
             </span>
+            计划
           </h1>
           <p>管理你的项目、阶段计划和 Daily，让每一段时间都有方向。</p>
         </div>

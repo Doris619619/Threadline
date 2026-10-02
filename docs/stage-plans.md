@@ -87,3 +87,7 @@ Task 只有新增的可选 `stagePlanId`，仍具有原 `projectId`。阶段内�
 本次更新：[桌面创建](screenshots/stage-plans/stage-editor-desktop-dark.png)、[手机基本信息](screenshots/stage-plans/stage-editor-mobile-info.png)、[手机清单](screenshots/stage-plans/stage-editor-mobile-tasks.png)、[短视口](screenshots/stage-plans/stage-editor-mobile-short.png)、[项目总览](screenshots/stage-plans/project-overview-desktop-light.png)、[手机项目总览](screenshots/stage-plans/project-overview-mobile-dark.png)。
 
 首页任务行首组截图：[桌面浅色](screenshots/stage-plans/stage-home-inline-1440-light.png)、[桌面深色](screenshots/stage-plans/stage-home-inline-1440-dark.png)、[320px 浅色](screenshots/stage-plans/stage-home-inline-320-light.png)、[320px 深色](screenshots/stage-plans/stage-home-inline-320-dark.png)。截图截取首组以展示对齐，产品仍显示全部 16 项任务。
+
+## 项目选择与聚焦
+
+阶段草稿、追加任务和任务编辑共享受控项目菜单，显示色标、名称和选中标记；超过 7 项时支持搜索，长名称换行。方向键选择、Enter 确认、Escape 先关闭菜单、Tab 继续表单；popover 保留在弹窗 DOM 内并按视口向上/下展开。取消全行聚焦底线，日期与名称字段只显示一套焦点边框。逐项项目 ID、连续添加、中文输入法和失败草稿规则不变。

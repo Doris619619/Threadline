@@ -1,9 +1,17 @@
 /** @fileoverview 习惯一级栏目：当日真实时间打卡、周/月统计、效率分布和可编辑历史月历。 */
 'use client';
 import { useEffect, useState } from 'react';
+import { CottageNavIcon } from '@/features/appearance/cottage-sprite';
 import { timezoneLabel } from '@/lib/account-clock';
 import { Temporal } from '@js-temporal/polyfill';
-import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
+import {
+  CalendarDays,
+  ChartColumn,
+  Sprout,
+  ChevronLeft,
+  ChevronRight,
+  SlidersHorizontal,
+} from 'lucide-react';
 import {
   getMonthGrid,
   getMonthRange,
@@ -66,12 +74,18 @@ export function HabitsPanel() {
     today,
   );
   const activeEntries = data.entries.filter((entry) => !entry.deleted_at);
-  const days = iterateLocalDateRange(range);
+  const days =
+    period === 'month' ? getMonthGrid(anchor ?? today) : iterateLocalDateRange(range);
   return (
     <div className="habits-panel" data-testid="habits-panel">
       <header className="habit-page-header">
         <div>
-          <h1>习惯</h1>
+          <h1>
+            <CottageNavIcon name="habits">
+              <Sprout size={32} />
+            </CottageNavIcon>
+            习惯
+          </h1>
           <div className="habit-live-clock" data-testid="habit-clock">
             <time dateTime={now}>
               {new Intl.DateTimeFormat('zh-CN', {
@@ -150,99 +164,117 @@ export function HabitsPanel() {
               )}
             </div>
           )}
-          <HabitDayNavigation
-            date={historicalDate ?? today}
-            today={today}
-            disabled={busy || Boolean(pending)}
-            onChange={setRecordDate}
-          />
-          <HabitToday date={historicalDate} onEdit={openEntry} />
-          <section aria-label="习惯统计" className="habit-statistics">
-            <header className="habit-range-header">
-              <h2>{anchor ? '统计' : period === 'week' ? '本周' : '本月'}</h2>
-              <div className="habit-segments" aria-label="习惯统计范围">
-                <button
-                  type="button"
-                  aria-pressed={period === 'week'}
-                  onClick={() => setPeriod('week')}
-                >
-                  周
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={period === 'month'}
-                  onClick={() => setPeriod('month')}
-                >
-                  月
-                </button>
-              </div>
-              <div className="habit-range-navigation">
-                <button
-                  type="button"
-                  aria-label="上个统计周期"
-                  onClick={() =>
-                    setAnchor(
-                      period === 'week'
-                        ? habitAddDays(anchor ?? today, -7)
-                        : shiftMonth(anchor ?? today, -1),
-                    )
-                  }
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <span>
-                  {range.start.slice(0, 4)}年 {range.start.slice(5).replace('-', '/')} –{' '}
-                  {range.end.slice(5).replace('-', '/')}
-                </span>
-                <button
-                  type="button"
-                  aria-label="下个统计周期"
-                  disabled={range.end >= today}
-                  onClick={() =>
-                    setAnchor(
-                      period === 'week'
-                        ? habitAddDays(anchor ?? today, 7)
-                        : shiftMonth(anchor ?? today, 1),
-                    )
-                  }
-                >
-                  <ChevronRight size={18} />
-                </button>
-                {anchor && (
-                  <button type="button" onClick={() => setAnchor(null)}>
-                    回到当前
-                  </button>
-                )}
-              </div>
-            </header>
-            <div className="habit-summary">
-              {(['sleep', 'wake'] as const).map((kind) => (
-                <div key={kind}>
-                  <span>{kind === 'sleep' ? '早睡达标率' : '早起达标率'}</span>
-                  <strong>
-                    {summary[kind].rate === null ? '—' : `${summary[kind].rate}%`}
-                  </strong>
-                  <small>
-                    {summary[kind].awaitingRules
-                      ? '分档读取中'
-                      : `达标 ${summary[kind].achieved}`}{' '}
-                    / 已记录 {summary[kind].count}
-                  </small>
-                </div>
-              ))}
+          <section className="habit-today-panel">
+            <header className="habit-panel-heading">
               <div>
-                <span>好状态</span>
-                <strong>
-                  {summary.efficiency.good}
-                  <small>天</small>
-                </strong>
-                <small>已记录 {summary.efficiency.count} 天</small>
+                <h2>
+                  <CalendarDays size={24} aria-hidden="true" />
+                  今日习惯
+                </h2>
+                <p className="habit-caption">
+                  记录今天的状态，让更好的自己每天靠近一点。
+                </p>
               </div>
+              <HabitDayNavigation
+                date={historicalDate ?? today}
+                today={today}
+                disabled={busy || Boolean(pending)}
+                onChange={setRecordDate}
+              />
+            </header>
+            <HabitToday date={historicalDate} onEdit={openEntry} />
+          </section>
+          <section aria-label="习惯统计" className="habit-statistics">
+            <div className="habit-overview-panel">
+              <header className="habit-range-header">
+                <h2>
+                  <ChartColumn size={24} aria-hidden="true" />
+                  统计概览
+                </h2>
+                <div className="habit-segments" aria-label="习惯统计范围">
+                  <button
+                    type="button"
+                    aria-pressed={period === 'week'}
+                    onClick={() => setPeriod('week')}
+                  >
+                    周
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={period === 'month'}
+                    onClick={() => setPeriod('month')}
+                  >
+                    月
+                  </button>
+                </div>
+                <div className="habit-range-navigation">
+                  <button
+                    type="button"
+                    aria-label="上个统计周期"
+                    onClick={() =>
+                      setAnchor(
+                        period === 'week'
+                          ? habitAddDays(anchor ?? today, -7)
+                          : shiftMonth(anchor ?? today, -1),
+                      )
+                    }
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <span>
+                    {range.start.slice(0, 4)}年 {range.start.slice(5).replace('-', '/')}{' '}
+                    – {range.end.slice(5).replace('-', '/')}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="下个统计周期"
+                    disabled={range.end >= today}
+                    onClick={() =>
+                      setAnchor(
+                        period === 'week'
+                          ? habitAddDays(anchor ?? today, 7)
+                          : shiftMonth(anchor ?? today, 1),
+                      )
+                    }
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                  {anchor && (
+                    <button type="button" onClick={() => setAnchor(null)}>
+                      回到当前
+                    </button>
+                  )}
+                </div>
+              </header>
+              <div className="habit-summary">
+                {(['sleep', 'wake'] as const).map((kind) => (
+                  <div key={kind}>
+                    <span>{kind === 'sleep' ? '早睡达标率' : '早起达标率'}</span>
+                    <strong>
+                      {summary[kind].rate === null ? '—' : `${summary[kind].rate}%`}
+                    </strong>
+                    <small>
+                      {summary[kind].awaitingRules
+                        ? '分档读取中'
+                        : `达标 ${summary[kind].achieved}`}{' '}
+                      / 已记录 {summary[kind].count}
+                    </small>
+                  </div>
+                ))}
+                <div>
+                  <span>好状态天数</span>
+                  <strong>
+                    {summary.efficiency.good}
+                    <small>天</small>
+                  </strong>
+                  <small>已记录 {summary.efficiency.count} 天</small>
+                </div>
+              </div>
+              <p className="habit-caption">
+                达标率仅计算已记录日，漏记不计入分母。
+                {summary.mixedTimezones ? '本区间按各条记录时区统计。' : ''}
+              </p>
             </div>
-            <p className="habit-caption">
-              达标率仅计算已记录日，漏记不计入分母。
-              {summary.mixedTimezones ? '本区间按各条记录时区统计。' : ''}
-            </p>
             <div className="habit-trends">
               {(['sleep', 'wake'] as const).map((kind) => (
                 <HabitTimeTrend
@@ -266,8 +298,27 @@ export function HabitsPanel() {
                   {summary.efficiency.poor}
                 </span>
               </header>
+              <div className="habit-status-legend" aria-label="工作效率图例">
+                <span data-status="good">好</span>
+                <span data-status="medium">中</span>
+                <span data-status="poor">差</span>
+                <span data-status="missing">未记录</span>
+              </div>
               <div className="habit-status-days">
+                {['一', '二', '三', '四', '五', '六', '日'].map((day) => (
+                  <span className="habit-weekday" key={day}>
+                    周{day}
+                  </span>
+                ))}
                 {days.map((date) => {
+                  if (date < range.start || date > range.end)
+                    return (
+                      <span
+                        className="habit-calendar-spacer"
+                        key={date}
+                        aria-hidden="true"
+                      />
+                    );
                   const entry = activeEntries.find(
                     (item) => item.business_date === date && item.kind === 'efficiency',
                   );
@@ -280,7 +331,7 @@ export function HabitsPanel() {
                       aria-label={`${date} 工作效率 ${entry ? EFFICIENCY_LABELS[entry.efficiency!] : '未记录'}`}
                       onClick={() => openEntry(date, 'efficiency')}
                     >
-                      <small>{Number(date.slice(8))}日</small>
+                      <small>{Number(date.slice(8))}</small>
                       <strong>
                         {entry ? EFFICIENCY_LABELS[entry.efficiency!] : '—'}
                       </strong>

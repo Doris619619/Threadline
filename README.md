@@ -1,5 +1,7 @@
 <!-- 文件用途：展示 Threadline 的产品体验、下载入口与开发文档导航。 -->
 
+计划与习惯页面的暖白卡片精修、项目菜单和跨屏窗口修复说明见 [界面精修](docs/ui-polish.md)。
+
 <p align="center">
   <img src="public/icon.png" width="72" height="72" alt="Threadline 图标" />
 </p>
