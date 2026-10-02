@@ -6,7 +6,7 @@
 
 项目菜单使用浏览器 Popover API 顶层绘制，DOM 仍留在所属对话框中；选项由调用方按现有业务规则过滤，受控项目 ID 与 FormData 字段保持兼容。超过七项显示搜索，关闭菜单不提交表单。项目草稿和菜单具有独立状态，不增加数据库字段。
 
-习惯仍默认本周，月视图按周一到周日对齐；顶部日期只控制记录，不改变统计范围。缺失数据不补零，已有保存/重试、时区和版本校验继续使用原实现。
+习惯页在所有主题下统一展示今日习惯、统计概览、双趋势图和每日状态面板；桌面打卡与指标各为三张等宽卡片，内容最大宽度 1440px，手机顺序堆叠。结构规则不绑定主题，深色小屋也使用同一布局，颜色与字体仍遵守用户偏好。仍默认本周，月视图按周一到周日对齐；顶部日期只控制记录，不改变统计范围。缺失数据不补零，已有保存/重试、时区和版本校验继续使用原实现。
 
 窗口策略与原生事件修复单独提交。完整窗口拖回小屏后限制到可用工作区，坐标始终使用 DIP，不乘除缩放因子；在最大化/最小化状态不保存异常位置。
 
@@ -21,6 +21,7 @@
 
 - `pnpm lint`、`pnpm typecheck` 与全量 `pnpm test`（91 个文件、460 项通过）；CSS token 合约、阶段失败重试及中文输入法行为一并检查。
 - Chromium 桌面/手机及 iPhone WebKit 的习惯、阶段业务与精修用例；1280/1440 桌面、320/390 手机、四种主题、明暗模式和 200% 字号的布局、对比度与溢出检查。
+- 全主题卡片修正后，`e2e/ui-habits.spec.ts` 的五组浏览器检查通过：逐一断言面板背景/边框、打卡与指标卡片的实际位置和等宽、宽屏内容宽度，并保留每种主题明暗截图，避免只有无溢出检查却漏掉旧布局。lint、typecheck 与两项 CSS token 合约重新通过。
 - `pnpm test:preview`：隔离演示的 18 个用例，覆盖长草稿、逐项项目归属、任务表单、Daily 保存/展开、聚焦日期和错误后保留草稿。旧原生下拉/标题定位改为当前控件与实际周期断言，失败用例修正后单独复测。
 - Web production 构建和 CSP 边界、Electron 静态导出与 Main/Preload 编译通过。原生窗口 smoke 覆盖切换、最大化、重启、Edge 及登录竞态；新增真实 BrowserWindow + 模拟 screen 参数的跨屏松手和工作区缩小测试，测试后恢复 screen 方法。
 - 纯策略覆盖负屏幕坐标、局部可见的超大窗口及 100% / 125% / 150% / 200% 的逻辑工作区。物理 Huawei 外屏与笔记本实际拖动仍需设备复验，自动化不能代替它。
@@ -33,6 +34,8 @@
 
 截图使用隔离数据；保持原有字体设置，没有修改生产账户。另有 [阶段空态](screenshots/ui-polish/desktop-plans-empty-stage.png) 与 [习惯空态](screenshots/ui-polish/desktop-habits-empty.png)。
 
+全主题布局验收新增 [深色小屋桌面](screenshots/ui-polish/desktop-habits-cottage-dark.png) 与 [320px 手机](screenshots/ui-polish/mobile-320-habits-cottage-dark.png)，对应四主题矩阵的隔离打卡数据。
+
 | 页面       | 桌面                                                                                                                 | 手机                                                           |
 | ---------- | -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | 计划       | [浅色](screenshots/ui-polish/desktop-plans-light.png)                                                                | [浅色](screenshots/ui-polish/mobile-plans-light.png)           |
@@ -41,6 +44,6 @@
 | 阶段编辑   | [清单](screenshots/ui-polish/desktop-stage-editor.png)                                                               | [清单](screenshots/ui-polish/mobile-stage-editor.png)          |
 | 日期与错误 | [聚焦](screenshots/ui-polish/desktop-date-focus.png)、[错误保留](screenshots/ui-polish/desktop-validation-error.png) | [320px](screenshots/ui-polish/mobile-320-validation-error.png) |
 
-本地交互预览：`http://127.0.0.1:3103`，选择「设置 → 外观 → 皮卡经典 → 浅色」。生成预览时没有 Supabase 配置，仅使用隔离演示数据。
+本地交互预览：`http://127.0.0.1:3103`，进入「习惯」即可查看新布局，无需切换主题；皮卡经典浅色对应暖白视觉参考。生成预览时没有 Supabase 配置，仅使用隔离演示数据。
 
 前后对比在 `.tmp/ui-polish-review/index.html`，其中原始截图只留在本机，不提交用户截图。Electron 本地预览输出为 `release/preview/win-unpacked/Threadline.exe`，构建清单为 `release/preview/build-manifest.json`；本次使用显式 test adapter，需用独立 `--user-data-dir` 打开，不能当作正式升级安装包发布。
