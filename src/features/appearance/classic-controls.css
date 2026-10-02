@@ -16,20 +16,13 @@ html[data-theme='classic'] .waiting-task-row:nth-child(even) {
   background: var(--classic-stripe);
 }
 html[data-theme='classic']
-  :is(
-    .tl-button,
-    .planning-add,
-    .finish-day,
-    .project-create-trigger,
-    .cottage-outfits button
-  ) {
+  :is(.tl-button, .planning-add, .project-create-trigger, .cottage-outfits button) {
   border-radius: var(--radius-control);
 }
 html[data-theme='classic']
   :is(
     .tl-button--primary,
     .planning-panel .planning-add,
-    .finish-day,
     .manager-dialog button[type='submit']
   ) {
   color: var(--text-on-accent);
@@ -42,7 +35,6 @@ html[data-theme='classic']
   :is(
     .tl-button--primary,
     .planning-panel .planning-add,
-    .finish-day,
     .manager-dialog button[type='submit']
   ):hover:not(:disabled) {
   background: var(--accent-hover);

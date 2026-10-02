@@ -11,6 +11,58 @@ async function awaitDemoWorkspace(page: Page) {
   await expect(page.getByLabel('演示模式说明')).toBeVisible();
 }
 
+/** 收尾入口在首屏统计区域可达，各主题保持轻量颜色，键盘打开后取消不改变当天数据。 */
+test('keeps day closing in the overview across themes', async ({ page }, info) => {
+  test.setTimeout(90_000);
+  await page.goto('/');
+  await awaitDemoWorkspace(page);
+  const finish = page.getByRole('button', { name: '结束今天', exact: true });
+  for (const theme of ['blue', 'anya', 'cottage', 'classic']) {
+    for (const scheme of ['light', 'dark']) {
+      await page.evaluate(
+        ({ theme, scheme }) => {
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.dataset.colorScheme = scheme;
+        },
+        { theme, scheme },
+      );
+      await expect(finish).toBeInViewport();
+      const bounds = (await finish.boundingBox())!;
+      const content = (await page.locator('.dashboard-columns').boundingBox())!;
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(content.y);
+      expect(bounds.height).toBeGreaterThanOrEqual(44);
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+      if (page.viewportSize()!.width <= 760) {
+        const summary = (await page.locator('.home-summary').boundingBox())!;
+        expect(Math.abs(summary.y - bounds.y)).toBeLessThan(2);
+      }
+      const violations = (
+        await new AxeBuilder({ page }).include('.dashboard-overview').analyze()
+      ).violations.filter((item) =>
+        ['critical', 'serious'].includes(item.impact ?? ''),
+      );
+      expect(violations, `${theme} ${scheme}`).toEqual([]);
+      await page.screenshot({
+        path: info.outputPath(`overview-${theme}-${scheme}.png`),
+      });
+    }
+  }
+  await finish.focus();
+  await finish.press('Enter');
+  const dialog = page.getByRole('dialog', { name: '结束今天', exact: true });
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).not.toBeVisible();
+  await expect(finish).toBeFocused();
+  await expect(finish).toBeEnabled();
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+  ).toBe(true);
+});
+
 /** 常规三项清单在实际明暗主题下保持轻量，日期可读、草稿可编辑，截图不使用压力测试标题。 */
 test('keeps stage creation and project overview readable in both themes', async ({
   page,
@@ -534,7 +586,7 @@ test('keeps scheduled metadata compact and close-day controls inside the viewpor
   const finish = page.getByRole('button', { name: '结束今天', exact: true });
   await finish.scrollIntoViewIfNeeded();
   await expect(finish).toBeVisible();
-  await page.screenshot({ path: info.outputPath('home-bottom.png') });
+  await page.screenshot({ path: info.outputPath('home-overview.png') });
   const dailyMinutes = page.getByLabel('算法训练 完成一道动态规划题并整理思路实际耗时');
   await dailyMinutes.fill('-1');
   await finish.click();

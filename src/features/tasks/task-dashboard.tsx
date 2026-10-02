@@ -5,7 +5,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Moon, ChevronRight } from 'lucide-react';
+import { Moon, CircleCheck } from 'lucide-react';
 import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
 import { StatItem } from '@/components/ui/stat-item';
 import { Surface } from '@/components/ui/surface';
@@ -46,7 +46,7 @@ import type { Task } from '@/types/domain';
 import { HomeStagePlans } from '@/features/stage-plans/board';
 
 /**
- * 按当前工作台视图渲染首页、功能页或 Electron 紧凑窗口。
+ * 按当前工作台视图渲染首页、功能页或 Electron 紧凑窗口；顶部收尾入口沿用 Daily 保存屏障。
  */
 export function TaskDashboard() {
   const { active, selectedDate } = useWorkspaceView();
@@ -271,56 +271,72 @@ export function TaskDashboard() {
     return <SettingsPanel tasks={tasks} onUpdateTask={update} />;
   return (
     <div className="dashboard dashboard-annotatable" data-testid="home-panel">
-      <p className="home-summary" aria-live="polite">
-        <span className="home-summary-check" aria-hidden="true">
-          ✓
-        </span>
-        今日任务 {normalTaskTotal} · 已完成 {done}
-      </p>
-      <Surface className="metric-strip" variant="flat">
-        <StatItem
-          label="普通任务"
-          value={
-            <>
-              <em>{done}</em>
-              <small>/ {normalTaskTotal}</small>
-            </>
-          }
-        />
-        <StatItem
-          label="Daily"
-          value={
-            <>
-              <em>{dailyDone}</em>
-              <small>/ {daily.length}</small>
-            </>
-          }
-        />
-        <StatItem
-          label="普通实际"
-          value={
-            <>
-              <em>{formatMinutes(actual)}</em>
-            </>
-          }
-        />
-        <StatItem
-          label="Daily 实际"
-          value={
-            <>
-              <em>{formatMinutes(dailyActual)}</em>
-            </>
-          }
-        />
-        <StatItem
-          label="今日总实际"
-          value={
-            <>
-              <em>{formatMinutes(actual + dailyActual)}</em>
-            </>
-          }
-        />
-      </Surface>
+      <div className="dashboard-overview">
+        <p className="home-summary" aria-live="polite">
+          今日任务 {normalTaskTotal} · 已完成 {done}
+        </p>
+        <Surface className="metric-strip" variant="flat">
+          <StatItem
+            label="普通任务"
+            value={
+              <>
+                <em>{done}</em>
+                <small>/ {normalTaskTotal}</small>
+              </>
+            }
+          />
+          <StatItem
+            label="Daily"
+            value={
+              <>
+                <em>{dailyDone}</em>
+                <small>/ {daily.length}</small>
+              </>
+            }
+          />
+          <StatItem
+            label="普通实际"
+            value={
+              <>
+                <em>{formatMinutes(actual)}</em>
+              </>
+            }
+          />
+          <StatItem
+            label="Daily 实际"
+            value={
+              <>
+                <em>{formatMinutes(dailyActual)}</em>
+              </>
+            }
+          />
+          <StatItem
+            label="今日总实际"
+            value={
+              <>
+                <em>{formatMinutes(actual + dailyActual)}</em>
+              </>
+            }
+          />
+        </Surface>
+        <button
+          type="button"
+          className="finish-day"
+          disabled={isDayClosed || preparingClose}
+          aria-busy={preparingClose}
+          title="整理未完成任务并保存今日记录"
+          onClick={() => void openCloseDialog()}
+        >
+          {isDayClosed ? (
+            <CircleCheck size={18} aria-hidden="true" />
+          ) : (
+            <Moon size={18} aria-hidden="true" />
+          )}
+          <span>
+            {isDayClosed ? '今日已结束' : preparingClose ? '正在保存…' : '结束今天'}
+          </span>
+        </button>
+      </div>
       <div
         className="dashboard-columns"
         style={{ '--schedule-ratio': `${scheduleRatio}fr` } as React.CSSProperties}
@@ -447,17 +463,6 @@ export function TaskDashboard() {
           />
         </div>
       </div>
-      <button
-        className="finish-day"
-        disabled={isDayClosed || preparingClose}
-        onClick={() => void openCloseDialog()}
-      >
-        <Moon size={18} aria-hidden="true" />
-        <span>
-          {isDayClosed ? '今日已结束' : preparingClose ? '正在保存…' : '结束今天'}
-        </span>
-        <ChevronRight size={18} aria-hidden="true" />
-      </button>
       <AnnotationLayer
         activeTool={annotationTool}
         highlightColor={highlightColor}

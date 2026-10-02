@@ -9,6 +9,19 @@
   gap: 16px;
 }
 
+/* 收尾属于当天概览；放在任务列表之前，窄屏换行而不挤压统计或覆盖内容。 */
+.dashboard-overview {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-width: 0;
+}
+.dashboard-overview .metric-strip {
+  flex: 1 1 600px;
+  min-width: 0;
+}
+
 .workspace-loading {
   min-height: 240px;
   display: grid;
@@ -995,29 +1008,14 @@
   .home-summary {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
     width: fit-content;
     max-width: 100%;
-    margin: 0 0 4px;
-    padding: 8px 14px;
-    color: var(--text-primary);
-    background: var(--surface-secondary);
-    border-radius: 999px;
+    min-height: 44px;
+    margin: 0;
+    color: var(--text-secondary);
     font-size: var(--text-secondary-size);
     font-weight: 500;
     line-height: var(--text-secondary-leading);
-  }
-
-  .home-summary-check {
-    display: grid;
-    width: 18px;
-    height: 18px;
-    place-items: center;
-    color: var(--text-on-accent);
-    background: var(--accent);
-    border-radius: 50%;
-    font-size: 11px;
-    font-weight: 700;
   }
 
   .metric-strip {
@@ -1591,29 +1589,35 @@
   }
 }
 
-/* 收尾入口与分组列表对齐，避免裸文字游离在底部导航上方。 */
+/* 所有主题共用低强调入口；只在收尾弹窗里强调最终确认动作。 */
 .finish-day {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 52px;
-  margin-top: 20px;
-  padding: 12px 20px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 16px;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 8px;
+  min-height: 44px;
+  margin-left: auto;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
   background: var(--surface);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font: inherit;
-  font-size: 15px;
-  text-align: left;
+  font-size: 0.875rem;
+  line-height: 1.4;
   cursor: pointer;
 }
-.finish-day span {
-  flex: 1;
-  color: var(--text-primary);
+.finish-day svg {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+.finish-day:hover:not(:disabled) {
+  background: var(--surface-secondary);
+  border-color: var(--border-strong);
 }
 .finish-day:disabled {
+  color: var(--text-secondary);
   cursor: default;
 }
 .finish-day:focus-visible {
