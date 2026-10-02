@@ -231,7 +231,7 @@ html:is([data-theme='cottage'], [data-theme='classic'])
   transform: translateY(1px);
 }
 html:is([data-theme='cottage'], [data-theme='classic'])
-  :is(.tl-input, .task-dialog input, .task-dialog select) {
+  :is(.tl-input, .task-dialog input, .task-dialog select):not(:focus) {
   border-radius: 3px;
   box-shadow: inset 1px 1px 0 var(--border-subtle);
 }

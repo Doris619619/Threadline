@@ -89,10 +89,23 @@
   color: var(--text-tertiary);
 }
 
-.tl-input:focus {
+.tl-input:focus,
+.task-dialog :is(input, select):focus {
   border-color: var(--accent);
   outline: none;
-  box-shadow: 0 0 0 2px var(--accent-soft);
+  box-shadow: none;
+}
+
+.tl-input[aria-invalid='true'],
+.task-dialog :is(input, select)[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+@media (forced-colors: active) {
+  .tl-input:focus,
+  .task-dialog :is(input, select):focus {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
 }
 
 .tl-checkbox {

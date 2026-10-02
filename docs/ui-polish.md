@@ -56,3 +56,13 @@
 本地交互预览：`http://127.0.0.1:3103`，进入「习惯」即可查看新布局，无需切换主题；皮卡经典浅色对应暖白视觉参考。生成预览时没有 Supabase 配置，仅使用隔离演示数据。
 
 前后对比在 `.tmp/ui-polish-review/index.html`，其中原始截图只留在本机，不提交用户截图。Electron 本地预览输出为 `release/preview/win-unpacked/Threadline.exe`，构建清单为 `release/preview/build-manifest.json`；本次使用显式 test adapter，需用独立 `--user-data-dir` 打开，不能当作正式升级安装包发布。
+
+## 输入焦点与阶段时间视图补充
+
+输入框静态边框保持 1px，聚焦只改变本身边框颜色，移除外描边和叠加阴影；组合任务输入由名称所在外壳承担焦点反馈，内层原生 input 不画第二个框。项目、估时和添加按钮位于输入行下方，独立获得焦点；按钮仍保留键盘焦点环。错误估时显示错误边框和提交提示，系统高对比模式使用 Highlight 轮廓，布局尺寸不随聚焦变化。主题样式不再重写独立输入框的焦点。
+
+参考微软 [Fluent Input 官方实现](https://github.com/microsoft/fluentui/blob/master/packages/react-components/react-input/library/src/components/Input/useInputStyles.styles.ts)：组合输入由外壳绘制状态，内部 input 无独立边框；Fluent 自身采用底部聚焦线，本项目按用户偏好采用单层周边细线。Google [Material Text field](https://material-web.dev/components/text-field/) 同样区分输入状态与错误状态；本项目保留可辨认反馈，不照搬浮动标签或动画。
+
+阶段新增选填预计分钟与项目/任务双层时间图，业务与迁移边界见 [阶段计划](stage-plans.md)。本轮 Web 预览可交互；Electron 可执行文件仍是此前 `7b8df12` 版本，尚未含本轮改动。
+
+本轮最终验收：新增估时/单层焦点/图表三端回归与十六项长清单三端回归共 6 项通过；同轮阶段表单明暗与日期/错误状态另 6 项通过。Edge 隔离演示实测无页面或 HTTP 错误，八种主题配色截图、320px 与 200% 字号无横向溢出。示例截图：[输入与估时](screenshots/ui-polish/stage-focus-estimates.png)、[双层时间图](screenshots/ui-polish/stage-time-chart.png)、[阶段详情](screenshots/ui-polish/stage-time-desktop.png)、[手机](screenshots/ui-polish/stage-time-mobile.png)。

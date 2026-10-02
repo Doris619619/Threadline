@@ -147,7 +147,7 @@ it('changes projects per draft without changing the next task or stable IDs thro
   });
   fireEvent.click(screen.getByRole('button', { name: '移除草稿 移除这一项' }));
   expect(input).toHaveFocus();
-  expect(screen.getAllByRole('textbox', { name: /任务草稿/ })).toHaveLength(2);
+  expect(screen.getAllByRole('textbox', { name: /^任务草稿 \d+$/ })).toHaveLength(2);
   fireEvent.click(screen.getByRole('button', { name: '创建阶段' }));
   await screen.findByText('网络失败');
   fireEvent.click(screen.getByRole('button', { name: '创建阶段' }));
@@ -196,3 +196,29 @@ function chooseProject(label: string, name: string) {
     }),
   );
 }
+
+/** 估时留空可保存，非法估时阻止新增，失败重试保留估时与草稿 ID。 */
+it('preserves optional minutes through editing and failed submission', async () => {
+  commands.create.mockRejectedValueOnce(new Error('网络失败'));
+  render(<StageEditor onClose={vi.fn()} />);
+  fillName();
+  const title = screen.getByLabelText('阶段任务名称');
+  const estimate = screen.getByLabelText('预计分钟（选填）');
+  fireEvent.change(title, { target: { value: '阅读' } });
+  fireEvent.change(estimate, { target: { value: '-1' } });
+  fireEvent.keyDown(title, { key: 'Enter' });
+  expect(screen.getByRole('alert')).toHaveTextContent('非负整数');
+  expect(screen.queryByLabelText('任务草稿 1')).not.toBeInTheDocument();
+  fireEvent.change(estimate, { target: { value: '90' } });
+  fireEvent.keyDown(title, { key: 'Enter' });
+  expect(screen.getByLabelText('任务草稿 1 预计分钟（选填）')).toHaveValue('1h30min');
+  expect(estimate).toHaveValue('');
+  fireEvent.change(title, { target: { value: '不填估时' } });
+  fireEvent.click(screen.getByRole('button', { name: '创建阶段' }));
+  await screen.findByText('网络失败');
+  fireEvent.click(screen.getByRole('button', { name: '创建阶段' }));
+  await waitFor(() => expect(commands.create).toHaveBeenCalledTimes(2));
+  expect(commands.create.mock.calls[0][0]).toEqual(commands.create.mock.calls[1][0]);
+  expect(commands.create.mock.calls[0][0].tasks[0].estimateMinutes).toBe('90');
+  expect(commands.create.mock.calls[0][0].tasks[1].estimateMinutes).toBeUndefined();
+});

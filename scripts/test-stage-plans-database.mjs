@@ -320,6 +320,92 @@ try {
       .project_id === work,
     'stage removal retains chosen project',
   );
+
+  // 预计分钟与阶段创建/追加同一事务，失败不得留下部分阶段或任务。
+  const timedStage = crypto.randomUUID();
+  const timedTask = crypto.randomUUID();
+  const timed = (
+    await asUser(a, 'select create_stage_plan($1,$2,$3,$4,$5,$6) as result', [
+      timedStage,
+      '时间分布',
+      '2026-10-01',
+      '2026-10-08',
+      true,
+      JSON.stringify([{ id: timedTask, title: '阅读', plannedDurationMinutes: 90 }]),
+    ])
+  ).rows[0].result;
+  check(
+    timed.tasks[0].planned_duration_minutes === 90,
+    'create saves estimate atomically',
+  );
+  const appendId = crypto.randomUUID();
+  const timedAppend = () =>
+    asUser(a, 'select to_jsonb(append_stage_task($1,$2,$3,$4,$5)) as task', [
+      timedStage,
+      appendId,
+      '报告',
+      null,
+      120,
+    ]);
+  check(
+    (await timedAppend()).rows[0].task.planned_duration_minutes === 120,
+    'append saves estimate',
+  );
+  await timedAppend();
+  await rejects(
+    () =>
+      asUser(a, 'select append_stage_task($1,$2,$3,$4,$5)', [
+        timedStage,
+        appendId,
+        '报告',
+        null,
+        30,
+      ]),
+    'STAGE_REQUEST_REUSED',
+  );
+  await rejects(
+    () =>
+      asUser(b, 'select append_stage_task($1,$2,$3,$4,$5)', [
+        timedStage,
+        crypto.randomUUID(),
+        '跨账号',
+        null,
+        90,
+      ]),
+    'STAGE_NOT_FOUND',
+  );
+  await rejects(
+    () =>
+      asUser(a, 'select append_stage_task($1,$2,$3,$4,$5)', [
+        timedStage,
+        crypto.randomUUID(),
+        '负数',
+        null,
+        -1,
+      ]),
+    'check constraint',
+  );
+  const invalidStage = crypto.randomUUID();
+  await rejects(
+    () =>
+      asUser(a, 'select create_stage_plan($1,$2,$3,$4,$5,$6)', [
+        invalidStage,
+        '非法估时',
+        '2026-10-01',
+        '2026-10-08',
+        true,
+        JSON.stringify([
+          { id: crypto.randomUUID(), title: '正常', plannedDurationMinutes: 30 },
+          { id: crypto.randomUUID(), title: '负数', plannedDurationMinutes: -1 },
+        ]),
+      ]),
+    'check constraint',
+  );
+  check(
+    (await asUser(a, 'select id from stage_plans where id=$1', [invalidStage])).rows
+      .length === 0,
+    'invalid estimate rolls back whole stage',
+  );
   console.log('Stage plans PostgreSQL: ' + checks + ' checks passed.');
 } catch (error) {
   console.error('Stage database check failed:', error.message, error.code ?? '');

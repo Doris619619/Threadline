@@ -5,6 +5,7 @@ import { readAllRows } from '@/lib/supabase/pagination';
 import { fromDatabaseVersionInstant } from '@/lib/supabase/time-mapper';
 import type { StagePlan, Task } from '@/types/domain';
 import type { StagePlanChanges, StagePlanDraft, StageTaskDraft } from './rules';
+import { stageTaskPayload } from './rules';
 
 type Row = Record<string, unknown>;
 /** 保留精确版本时间戳，用于跨端受检编辑。 */
@@ -56,7 +57,7 @@ export class StagePlanRepository {
         p_start_date: draft.startDate,
         p_end_date: draft.endDate,
         p_home_visible: draft.homeVisible,
-        p_tasks: draft.tasks,
+        p_tasks: draft.tasks.map(stageTaskPayload),
       }),
     ) as { plan: Row; tasks: Row[] };
     return { plan: mapStagePlan(data.plan), tasks: data.tasks.map(mapTask) };
@@ -86,6 +87,7 @@ export class StagePlanRepository {
   }
   /** 追加仍未安排的 Task；任务 ID 在失败重试时保持不变。 */
   async append(stageId: string, task: StageTaskDraft): Promise<Task> {
+    const payload = stageTaskPayload(task);
     return mapTask(
       checked(
         await this.client.rpc('append_stage_task', {
@@ -93,6 +95,7 @@ export class StagePlanRepository {
           p_task_id: task.id,
           p_title: task.title,
           p_project_id: task.projectId ?? null,
+          p_planned_duration_minutes: payload.plannedDurationMinutes ?? null,
         }),
       ) as Row,
     );

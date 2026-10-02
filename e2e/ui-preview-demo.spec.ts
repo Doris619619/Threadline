@@ -5,6 +5,126 @@ import { openWorkspaceSection } from './support/workspace';
 import type { Task } from '@/types/domain';
 import { projectTaskState } from '@/features/projects/project-task-rules';
 
+/** 真实鼠标/键盘焦点只有一层反馈；选填分钟持久化后进入项目/任务双层图，跨主题不溢出。 */
+test('keeps single field focus and persists stage estimates into the time chart', async ({
+  page,
+}, info) => {
+  test.setTimeout(120_000);
+  await page.goto('/');
+  await awaitDemoWorkspace(page);
+  await openWorkspaceSection(page, '计划');
+  await page.getByRole('button', { name: '+ 新建阶段', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '新建阶段', exact: true });
+  const name = dialog.getByLabel('阶段名称', { exact: true });
+  await name.fill('时间分布验收');
+  const nameBounds = await name.boundingBox();
+  await name.click();
+  await expect(name).toHaveCSS('box-shadow', 'none');
+  await expect(name).toHaveCSS('outline-style', 'none');
+  expect(await name.boundingBox()).toEqual(nameBounds);
+  if (page.viewportSize()!.width <= 760)
+    await dialog.getByRole('button', { name: '下一步', exact: true }).click();
+  const title = dialog.getByLabel('阶段任务名称', { exact: true });
+  for (const theme of ['blue', 'anya', 'cottage', 'classic']) {
+    for (const scheme of ['light', 'dark']) {
+      await page.evaluate(
+        ({ theme, scheme }) => {
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.dataset.colorScheme = scheme;
+        },
+        { theme, scheme },
+      );
+      await title.click();
+      await expect(title).toHaveCSS('outline-style', 'none');
+      await expect(title).toHaveCSS('box-shadow', 'none');
+      await expect(title).toHaveCSS('border-top-width', '0px');
+      await expect(dialog.locator('.stage-draft-title-field')).toHaveCSS(
+        'border-top-width',
+        '1px',
+      );
+      const focusedBorder = await dialog
+        .locator('.stage-draft-title-field')
+        .evaluate((el) => getComputedStyle(el).borderColor);
+      await title.press('Tab');
+      const picker = dialog.getByLabel('阶段任务项目', { exact: true });
+      await expect(picker).toBeFocused();
+      await expect(picker).toHaveCSS('outline-style', 'solid');
+      expect(
+        await dialog
+          .locator('.stage-draft-title-field')
+          .evaluate((el) => getComputedStyle(el).borderColor),
+      ).not.toBe(focusedBorder);
+      await picker.press('Enter');
+      await expect(page.getByRole('listbox')).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeVisible();
+      await title.click();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      ).toBe(true);
+      await page.screenshot({
+        path: info.outputPath(`single-focus-${theme}-${scheme}.png`),
+      });
+    }
+  }
+  await page.evaluate(() => (document.documentElement.dataset.colorScheme = 'light'));
+  await title.fill('阅读清单');
+  const estimate = dialog.getByLabel('预计分钟（选填）', { exact: true });
+  await estimate.fill('90');
+  await title.click();
+  await expect(estimate).toHaveValue('1h30min');
+  await title.press('Enter');
+  await expect(estimate).toHaveValue('');
+  await title.fill('报告');
+  await selectProject(dialog.getByLabel('阶段任务项目', { exact: true }), '课程');
+  await estimate.fill('30');
+  await estimate.press('Enter');
+  await title.fill('暂不估时');
+  await dialog.getByRole('button', { name: '创建阶段', exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await page
+    .getByRole('button', { name: '查看阶段 时间分布验收', exact: true })
+    .click();
+  const detail = page.getByTestId('stage-detail');
+  await expect(detail).toBeVisible();
+  const chart = page.locator('.stage-time-panel');
+  await page.mouse.move(0, 0);
+  await expect(chart.locator('.stage-time-center strong')).toHaveText('2h');
+  await expect(chart.locator('[data-stage-slice]')).toHaveCount(2);
+  await expect(chart).toContainText('1 项未估时');
+  await detail.getByLabel('添加阶段任务', { exact: true }).fill('整理假期照片');
+  await detail.getByLabel('预计分钟（选填）', { exact: true }).fill('60');
+  await detail.getByRole('button', { name: '+ 添加任务', exact: true }).click();
+  await page.mouse.move(0, 0);
+  await expect(chart.locator('.stage-time-center strong')).toHaveText('3h');
+  await page.reload();
+  await awaitDemoWorkspace(page);
+  await openWorkspaceSection(page, '计划');
+  await page
+    .getByRole('button', { name: '查看阶段 时间分布验收', exact: true })
+    .click();
+  await page.mouse.move(0, 0);
+  await expect(chart.locator('.stage-time-center strong')).toHaveText('3h');
+  await chart.getByRole('button', { name: '实际', exact: true }).click();
+  await expect(chart.locator('[data-stage-slice]')).toHaveCount(0);
+  await expect(chart).toContainText('暂无实际记录');
+  await chart.getByRole('button', { name: '预计', exact: true }).click();
+  await chart.getByRole('button', { name: '阅读清单 1h30min' }).click();
+  await expect(chart.locator('.stage-time-center strong')).toHaveText('1h30min');
+  await page.screenshot({
+    path: info.outputPath('stage-time-chart.png'),
+    fullPage: true,
+  });
+  const violations = (
+    await new AxeBuilder({ page }).include('.stage-time-panel').analyze()
+  ).violations;
+  expect(violations).toEqual([]);
+  await page.evaluate(() => (document.documentElement.style.fontSize = '200%'));
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+  ).toBe(true);
+});
+
 /** 冷启动含动态业务模块及本地 hydration；CI trace 显示 WebKit 会超过 10s，后续操作仍用默认时限。 */
 async function awaitDemoWorkspace(page: Page) {
   await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30_000 });

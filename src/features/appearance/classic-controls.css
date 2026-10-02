@@ -71,13 +71,7 @@ html[data-theme='classic']
     .task-dialog select
   ) {
   border-radius: var(--radius-control);
-  border-color: var(--border);
   box-shadow: none;
-}
-html[data-theme='classic']
-  :is(.tl-input, .task-dialog input, .task-dialog select):focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 html[data-theme='classic'] :is(.cottage-wardrobe, .manager-dialog) > header {
   background: transparent;
