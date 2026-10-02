@@ -8,7 +8,7 @@
   padding: 16px 0 28px;
 }
 /* WebKit 切换根主题时直接解析文本 token，避免深层继承保留上一明暗模式的颜色。 */
-.habits-panel :where(h1, h2, h3, p, strong, span, time, summary) {
+.habits-panel :where(h1, h2, h3, p, strong, b, span, time, summary) {
   color: var(--text-primary);
 }
 .habit-page-header,

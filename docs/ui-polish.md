@@ -68,3 +68,9 @@
 本轮最终验收：新增估时/单层焦点/图表三端回归与十六项长清单三端回归共 6 项通过；同轮阶段表单明暗与日期/错误状态另 6 项通过。Edge 隔离演示实测无页面或 HTTP 错误，八种主题配色截图、320px 与 200% 字号无横向溢出。示例截图：[输入与估时](screenshots/ui-polish/stage-focus-estimates.png)、[双层时间图](screenshots/ui-polish/stage-time-chart.png)、[阶段详情](screenshots/ui-polish/stage-time-desktop.png)、[手机](screenshots/ui-polish/stage-time-mobile.png)。
 
 阶段任务列对齐补验：1280/1440 隔离 Edge 中逐项核对 1–16 条草稿与新增行的项目、估时和操作列位置及宽度，含清单滚动；最终布局的桌面、320px Chromium、390px WebKit 三项清单回归与 Web production 构建通过。实际截图更新为 docs/screenshots/ui-polish/stage-focus-estimates.png。
+
+## 合并前审计补充
+
+审计发现 WebKit 在主题切换后可能让时钟数字保留上一套继承颜色，造成浅底白字；数字节点现直接读取当前文本色，并在四主题明暗矩阵中验证它与日期颜色同步。经典主题旧测试仍要求旧文字色、像素金框与原生项目下拉，已按新的暖白单层边框及共享选择器更新断言，保留对比度、点击遮挡、关闭和 200% 字号检查。
+
+本轮 lint、typecheck、92 文件 464 项单元测试、36 项隔离 PostgreSQL 检查通过；经典主题及 iPhone 习惯页的 13 项浏览器回归通过，Web production 构建及 CSP 检查通过。独立 Edge 验证项目菜单 Tab、反向 Tab 与分层 Escape。此次修复不改变产品能力，README 无需额外修改。合并仍以修复提交的完整远程 CI 为准；真实双屏硬件拖动验收保持单独记录。

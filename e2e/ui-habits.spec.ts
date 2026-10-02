@@ -94,6 +94,15 @@ test('habits themes, readable controls and contained dialogs', async ({
       );
       // Clock 同时驱动主题媒体监听和 RAF；推进两个布局帧，避免等待装饰动画。
       await page.clock.runFor(100);
+      // 时钟数字必须和日期一起更新，防止 WebKit 沿用上一主题的继承颜色。
+      await expect
+        .poll(() =>
+          page.locator('.habit-live-clock time').evaluate((time) => {
+            const digits = time.querySelector('b')!;
+            return getComputedStyle(digits).color === getComputedStyle(time).color;
+          }),
+        )
+        .toBe(true);
       await expectNoUnexpectedHorizontalOverflow(page);
       await expectHabitCardLayout(page);
       const violations = (
