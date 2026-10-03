@@ -146,7 +146,7 @@ test('runs three independent timers, resumes after reload and records completion
             card.inlineControls,
         ),
       ).toBe(true);
-      if (i === 1) {
+      if (i >= 1) {
         await page.setViewportSize({ width: 1254, height: 720 });
         const title = (await page
           .getByRole('heading', { name: '任务大厅', exact: true })
@@ -173,7 +173,11 @@ test('runs three independent timers, resumes after reload and records completion
         expect(
           (await page.locator('.tl-header-actions').boundingBox())!.x,
         ).toBeGreaterThanOrEqual(Math.max(...headerCards.map((card) => card.right)));
-        await page.screenshot({ path: info.outputPath('home-two-timers.png') });
+        await page.screenshot({
+          path: info.outputPath(
+            i === 1 ? 'home-two-timers.png' : 'home-three-timers.png',
+          ),
+        });
         await page.setViewportSize({ width: 1280, height: 720 });
       }
     }
@@ -187,12 +191,11 @@ test('runs three independent timers, resumes after reload and records completion
     }
   }
   await expect(timers.locator('.task-timer')).toHaveCount(3);
-  await expect(timers.locator('[data-mode="up"] .task-timer-mode')).toHaveText([
-    '正计时',
-    '正计时',
-  ]);
-  await expect(timers.locator('[data-mode="down"] .task-timer-mode')).toHaveText(
-    '倒计时',
+  await expect(timers.locator('.task-timer-symbol, .task-timer-mode')).toHaveCount(0);
+  await expect(timers.locator('[data-mode="up"] time')).toHaveCount(2);
+  await expect(timers.locator('[data-mode="down"] time')).toHaveAttribute(
+    'aria-label',
+    /倒计时/,
   );
   await openWorkspaceSection(page, '计划');
   const duplicate = page.locator('[data-stage-task-id="demo-stage-time-task-0"]');
@@ -247,8 +250,10 @@ test('runs three independent timers, resumes after reload and records completion
         .filter((button) => getComputedStyle(button).display !== 'none')
         .every(
           (button) =>
-            button.getBoundingClientRect().width >= 44 &&
-            button.getBoundingClientRect().height >= 44,
+            button.getBoundingClientRect().width >=
+              (matchMedia('(pointer: coarse), (max-width: 760px)').matches ? 44 : 32) &&
+            button.getBoundingClientRect().height >=
+              (matchMedia('(pointer: coarse), (max-width: 760px)').matches ? 44 : 32),
         ),
       controlsSeparate: [...card.querySelectorAll('button')]
         .filter((button) => getComputedStyle(button).display !== 'none')

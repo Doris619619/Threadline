@@ -131,7 +131,7 @@ test('countdown settings validate integer minutes and retain rejected input', ()
   expect(close).toHaveBeenCalledOnce();
 });
 
-test('timer modes are explicit and removal from its menu never records time', () => {
+test('timer modes remain accessible without extra text and removal never records time', () => {
   const remove = vi.fn(),
     record = vi.fn();
   const { container } = render(
@@ -145,7 +145,12 @@ test('timer modes are explicit and removal from its menu never records time', ()
       onRecord={record}
     />,
   );
-  expect(screen.getByText('倒计时')).toBeVisible();
+  expect(screen.getByLabelText('倒计时已到时')).toBeVisible();
+  expect(screen.queryByText('倒计时')).toBeNull();
+  expect(container.querySelector('article')).toHaveAttribute(
+    'title',
+    '倒计时 · ' + task.title,
+  );
   expect(container.querySelector('article')).toHaveAttribute('data-mode', 'down');
   expect(screen.queryByRole('button', { name: '移除' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: task.title + '计时器更多操作' }));

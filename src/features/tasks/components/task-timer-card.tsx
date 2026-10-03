@@ -1,14 +1,6 @@
 /** @fileoverview 红色倒计时与绿色正计时卡片；直接暂停/继续和完成，删除放入上下文菜单。 */
 'use client';
-import {
-  Check,
-  Clock3,
-  MoreHorizontal,
-  Pause,
-  Play,
-  Timer,
-  Trash2,
-} from 'lucide-react';
+import { Check, MoreHorizontal, Pause, Play, Trash2 } from 'lucide-react';
 import { useRef } from 'react';
 import { useGuardedAction } from '@/hooks/use-guarded-action';
 import { useTaskMenu } from '../hooks/use-task-menu';
@@ -17,7 +9,7 @@ import { pauseTimer, timerClock, timerElapsed, type TaskTimer } from '../timer-r
 import type { Task } from '@/types/domain';
 import type { SaveStageEstimate } from '@/features/stage-plans/task-estimate-editor';
 
-/** 颜色和文字同时标明模式；删除只移除本机计时，完成则固定写入意图并原子记账。 */
+/** 卡片只展示名称和时间；模式保留在悬停与朗读标签，删除只移除本机计时。 */
 export function TaskTimerCard({
   timer,
   task,
@@ -62,6 +54,7 @@ export function TaskTimerCard({
     <article
       className="task-timer"
       aria-label={'计时 ' + title}
+      title={(timer.mode === 'up' ? '正计时' : '倒计时') + ' · ' + title}
       data-running={running}
       data-mode={timer.mode}
       ref={menuAnchor}
@@ -69,14 +62,8 @@ export function TaskTimerCard({
       onContextMenu={menu.onContextMenu}
       onKeyDown={menu.onKeyDown}
     >
-      <div className="task-timer-symbol" aria-hidden="true">
-        {timer.mode === 'up' ? <Clock3 size={22} /> : <Timer size={22} />}
-      </div>
       <div className="task-timer-body">
         <div className="task-timer-heading">
-          <span className="task-timer-mode">
-            {timer.mode === 'up' ? '正计时' : '倒计时'}
-          </span>
           <strong title={title}>{title}</strong>
         </div>
         <time

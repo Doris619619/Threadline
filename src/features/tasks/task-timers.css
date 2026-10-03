@@ -33,30 +33,21 @@
   --timer-ink: color-mix(in srgb, var(--timer-color) 85%, var(--text-primary));
   container-type: inline-size;
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  padding: 10px;
+  padding: 8px;
   border: 1px solid color-mix(in srgb, var(--timer-color) 35%, var(--border));
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--timer-color) 6%, var(--surface));
   min-width: 0;
-  width: 280px;
-  min-height: 76px;
-  flex: 0 0 280px;
+  width: 188px;
+  min-height: 64px;
+  flex: 0 0 188px;
   position: relative;
 }
 .task-timer[data-mode='down'] {
   --timer-color: var(--danger);
-}
-.task-timer-symbol {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  color: var(--timer-color);
-  background: color-mix(in srgb, var(--timer-color) 12%, var(--surface));
 }
 .task-timer-body {
   min-width: 0;
@@ -67,12 +58,6 @@
   flex-wrap: nowrap;
   gap: 2px 8px;
   min-width: 0;
-}
-.task-timer-mode {
-  color: var(--timer-ink);
-  font-size: var(--text-caption-size);
-  font-weight: 600;
-  white-space: nowrap;
 }
 .task-timer-heading strong {
   flex: 1 1 4em;
@@ -86,7 +71,7 @@
 .task-timer-readout {
   display: block;
   color: var(--timer-ink);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
@@ -106,12 +91,12 @@
 .task-timer-actions {
   display: flex;
   flex-shrink: 0;
-  gap: 8px;
+  gap: 6px;
 }
 .task-timers button {
-  min-height: 44px;
-  min-width: 44px;
-  padding: 6px 8px;
+  min-height: 32px;
+  min-width: 32px;
+  padding: 6px;
   border: 1px solid var(--border-subtle);
   border-radius: 50%;
   background: var(--surface);
@@ -172,19 +157,19 @@
   display: none;
 }
 /* 按标题栏实际可用宽度整体换行，卡片自身的宽高不随数量变化。 */
-@container (max-width: 1300px) {
+@container (max-width: 988px) {
   .tl-header[data-home='true']:has(.task-timer:nth-child(3)) .home-timer-slot {
     order: 2;
     flex-basis: 100%;
   }
 }
-@container (max-width: 980px) {
+@container (max-width: 800px) {
   .tl-header[data-home='true']:has(.task-timer:nth-child(2)) .home-timer-slot {
     order: 2;
     flex-basis: 100%;
   }
 }
-@container (max-width: 780px) {
+@container (max-width: 610px) {
   .home-timer-slot {
     order: 2;
     flex-basis: 100%;
@@ -192,9 +177,6 @@
 }
 /* 放大文字时优先保持可读，普通桌面字号不会触发卡片内部换行。 */
 @container (max-width: 10.5rem) {
-  .task-timer-symbol {
-    display: none;
-  }
   .task-timer-body {
     grid-column: 1 / -1;
   }
@@ -214,11 +196,12 @@
   }
 }
 @media (hover: none), (pointer: coarse), (max-width: 760px) {
-  .task-timer {
-    grid-template-columns: minmax(0, 1fr) auto;
+  .task-timers button {
+    min-height: 44px;
+    min-width: 44px;
   }
-  .task-timer-symbol {
-    display: none;
+  .task-timer-actions {
+    gap: 8px;
   }
   .task-timers .task-timer-more {
     display: grid;
