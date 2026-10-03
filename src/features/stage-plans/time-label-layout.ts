@@ -1,7 +1,7 @@
 /** @fileoverview 计算任务圆环和外置标签的稳定布局；逐侧避让并增长画布，不丢弃小扇区标签。 */
 import type { StageTimeSector } from './time-breakdown';
 
-/** 使用实际标签高度排布左右两列；允许小屏缩小圆环，文字不随 SVG 缩放。 */
+/** 使用实际标签高度排布左右两列；圆环靠上，标签增高不把圆环推离首屏。 */
 export function stageTimeLabelLayout(
   sectors: StageTimeSector[],
   width: number,
@@ -35,7 +35,7 @@ export function stageTimeLabelLayout(
     ),
   );
   const cx = width / 2;
-  const cy = height / 2;
+  const cy = Math.min(height / 2, outer + margin);
   const labels = sides.flatMap((side) => {
     let bottom = margin - gap;
     const placed = side.map((row) => {

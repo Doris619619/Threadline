@@ -670,7 +670,8 @@ html:is([data-theme='cottage'], [data-theme='classic'])
 .stage-detail {
   display: grid;
   gap: var(--space-4);
-  max-width: 960px;
+  width: 100%;
+  max-width: 1440px;
   margin: 0 auto;
   min-width: 0;
 }
@@ -717,11 +718,26 @@ html:is([data-theme='cottage'], [data-theme='classic'])
   font: inherit;
   cursor: pointer;
 }
-.stage-detail > .stage-task-groups {
-  padding: var(--space-5);
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-card);
+.stage-detail-heading > .stage-summary.is-compact {
+  display: grid;
+  gap: 4px;
+  flex: 1 1 260px;
+  max-width: 420px;
+}
+.stage-summary.is-compact .stage-progress {
+  margin: 0;
+  gap: var(--space-2);
+}
+.stage-summary.is-compact .stage-progress progress {
+  height: 6px;
+}
+.stage-summary.is-compact .stage-range,
+.stage-summary.is-compact .stage-counts {
+  font-size: var(--text-caption-size);
+}
+.stage-task-row.is-selected {
+  background: var(--surface-secondary);
+  border-radius: var(--radius-sm);
 }
 .stage-history {
   color: var(--text-secondary);

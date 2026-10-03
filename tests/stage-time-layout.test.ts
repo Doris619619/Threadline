@@ -96,6 +96,8 @@ test.each([280, 320, 390, 900])(
     );
     expect(layout.labels).toHaveLength(27);
     expect(layout.height).toBeGreaterThan(27 * 30);
+    expect(layout.cy - layout.outer).toBe(20);
+    expect(layout.cy + layout.outer).toBeLessThanOrEqual(layout.height);
     for (const side of [-1, 1]) {
       const labels = layout.labels
         .filter((label) => label.side === side)

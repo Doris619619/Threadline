@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { formatMinutes } from '@/features/tasks/task-time';
 import { ringSector, type StageTimeSector } from './time-breakdown';
 import { stageTimeLabelLayout } from './time-label-layout';
+import { TimeRingCenter } from './time-ring-center';
 
 /** 引导线和标签共用任务 ID；观察真实尺寸，文字保持 HTML 字号且不随圆环缩小。 */
 export function StageTimeRing({
@@ -105,19 +106,17 @@ export function StageTimeRing({
           />
         ))}
       </svg>
-      <div
-        className="stage-time-center"
+      <TimeRingCenter
+        total={total}
+        title={centerTitle}
+        emptyLabel={emptyLabel}
         style={{
           left: layout.cx - layout.inner * 0.85,
           top: layout.cy - layout.inner * 0.85,
           width: layout.inner * 1.7,
           height: layout.inner * 1.7,
         }}
-      >
-        <span>{centerTitle}</span>
-        <strong>{formatMinutes(total)}</strong>
-        {total === 0 && <small>{emptyLabel}</small>}
-      </div>
+      />
       {layout.labels.map((label) => (
         <button
           type="button"

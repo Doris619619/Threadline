@@ -19,6 +19,33 @@ test('persists inline time and preserves the same task through scheduling/comple
   await expect(chart.locator('[data-stage-slice]')).toHaveCount(20);
   await expect(chart.locator('[data-stage-line]')).toHaveCount(20);
   await expect(chart.locator('[data-stage-label]')).toHaveCount(20);
+  // 图表明细和任务操作只保留一份；筛选只改变清单，保持所有正时长引线。
+  await expect(detail.locator('.stage-time-legend')).toHaveCount(0);
+  await expect(detail.locator('.stage-summary')).toHaveCount(1);
+  await expect(detail.locator('.stage-detail-heading .stage-summary')).toBeVisible();
+  const stateFilter = chart.getByRole('combobox', { name: '筛选阶段任务状态' });
+  await stateFilter.selectOption('waiting');
+  await expect(chart.locator('.stage-task-row')).toHaveCount(21);
+  await stateFilter.selectOption('completed');
+  await expect(chart.locator('.stage-task-row')).toHaveCount(1);
+  await expect(chart.locator('[data-stage-label]')).toHaveCount(20);
+  await stateFilter.selectOption('all');
+  if (info.project.name === 'preview-desktop') {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    const plot = (await chart.locator('.stage-time-plot').boundingBox())!;
+    const list = (await chart.locator('.stage-time-list-pane').boundingBox())!;
+    expect(list.x).toBeGreaterThanOrEqual(plot.x + plot.width);
+    expect(list.y).toBe(plot.y);
+    expect(
+      await chart
+        .locator('.stage-time-list-pane')
+        .evaluate(
+          (node) =>
+            node.scrollHeight > node.clientHeight &&
+            getComputedStyle(node).overflowY === 'auto',
+        ),
+    ).toBe(true);
+  }
   for (const scheme of ['light', 'dark']) {
     await page.evaluate((scheme) => {
       document.documentElement.dataset.colorScheme = scheme;
@@ -77,6 +104,10 @@ test('persists inline time and preserves the same task through scheduling/comple
   await row.getByRole('button', { name: '→ 今天', exact: true }).click();
   await expect(row.locator('time')).toHaveText('今天');
   await row.getByRole('checkbox').check();
+  await stateFilter.selectOption('completed');
+  await expect(chart.locator('.stage-task-row')).toHaveCount(2);
+  await expect(row).toBeVisible();
+  await stateFilter.selectOption('all');
   await chart.getByRole('button', { name: '剩余预计', exact: true }).click();
   await expect(
     chart.locator('[data-stage-slice="demo-stage-time-task-1"]'),
@@ -94,6 +125,95 @@ test('persists inline time and preserves the same task through scheduling/comple
     completed: true,
     status: 'active',
   });
+});
+
+/** 长时长在窄内圈、文字放大及宽度变化后保持完整一行，列表选择与圆环对应。 */
+test('fits long center totals to the inner ring after resizing and text zoom', async ({
+  page,
+}, info) => {
+  await page.goto('/');
+  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
+  await page.evaluate(() => {
+    const key = 'threadline.preview-demo.v1:threadline.tasks.v1';
+    const tasks = JSON.parse(localStorage.getItem(key)!);
+    for (const task of tasks.filter(
+      (task: { stagePlanId: string }) => task.stagePlanId === 'demo-stage-time',
+    ))
+      task.plannedDurationMinutes = task.id === 'demo-stage-time-task-0' ? 672 : 0;
+    localStorage.setItem(key, JSON.stringify(tasks));
+  });
+  await page.reload();
+  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
+  await openWorkspaceSection(page, '计划');
+  await page
+    .getByRole('button', { name: '查看阶段 多项目时间验收', exact: true })
+    .click();
+  const chart = page.locator('.stage-time-panel');
+  const center = chart.locator('.stage-time-center');
+  await expect(center.locator('strong')).toHaveText('11h12min');
+  for (const fontSize of ['', '200%']) {
+    for (const width of [600, 390, 320, 240]) {
+      await chart.locator('.stage-time-visual').evaluate(
+        (node, options) => {
+          (node as HTMLElement).style.width = options.width + 'px';
+          (node as HTMLElement).style.maxWidth = '100%';
+          document.documentElement.style.fontSize = options.fontSize;
+        },
+        { width, fontSize },
+      );
+      await expect
+        .poll(() =>
+          center.evaluate((node) => {
+            const box = node.getBoundingClientRect();
+            const value = node.querySelector('strong')!;
+            const text = value.getBoundingClientRect();
+            const fits =
+              text.width <= box.width * 0.95 + 1 &&
+              text.left >= box.left &&
+              text.right <= box.right &&
+              text.height <= parseFloat(getComputedStyle(value).lineHeight) + 1;
+            return fits
+              ? []
+              : [
+                  {
+                    boxWidth: box.width,
+                    valueWidth: text.width,
+                    textHeight: text.height,
+                    lineHeight: getComputedStyle(value).lineHeight,
+                    font: getComputedStyle(value).font,
+                    sampleFont: getComputedStyle(
+                      node.querySelector('.stage-time-center-sample')!,
+                    ).font,
+                    sampleWidth: node
+                      .querySelector('.stage-time-center-sample')!
+                      .getBoundingClientRect().width,
+                  },
+                ];
+          }),
+        )
+        .toEqual([]);
+    }
+  }
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '';
+  });
+  await chart.locator('.stage-time-visual').evaluate((node) => {
+    (node as HTMLElement).style.width = '';
+  });
+  const task = chart.locator('[data-stage-task-id="demo-stage-time-task-0"]');
+  await task.locator('.stage-task-title').click();
+  await expect(task.locator('.stage-task-title')).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(
+    chart.locator('[data-stage-label="demo-stage-time-task-0"]'),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await task.getByRole('button', { name: /更多操作/ }).click();
+  await page.getByRole('menuitem', { name: '编辑', exact: true }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await chart.screenshot({ path: info.outputPath('long-ring-center.png') });
 });
 
 test('runs three independent timers, resumes after reload and records completion once', async ({

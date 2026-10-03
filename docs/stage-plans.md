@@ -96,9 +96,11 @@ Task 只有新增的可选 `stagePlanId`，仍具有原 `projectId`。阶段内�
 
 桌面新建阶段的连续输入和已添加草稿将任务名称、项目、预计时间放在同一行，桌面操作按钮位于行尾，项目、估时和操作与新增行逐列对齐，长标题仅在自己的列内换行。新建阶段的连续输入、已添加草稿、阶段详情追加均提供「预计分钟（选填）」。输入时是非负整数分钟，离焦和任务列表复用 `formatMinutes`，例如 90 → `1h30min`，60 → `1h`；再次编辑回到分钟数字。留空是未估时，0 是明确的零。无效数字阻止保存并保留原输入，新增成功后清空本项估时，不默认复制给下一项。任务后续编辑继续使用原任务表单。
 
-阶段详情同时显示三种总量，圆环默认总预计，点击总量切换：整个阶段预计包含已完成任务；剩余预计合计所有未完成任务，保留逾期和未安排任务，不减去已投入时间；实际为阶段成员 Task 的累计投入。日期说明标出整个阶段和今天到结束日的范围，阶段结束后仍保留未完成工作量。不限制任务日程日期在阶段范围内，排除已删除/已放弃任务。
+阶段详情同时显示三种总量，圆环默认总预计，点击总量切换：整个阶段预计包含已完成任务；剩余预计合计所有未完成任务，保留逾期和未安排任务，不减去已投入时间；实际为阶段成员 Task 的累计投入。阶段日期放在标题右侧，紧凑总量卡片的悬停提示分别给出整个阶段和今天到结束日的范围，阶段结束后仍保留未完成工作量。不限制任务日程日期在阶段范围内，排除已删除/已放弃任务。
 
-单层圆环中每块是一项任务，同项目使用同色深浅，所有正时长任务都向外引出折线，标出名称和时长；不合并或放大小扇区。左右标签按真实文字高度避让，任务增多时扩大画布；窄屏缩小圆环，HTML 字号保持可读。长名称最多两行，点击标签或键盘/触屏选择后在明细显示全文。圆环占整行，项目总量和可折叠任务明细在下方；未估时、未记录和零分钟保留明细，无正时长时显示空态。外置标签形式参考 [Workiva 圆环标签与引导线](https://support.workiva.com/hc/en-us/articles/360036003571-Labels-for-pie-and-doughnut-charts)。
+单层圆环中每块是一项任务，同项目使用同色深浅，所有正时长任务都向外引出折线，标出名称和时长；不合并或放大小扇区。左右标签按真实文字高度避让，任务增多时扩大画布；圆环靠近画布上沿，额外高度供标签向下延展，避免圈随画布增高而移出首屏。窄屏缩小圆环，HTML 标签字号保持可读。长名称最多两行，点击标签或键盘/触屏选择后在明细显示全文。阶段面板可用宽度达到 820px 时采用左侧圆环、右侧可滚动项目清单；圆环为标签留出左右空间，项目清单最高 560px，可独立滚动。低于此宽度上下排列，手机清单随页面滚动。右侧只保留一份项目任务清单，合并高亮、时间编辑、完成、安排和更多操作；状态筛选只筛清单，不改变上方总量或圆环统计范围。所有状态仍引用原 Task，已完成任务可回查和编辑，剩余总量继续排除完成项。未估时、未记录和零分钟保留明细，无正时长时显示空态。阶段日期、真实进度与状态数量放到标题右侧，缩短进入图表前的纵向距离。外置标签形式参考 [Workiva 圆环标签与引导线](https://support.workiva.com/hc/en-us/articles/360036003571-Labels-for-pie-and-doughnut-charts)。
+
+圆环中心按内圈宽度与实际字体字宽适配总时长，完整时长保持一行，不拆开 `11h12min`。测量文本使用独立原字号样本，观察容器、字体加载和字号变化，并为圆边与字体像素取整留出余量，避免缩小后的字号反复震荡；首页右栏、窗口缩放和放大文字共用此适配。
 
 点击明细中预计时间原地填整数分钟，Enter/保存提交，Escape/取消退出；空值为未估时，0 为零分钟。复用 `saveTaskConfirmed`，冲突基准固定为打开时 Task，重复提交被锁定，失败保留输入。实际明细编辑任务累计实际分钟，并选择本次增减的投入日期；未安排任务记录实际后仍未安排。减少实际只能扣减所选日期余额，其他日期的历史不得抹除。
 
@@ -114,7 +116,9 @@ Task 只有新增的可选 `stagePlanId`，仍具有原 `projectId`。阶段内�
 
 首页与计时补验覆盖右栏切换、刷新记忆、收起恢复、日程位置/宽度保持、顶部剩余/总预计、无解释小字圆环，以及 200% 文字边界。新增 7 项组件检查覆盖右键与触屏入口、菜单键/Escape 焦点、重复/满额禁用、非法倒计时草稿、失败锁定及固定意图重试。新增 4 项本机同步检查覆盖账号隔离、外部事件不回写、前台恢复和删除后旧标签操作。浏览器核对一/二/三张桌面卡片尺寸保持一致、超过两小时的时钟不折行，手机按钮至少 44px 且互不遮挡，任务/计时器菜单可键盘访问，删除计时后原任务数据保持不变。截图：[桌面三计时器](screenshots/stage-task-time/home-timers.png)、[2560px 同排](screenshots/stage-task-time/home-timers-wide.png)、[320px 手机](screenshots/stage-task-time/home-timers-mobile.png)、[iPhone](screenshots/stage-task-time/home-timers-iphone.png)、[手机菜单](screenshots/stage-task-time/timer-menu-mobile.png)、[手机底部设置](screenshots/stage-task-time/timer-settings-mobile.png)、[桌面右栏圆环](screenshots/stage-task-time/home-right-ring.png)、[320px 右栏圆环](screenshots/stage-task-time/home-right-ring-mobile.png)、[手机统计栏](screenshots/stage-task-time/home-header-mobile.png)、[实际本地预览](screenshots/stage-task-time/home-clean.jpg)、[三个紧凑计时器现场](screenshots/stage-task-time/home-three-timers-live.png)、[重新加入入口](screenshots/stage-task-time/timer-readd-live.png)。
 
-紧凑计时卡片本轮复验：9 项计时组件与规则测试、9 项桌面/320px/iPhone 浏览器检查通过；桌面 1254px、1280px 和 2560px 的三张卡片均与标题同排，去掉图标和可见模式文字后保持键盘朗读模式、两小时读数与 200% 文字边界。见 [1254px 三张同排](screenshots/stage-task-time/home-three-timers.png)。
+紧凑计时卡片此前复验：9 项计时组件与规则测试、9 项桌面/320px/iPhone 浏览器检查通过；桌面 1254px、1280px 和 2560px 的三张卡片均与标题同排，去掉图标和可见模式文字后保持键盘朗读模式、两小时读数与 200% 文字边界。见 [1254px 三张同排](screenshots/stage-task-time/home-three-timers.png)。
+
+左右圆环与合并清单本轮验证：完整 97 文件 499 项单元/组件及覆盖率门禁通过；类型、全仓 lint 和 Preview 生产构建通过。当前 Preview 的桌面、320px Chromium 与 390px iPhone WebKit 共 42 项浏览器检查通过，覆盖单一任务清单、状态筛选不改变图表、桌面右侧独立滚动、全部正值引线、时间保存后刷新、安排/完成和深浅色 axe。中心 `11h12min` 在 600/390/320/240px 图宽及 200% 文字下保持一行，并核对内圈边界；首页、计时器与多标签重新加入检查一并复验通过。截图：[用户本机首屏](screenshots/stage-task-time/stage-left-right-live.png)、[桌面左右布局](screenshots/stage-task-time/stage-left-right-desktop.png)、[桌面深色](screenshots/stage-task-time/stage-left-right-dark.png)、[320px 合并清单](screenshots/stage-task-time/stage-unified-mobile.png)、[中心长时长适配](screenshots/stage-task-time/ring-center-fit.png)。
 
 数据只保存原 `tasks.planned_duration_minutes`。`202610020001_stage_task_estimates.sql` 扩展现有 create/append RPC，阶段及估时仍一次事务提交；append 新参数默认 null，旧三/四参数调用兼容，权限保持 security invoker 与 RLS。重复请求的估时必须一致，非法值导致整笔事务回滚。**发布顺序：先应用迁移，再发布前端**；本地演示使用同一字段语义，正式数据库未在本任务中执行迁移。
 

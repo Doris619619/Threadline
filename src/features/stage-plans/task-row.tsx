@@ -22,6 +22,10 @@ export function PlanTaskRow({
   metadata,
   project,
   estimate,
+  onSelect,
+  onHover,
+  selected = false,
+  disabled = false,
 }: {
   task: Task;
   today: string;
@@ -33,6 +37,10 @@ export function PlanTaskRow({
   metadata?: ReactNode;
   project?: Project;
   estimate?: ReactNode;
+  onSelect?: () => void;
+  onHover?: (hovered: boolean) => void;
+  selected?: boolean;
+  disabled?: boolean;
 }) {
   const menu = useTaskMenu();
   const menuAnchor = useRef<HTMLButtonElement>(null);
@@ -42,17 +50,21 @@ export function PlanTaskRow({
       className={
         'stage-task-row' +
         (task.completed ? ' is-completed' : '') +
-        (estimate ? ' has-estimate' : '')
+        (estimate ? ' has-estimate' : '') +
+        (selected ? ' is-selected' : '')
       }
       data-stage-task-id={task.id}
-      aria-busy={busy}
+      data-stage-time-task={onSelect ? task.id : undefined}
+      aria-busy={busy || disabled}
+      onMouseEnter={() => onHover?.(true)}
+      onMouseLeave={() => onHover?.(false)}
       onContextMenu={menu.onContextMenu}
       onKeyDown={menu.onKeyDown}
     >
       <Checkbox
         checked={task.completed}
         aria-label={(task.completed ? '取消完成 ' : '完成 ') + task.title}
-        disabled={busy}
+        disabled={busy || disabled}
         onChange={() => void run(onToggle)}
       />
       <div className="plan-task-content">
@@ -62,7 +74,14 @@ export function PlanTaskRow({
               <ProjectTag name={project.name} color={project.color} />
             </span>
           )}
-          <button className="stage-task-title" type="button" onClick={onEdit}>
+          <button
+            className="stage-task-title"
+            type="button"
+            onClick={onSelect ?? onEdit}
+            aria-pressed={onSelect ? selected : undefined}
+            onFocus={() => onHover?.(true)}
+            onBlur={() => onHover?.(false)}
+          >
             {task.title}
           </button>
         </div>
@@ -74,7 +93,7 @@ export function PlanTaskRow({
           <button
             type="button"
             className="stage-today"
-            disabled={busy}
+            disabled={busy || disabled}
             onClick={() => void run(onToday)}
           >
             → 今天
@@ -90,7 +109,7 @@ export function PlanTaskRow({
           aria-label={task.title + '更多操作'}
           aria-haspopup="menu"
           aria-expanded={menu.open}
-          disabled={busy}
+          disabled={busy || disabled}
           onClick={menu.toggle}
         >
           <MoreHorizontal size={17} aria-hidden="true" />
@@ -115,6 +134,7 @@ export function PlanTaskRow({
               <button
                 type="button"
                 role="menuitem"
+                disabled={busy || disabled}
                 onClick={() => {
                   menu.close();
                   onDate();
@@ -126,6 +146,7 @@ export function PlanTaskRow({
             <button
               type="button"
               role="menuitem"
+              disabled={busy || disabled}
               onClick={() => {
                 menu.close();
                 onEdit();
@@ -137,6 +158,7 @@ export function PlanTaskRow({
               <button
                 type="button"
                 role="menuitem"
+                disabled={busy || disabled}
                 onClick={() => {
                   menu.close();
                   void run(onRemove);

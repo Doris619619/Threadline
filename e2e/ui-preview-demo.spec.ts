@@ -111,7 +111,7 @@ test('keeps single field focus and persists stage estimates into the time chart'
   await expect(chart.locator('[data-stage-slice]')).toHaveCount(0);
   await expect(chart).toContainText('暂无实际记录');
   await chart.getByRole('button', { name: '总预计', exact: true }).click();
-  await chart.getByRole('button', { name: '阅读清单 1h30min', exact: true }).click();
+  await chart.getByRole('button', { name: '阅读清单', exact: true }).click();
   await expect(chart.locator('.stage-time-center strong')).toHaveText('3h');
   await expect(chart.locator('.stage-time-selection')).toContainText('阅读清单');
   await page.screenshot({

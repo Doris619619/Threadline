@@ -6,6 +6,78 @@
   border-radius: var(--radius-card);
   background: var(--surface);
   min-width: 0;
+  container-type: inline-size;
+}
+.stage-detail .stage-time-panel {
+  margin-block: 0;
+}
+.stage-time-body {
+  min-width: 0;
+}
+.stage-time-plot,
+.stage-time-list-pane {
+  min-width: 0;
+}
+.stage-time-list-pane {
+  container-type: inline-size;
+}
+.stage-time-list-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.stage-time-list-heading h3 {
+  margin: 0;
+  font-size: var(--text-secondary-size);
+}
+.stage-time-list-heading select {
+  min-height: var(--touch-target);
+  max-width: 75%;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-primary);
+  padding: 0 var(--space-2);
+  font: inherit;
+  font-size: var(--text-caption-size);
+}
+@container (min-width: 820px) {
+  .stage-time-body.is-unified {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr);
+    gap: var(--space-4);
+    align-items: start;
+    margin-top: var(--space-3);
+  }
+  .is-unified .stage-time-list-pane {
+    max-height: 560px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding-inline: var(--space-1);
+  }
+}
+@container (max-width: 819px) {
+  .stage-time-body.is-unified > .stage-time-list-pane {
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-subtle);
+  }
+}
+@container (max-width: 460px) {
+  .stage-time-list-pane .stage-task-row.has-estimate {
+    grid-template-columns: var(--touch-target) minmax(0, 1fr) auto;
+  }
+  .stage-time-list-pane .stage-task-actions {
+    grid-column: 2 / -1;
+    grid-row: 2;
+    justify-content: flex-end;
+  }
+  .stage-time-list-pane .stage-task-row:has(form) .stage-task-actions {
+    grid-column: 2 / -1;
+    grid-row: 3;
+  }
 }
 .stage-time-panel h2 {
   margin: 0;
@@ -50,6 +122,17 @@
 .stage-time-metrics strong {
   font-size: var(--text-section-size);
   font-variant-numeric: tabular-nums;
+}
+.stage-time-metrics.is-stage {
+  margin-top: var(--space-2);
+}
+.stage-time-metrics.is-stage button {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px var(--space-2);
+  padding-block: var(--space-2);
 }
 /* 首页总量在统计栏，圆环这里只保留三个等宽口径按钮。 */
 .stage-time-switcher {
@@ -106,17 +189,29 @@
   text-align: center;
   gap: var(--space-1);
   pointer-events: none;
+  container-type: inline-size;
 }
-.stage-time-center span,
+.stage-time-center-title,
 .stage-time-center small {
-  font-size: var(--text-caption-size);
+  font-size: min(var(--text-caption-size), 18cqi);
   color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 .stage-time-center strong {
-  font-size: clamp(1rem, 2vw, 1.5rem);
+  font-size: 1.5rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  line-height: 1.25;
+}
+.stage-time-center-sample {
+  position: absolute;
+  visibility: hidden;
+  width: max-content;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .stage-time-callout {
   position: absolute;
@@ -324,9 +419,9 @@
   .stage-time-center {
     gap: 2px;
   }
-  .stage-time-center span,
+  .stage-time-center-title,
   .stage-time-center small {
-    font-size: 13px;
+    font-size: min(13px, 18cqi);
   }
 }
 @media (prefers-reduced-motion: reduce) {
