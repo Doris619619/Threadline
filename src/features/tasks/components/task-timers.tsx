@@ -1,13 +1,6 @@
 /** @fileoverview 共享三任务计时会话：任务菜单加入、账号隔离持久化、首页标题展示和异步完成记账。 */
 'use client';
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useWorkspaceView } from '@/components/app-shell';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
@@ -54,14 +47,11 @@ function TaskTimersSession({
     'threadline.task-timers.v1:' + owner,
     [],
     normalizeTaskTimers,
+    { synchronizeTabs: true },
   );
   const [now, setNow] = useState(() => Date.now());
   const [host, setHost] = useState<HTMLElement | null>(null);
   const [taskId, setTaskId] = useState<string>();
-  const latestTimers = useRef(timers);
-  useLayoutEffect(() => {
-    latestTimers.current = timers;
-  }, [timers]);
   useEffect(() => {
     const frame = window.requestAnimationFrame(() =>
       setHost(
@@ -106,7 +96,7 @@ function TaskTimersSession({
     [hydrated, workspaceReady],
   );
   const selected = tasks.find((task) => task.id === taskId);
-  /** 用即时引用抵御双击，独立菜单不能突破三项上限或为同一 Task 创建第二个计时。 */
+  /** 在最新本机状态上核对重复和容量，避免另一标签删除后仍阻止重新计时。 */
   const start = (mode: 'up' | 'down', minutes: number) => {
     if (
       !selected ||
@@ -115,26 +105,32 @@ function TaskTimersSession({
       !['active', 'waiting'].includes(selected.status)
     )
       return '任务已完成或移除，请选择其他任务。';
-    const current = latestTimers.current;
-    if (current.some((timer) => timer.taskId === selected.id))
-      return '这个任务已加入计时。';
-    if (current.length >= 3) return '最多同时保留三个计时器。';
     const stamp = Date.now();
-    const next = [
-      ...current,
-      {
-        id: crypto.randomUUID(),
-        taskId: selected.id,
-        title: selected.title,
-        mode,
-        targetMs: minutes * 60000,
-        elapsedMs: 0,
-        startedAt: stamp,
-        entryDate: today,
-      },
-    ];
-    latestTimers.current = next;
-    setTimers(next);
+    let error: string | undefined;
+    setTimers((current) => {
+      if (current.some((timer) => timer.taskId === selected.id)) {
+        error = '这个任务已加入计时。';
+        return current;
+      }
+      if (current.length >= 3) {
+        error = '最多同时保留三个计时器。';
+        return current;
+      }
+      return [
+        ...current,
+        {
+          id: crypto.randomUUID(),
+          taskId: selected.id,
+          title: selected.title,
+          mode,
+          targetMs: minutes * 60000,
+          elapsedMs: 0,
+          startedAt: stamp,
+          entryDate: today,
+        },
+      ];
+    });
+    if (error) return error;
     setNow(stamp);
   };
   return (

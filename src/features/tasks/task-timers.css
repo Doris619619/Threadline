@@ -4,8 +4,8 @@
   min-width: 0;
 }
 .tl-header[data-home='true'] {
-  flex-wrap: nowrap;
-  align-items: flex-start;
+  flex-wrap: wrap;
+  align-items: center;
 }
 .tl-header[data-home='true'] > div:first-child {
   flex-shrink: 0;
@@ -18,37 +18,32 @@
   min-width: 0;
 }
 .task-timer-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
   gap: 8px;
-  width: 100%;
-  max-width: 984px;
-  justify-self: end;
+  width: max-content;
+  max-width: 100%;
+  margin-left: auto;
+  align-items: flex-start;
 }
 .task-timer-strip:empty {
   display: none;
-}
-.task-timer-strip:has(.task-timer:only-child) {
-  grid-template-columns: minmax(0, 1fr);
-  max-width: 320px;
-}
-.task-timer-strip:has(.task-timer:nth-child(2):last-child) {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  max-width: 652px;
 }
 .task-timer {
   --timer-color: var(--success);
   --timer-ink: color-mix(in srgb, var(--timer-color) 85%, var(--text-primary));
   container-type: inline-size;
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) auto;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  padding: 12px;
+  padding: 10px;
   border: 1px solid color-mix(in srgb, var(--timer-color) 35%, var(--border));
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--timer-color) 6%, var(--surface));
   min-width: 0;
+  width: 280px;
+  min-height: 76px;
+  flex: 0 0 280px;
   position: relative;
 }
 .task-timer[data-mode='down'] {
@@ -57,8 +52,8 @@
 .task-timer-symbol {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   color: var(--timer-color);
   background: color-mix(in srgb, var(--timer-color) 12%, var(--surface));
@@ -69,7 +64,7 @@
 .task-timer-heading {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 2px 8px;
   min-width: 0;
 }
@@ -91,7 +86,7 @@
 .task-timer-readout {
   display: block;
   color: var(--timer-ink);
-  font-size: clamp(1.25rem, 10cqi, 1.75rem);
+  font-size: 1.5rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
@@ -176,8 +171,27 @@
 .tl-header[data-home='true']:has(.task-timer, .task-timer-form) h1::after {
   display: none;
 }
-/* 侧栏、标题与日期消耗宽度时，三个时钟仍保持同样的纵向对齐。 */
-@container (max-width: 17rem) {
+/* 按标题栏实际可用宽度整体换行，卡片自身的宽高不随数量变化。 */
+@container (max-width: 1300px) {
+  .tl-header[data-home='true']:has(.task-timer:nth-child(3)) .home-timer-slot {
+    order: 2;
+    flex-basis: 100%;
+  }
+}
+@container (max-width: 980px) {
+  .tl-header[data-home='true']:has(.task-timer:nth-child(2)) .home-timer-slot {
+    order: 2;
+    flex-basis: 100%;
+  }
+}
+@container (max-width: 780px) {
+  .home-timer-slot {
+    order: 2;
+    flex-basis: 100%;
+  }
+}
+/* 放大文字时优先保持可读，普通桌面字号不会触发卡片内部换行。 */
+@container (max-width: 10.5rem) {
   .task-timer-symbol {
     display: none;
   }
@@ -189,30 +203,14 @@
     justify-self: end;
   }
 }
-@media (max-width: 1440px) {
-  .tl-header[data-home='true']:has(.task-timer:nth-child(3)) {
-    flex-wrap: wrap;
-  }
-  .tl-header[data-home='true']:has(.task-timer:nth-child(3)) .home-timer-slot {
-    order: 2;
-    flex-basis: 100%;
-  }
-}
-@media (max-width: 1200px) {
-  .tl-header[data-home='true'] {
-    flex-wrap: wrap;
-  }
-  .home-timer-slot {
-    order: 2;
-    flex-basis: 100%;
-  }
-}
 @media (max-width: 760px) {
   .task-timer-strip {
-    grid-template-columns: minmax(0, 1fr);
+    flex-direction: column;
+    width: 100%;
   }
-  .task-timer-strip:has(.task-timer:nth-child(2):last-child) {
-    grid-template-columns: minmax(0, 1fr);
+  .task-timer {
+    width: 100%;
+    flex-basis: auto;
   }
 }
 @media (hover: none), (pointer: coarse), (max-width: 760px) {
@@ -224,6 +222,16 @@
   }
   .task-timers .task-timer-more {
     display: grid;
+  }
+  /* 手机三枚触屏按钮保留 44px；极窄卡片才采用第二行操作。 */
+  @container (max-width: 17rem) {
+    .task-timer-body {
+      grid-column: 1 / -1;
+    }
+    .task-timer-actions {
+      grid-column: 1 / -1;
+      justify-self: end;
+    }
   }
 }
 .task-timer-menu button {
