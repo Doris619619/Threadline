@@ -97,7 +97,7 @@ NEXT_PUBLIC_THREADLINE_CLOUD_ENV=production
 Preview 有两种允许状态：
 
 - 有 staging/test Supabase：配置其 URL/key，并设置 `NEXT_PUBLIC_THREADLINE_CLOUD_ENV=staging` 或 `test`。
-- 没有第二个项目：不设置 URL/key，Preview 自动展示可交互的演示工作台，无需登录、不占 Supabase 项目名额。首页常驻“演示模式”说明；示例包含今日任务、重要/普通待安排、带固定计划的 Daily 子项和无子项 Daily。
+- 没有第二个项目：不设置 URL/key，Preview 自动展示可交互的演示工作台，无需登录、不占 Supabase 项目名额。页面直接显示业务内容，不添加演示横幅；示例包含今日任务、重要/普通待安排、带固定计划的 Daily 子项和无子项 Daily。
 
 配置了云连接的 Preview 若声明 `production`、只缺一半配置，或启用 test adapter，构建会失败。演示标记由 `next.config.ts` 根据 `VERCEL_ENV=preview`、空 URL/key 且非 Electron 构建推导，不是用户可开启的 Production 开关。演示不会发起 Supabase 读写，数据存于 `threadline.preview-demo.v1:` 独立命名空间，不读取旧本地业务记录。
 

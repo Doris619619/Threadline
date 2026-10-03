@@ -31,7 +31,6 @@ import { useAnnotationStrokes } from '@/hooks/use-annotation-strokes';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import { isPreviewDemo } from '@/lib/workspace-runtime';
 import { createDemoDailies, createDemoTasks } from './demo-seed';
-import { PreviewDemoNotice } from './preview-demo-notice';
 import { getLocalDateKey } from '@/lib/local-date';
 import type {
   CloseRecord,
@@ -782,7 +781,6 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
 
   return (
     <WorkspaceContextProviders
-      notice={isPreviewDemo() ? <PreviewDemoNotice /> : undefined}
       values={{
         hydrated,
         taskState,

@@ -167,16 +167,71 @@ test('runs three independent timers, resumes after reload and records completion
   ).toEqual([]);
 });
 
-test('collapses the home side column and uses wide screen space for project and duration', async ({
+test('keeps the home layout while switching the right column and using wide screen space', async ({
   page,
 }, info) => {
   await page.goto('/');
   await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
-  await page.getByRole('button', { name: '收起当日时间分布', exact: true }).click();
+  const schedule = page.locator('.schedule-panel');
+  const side = page.locator('#home-side-column');
+  const choice = page.getByRole('combobox', { name: '右栏显示内容', exact: true });
+  await expect(choice).toHaveValue('tasks');
+  await expect(schedule.locator('.stage-time-panel')).toHaveCount(0);
+  await expect(page.locator('#home-side-tasks')).toBeVisible();
+  const initialSchedule = (await schedule.boundingBox())!;
+  await choice.selectOption('time');
+  await expect(
+    side.getByRole('region', { name: '当日时间分布', exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('#home-side-tasks')).not.toBeVisible();
+  const switchedSchedule = (await schedule.boundingBox())!;
+  expect(switchedSchedule.y).toBe(initialSchedule.y);
+  expect(switchedSchedule.width).toBe(initialSchedule.width);
+  if (page.viewportSize()!.width > 1050) {
+    const rightBounds = (await side.boundingBox())!;
+    expect(rightBounds.x).toBeGreaterThanOrEqual(
+      initialSchedule.x + initialSchedule.width,
+    );
+    expect(rightBounds.y).toBe(initialSchedule.y);
+  }
+  const chart = side.locator('.stage-time-panel');
+  await expect
+    .poll(() =>
+      chart.locator('.stage-time-metrics strong').evaluateAll((values) =>
+        values.flatMap((value) => {
+          const style = getComputedStyle(value);
+          const height = value.getBoundingClientRect().height;
+          return height <= parseFloat(style.lineHeight) + 1
+            ? []
+            : [
+                {
+                  text: value.textContent,
+                  height,
+                  lineHeight: style.lineHeight,
+                  fontSize: style.fontSize,
+                  width: value.getBoundingClientRect().width,
+                },
+              ];
+        }),
+      ),
+    )
+    .toEqual([]);
+  await chart.getByRole('button', { name: '实际投入', exact: true }).click();
+  expect(
+    (await new AxeBuilder({ page }).include('#home-side-column').analyze()).violations,
+  ).toEqual([]);
+  await page.screenshot({ path: info.outputPath('home-right-ring.png') });
+  await choice.selectOption('tasks');
+  await expect(page.locator('#home-side-time')).not.toBeVisible();
+  await choice.selectOption('time');
+  await expect(
+    chart.getByRole('button', { name: '实际投入', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await page.reload();
+  await expect(choice).toHaveValue('time');
+  await expect(chart).toBeVisible();
   const before = (await page.locator('.schedule-panel').boundingBox())!.width;
-  await page
-    .getByRole('button', { name: '收起阶段、待安排与 Daily', exact: true })
-    .click();
+  await page.getByRole('button', { name: '收起右栏', exact: true }).click();
   await expect(page.locator('#home-side-column')).not.toBeVisible();
   if (page.viewportSize()!.width > 1050)
     await expect
@@ -184,9 +239,9 @@ test('collapses the home side column and uses wide screen space for project and 
       .toBeGreaterThan(before + 200);
   await page.reload();
   await expect(page.locator('#home-side-column')).not.toBeVisible();
-  await page
-    .getByRole('button', { name: '展开阶段、待安排与 Daily', exact: true })
-    .click();
+  await page.getByRole('button', { name: '展开右栏', exact: true }).click();
+  await expect(choice).toHaveValue('time');
+  await choice.selectOption('tasks');
   if (info.project.name === 'preview-desktop') {
     await page.setViewportSize({ width: 2560, height: 1440 });
     await expect

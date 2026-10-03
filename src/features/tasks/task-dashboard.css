@@ -28,6 +28,8 @@
   display: flex;
   align-items: center;
   align-self: stretch;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-left: auto;
   padding-left: 20px;
   border-left: 1px solid var(--border-subtle);
@@ -230,10 +232,6 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
-}
-
-.home-summary {
-  display: none;
 }
 
 .dashboard h2 {
@@ -1029,22 +1027,9 @@
     padding: 0;
     border: 0;
   }
-  .home-summary {
-    display: inline-flex;
-    align-items: center;
-    width: fit-content;
-    max-width: 100%;
-    min-height: 44px;
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: var(--text-secondary-size);
-    font-weight: 500;
-    line-height: var(--text-secondary-leading);
-  }
-
   .metric-strip {
     display: grid;
-    order: 1;
+    order: 0;
     flex-basis: 100%;
     padding: 12px;
     border: 1px solid var(--border-subtle);
@@ -1057,7 +1042,7 @@
     padding: 12px;
   }
   .overview-close-action {
-    order: 0;
+    order: 1;
   }
   .metric-strip .tl-stat strong {
     white-space: normal;
@@ -1959,16 +1944,24 @@ button.task-duration-actual:focus-visible {
 .side-column[hidden] {
   display: none;
 }
-.home-layout-controls {
+.home-side-controls {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
 }
-.home-layout-controls > span {
-  font-size: var(--text-caption-size);
-  color: var(--text-secondary);
+.home-side-controls select {
+  min-width: 0;
+  flex: 1;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
 }
 .home-layout-toggle {
   min-height: 44px;
@@ -1981,14 +1974,51 @@ button.task-duration-actual:focus-visible {
   font-size: var(--text-caption-size);
   cursor: pointer;
 }
-.day-time-distribution {
-  margin-bottom: 12px;
+.home-side-tasks {
+  display: grid;
+  gap: 16px;
 }
-.day-time-distribution > button {
-  margin-bottom: 8px;
+#home-side-time[hidden],
+#home-side-tasks[hidden] {
+  display: none;
 }
 .day-time-distribution .stage-time-panel {
   margin: 0;
+}
+/* 右栏宽度独立于屏幕宽度；项目明细单列，避免宽桌面的窄侧栏挤压标题与估时。 */
+.side-column {
+  container-type: inline-size;
+}
+@container (max-width: 700px) {
+  .day-time-distribution .stage-time-legend {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .day-time-distribution .stage-time-panel {
+    padding: var(--space-3);
+  }
+  .day-time-distribution .stage-time-metrics button {
+    padding: var(--space-2);
+  }
+  .day-time-distribution .stage-time-metrics strong {
+    font-size: clamp(14px, 5cqi, var(--text-section-size));
+  }
+}
+/* 最窄侧栏把三个总量纵向排列，名称和完整时长同排，避免分钟格式逐字拆开。 */
+@container (max-width: 360px) {
+  .day-time-distribution .stage-time-metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .day-time-distribution .stage-time-metrics button {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 8px;
+  }
+  .day-time-distribution .stage-time-metrics strong {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    align-self: center;
+    font-size: var(--text-section-size);
+  }
 }
 @media (min-width: 761px) {
   .schedule-panel {

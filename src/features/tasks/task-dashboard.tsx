@@ -58,6 +58,12 @@ export function TaskDashboard() {
     'threadline.home-side-collapsed.v1',
     false,
   );
+  const [sideView, setSideView] = usePersistentState<'tasks' | 'time'>(
+    'threadline.home-side-view.v1',
+    'tasks',
+    (value) => (value === 'time' ? 'time' : 'tasks'),
+  );
+  const [preparingSideView, setPreparingSideView] = useState(false);
   const { isWorkstation } = useDesktopWindow();
   const startupProgress = useOptionalStartupProgress();
   const {
@@ -116,8 +122,24 @@ export function TaskDashboard() {
     } catch {
       // Daily 行已显示具体错误；不打开收尾弹窗，也不清空输入。
       setSideCollapsed(false);
+      setSideView('tasks');
     } finally {
       setPreparingClose(false);
+    }
+  };
+
+  /** 隐藏 Daily 前确认失焦草稿；失败保留任务视图，让用户直接修正错误。 */
+  const changeSideView = async (view: 'tasks' | 'time') => {
+    if (preparingSideView) return;
+    setPreparingSideView(true);
+    try {
+      if (view !== sideView) await dailyPanel.current?.flush();
+      setSideView(view);
+    } catch {
+      setSideView('tasks');
+      setSideCollapsed(false);
+    } finally {
+      setPreparingSideView(false);
     }
   };
 
@@ -288,9 +310,6 @@ export function TaskDashboard() {
   return (
     <div className="dashboard dashboard-annotatable" data-testid="home-panel">
       <Surface className="dashboard-overview" variant="flat">
-        <p className="home-summary" aria-live="polite">
-          今日时间
-        </p>
         <div className="metric-strip">
           <StatItem
             label="今日剩余预计"
@@ -313,6 +332,17 @@ export function TaskDashboard() {
           />
         </div>
         <div className="overview-close-action">
+          {sideCollapsed && (
+            <button
+              type="button"
+              className="home-layout-toggle"
+              aria-expanded={false}
+              aria-controls="home-side-column"
+              onClick={() => setSideCollapsed(false)}
+            >
+              展开右栏
+            </button>
+          )}
           <button
             type="button"
             className="finish-day"
@@ -332,18 +362,6 @@ export function TaskDashboard() {
           </button>
         </div>
       </Surface>
-      <div className="home-layout-controls">
-        <span>全天总量包含日程与 Daily · 剩余预计不扣减实际投入</span>
-        <button
-          type="button"
-          className="home-layout-toggle"
-          aria-expanded={!sideCollapsed}
-          aria-controls="home-side-column"
-          onClick={() => setSideCollapsed(!sideCollapsed)}
-        >
-          {sideCollapsed ? '展开阶段、待安排与 Daily' : '收起阶段、待安排与 Daily'}
-        </button>
-      </div>
       <div
         className={'dashboard-columns' + (sideCollapsed ? ' is-side-collapsed' : '')}
         style={{ '--schedule-ratio': `${scheduleRatio}fr` } as React.CSSProperties}
@@ -370,15 +388,6 @@ export function TaskDashboard() {
         >
           {() => (
             <>
-              <DayTimeChart
-                tasks={tasks}
-                projects={workspaceProjects}
-                today={today}
-                date={selectedDate}
-                entries={taskTimeEntriesAuthoritative ? taskTimeEntries : undefined}
-                onSaveEstimate={saveEstimate}
-                onSaveActual={saveActual}
-              />
               <DesktopScheduleList>
                 {timed.map((task) => (
                   <TaskLine
@@ -422,66 +431,106 @@ export function TaskDashboard() {
           )}
         </SchedulePanel>
         <div id="home-side-column" className="side-column" hidden={sideCollapsed}>
-          <HomeStagePlans />
-          <WaitingTaskPanel
-            isDropTarget={dropTarget === 'waiting'}
-            onDragLeave={() => setDropTarget(null)}
-            onDragOver={handleWaitingDragOver}
-            onDrop={handleWaitingDrop}
+          <div className="home-side-controls">
+            <select
+              aria-label="右栏显示内容"
+              aria-controls="home-side-tasks home-side-time"
+              value={sideView}
+              disabled={preparingSideView}
+              onChange={(event) =>
+                void changeSideView(event.target.value as 'tasks' | 'time')
+              }
+            >
+              <option value="tasks">任务列表</option>
+              <option value="time">今日时间分布</option>
+            </select>
+            <button
+              type="button"
+              className="home-layout-toggle"
+              aria-expanded={true}
+              aria-controls="home-side-column"
+              onClick={() => setSideCollapsed(true)}
+            >
+              收起右栏
+            </button>
+          </div>
+          <div id="home-side-time" hidden={sideView !== 'time'}>
+            <DayTimeChart
+              tasks={tasks}
+              projects={workspaceProjects}
+              today={today}
+              date={selectedDate}
+              entries={taskTimeEntriesAuthoritative ? taskTimeEntries : undefined}
+              onSaveEstimate={saveEstimate}
+              onSaveActual={saveActual}
+            />
+          </div>
+          <div
+            id="home-side-tasks"
+            className="home-side-tasks"
+            hidden={sideView !== 'tasks'}
           >
-            <div className="waiting-tasks">
-              {(['important', 'normal'] as const).map((importance) => {
-                const items = waiting.filter(
-                  (task) => (task.importance ?? 'normal') === importance,
-                );
-                return (
-                  <WaitingTaskGroup
-                    key={importance}
-                    importance={importance}
-                    count={items.length}
-                    onAdd={() => createDrafts.openQuick(defaultProjectId, importance)}
-                  >
-                    {items.map((task) => (
-                      <WaitingTaskRow
-                        key={task.id}
-                        task={task}
+            <HomeStagePlans />
+            <WaitingTaskPanel
+              isDropTarget={dropTarget === 'waiting'}
+              onDragLeave={() => setDropTarget(null)}
+              onDragOver={handleWaitingDragOver}
+              onDrop={handleWaitingDrop}
+            >
+              <div className="waiting-tasks">
+                {(['important', 'normal'] as const).map((importance) => {
+                  const items = waiting.filter(
+                    (task) => (task.importance ?? 'normal') === importance,
+                  );
+                  return (
+                    <WaitingTaskGroup
+                      key={importance}
+                      importance={importance}
+                      count={items.length}
+                      onAdd={() => createDrafts.openQuick(defaultProjectId, importance)}
+                    >
+                      {items.map((task) => (
+                        <WaitingTaskRow
+                          key={task.id}
+                          task={task}
+                          projects={workspaceProjects}
+                          onEdit={() => open(task, 'waiting')}
+                          onDelete={(id) => transitionTask(id, 'trashed')}
+                          onSchedule={(id, date) => {
+                            const pending = transitionTask(id, 'scheduled', date);
+                            if (date === getLocalDateKey()) setAutoFocusTimeTaskId(id);
+                            return pending;
+                          }}
+                          onComplete={(id) => {
+                            return completeWaitingTask(id, getLocalDateKey());
+                          }}
+                        />
+                      ))}
+                      <WaitingTaskCreateRow
+                        open={
+                          createDrafts.quickOpen &&
+                          createDrafts.quickDraft.importance === importance
+                        }
+                        draft={createDrafts.quickDraft}
                         projects={workspaceProjects}
-                        onEdit={() => open(task, 'waiting')}
-                        onDelete={(id) => transitionTask(id, 'trashed')}
-                        onSchedule={(id, date) => {
-                          const pending = transitionTask(id, 'scheduled', date);
-                          if (date === getLocalDateKey()) setAutoFocusTimeTaskId(id);
-                          return pending;
-                        }}
-                        onComplete={(id) => {
-                          return completeWaitingTask(id, getLocalDateKey());
-                        }}
+                        onCreate={createWaitingTask}
+                        onCreateProject={createProjectDirectly}
+                        onChange={createDrafts.updateQuickDraft}
+                        onReset={() => createDrafts.resetQuick(defaultProjectId)}
+                        onClose={createDrafts.closeQuick}
                       />
-                    ))}
-                    <WaitingTaskCreateRow
-                      open={
-                        createDrafts.quickOpen &&
-                        createDrafts.quickDraft.importance === importance
-                      }
-                      draft={createDrafts.quickDraft}
-                      projects={workspaceProjects}
-                      onCreate={createWaitingTask}
-                      onCreateProject={createProjectDirectly}
-                      onChange={createDrafts.updateQuickDraft}
-                      onReset={() => createDrafts.resetQuick(defaultProjectId)}
-                      onClose={createDrafts.closeQuick}
-                    />
-                  </WaitingTaskGroup>
-                );
-              })}
-            </div>
-          </WaitingTaskPanel>
-          <DailyPanel
-            ref={dailyPanel}
-            items={daily}
-            date={selectedDate}
-            onSave={saveDailyEntry}
-          />
+                    </WaitingTaskGroup>
+                  );
+                })}
+              </div>
+            </WaitingTaskPanel>
+            <DailyPanel
+              ref={dailyPanel}
+              items={daily}
+              date={selectedDate}
+              onSave={saveDailyEntry}
+            />
+          </div>
         </div>
       </div>
       <AnnotationLayer

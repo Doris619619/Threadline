@@ -129,7 +129,7 @@ test('keeps single field focus and persists stage estimates into the time chart'
 /** 冷启动含动态业务模块及本地 hydration；CI trace 显示 WebKit 会超过 10s，后续操作仍用默认时限。 */
 async function awaitDemoWorkspace(page: Page) {
   await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByLabel('演示模式说明')).toBeVisible();
+  await expect(page.getByLabel('演示模式说明')).toHaveCount(0);
 }
 
 /** 收尾入口在首屏统计区域可达，各主题保持轻量颜色，键盘打开后取消不改变当天数据。 */
@@ -154,8 +154,8 @@ test('keeps day closing in the overview across themes', async ({ page }, info) =
       expect(bounds.height).toBeGreaterThanOrEqual(44);
       expect(bounds.x + bounds.width).toBeLessThanOrEqual(page.viewportSize()!.width);
       if (page.viewportSize()!.width <= 760) {
-        const summary = (await page.locator('.home-summary').boundingBox())!;
-        expect(Math.abs(summary.y - bounds.y)).toBeLessThan(2);
+        const metrics = (await page.locator('.metric-strip').boundingBox())!;
+        expect(metrics.y + metrics.height).toBeLessThanOrEqual(bounds.y);
       } else {
         const overview = (await page.locator('.dashboard-overview').boundingBox())!;
         const metrics = (await page.locator('.metric-strip').boundingBox())!;

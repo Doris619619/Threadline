@@ -14,7 +14,7 @@ const localStorageKeys = [
   'threadline.task-time-entries.v1',
   'threadline.task-timers.v1:local',
   'threadline.home-side-collapsed.v1',
-  'threadline.day-time-collapsed.v1',
+  'threadline.home-side-view.v1',
   'threadline.projects.v1',
   'threadline.stage-plans.v1',
   'threadline.daily-by-date.v1',
@@ -64,8 +64,6 @@ export async function bootstrapLocalAdapterWorkspace(page: Page, seedKey: string
       if (window.sessionStorage.getItem(cleanupKey)) return;
       window.sessionStorage.setItem(cleanupKey, 'true');
       for (const key of keys) window.localStorage.removeItem(key);
-      // 原业务回归使用紧凑日程；圆环展开、持久化和交互由独立 Preview 用例验证。
-      window.localStorage.setItem('threadline.day-time-collapsed.v1', 'true');
     },
     { cleanupKey: seedKey, keys: localStorageKeys },
   );
