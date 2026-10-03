@@ -115,7 +115,7 @@ export function StageTaskList({
       }
       onEdit={() => setEditing(task)}
       onDate={() => setDating(task)}
-      onToday={() => scheduleToday(task)}
+      onToday={timeView ? undefined : () => scheduleToday(task)}
       onToggle={() => toggle(task)}
       onRemove={() => stages.remove(stageId, task.id)}
     />

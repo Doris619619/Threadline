@@ -556,11 +556,11 @@ html:is([data-theme='cottage'], [data-theme='classic'])
 .stage-task-estimate {
   min-width: 0;
 }
-.stage-task-row:has(.stage-task-estimate form) .stage-task-estimate {
+.stage-task-row:has(.stage-task-estimate form:not(.is-inline)) .stage-task-estimate {
   grid-column: 2 / -1;
   grid-row: 2;
 }
-.stage-task-row:has(.stage-task-estimate form) .stage-task-actions {
+.stage-task-row:has(.stage-task-estimate form:not(.is-inline)) .stage-task-actions {
   grid-column: 4;
   grid-row: 1;
 }

@@ -10,7 +10,7 @@ import { TaskActionsPopover } from '@/features/tasks/components/task-actions-pop
 import { useGuardedAction } from '@/hooks/use-guarded-action';
 import type { Project, Task } from '@/types/domain';
 import { stageTaskDateLabel } from './rules';
-/** 项目与标题首行并排；直接操作有独立忙状态和错误，长标题完整换行。 */
+/** 项目与标题并排；首页可直接安排到今天，计划详情省略此入口，其他操作保持原 Task。 */
 export function PlanTaskRow({
   task,
   today,
@@ -31,7 +31,7 @@ export function PlanTaskRow({
   today: string;
   onEdit: () => void;
   onDate: () => void;
-  onToday: () => Promise<void>;
+  onToday?: () => Promise<void>;
   onToggle: () => Promise<unknown>;
   onRemove?: () => Promise<void>;
   metadata?: ReactNode;
@@ -89,7 +89,7 @@ export function PlanTaskRow({
       </div>
       {estimate && <div className="stage-task-estimate">{estimate}</div>}
       <div className="stage-task-actions">
-        {!task.completed && task.status === 'waiting' ? (
+        {!task.completed && task.status === 'waiting' && onToday ? (
           <button
             type="button"
             className="stage-today"
@@ -99,7 +99,8 @@ export function PlanTaskRow({
             → 今天
           </button>
         ) : (
-          !task.completed && (
+          !task.completed &&
+          task.status !== 'waiting' && (
             <time dateTime={task.date}>{stageTaskDateLabel(task.date, today)}</time>
           )
         )}

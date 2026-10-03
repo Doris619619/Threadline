@@ -17,6 +17,7 @@ export type StageTimeGroup = {
 };
 export type StageTimeSector = StageTimeItem & {
   projectId: string;
+  projectColor?: string;
   start: number;
   fraction: number;
 };
@@ -130,7 +131,7 @@ export function ringSector(
   return `M${point(start, outer)} A${outer},${outer} 0 0 1 ${point(mid, outer)} A${outer},${outer} 0 0 1 ${point(end, outer)} L${point(end, inner)} A${inner},${inner} 0 0 0 ${point(mid, inner)} A${inner},${inner} 0 0 0 ${point(start, inner)} Z`;
 }
 
-/** 每项正时长生成一个真实比例的任务扇区；未填和零值不占据角度，不放大小扇区。 */
+/** 正时长按真实比例生成扇区，保留项目原色供引线使用；未填和零值不占据角度。 */
 export function stageTimeSectors(
   groups: StageTimeGroup[],
   total: number,
@@ -145,6 +146,7 @@ export function stageTimeSectors(
         return {
           ...item,
           projectId: group.id,
+          projectColor: group.color,
           start,
           fraction: total ? (item.minutes ?? 0) / total : 0,
         };

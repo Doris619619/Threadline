@@ -99,9 +99,21 @@ test('persists inline time and preserves the same task through scheduling/comple
     .click();
   await chart.getByLabel('验收任务 2累计实际分钟').fill('10');
   await chart.getByRole('button', { name: '保存', exact: true }).click();
+  // 计划详情不再提供「→ 今天」，安排快捷入口沿用首页同一 Task。
+  await expect(detail.getByRole('button', { name: '→ 今天', exact: true })).toHaveCount(
+    0,
+  );
+  await detail.getByRole('button', { name: '首页显示', exact: true }).click();
+  await openWorkspaceSection(page, '首页');
+  const homeRow = page.locator(
+    '.home-stage-card [data-stage-task-id="demo-stage-time-task-1"]',
+  );
+  await homeRow.getByRole('button', { name: '→ 今天', exact: true }).click();
+  await openWorkspaceSection(page, '计划');
+  await page
+    .getByRole('button', { name: '查看阶段 多项目时间验收', exact: true })
+    .click();
   const row = detail.locator('[data-stage-task-id="demo-stage-time-task-1"]');
-  await expect(row.getByRole('button', { name: '→ 今天', exact: true })).toBeVisible();
-  await row.getByRole('button', { name: '→ 今天', exact: true }).click();
   await expect(row.locator('time')).toHaveText('今天');
   await row.getByRole('checkbox').check();
   await stateFilter.selectOption('completed');

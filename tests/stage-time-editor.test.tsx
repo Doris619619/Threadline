@@ -69,7 +69,7 @@ test('failure keeps draft and opening baseline even when the task refreshes', as
   expect(await screen.findByRole('alert')).toHaveTextContent('其他设备');
   expect(input).toHaveValue('65');
   expect(save).toHaveBeenCalledWith(task, 65, undefined);
-  fireEvent.click(screen.getByText('取消'));
+  fireEvent.keyDown(input, { key: 'Escape' });
   expect(screen.queryByRole('alert')).toBeNull();
   expect(screen.getByText('1h39min')).toHaveFocus();
 });

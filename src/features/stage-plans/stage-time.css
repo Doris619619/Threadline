@@ -65,19 +65,30 @@
     border-top: 1px solid var(--border-subtle);
   }
 }
-@container (max-width: 460px) {
-  .stage-time-list-pane .stage-task-row.has-estimate {
-    grid-template-columns: var(--touch-target) minmax(0, 1fr) auto;
-  }
-  .stage-time-list-pane .stage-task-actions {
-    grid-column: 2 / -1;
-    grid-row: 2;
-    justify-content: flex-end;
-  }
-  .stage-time-list-pane .stage-task-row:has(form) .stage-task-actions {
-    grid-column: 2 / -1;
-    grid-row: 3;
-  }
+/* 按内容真实宽度换行，不因整栏跨过固定阈值就把操作提前移到下一行。 */
+.stage-time-list-pane .stage-task-row.has-estimate {
+  display: flex;
+  flex-wrap: wrap;
+}
+.stage-time-list-pane .stage-task-row > .tl-checkbox {
+  flex: 0 0 var(--touch-target);
+}
+.stage-time-list-pane .plan-task-content {
+  flex: 1 1 6em;
+  min-width: min(6em, 100%);
+}
+.stage-time-list-pane .stage-task-estimate,
+.stage-time-list-pane .stage-task-actions {
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+.stage-time-list-pane .stage-task-actions {
+  margin-left: auto;
+}
+.stage-time-list-pane .stage-task-row:has(form:not(.is-inline)) .stage-task-estimate {
+  flex-basis: calc(100% - var(--touch-target) - var(--space-2));
+  margin-left: calc(var(--touch-target) + var(--space-2));
+  order: 1;
 }
 .stage-time-panel h2 {
   margin: 0;
@@ -304,7 +315,7 @@
   gap: var(--space-2);
   min-width: 0;
 }
-.stage-time-legend li:has(form) .stage-estimate-editor {
+.stage-time-legend li:has(form:not(.is-inline)) .stage-estimate-editor {
   grid-column: 1 / -1;
 }
 .stage-time-task {
@@ -357,6 +368,12 @@
   flex-wrap: wrap;
   gap: var(--space-2);
   padding: var(--space-2) 0;
+}
+.stage-estimate-editor form.is-inline {
+  padding: 0;
+}
+.stage-estimate-editor form.is-inline input {
+  width: 5.5em;
 }
 .stage-estimate-editor label {
   display: flex;

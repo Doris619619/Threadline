@@ -6,7 +6,7 @@ import { ringSector, type StageTimeSector } from './time-breakdown';
 import { stageTimeLabelLayout } from './time-label-layout';
 import { TimeRingCenter } from './time-ring-center';
 
-/** 引导线和标签共用任务 ID；观察真实尺寸，文字保持 HTML 字号且不随圆环缩小。 */
+/** 引线使用项目原色并与标签共用任务 ID；观察真实尺寸，文字不随圆环缩小。 */
 export function StageTimeRing({
   sectors,
   total,
@@ -98,7 +98,7 @@ export function StageTimeRing({
             data-stage-line={label.id}
             points={label.points}
             fill="none"
-            stroke="var(--text-secondary)"
+            stroke={label.projectColor ?? label.color}
             strokeWidth="1"
             opacity={
               !active || active === label.id || active === label.projectId ? 0.7 : 0.25

@@ -102,7 +102,9 @@ Task 只有新增的可选 `stagePlanId`，仍具有原 `projectId`。阶段内�
 
 圆环中心按内圈宽度与实际字体字宽适配总时长，完整时长保持一行，不拆开 `11h12min`。测量文本使用独立原字号样本，观察容器、字体加载和字号变化，并为圆边与字体像素取整留出余量，避免缩小后的字号反复震荡；首页右栏、窗口缩放和放大文字共用此适配。
 
-点击明细中预计时间原地填整数分钟，Enter/保存提交，Escape/取消退出；空值为未估时，0 为零分钟。复用 `saveTaskConfirmed`，冲突基准固定为打开时 Task，重复提交被锁定，失败保留输入。实际明细编辑任务累计实际分钟，并选择本次增减的投入日期；未安排任务记录实际后仍未安排。减少实际只能扣减所选日期余额，其他日期的历史不得抹除。
+点击明细中预计时间只在原位出现数字框，Enter 或离焦提交、Escape 取消，不展开字段标题和保存/取消按钮；空值为未估时，0 为零分钟。复用 `saveTaskConfirmed`，冲突基准固定为打开时 Task，重复提交被锁定，失败保留输入。实际明细仍保留累计分钟与投入日期，未安排任务记录实际后仍未安排。减少实际只能扣减所选日期余额，其他日期的历史不得抹除。
+
+阶段详情任务行按实际内容宽度优先同排，标题可在自身区域换行；标题、时间与操作所需宽度确实超出当前行时才换到下一行，不再用固定 460px 阈值提前拆行。详情移除「→ 今天」快捷操作，首页阶段卡继续保留。圆环每条引线使用所属项目原色，扇区保留同项目的明暗色阶。
 
 `202610030001_task_actual_entry_date.sql` 新增 `record_task_actual`，复用原实际字段、账本触发器和 `update_task_fields` 冲突保护；不新增表或字段。显式日期仅限当前事务，旧编辑仍按任务日程日期入账。security invoker 与 RLS 限定账号；保存时复核原状态、日期、项目、累计值。计时器的完成请求在同一事务记录实际并完成任务；待安排完成沿用原 `complete_waiting_task` 的完成日和状态规则。必须先应用此迁移再发布前端；本次 PR 不执行生产迁移。
 
@@ -118,7 +120,9 @@ Task 只有新增的可选 `stagePlanId`，仍具有原 `projectId`。阶段内�
 
 紧凑计时卡片此前复验：9 项计时组件与规则测试、9 项桌面/320px/iPhone 浏览器检查通过；桌面 1254px、1280px 和 2560px 的三张卡片均与标题同排，去掉图标和可见模式文字后保持键盘朗读模式、两小时读数与 200% 文字边界。见 [1254px 三张同排](screenshots/stage-task-time/home-three-timers.png)。
 
-左右圆环与合并清单本轮验证：完整 97 文件 499 项单元/组件及覆盖率门禁通过；类型、全仓 lint 和 Preview 生产构建通过。当前 Preview 的桌面、320px Chromium 与 390px iPhone WebKit 共 42 项浏览器检查通过，覆盖单一任务清单、状态筛选不改变图表、桌面右侧独立滚动、全部正值引线、时间保存后刷新、安排/完成和深浅色 axe。中心 `11h12min` 在 600/390/320/240px 图宽及 200% 文字下保持一行，并核对内圈边界；首页、计时器与多标签重新加入检查一并复验通过。截图：[用户本机首屏](screenshots/stage-task-time/stage-left-right-live.png)、[桌面左右布局](screenshots/stage-task-time/stage-left-right-desktop.png)、[桌面深色](screenshots/stage-task-time/stage-left-right-dark.png)、[320px 合并清单](screenshots/stage-task-time/stage-unified-mobile.png)、[中心长时长适配](screenshots/stage-task-time/ring-center-fit.png)。
+左右圆环与合并清单上一轮验证（`0ee351a`）：完整 97 文件 499 项单元/组件及覆盖率门禁通过；类型、全仓 lint 和 Preview 生产构建通过。当时 Preview 的桌面、320px Chromium 与 390px iPhone WebKit 共 42 项浏览器检查通过，覆盖单一任务清单、状态筛选不改变图表、桌面右侧独立滚动、全部正值引线、时间保存后刷新、安排/完成和深浅色 axe。中心 `11h12min` 在 600/390/320/240px 图宽及 200% 文字下保持一行，并核对内圈边界；首页、计时器与多标签重新加入检查一并复验通过。截图：[用户本机首屏](screenshots/stage-task-time/stage-left-right-live.png)、[桌面左右布局](screenshots/stage-task-time/stage-left-right-desktop.png)、[桌面深色](screenshots/stage-task-time/stage-left-right-dark.png)、[320px 合并清单](screenshots/stage-task-time/stage-unified-mobile.png)、[中心长时长适配](screenshots/stage-task-time/ring-center-fit.png)。
+
+本次任务行、引线颜色与单框估时精简按用户要求不重跑测试套件；Preview 重新生产构建及 TypeScript 检查通过。用户本地页面已核对项目颜色引线、任务与时长/更多同排、计划详情无「→ 今天」、预计单框回车保存与 Escape 退出。既有测试选择器同步改为 Escape 取消及首页安排路径，未执行。本机截图：[精简后的计划详情](screenshots/stage-task-time/stage-compact-lines-live.png)、[原位预计数字框](screenshots/stage-task-time/stage-inline-estimate-live.png)。
 
 数据只保存原 `tasks.planned_duration_minutes`。`202610020001_stage_task_estimates.sql` 扩展现有 create/append RPC，阶段及估时仍一次事务提交；append 新参数默认 null，旧三/四参数调用兼容，权限保持 security invoker 与 RLS。重复请求的估时必须一致，非法值导致整笔事务回滚。**发布顺序：先应用迁移，再发布前端**；本地演示使用同一字段语义，正式数据库未在本任务中执行迁移。
 
