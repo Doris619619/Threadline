@@ -65,8 +65,8 @@
     border-top: 1px solid var(--border-subtle);
   }
 }
-/* 按内容真实宽度换行，不因整栏跨过固定阈值就把操作提前移到下一行。 */
-.stage-time-list-pane .stage-task-row.has-estimate {
+/* 日期与时长保留同宽位置，整组随实际空间换行；未安排的空日期不挤动时长。 */
+.stage-time-list-pane .stage-task-row.has-time-columns {
   display: flex;
   flex-wrap: wrap;
 }
@@ -77,18 +77,52 @@
   flex: 1 1 6em;
   min-width: min(6em, 100%);
 }
-.stage-time-list-pane .stage-task-estimate,
-.stage-time-list-pane .stage-task-actions {
+.stage-task-time-values {
+  display: grid;
+  grid-template-columns: minmax(0, 5.5em) minmax(0, 6.5em) auto;
+  align-items: start;
+  gap: var(--space-1);
   flex: 0 0 auto;
   max-width: 100%;
-}
-.stage-time-list-pane .stage-task-actions {
   margin-left: auto;
+  font-size: var(--text-caption-size);
 }
-.stage-time-list-pane .stage-task-row:has(form:not(.is-inline)) .stage-task-estimate {
-  flex-basis: calc(100% - var(--touch-target) - var(--space-2));
+.stage-task-time-values .stage-task-date {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: var(--touch-target);
+  color: var(--text-secondary);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.stage-task-time-values .stage-task-estimate {
+  grid-column: 2;
+  grid-row: 1;
+  text-align: right;
+}
+.stage-task-time-values .stage-estimate-trigger {
+  width: 100%;
+  padding-inline: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.stage-task-time-values .stage-task-actions {
+  grid-column: 3;
+  grid-row: 1;
+}
+.stage-task-time-values .stage-estimate-editor form.is-inline {
+  justify-content: flex-end;
+}
+.stage-task-row.has-time-columns:has(form:not(.is-inline)) .stage-task-time-values {
+  flex: 1 1 calc(100% - var(--touch-target) - var(--space-2));
   margin-left: calc(var(--touch-target) + var(--space-2));
   order: 1;
+}
+.stage-task-row.has-time-columns:has(form:not(.is-inline)) .stage-task-estimate {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  text-align: left;
 }
 .stage-time-panel h2 {
   margin: 0;

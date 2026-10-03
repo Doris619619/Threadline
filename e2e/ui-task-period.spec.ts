@@ -4,6 +4,7 @@ import AxeBuilder from '@axe-core/playwright';
 import {
   bootstrapLocalAdapterWorkspace,
   openWorkspaceSection,
+  openTaskMenu,
 } from './support/workspace';
 import { expectNoUnexpectedHorizontalOverflow } from './support/layout';
 
@@ -175,13 +176,13 @@ test('independent estimates persist through schedule and waiting; compact pages 
   await form.getByTitle('保存任务').click();
   const row = schedule.locator('.timeline-row').filter({ hasText: '只有预计的任务' });
   await expect(row).toContainText('1h30min');
-  await row.getByRole('button', { name: '只有预计的任务更多操作' }).click();
+  await openTaskMenu(row.getByRole('button', { name: '只有预计的任务更多操作' }));
   await page.getByRole('button', { name: '待安排', exact: true }).click();
   const waiting = page
     .locator('.waiting-task-row')
     .filter({ hasText: '只有预计的任务' });
   await expect(waiting).toContainText('1h30min');
-  await waiting.getByRole('button', { name: '只有预计的任务更多操作' }).click();
+  await openTaskMenu(waiting.getByRole('button', { name: '只有预计的任务更多操作' }));
   await page.getByRole('menuitem', { name: '安排到今天' }).click();
   await expect(row).toBeVisible();
   await page.keyboard.press('Escape');

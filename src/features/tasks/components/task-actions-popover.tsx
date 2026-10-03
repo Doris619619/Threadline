@@ -10,7 +10,7 @@ import {
 import { createPortal } from 'react-dom';
 import type { TaskMenuPoint } from '../hooks/use-task-menu';
 
-/** 原生 popover 负责外部点击；右键可按指针定位，菜单键和 Escape 保留可返回的焦点。 */
+/** 原生 popover 避让视口；桌面隐藏更多后，菜单退出返回打开前的焦点或任务主体。 */
 export function TaskActionsPopover({
   anchor,
   children,
@@ -39,6 +39,10 @@ export function TaskActionsPopover({
     const menu = ref.current;
     const trigger = anchor.current;
     if (!menu || !trigger) return;
+    const previousFocus =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : undefined;
     /** 菜单不参与列表布局，窗口不足时向上展开并保留内部滚动。 */
     const position = () => {
       const box = trigger.getBoundingClientRect();
@@ -77,7 +81,16 @@ export function TaskActionsPopover({
         menu.contains(document.activeElement) ||
         document.activeElement === document.body
       )
-        trigger.focus({ preventScroll: true });
+        (trigger.getClientRects().length
+          ? trigger
+          : previousFocus?.isConnected && previousFocus !== document.body
+            ? previousFocus
+            : trigger
+                .closest(
+                  '.stage-task-row, .waiting-task-row, .timeline-row, .quick-task-row',
+                )
+                ?.querySelector<HTMLElement>('button:not(.task-context-trigger), input')
+        )?.focus({ preventScroll: true });
       menu.hidePopover();
     };
   }, [anchor, align, point]);

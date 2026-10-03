@@ -13,7 +13,7 @@ import { cn } from '@/lib/cn';
 import type { TaskStatus } from '@/types/domain';
 
 /**
- * 渲染工作站开关、更多菜单和拖拽柄。移动端默认只展示干净的更多菜单，次要操作收敛到菜单内。
+ * 渲染工作站开关和拖拽柄；桌面通过行右键操作，触屏保留更多菜单。
  */
 export function TaskRowActions({
   taskId,
@@ -68,6 +68,7 @@ export function TaskRowActions({
         )}
         <button
           type="button"
+          className="task-context-trigger"
           aria-label={`${title}更多操作`}
           ref={menuAnchor}
           aria-expanded={menu.open}

@@ -15,7 +15,7 @@ import { ProjectTag } from '@/components/ui/project-tag';
 import { addLocalDateDays, getLocalDateKey } from '@/lib/local-date';
 import type { Project, Task } from '@/types/domain';
 
-/** 保持待安排行紧凑，并将详细编辑入口放在任务主体而非更多菜单。 */
+/** 待安排主体可编辑，桌面右键和触屏更多保留安排及计时操作。 */
 export function WaitingTaskRow({
   projects,
   task,
@@ -78,6 +78,7 @@ export function WaitingTaskRow({
         <button
           type="button"
           ref={menuAnchor}
+          className="task-context-trigger"
           disabled={busy}
           aria-label={`${task.title}更多操作`}
           aria-haspopup="menu"

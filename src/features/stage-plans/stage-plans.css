@@ -553,14 +553,19 @@ html:is([data-theme='cottage'], [data-theme='classic'])
 .stage-task-row.has-estimate {
   grid-template-columns: var(--touch-target) minmax(0, 1fr) auto auto;
 }
+.stage-task-row-values {
+  display: contents;
+}
 .stage-task-estimate {
   min-width: 0;
 }
-.stage-task-row:has(.stage-task-estimate form:not(.is-inline)) .stage-task-estimate {
+.stage-task-row:not(.has-time-columns):has(.stage-task-estimate form:not(.is-inline))
+  .stage-task-estimate {
   grid-column: 2 / -1;
   grid-row: 2;
 }
-.stage-task-row:has(.stage-task-estimate form:not(.is-inline)) .stage-task-actions {
+.stage-task-row:not(.has-time-columns):has(.stage-task-estimate form:not(.is-inline))
+  .stage-task-actions {
   grid-column: 4;
   grid-row: 1;
 }
@@ -876,10 +881,11 @@ html:is([data-theme='cottage'], [data-theme='classic'])
   .stage-task-row.has-estimate {
     grid-template-columns: var(--touch-target) minmax(0, 1fr) auto;
   }
-  .stage-task-row.has-estimate .stage-task-actions {
+  .stage-task-row.has-estimate:not(.has-time-columns) .stage-task-actions {
     grid-column: 2 / -1;
   }
-  .stage-task-row:has(.stage-task-estimate form) .stage-task-actions {
+  .stage-task-row:not(.has-time-columns):has(.stage-task-estimate form)
+    .stage-task-actions {
     grid-column: 2 / -1;
     grid-row: 3;
   }

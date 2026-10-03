@@ -10,7 +10,7 @@ import { TaskActionsPopover } from '@/features/tasks/components/task-actions-pop
 import { useGuardedAction } from '@/hooks/use-guarded-action';
 import type { Project, Task } from '@/types/domain';
 import { stageTaskDateLabel } from './rules';
-/** 项目与标题并排；首页可直接安排到今天，计划详情省略此入口，其他操作保持原 Task。 */
+/** 详情按日期、时长固定对齐，未安排不标日期；桌面右键和触屏更多共用原 Task 操作。 */
 export function PlanTaskRow({
   task,
   today,
@@ -22,6 +22,7 @@ export function PlanTaskRow({
   metadata,
   project,
   estimate,
+  timeColumns = false,
   onSelect,
   onHover,
   selected = false,
@@ -37,6 +38,7 @@ export function PlanTaskRow({
   metadata?: ReactNode;
   project?: Project;
   estimate?: ReactNode;
+  timeColumns?: boolean;
   onSelect?: () => void;
   onHover?: (hovered: boolean) => void;
   selected?: boolean;
@@ -51,6 +53,7 @@ export function PlanTaskRow({
         'stage-task-row' +
         (task.completed ? ' is-completed' : '') +
         (estimate ? ' has-estimate' : '') +
+        (timeColumns ? ' has-time-columns' : '') +
         (selected ? ' is-selected' : '')
       }
       data-stage-task-id={task.id}
@@ -87,89 +90,101 @@ export function PlanTaskRow({
         </div>
         {metadata && <div className="plan-task-meta">{metadata}</div>}
       </div>
-      {estimate && <div className="stage-task-estimate">{estimate}</div>}
-      <div className="stage-task-actions">
-        {!task.completed && task.status === 'waiting' && onToday ? (
-          <button
-            type="button"
-            className="stage-today"
-            disabled={busy || disabled}
-            onClick={() => void run(onToday)}
-          >
-            → 今天
-          </button>
-        ) : (
-          !task.completed &&
-          task.status !== 'waiting' && (
-            <time dateTime={task.date}>{stageTaskDateLabel(task.date, today)}</time>
-          )
-        )}
-        <button
-          ref={menuAnchor}
-          type="button"
-          aria-label={task.title + '更多操作'}
-          aria-haspopup="menu"
-          aria-expanded={menu.open}
-          disabled={busy || disabled}
-          onClick={menu.toggle}
-        >
-          <MoreHorizontal size={17} aria-hidden="true" />
-        </button>
-        {menu.open && (
-          <TaskActionsPopover
-            anchor={menuAnchor}
-            point={menu.point}
-            label={task.title + '任务操作'}
-            className="waiting-task-menu"
-            role="menu"
-            onClose={menu.close}
-          >
-            {!task.completed && (
-              <TaskTimerMenuAction
-                taskId={task.id}
-                onClose={menu.close}
-                role="menuitem"
-              />
-            )}
-            {!task.completed && (
-              <button
-                type="button"
-                role="menuitem"
-                disabled={busy || disabled}
-                onClick={() => {
-                  menu.close();
-                  onDate();
-                }}
-              >
-                安排到其他日期
-              </button>
-            )}
+      <div className={timeColumns ? 'stage-task-time-values' : 'stage-task-row-values'}>
+        {timeColumns &&
+          (task.status === 'waiting' ? (
+            <span className="stage-task-date" aria-hidden="true" />
+          ) : (
+            <time className="stage-task-date" dateTime={task.date}>
+              {task.date ? stageTaskDateLabel(task.date, today) : '暂定'}
+            </time>
+          ))}
+        {estimate && <div className="stage-task-estimate">{estimate}</div>}
+        <div className="stage-task-actions">
+          {!timeColumns && !task.completed && task.status === 'waiting' && onToday ? (
             <button
               type="button"
-              role="menuitem"
+              className="stage-today"
               disabled={busy || disabled}
-              onClick={() => {
-                menu.close();
-                onEdit();
-              }}
+              onClick={() => void run(onToday)}
             >
-              编辑
+              → 今天
             </button>
-            {onRemove && (
+          ) : (
+            !timeColumns &&
+            !task.completed &&
+            task.status !== 'waiting' && (
+              <time dateTime={task.date}>{stageTaskDateLabel(task.date, today)}</time>
+            )
+          )}
+          <button
+            ref={menuAnchor}
+            type="button"
+            className="task-context-trigger"
+            aria-label={task.title + '更多操作'}
+            aria-haspopup="menu"
+            aria-expanded={menu.open}
+            disabled={busy || disabled}
+            onClick={menu.toggle}
+          >
+            <MoreHorizontal size={17} aria-hidden="true" />
+          </button>
+          {menu.open && (
+            <TaskActionsPopover
+              anchor={menuAnchor}
+              point={menu.point}
+              label={task.title + '任务操作'}
+              className="waiting-task-menu"
+              role="menu"
+              onClose={menu.close}
+            >
+              {!task.completed && (
+                <TaskTimerMenuAction
+                  taskId={task.id}
+                  onClose={menu.close}
+                  role="menuitem"
+                />
+              )}
+              {!task.completed && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={busy || disabled}
+                  onClick={() => {
+                    menu.close();
+                    onDate();
+                  }}
+                >
+                  安排到其他日期
+                </button>
+              )}
               <button
                 type="button"
                 role="menuitem"
                 disabled={busy || disabled}
                 onClick={() => {
                   menu.close();
-                  void run(onRemove);
+                  onEdit();
                 }}
               >
-                从阶段计划移除
+                编辑
               </button>
-            )}
-          </TaskActionsPopover>
-        )}
+              {onRemove && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={busy || disabled}
+                  onClick={() => {
+                    menu.close();
+                    void run(onRemove);
+                  }}
+                >
+                  从阶段计划移除
+                </button>
+              )}
+            </TaskActionsPopover>
+          )}
+        </div>
       </div>
       {error && (
         <p className="form-error" role="alert">

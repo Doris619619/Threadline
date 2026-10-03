@@ -1,7 +1,7 @@
 /** @fileoverview 独立 Preview 验证密集任务标签、原地时间持久化、首页折叠、大屏与三并行计时。 */
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { openWorkspaceSection } from './support/workspace';
+import { openWorkspaceSection, openTaskMenu } from './support/workspace';
 
 test('persists inline time and preserves the same task through scheduling/completion', async ({
   page,
@@ -221,7 +221,7 @@ test('fits long center totals to the inner ring after resizing and text zoom', a
   await expect(
     chart.locator('[data-stage-label="demo-stage-time-task-0"]'),
   ).toHaveAttribute('aria-pressed', 'true');
-  await task.getByRole('button', { name: /更多操作/ }).click();
+  await openTaskMenu(task.getByRole('button', { name: /更多操作/ }));
   await page.getByRole('menuitem', { name: '编辑', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
@@ -245,7 +245,7 @@ test('runs three independent timers, resumes after reload and records completion
         .click();
     const row = page.locator('[data-stage-task-id="demo-stage-time-task-' + i + '"]');
     if (info.project.name === 'preview-desktop') await row.click({ button: 'right' });
-    else await row.getByRole('button', { name: /更多操作/ }).click();
+    else await openTaskMenu(row.getByRole('button', { name: /更多操作/ }));
     await page.getByRole('menuitem', { name: '加入计时', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: '加入计时', exact: true });
     if (i === 2) {
@@ -331,15 +331,16 @@ test('runs three independent timers, resumes after reload and records completion
   );
   await openWorkspaceSection(page, '计划');
   const duplicate = page.locator('[data-stage-task-id="demo-stage-time-task-0"]');
-  await duplicate.getByRole('button', { name: /更多操作/ }).click();
+  await openTaskMenu(duplicate.getByRole('button', { name: /更多操作/ }));
   await expect(
     page.getByRole('menuitem', { name: '已加入计时', exact: true }),
   ).toBeDisabled();
   await page.keyboard.press('Escape');
-  await page
-    .locator('[data-stage-task-id="demo-stage-time-task-4"]')
-    .getByRole('button', { name: /更多操作/ })
-    .click();
+  await openTaskMenu(
+    page
+      .locator('[data-stage-task-id="demo-stage-time-task-4"]')
+      .getByRole('button', { name: /更多操作/ }),
+  );
   await expect(
     page.getByRole('menuitem', { name: '最多三个计时器', exact: true }),
   ).toBeDisabled();
@@ -516,10 +517,12 @@ test('adds timers from schedule and waiting menus and removes only the timer', a
   );
   const row = page.locator('.timeline-row').filter({ hasText: '邮件处理' });
   if (info.project.name === 'preview-desktop') {
-    await row.getByRole('button', { name: '邮件处理更多操作', exact: true }).focus();
+    await row.getByRole('checkbox', { name: '完成邮件处理', exact: true }).focus();
     await page.keyboard.press('Shift+F10');
   } else
-    await row.getByRole('button', { name: '邮件处理更多操作', exact: true }).click();
+    await openTaskMenu(
+      row.getByRole('button', { name: '邮件处理更多操作', exact: true }),
+    );
   await page.getByRole('button', { name: '加入计时', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '加入计时', exact: true });
   await dialog.getByLabel('计时方式').selectOption('down');
@@ -541,7 +544,9 @@ test('adds timers from schedule and waiting menus and removes only the timer', a
   await page.screenshot({ path: info.outputPath('timer-menu.png') });
   await menu.getByRole('menuitem', { name: '删除计时器', exact: true }).click();
   await expect(card).toHaveCount(0);
-  await row.getByRole('button', { name: '邮件处理更多操作', exact: true }).click();
+  await openTaskMenu(
+    row.getByRole('button', { name: '邮件处理更多操作', exact: true }),
+  );
   await expect(
     page.getByRole('button', { name: '加入计时', exact: true }),
   ).toBeEnabled();
@@ -554,7 +559,7 @@ test('adds timers from schedule and waiting menus and removes only the timer', a
   await expect(card).toHaveCount(0);
   const waiting = page.locator('.waiting-task-row').first();
   if (info.project.name === 'preview-desktop') await waiting.click({ button: 'right' });
-  else await waiting.getByRole('button', { name: /更多操作/ }).click();
+  else await openTaskMenu(waiting.getByRole('button', { name: /更多操作/ }));
   await page.getByRole('menuitem', { name: '加入计时', exact: true }).click();
   await dialog.getByRole('button', { name: '开始计时', exact: true }).click();
   await expect(card).toHaveAttribute('data-mode', 'up');
@@ -583,7 +588,7 @@ test('re-adds the same task after timer removal across open tabs', async ({
   await page.goto('/');
   await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
   const more = page.getByRole('button', { name: '邮件处理更多操作', exact: true });
-  await more.click();
+  await openTaskMenu(more);
   await page.getByRole('button', { name: '加入计时', exact: true }).click();
   await page
     .getByRole('dialog', { name: '加入计时', exact: true })
@@ -602,13 +607,15 @@ test('re-adds the same task after timer removal across open tabs', async ({
       .click();
   await page.getByRole('menuitem', { name: '删除计时器', exact: true }).click();
   await expect(page.locator('.task-timer')).toHaveCount(0);
-  await more.click();
+  await openTaskMenu(more);
   await expect(
     page.getByRole('button', { name: '加入计时', exact: true }),
   ).toBeEnabled();
   await page.keyboard.press('Escape');
   await expect(other.locator('.task-timer')).toHaveCount(0);
-  await other.getByRole('button', { name: '邮件处理更多操作', exact: true }).click();
+  await openTaskMenu(
+    other.getByRole('button', { name: '邮件处理更多操作', exact: true }),
+  );
   await expect(
     other.getByRole('button', { name: '加入计时', exact: true }),
   ).toBeEnabled();

@@ -74,12 +74,13 @@ export function StageTaskList({
       return error instanceof Error ? error.message : '安排失败，请重试。';
     }
   };
-  /** 同一任务在所有分组使用相同命令和 ID；项目分组仅改变展示位置。 */
+  /** 分组沿用原 Task，详情日期/时长固定列；缺少预计显示暂定，实际仍区分未记录。 */
   const renderTask = (task: Task) => (
     <PlanTaskRow
       key={task.id}
       task={task}
       today={today}
+      timeColumns={!!timeView}
       project={
         timeView || (task.status === 'waiting' && !task.completed)
           ? undefined
@@ -91,6 +92,13 @@ export function StageTaskList({
           task={task}
           today={today}
           metric={timeView?.metric === 'actual' ? 'actual' : 'planned'}
+          displayLabel={
+            timeView &&
+            timeView.metric !== 'actual' &&
+            task.plannedDurationMinutes === undefined
+              ? '暂定'
+              : undefined
+          }
           disabled={timeView?.saving}
           onSave={
             timeView

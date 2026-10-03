@@ -2,7 +2,18 @@
  * @fileoverview 提供 local adapter Web E2E 共享的隔离初始化、导航和种子任务编辑入口。
  */
 
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
+
+/** 沿用可见的触屏更多入口；桌面隐藏按钮后通过所属任务行右键打开同一菜单。 */
+export async function openTaskMenu(trigger: Locator) {
+  if (await trigger.isVisible()) await trigger.click();
+  else
+    await trigger
+      .locator(
+        'xpath=ancestor::*[contains(@class, "stage-task-row") or contains(@class, "waiting-task-row") or contains(@class, "timeline-row") or contains(@class, "quick-task-row")][1]',
+      )
+      .click({ button: 'right' });
+}
 
 /** 固定本地时钟，使日期、seed 与页面文案在所有布局项目中可重复。 */
 const frozenLocalNow = '2026-08-23T12:00:00+08:00';
