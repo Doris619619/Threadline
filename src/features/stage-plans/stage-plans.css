@@ -500,6 +500,48 @@ html:is([data-theme='cottage'], [data-theme='classic'])
   margin-left: var(--space-2);
   font-variant-numeric: tabular-nums;
 }
+.stage-waiting-project + .stage-waiting-project {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+.stage-waiting-project summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-1);
+  min-height: var(--touch-target);
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: var(--text-secondary-size);
+  overflow-wrap: anywhere;
+}
+.stage-waiting-project summary::before {
+  content: '›';
+  color: var(--text-secondary);
+}
+.stage-waiting-project[open] summary::before {
+  transform: rotate(90deg);
+}
+.stage-waiting-project summary > span {
+  flex: 1;
+  min-width: 0;
+}
+.stage-waiting-project summary strong {
+  font-size: var(--text-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+.stage-waiting-project summary i {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+.stage-waiting-project summary small {
+  color: var(--text-secondary);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
 .stage-task-row {
   min-width: 0;
   display: grid;
@@ -507,6 +549,20 @@ html:is([data-theme='cottage'], [data-theme='classic'])
   gap: var(--space-2);
   align-items: start;
   padding: var(--space-1) 0;
+}
+.stage-task-row.has-estimate {
+  grid-template-columns: var(--touch-target) minmax(0, 1fr) auto auto;
+}
+.stage-task-estimate {
+  min-width: 0;
+}
+.stage-task-row:has(.stage-task-estimate form) .stage-task-estimate {
+  grid-column: 2 / -1;
+  grid-row: 2;
+}
+.stage-task-row:has(.stage-task-estimate form) .stage-task-actions {
+  grid-column: 4;
+  grid-row: 1;
 }
 .stage-task-row > .tl-checkbox {
   width: var(--touch-target);
@@ -800,6 +856,16 @@ html:is([data-theme='cottage'], [data-theme='classic'])
   }
   .stage-task-row {
     grid-template-columns: var(--touch-target) minmax(0, 1fr);
+  }
+  .stage-task-row.has-estimate {
+    grid-template-columns: var(--touch-target) minmax(0, 1fr) auto;
+  }
+  .stage-task-row.has-estimate .stage-task-actions {
+    grid-column: 2 / -1;
+  }
+  .stage-task-row:has(.stage-task-estimate form) .stage-task-actions {
+    grid-column: 2 / -1;
+    grid-row: 3;
   }
   .stage-task-actions {
     grid-column: 2;

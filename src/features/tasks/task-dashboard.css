@@ -43,7 +43,7 @@
 
 .metric-strip {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   padding: 16px 24px;
 }
 
@@ -559,9 +559,11 @@
 
 .schedule-panel {
   /* 统一桌面单一日程网格定义，时间、复选框、项目、任务、预计、实际、操作共 7 列 */
-  --timeline-grid-columns: 86px 20px 48px minmax(130px, 1fr) 60px 60px 48px;
+  --timeline-grid-columns: minmax(86px, 0.55fr) 24px minmax(88px, 0.7fr)
+    minmax(130px, 3fr) minmax(88px, 0.6fr) minmax(88px, 0.6fr) 48px;
   --timeline-grid-gap: 3px;
   overflow: visible;
+  container-type: inline-size;
 }
 
 .timeline-scroll {
@@ -860,7 +862,7 @@
   animation: tl-fade-in 140ms ease;
 }
 
-/* 项目列固定占位，长名称省略但可从按钮名称或选择器读取完整文本。 */
+/* 项目列与日程宽度共同增长；宽屏完整名称换行，手机仍使用紧凑项目标签。 */
 .task-project-cell {
   min-width: 0;
 }
@@ -1041,7 +1043,25 @@
   }
 
   .metric-strip {
-    display: none;
+    display: grid;
+    order: 1;
+    flex-basis: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+  }
+
+  .dashboard-overview .metric-strip {
+    flex-basis: 100%;
+    padding: 12px;
+  }
+  .overview-close-action {
+    order: 0;
+  }
+  .metric-strip .tl-stat strong {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .dashboard-columns {
@@ -1929,5 +1949,70 @@ button.task-duration-actual:focus-visible {
       flex-direction: column;
       align-items: flex-start;
     }
+  }
+}
+
+/* 收起侧栏保留组件与草稿，给日程整行宽度。 */
+.dashboard-columns.is-side-collapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
+.side-column[hidden] {
+  display: none;
+}
+.home-layout-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.home-layout-controls > span {
+  font-size: var(--text-caption-size);
+  color: var(--text-secondary);
+}
+.home-layout-toggle {
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-caption-size);
+  cursor: pointer;
+}
+.day-time-distribution {
+  margin-bottom: 12px;
+}
+.day-time-distribution > button {
+  margin-bottom: 8px;
+}
+.day-time-distribution .stage-time-panel {
+  margin: 0;
+}
+@media (min-width: 761px) {
+  .schedule-panel {
+    --timeline-grid-columns: minmax(5.4rem, 0.55fr) 24px minmax(5.5rem, 0.8fr)
+      minmax(8rem, 3fr) minmax(6rem, 0.6fr) minmax(6rem, 0.6fr) 48px;
+  }
+  .timeline-row .task-project-trigger,
+  .timeline-row .task-project-trigger .tl-project-tag {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    overflow: visible;
+  }
+  .timeline-row .task-duration {
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+  .timeline-row .task-duration-input {
+    display: block;
+  }
+  .timeline-row-adding .project-inline-select {
+    max-width: none;
   }
 }

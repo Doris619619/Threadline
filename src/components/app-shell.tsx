@@ -35,7 +35,6 @@ import {
 } from '@/features/settings/account-timezone-provider';
 import { addLocalDateDays, getLocalDateKey, parseLocalDateKey } from '@/lib/local-date';
 import { cn } from '@/lib/cn';
-import { ThemeIllustration } from '@/features/appearance/theme-illustration';
 import { CottageNavIcon } from '@/features/appearance/cottage-sprite';
 import { CottageCompanion } from '@/features/appearance/cottage-companion';
 import { DesktopUpdateEntry } from '@/features/desktop-update/update-entry';
@@ -390,7 +389,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     {active !== 'home' && <p>{activeItem.description}</p>}
                   </div>
                   {active === 'home' && (
-                    <ThemeIllustration className="home-theme-illustration" />
+                    <div id="home-timer-slot" className="home-timer-slot" />
                   )}
                   <div className="tl-header-actions">
                     {active !== 'rhythm' && (

@@ -18,6 +18,7 @@ import { DesktopUpdateRuntime } from '@/features/desktop-update/update-runtime';
 import { AccountPreferencesProvider } from '@/features/onboarding/account-preferences-provider';
 import { OnboardingGate } from '@/features/onboarding/onboarding-gate';
 import { TogetherProvider } from '@/features/together/state';
+import { TaskTimers } from '@/features/tasks/components/task-timers';
 
 /** 个性化完成后才加载业务树，避免短暂显示不适用的栏目或恢复过小窗口。 */
 function WorkspaceRuntime() {
@@ -32,6 +33,7 @@ function WorkspaceRuntime() {
                 <AppShell>
                   <HabitsStateProvider>
                     <WorkspaceDataProvider>
+                      <TaskTimers />
                       <WorkspaceContent />
                     </WorkspaceDataProvider>
                   </HabitsStateProvider>

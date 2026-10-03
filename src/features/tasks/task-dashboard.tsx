@@ -44,12 +44,20 @@ import { useTaskDashboardController } from '@/features/tasks/hooks/use-task-dash
 import { useCloseDay } from '@/features/tasks/hooks/use-close-day';
 import type { Task } from '@/types/domain';
 import { HomeStagePlans } from '@/features/stage-plans/board';
+import { DayTimeChart } from './components/day-time-chart';
+import { usePersistentState } from '@/hooks/use-persistent-state';
+import { useAccountToday } from '@/features/settings/account-timezone-provider';
 
 /**
  * 按当前工作台视图渲染首页、功能页或 Electron 紧凑窗口；顶部收尾入口沿用 Daily 保存屏障。
  */
 export function TaskDashboard() {
   const { active, selectedDate } = useWorkspaceView();
+  const today = useAccountToday();
+  const [sideCollapsed, setSideCollapsed] = usePersistentState(
+    'threadline.home-side-collapsed.v1',
+    false,
+  );
   const { isWorkstation } = useDesktopWindow();
   const startupProgress = useOptionalStartupProgress();
   const {
@@ -72,6 +80,7 @@ export function TaskDashboard() {
     updateHighlightColor,
     createTask,
     saveTaskConfirmed,
+    recordTaskActual,
     createDailyTemplate,
     createProject,
     updateProject,
@@ -106,6 +115,7 @@ export function TaskDashboard() {
       closeDialog.current?.showModal();
     } catch {
       // Daily 行已显示具体错误；不打开收尾弹窗，也不清空输入。
+      setSideCollapsed(false);
     } finally {
       setPreparingClose(false);
     }
@@ -135,7 +145,6 @@ export function TaskDashboard() {
     daily,
     dailyActual,
     dailyDone,
-    done,
     draggingTaskId,
     dropTarget,
     handlePointerDragEnd,
@@ -150,7 +159,8 @@ export function TaskDashboard() {
     isDayClosed,
     isResizingSchedule,
     moveTask: move,
-    normalTaskTotal,
+    remainingPlannedMinutes,
+    remainingMissingCount,
     reorderWorkstation,
     rescheduleTask,
     scheduleRatio,
@@ -183,6 +193,12 @@ export function TaskDashboard() {
   /** 行内编辑传入打开时的快照并等待确认；完成切换保留即时反馈。 */
   const update = (task: Task, original?: Task) =>
     original ? saveTaskConfirmed(task, original) : updateImmediate(task);
+  /** 快捷估时只提交预计字段，并沿用打开编辑器时的任务冲突基准。 */
+  const saveEstimate = (original: Task, minutes: number | undefined) =>
+    saveTaskConfirmed({ ...original, plannedDurationMinutes: minutes }, original);
+  /** 所选日期的投入显式入账，保留原 Task 的安排、项目和完成状态。 */
+  const saveActual = (original: Task, minutes: number | undefined, date?: string) =>
+    recordTaskActual(original, minutes, date ?? selectedDate);
 
   const { createProjectDirectly, createWaitingTask, createTimedTask, saveTask } =
     useTaskCreateAndEdit({
@@ -273,45 +289,22 @@ export function TaskDashboard() {
     <div className="dashboard dashboard-annotatable" data-testid="home-panel">
       <Surface className="dashboard-overview" variant="flat">
         <p className="home-summary" aria-live="polite">
-          今日任务 {normalTaskTotal} · 已完成 {done}
+          今日时间
         </p>
         <div className="metric-strip">
           <StatItem
-            label="普通任务"
+            label="今日剩余预计"
             value={
               <>
-                <em>{done}</em>
-                <small>/ {normalTaskTotal}</small>
+                <em>{formatMinutes(remainingPlannedMinutes)}</em>
+                {remainingMissingCount > 0 && (
+                  <small>＋{remainingMissingCount} 项未估时</small>
+                )}
               </>
             }
           />
           <StatItem
-            label="Daily"
-            value={
-              <>
-                <em>{dailyDone}</em>
-                <small>/ {daily.length}</small>
-              </>
-            }
-          />
-          <StatItem
-            label="普通实际"
-            value={
-              <>
-                <em>{formatMinutes(actual)}</em>
-              </>
-            }
-          />
-          <StatItem
-            label="Daily 实际"
-            value={
-              <>
-                <em>{formatMinutes(dailyActual)}</em>
-              </>
-            }
-          />
-          <StatItem
-            label="今日总实际"
+            label="今日实际投入"
             value={
               <>
                 <em>{formatMinutes(actual + dailyActual)}</em>
@@ -339,8 +332,20 @@ export function TaskDashboard() {
           </button>
         </div>
       </Surface>
+      <div className="home-layout-controls">
+        <span>全天总量包含日程与 Daily · 剩余预计不扣减实际投入</span>
+        <button
+          type="button"
+          className="home-layout-toggle"
+          aria-expanded={!sideCollapsed}
+          aria-controls="home-side-column"
+          onClick={() => setSideCollapsed(!sideCollapsed)}
+        >
+          {sideCollapsed ? '展开阶段、待安排与 Daily' : '收起阶段、待安排与 Daily'}
+        </button>
+      </div>
       <div
-        className="dashboard-columns"
+        className={'dashboard-columns' + (sideCollapsed ? ' is-side-collapsed' : '')}
         style={{ '--schedule-ratio': `${scheduleRatio}fr` } as React.CSSProperties}
         onPointerMove={handlePointerDragMove}
         onPointerUp={handlePointerDragEnd}
@@ -350,6 +355,7 @@ export function TaskDashboard() {
           highlightColor={highlightColor}
           isDropTarget={dropTarget === 'schedule'}
           isFullWorkspace
+          sideCollapsed={sideCollapsed}
           isResizing={isResizingSchedule}
           isAdding={createDrafts.timedOpen}
           onAdd={() => createDrafts.openTimed(defaultProjectId)}
@@ -363,46 +369,59 @@ export function TaskDashboard() {
           onToggleEraser={() => toggleAnnotationTool('eraser')}
         >
           {() => (
-            <DesktopScheduleList>
-              {timed.map((task) => (
-                <TaskLine
-                  key={task.id}
-                  task={task}
-                  onUpdate={update}
-                  onEdit={() => open(task, 'normal')}
-                  onMove={move}
-                  onReschedule={() => setRescheduling(task)}
-                  projects={workspaceProjects}
-                  onAddProject={createProjectDirectly}
-                  draggable={!annotationInteractionLocked}
-                  isDragging={draggingTaskId === task.id}
-                  autoFocusTime={autoFocusTimeTaskId === task.id}
-                  onTimeFocused={() => setAutoFocusTimeTaskId(null)}
-                  interactionLocked={annotationInteractionLocked}
-                  onDragStart={() => handleTaskDragStart(task.id)}
-                  onDragEnd={handleTaskDragEnd}
-                  onPointerDragStart={(event) => handlePointerDragStart(task.id, event)}
-                  onPointerDragMove={handlePointerDragMove}
-                  onPointerDragEnd={handlePointerDragEnd}
-                  inWorkstation={workstationTaskIds.includes(task.id)}
-                  onToggleWorkstation={toggleWorkstationTask}
-                  inSchedulePanel
-                />
-              ))}
-              <TimedTaskCreateRow
-                open={createDrafts.timedOpen}
-                draft={createDrafts.timedDraft}
+            <>
+              <DayTimeChart
+                tasks={tasks}
                 projects={workspaceProjects}
-                onCreate={createTimedTask}
-                onCreateProject={createProjectDirectly}
-                onChange={createDrafts.updateTimedDraft}
-                onReset={() => createDrafts.resetTimed(defaultProjectId)}
-                onClose={createDrafts.closeTimed}
+                today={today}
+                date={selectedDate}
+                entries={taskTimeEntriesAuthoritative ? taskTimeEntries : undefined}
+                onSaveEstimate={saveEstimate}
+                onSaveActual={saveActual}
               />
-            </DesktopScheduleList>
+              <DesktopScheduleList>
+                {timed.map((task) => (
+                  <TaskLine
+                    key={task.id}
+                    task={task}
+                    onUpdate={update}
+                    onEdit={() => open(task, 'normal')}
+                    onMove={move}
+                    onReschedule={() => setRescheduling(task)}
+                    projects={workspaceProjects}
+                    onAddProject={createProjectDirectly}
+                    draggable={!annotationInteractionLocked}
+                    isDragging={draggingTaskId === task.id}
+                    autoFocusTime={autoFocusTimeTaskId === task.id}
+                    onTimeFocused={() => setAutoFocusTimeTaskId(null)}
+                    interactionLocked={annotationInteractionLocked}
+                    onDragStart={() => handleTaskDragStart(task.id)}
+                    onDragEnd={handleTaskDragEnd}
+                    onPointerDragStart={(event) =>
+                      handlePointerDragStart(task.id, event)
+                    }
+                    onPointerDragMove={handlePointerDragMove}
+                    onPointerDragEnd={handlePointerDragEnd}
+                    inWorkstation={workstationTaskIds.includes(task.id)}
+                    onToggleWorkstation={toggleWorkstationTask}
+                    inSchedulePanel
+                  />
+                ))}
+                <TimedTaskCreateRow
+                  open={createDrafts.timedOpen}
+                  draft={createDrafts.timedDraft}
+                  projects={workspaceProjects}
+                  onCreate={createTimedTask}
+                  onCreateProject={createProjectDirectly}
+                  onChange={createDrafts.updateTimedDraft}
+                  onReset={() => createDrafts.resetTimed(defaultProjectId)}
+                  onClose={createDrafts.closeTimed}
+                />
+              </DesktopScheduleList>
+            </>
           )}
         </SchedulePanel>
-        <div className="side-column">
+        <div id="home-side-column" className="side-column" hidden={sideCollapsed}>
           <HomeStagePlans />
           <WaitingTaskPanel
             isDropTarget={dropTarget === 'waiting'}

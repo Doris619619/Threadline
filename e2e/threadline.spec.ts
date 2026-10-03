@@ -482,7 +482,9 @@ test('keeps all timed task creation controls visible in a compact desktop schedu
   )
     throw new Error('新增日程字段不可见。');
   expect(taskBox.width).toBeGreaterThanOrEqual(120);
-  expect(projectBox.width).toBeLessThanOrEqual(72);
+  // 项目列随日程区域扩展，保留名称空间，并避免挤占紧凑视口的任务输入。
+  expect(projectBox.width).toBeGreaterThanOrEqual(80);
+  expect(projectBox.width).toBeLessThan(timelineBox.width * 0.25);
   expect(existingTimeBox.width).toBeLessThanOrEqual(92);
   expect(plannedInputBox.width).toBeGreaterThanOrEqual(58);
   expect(actualInputBox.width).toBeGreaterThanOrEqual(58);
@@ -774,14 +776,16 @@ test('closes today and moves unfinished work into waiting', async ({ page }) => 
   await expect(page.getByRole('button', { name: '今日已结束' })).toBeDisabled();
 });
 
-test('keeps postponed work in the original date task denominator', async ({ page }) => {
+test('moves postponed work out of the original date remaining estimate', async ({
+  page,
+}) => {
   await page.getByRole('button', { name: '结束今天', exact: true }).click();
   await page
     .getByRole('dialog')
     .getByRole('button', { name: '确认结束今天', exact: true })
     .click();
   await expect(page.locator('.metric-strip .tl-stat').first()).toContainText(
-    /2\s*\/\s*6/,
+    '今日剩余预计',
   );
   await page.getByRole('button', { name: '后一天' }).click();
   await expect(page.getByRole('checkbox', { name: '完成邮件处理' })).toBeVisible();

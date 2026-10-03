@@ -57,6 +57,28 @@ export function useTaskDashboardData({
     : shown.reduce((sum, task) => sum + (task.actualDurationMinutes ?? 0), 0);
   const dailyActual = daily.reduce((sum, item) => sum + getDailyActualMinutes(item), 0);
   const dailyDone = daily.filter(isDailyCompleted).length;
+  // Daily 的父完成态允许「做过任一子项」，剩余工作量仍按未完成子项计算。
+  const remainingEstimates = [
+    ...shown
+      .filter((task) => !task.completed)
+      .map((task) => task.plannedDurationMinutes),
+    ...daily.flatMap((item) =>
+      item.children.length
+        ? item.children
+            .filter((child) => !child.completed)
+            .map((child) => child.plannedDurationMinutes)
+        : item.completed
+          ? []
+          : [undefined],
+    ),
+  ];
+  const remainingPlannedMinutes = remainingEstimates.reduce<number>(
+    (sum, minutes) => sum + (minutes ?? 0),
+    0,
+  );
+  const remainingMissingCount = remainingEstimates.filter(
+    (minutes) => minutes === undefined,
+  ).length;
 
   return {
     actual,
@@ -75,6 +97,8 @@ export function useTaskDashboardData({
     done,
     isDayClosed: closeRecords.some((record) => record.date === selectedDate),
     normalTaskTotal: shown.length + movedFromSelectedDate.length,
+    remainingPlannedMinutes,
+    remainingMissingCount,
     shown,
     timed,
     tomorrow: addLocalDateDays(selectedDate, 1),

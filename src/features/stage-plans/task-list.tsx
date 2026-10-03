@@ -14,8 +14,10 @@ import { useStagePlans } from './state';
 import { stageTaskGroups } from './rules';
 import { PlanTaskRow } from './task-row';
 import { formatMinutes } from '@/features/tasks/task-time';
+import { stageProjectGroups } from './project-groups';
+import { TaskEstimateEditor } from './task-estimate-editor';
 
-/** 三组固定顺序且不截断；详情额外保留已放弃/已删除历史。 */
+/** 三种状态固定顺序；未安排按项目展开，不截断清单，详情保留已放弃/已删除历史。 */
 export function StageTaskList({
   stageId,
   showHistory = false,
@@ -68,6 +70,35 @@ export function StageTaskList({
       return error instanceof Error ? error.message : '安排失败，请重试。';
     }
   };
+  /** 同一任务在所有分组使用相同命令和 ID；项目分组仅改变展示位置。 */
+  const renderTask = (task: Task) => (
+    <PlanTaskRow
+      key={task.id}
+      task={task}
+      today={today}
+      project={
+        task.status === 'waiting' && !task.completed
+          ? undefined
+          : data.projects.find((project) => project.id === task.projectId)
+      }
+      estimate={
+        <TaskEstimateEditor
+          task={task}
+          onSave={(original, minutes) =>
+            data.saveTaskConfirmed(
+              { ...original, plannedDurationMinutes: minutes },
+              original,
+            )
+          }
+        />
+      }
+      onEdit={() => setEditing(task)}
+      onDate={() => setDating(task)}
+      onToday={() => scheduleToday(task)}
+      onToggle={() => toggle(task)}
+      onRemove={() => stages.remove(stageId, task.id)}
+    />
+  );
   return (
     <div className="stage-task-groups">
       {(
@@ -85,24 +116,41 @@ export function StageTaskList({
           {groups[key].length === 0 && (
             <p className="stage-empty-group">暂无{label}任务</p>
           )}
-          {groups[key].map((task) => (
-            <PlanTaskRow
-              key={task.id}
-              task={task}
-              today={today}
-              project={data.projects.find((project) => project.id === task.projectId)}
-              metadata={
-                task.plannedDurationMinutes !== undefined
-                  ? '预计 ' + formatMinutes(task.plannedDurationMinutes)
-                  : undefined
-              }
-              onEdit={() => setEditing(task)}
-              onDate={() => setDating(task)}
-              onToday={() => scheduleToday(task)}
-              onToggle={() => toggle(task)}
-              onRemove={() => stages.remove(stageId, task.id)}
-            />
-          ))}
+          {key === 'waiting'
+            ? stageProjectGroups(groups.waiting, data.projects).map((group) => (
+                <details
+                  key={group.id}
+                  open
+                  className="stage-waiting-project"
+                  data-stage-project-id={group.id}
+                  aria-label={(group.project?.name ?? '未知项目') + '未安排任务'}
+                >
+                  <summary>
+                    <i
+                      aria-hidden="true"
+                      style={{
+                        background: group.project?.color ?? 'var(--text-secondary)',
+                      }}
+                    />
+                    <span>{group.project?.name ?? '未知项目'}</span>
+                    <small>{group.tasks.length} 项</small>
+                    <strong>
+                      {group.tasks.some(
+                        (task) => task.plannedDurationMinutes !== undefined,
+                      )
+                        ? formatMinutes(
+                            group.tasks.reduce(
+                              (sum, task) => sum + (task.plannedDurationMinutes ?? 0),
+                              0,
+                            ),
+                          )
+                        : '未估时'}
+                    </strong>
+                  </summary>
+                  {group.tasks.map(renderTask)}
+                </details>
+              ))
+            : groups[key].map(renderTask)}
         </section>
       ))}
       {groups.history.length > 0 &&

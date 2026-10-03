@@ -40,6 +40,46 @@ const sharedInput = {
 };
 
 describe('task dashboard time source capability', () => {
+  it('sums unfinished task and Daily child estimates without subtracting actual, reporting unknown estimates', () => {
+    const result = useTaskDashboardData({
+      ...sharedInput,
+      taskTimeEntriesAuthoritative: false,
+      tasks: [
+        { ...tasks[0], plannedDurationMinutes: 60 },
+        { ...tasks[0], id: 'done', completed: true, plannedDurationMinutes: 99 },
+        { ...tasks[0], id: 'unknown' },
+      ],
+      dailyByDate: {
+        '2026-08-31': [
+          {
+            id: 'daily',
+            title: '训练',
+            completed: true,
+            actual: 10,
+            result: '',
+            children: [
+              {
+                title: '已做',
+                completed: true,
+                actual: 20,
+                plannedDurationMinutes: 30,
+              },
+              {
+                title: '待做',
+                completed: false,
+                actual: 0,
+                plannedDurationMinutes: 20,
+              },
+              { title: '零值', completed: false, actual: 0, plannedDurationMinutes: 0 },
+            ],
+          },
+        ],
+      },
+    });
+    expect(result.remainingPlannedMinutes).toBe(80);
+    expect(result.remainingMissingCount).toBe(1);
+    expect(result.dailyActual).toBe(30);
+  });
   it('treats an empty cloud ledger as authoritative', () => {
     const result = useTaskDashboardData({
       ...sharedInput,
@@ -103,7 +143,15 @@ describe('task dashboard time source capability', () => {
       ...sharedInput,
       selectedDate: '2026-09-02',
       taskTimeEntriesAuthoritative: false,
-      tasks: [waiting, { ...tasks[0], id: 'scheduled', date: '2026-09-02', schedulePendingTime: false }],
+      tasks: [
+        waiting,
+        {
+          ...tasks[0],
+          id: 'scheduled',
+          date: '2026-09-02',
+          schedulePendingTime: false,
+        },
+      ],
     });
 
     expect(result.waiting).toEqual([waiting]);

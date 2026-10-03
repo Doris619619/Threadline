@@ -1,0 +1,133 @@
+/** @fileoverview 标题右侧三计时器横排，窄屏换行，任务名称与控制保持完整可读。 */
+.home-timer-slot {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.tl-header[data-home='true'] {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+.tl-header[data-home='true'] > div:first-child {
+  flex-shrink: 0;
+  padding-right: 28px;
+}
+.tl-header[data-home='true'] .tl-header-actions {
+  flex-shrink: 0;
+}
+.task-timers {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+.task-timer-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+.task-timer {
+  padding: 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.task-timer > strong {
+  font-size: var(--text-caption-size);
+  overflow-wrap: anywhere;
+}
+.task-timer small,
+.task-timer-clock span {
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+}
+.task-timer-clock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.task-timer-clock time {
+  font-size: 1.3rem;
+  font-variant-numeric: tabular-nums;
+}
+.task-timer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.task-timers button {
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-caption-size);
+  cursor: pointer;
+}
+.task-timers button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.task-timer-form {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.task-timer-form label {
+  min-width: 100px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: var(--text-caption-size);
+  gap: 4px;
+}
+.task-timer-form label:first-child {
+  flex: 3;
+}
+.task-timer-form select,
+.task-timer-form input {
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  background: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: 6px;
+  font-size: 16px;
+}
+.tl-header[data-home='true']:has(.task-timer, .task-timer-form) h1::after {
+  display: none;
+}
+@media (max-width: 1200px) {
+  .tl-header[data-home='true'] {
+    flex-wrap: wrap;
+  }
+  .home-timer-slot {
+    order: 2;
+    flex-basis: 100%;
+  }
+  .task-timer-strip {
+    grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .task-timer-strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

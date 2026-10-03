@@ -19,6 +19,7 @@ export function PlanTaskRow({
   onRemove,
   metadata,
   project,
+  estimate,
 }: {
   task: Task;
   today: string;
@@ -29,13 +30,18 @@ export function PlanTaskRow({
   onRemove?: () => Promise<void>;
   metadata?: ReactNode;
   project?: Project;
+  estimate?: ReactNode;
 }) {
   const [menu, setMenu] = useState(false);
   const anchor = useRef<HTMLButtonElement>(null);
   const { busy, error, run } = useGuardedAction();
   return (
     <div
-      className={'stage-task-row' + (task.completed ? ' is-completed' : '')}
+      className={
+        'stage-task-row' +
+        (task.completed ? ' is-completed' : '') +
+        (estimate ? ' has-estimate' : '')
+      }
       data-stage-task-id={task.id}
       aria-busy={busy}
     >
@@ -58,6 +64,7 @@ export function PlanTaskRow({
         </div>
         {metadata && <div className="plan-task-meta">{metadata}</div>}
       </div>
+      {estimate && <div className="stage-task-estimate">{estimate}</div>}
       <div className="stage-task-actions">
         {!task.completed && task.status === 'waiting' ? (
           <button

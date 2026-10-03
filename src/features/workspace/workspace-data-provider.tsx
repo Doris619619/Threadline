@@ -796,6 +796,32 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       runWorkstationCommand,
     ],
   );
+  /** 实际录入复用每任务队列与旧草稿冲突保护；确认后刷新按日账本。 */
+  const recordTaskActual = useCallback(
+    async (
+      original: Task,
+      minutes: number | undefined,
+      date: string,
+      complete = false,
+    ) => {
+      const saved = await commitTask(
+        original.id,
+        (current) => ({
+          ...current,
+          actualDurationMinutes: minutes,
+          ...(complete ? { completed: true } : {}),
+        }),
+        () => repository.recordTaskActual(original, minutes, date, complete),
+        original,
+      );
+      void queryClient.invalidateQueries({
+        queryKey: ['workspace', ownerKey, 'task-time-entries'],
+        exact: true,
+      });
+      return saved;
+    },
+    [commitTask, repository, queryClient, ownerKey],
+  );
   const commands = useMemo(
     () => ({
       createProject,
@@ -804,6 +830,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       deleteProject,
       createTask,
       saveTaskConfirmed,
+      recordTaskActual,
       createDailyTemplate,
       saveDailyTemplate,
       saveDailyEntry,
@@ -820,6 +847,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       deleteProject,
       createTask,
       saveTaskConfirmed,
+      recordTaskActual,
       createDailyTemplate,
       recordDaily,
       saveDailyTemplate,

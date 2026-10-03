@@ -6,7 +6,13 @@
 
 import { validatePlanningDate } from '@/lib/task-rules';
 
-import { useCallback, useMemo, useRef, type ReactNode } from 'react';
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  type ReactNode,
+  type SetStateAction,
+} from 'react';
 import { useWorkspaceView } from '@/components/app-shell';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
 import { getDailyActualMinutes, isDailyCompleted } from '@/features/daily/daily-rules';
@@ -27,7 +33,15 @@ import { isPreviewDemo } from '@/lib/workspace-runtime';
 import { createDemoDailies, createDemoTasks } from './demo-seed';
 import { PreviewDemoNotice } from './preview-demo-notice';
 import { getLocalDateKey } from '@/lib/local-date';
-import type { CloseRecord, HistoryEvent, Project, Task } from '@/types/domain';
+import type {
+  CloseRecord,
+  HistoryEvent,
+  Project,
+  Task,
+  TaskTimeEntry,
+} from '@/types/domain';
+import { adjustTaskActualEntries } from '@/lib/task-actual-entries';
+import { TaskConflictError, taskFieldChanges } from '@/lib/task-patch';
 
 /** 在测试适配器中模拟服务端 merge：结构同步到模板，当前 entry 保留运行态和并发子项。 */
 export function mergeLocalDailyTemplate(current: Daily, next: Daily) {
@@ -88,11 +102,91 @@ export function mergeLocalDailyTemplate(current: Daily, next: Daily) {
  */
 export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode }) {
   const { selectedDate } = useWorkspaceView();
-  const [tasks, updateTasks, tasksHydrated] = usePersistentState(
+  const [tasks, updateTaskRows, tasksHydrated] = usePersistentState(
     'threadline.tasks.v1',
     () =>
       withoutExpiredTasks(isPreviewDemo() ? createDemoTasks() : createInitialTasks()),
     withoutExpiredTasks,
+  );
+  const [localTimeEntries, updateTimeEntries, timeHydrated] = usePersistentState<
+    TaskTimeEntry[]
+  >('threadline.task-time-entries.v1', []);
+  /** 普通编辑的实际增减沿用任务日期；显式记录命令独立携带日期，避免重复记入。 */
+  const updateTasks = useCallback(
+    (action: SetStateAction<Task[]>) =>
+      updateTaskRows((current) => {
+        const next = typeof action === 'function' ? action(current) : action;
+        updateTimeEntries((entries) => {
+          let rows = entries;
+          for (const task of next) {
+            const previous = current.find((item) => item.id === task.id);
+            if (
+              previous &&
+              task.date &&
+              previous.actualDurationMinutes !== task.actualDurationMinutes
+            )
+              rows = adjustTaskActualEntries(
+                previous,
+                task.actualDurationMinutes,
+                task.date,
+                rows,
+              );
+          }
+          return rows;
+        });
+        return next;
+      }),
+    [updateTaskRows, updateTimeEntries],
+  );
+  /** 显式录入保持状态；计时完成沿用原待办完成规则，并保存同一 Task 的账本增量。 */
+  const recordTaskActual = useCallback(
+    async (
+      original: Task,
+      minutes: number | undefined,
+      date: string,
+      complete = false,
+    ) => {
+      let saved: Task | undefined;
+      updateTaskRows((rows) => {
+        const current = rows.find((task) => task.id === original.id);
+        if (!current || current.status === 'trashed' || current.deletedAt)
+          throw new Error('任务不存在，请重新加载。');
+        if (
+          current.projectId !== original.projectId ||
+          current.actualDurationMinutes !== original.actualDurationMinutes ||
+          current.status !== original.status ||
+          current.date !== original.date ||
+          (complete && current.completed !== original.completed)
+        )
+          throw new TaskConflictError();
+        updateTimeEntries((entries) =>
+          adjustTaskActualEntries(current, minutes, date, entries),
+        );
+        saved = {
+          ...current,
+          actualDurationMinutes: minutes,
+          updatedAt: new Date().toISOString(),
+          ...(complete
+            ? {
+                completed: true,
+                completedAt: new Date().toISOString(),
+                ...(current.status === 'waiting'
+                  ? {
+                      status: 'active' as const,
+                      date,
+                      schedulePendingTime: false,
+                      plannedStartTime: undefined,
+                      plannedEndTime: undefined,
+                    }
+                  : {}),
+              }
+            : {}),
+        };
+        return rows.map((task) => (task.id === saved!.id ? saved! : task));
+      });
+      return saved!;
+    },
+    [updateTaskRows, updateTimeEntries],
   );
   const [projects, updateProjects, projectsHydrated] = usePersistentState(
     'threadline.projects.v1',
@@ -172,13 +266,28 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
     [updateProjects],
   );
 
-  /** 测试与演示确认字段保存，复用已有本地账本更新流程。 */
+  /** 本地确认也按打开时原值检测字段冲突，只合并改动字段，保留并发更改和任务状态。 */
   const saveTaskConfirmed = useCallback(
-    async (task: Task) => {
-      updateTasks((current) =>
-        current.map((item) => (item.id === task.id ? task : item)),
-      );
-      return task;
+    async (task: Task, original?: Task) => {
+      let saved: Task | undefined;
+      updateTasks((current) => {
+        const item = current.find((item) => item.id === task.id);
+        if (!item || item.deletedAt || item.status === 'trashed')
+          throw new TaskConflictError();
+        const patch = taskFieldChanges(task, original ?? item);
+        if (
+          original &&
+          (item.status !== original.status ||
+            item.date !== original.date ||
+            Object.keys(patch).some(
+              (key) => item[key as keyof Task] !== original[key as keyof Task],
+            ))
+        )
+          throw new TaskConflictError();
+        saved = { ...item, ...patch, updatedAt: new Date().toISOString() };
+        return current.map((row) => (row.id === task.id ? saved! : row));
+      });
+      return saved!;
     },
     [updateTasks],
   );
@@ -432,6 +541,7 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
 
   const hydrated =
     tasksHydrated &&
+    timeHydrated &&
     projectsHydrated &&
     dailyHydrated &&
     templatesHydrated &&
@@ -444,10 +554,26 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
   const taskState = useMemo(
     () => ({
       tasks,
-      taskTimeEntries: [],
-      taskTimeEntriesAuthoritative: false,
+      taskTimeEntries: [
+        ...localTimeEntries,
+        ...tasks
+          .filter(
+            (task) =>
+              task.date &&
+              (task.actualDurationMinutes ?? 0) > 0 &&
+              !localTimeEntries.some((entry) => entry.taskId === task.id),
+          )
+          .map((task) => ({
+            id: 'legacy-local-' + task.id,
+            taskId: task.id,
+            projectId: task.projectId,
+            date: task.date!,
+            minutes: task.actualDurationMinutes!,
+          })),
+      ],
+      taskTimeEntriesAuthoritative: isPreviewDemo(),
     }),
-    [tasks],
+    [tasks, localTimeEntries],
   );
   const taskActions = useMemo(() => ({ updateTasks }), [updateTasks]);
   const projectState = useMemo(() => ({ projects }), [projects]);
@@ -619,6 +745,7 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
     () => ({
       createTask,
       saveTaskConfirmed,
+      recordTaskActual,
       createProject,
       updateProject,
       setProjectArchived,
@@ -638,6 +765,7 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
       createProject,
       createTask,
       saveTaskConfirmed,
+      recordTaskActual,
       createDailyTemplate,
       deleteProject,
       recordDaily,

@@ -260,7 +260,7 @@ export function HomeStagePlans() {
 /** 完整详情与首页共享摘要和列表，删除阶段明确说明任务保留。 */
 export function StageDetail() {
   const stages = useStagePlans();
-  const { tasks, projects } = useWorkspaceData();
+  const { tasks, projects, saveTaskConfirmed, recordTaskActual } = useWorkspaceData();
   const today = useAccountToday();
   const plan = stages.plans.find((item) => item.id === stages.detailId);
   const [edit, setEdit] = useState(false);
@@ -316,7 +316,18 @@ export function StageDetail() {
       </header>
       <StageSummary plan={plan} tasks={tasks} today={today} />
       <StageAddTask stageId={plan.id} projects={projects} />
-      <StageTimeChart tasks={tasks} projects={projects} stageId={plan.id} />
+      <StageTimeChart
+        tasks={tasks}
+        projects={projects}
+        plan={plan}
+        today={today}
+        onSaveEstimate={(original, minutes) =>
+          saveTaskConfirmed({ ...original, plannedDurationMinutes: minutes }, original)
+        }
+        onSaveActual={(original, minutes, date) =>
+          recordTaskActual(original, minutes, date!)
+        }
+      />
       <StageTaskList stageId={plan.id} showHistory />
       {error && (
         <p className="form-error" role="alert">

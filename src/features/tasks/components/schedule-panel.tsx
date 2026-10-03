@@ -19,6 +19,7 @@ export function SchedulePanel({
   highlightColor,
   isDropTarget,
   isFullWorkspace,
+  sideCollapsed = false,
   isResizing,
   isAdding,
   onAdd,
@@ -36,6 +37,7 @@ export function SchedulePanel({
   highlightColor: string;
   isDropTarget: boolean;
   isFullWorkspace: boolean;
+  sideCollapsed?: boolean;
   isResizing: boolean;
   isAdding: boolean;
   onAdd: () => void;
@@ -62,7 +64,10 @@ export function SchedulePanel({
           <div className="annotation-tools" role="group" aria-label="批注工具">
             <button
               type="button"
-              className={cn('annotation-tool-btn', annotationTool === 'none' && 'is-active')}
+              className={cn(
+                'annotation-tool-btn',
+                annotationTool === 'none' && 'is-active',
+              )}
               aria-label="选择模式"
               title="选择模式"
               onClick={() => onSelectAnnotationTool('none')}
@@ -77,7 +82,10 @@ export function SchedulePanel({
             />
             <button
               type="button"
-              className={cn('annotation-tool-btn', annotationTool === 'eraser' && 'is-active')}
+              className={cn(
+                'annotation-tool-btn',
+                annotationTool === 'eraser' && 'is-active',
+              )}
               aria-label="橡皮擦"
               title="橡皮擦（Esc 退出）"
               onClick={onToggleEraser}
@@ -88,7 +96,7 @@ export function SchedulePanel({
           <button className="add-link" onClick={onAdd}>
             <Plus size={19} /> 添加
           </button>
-          {isFullWorkspace && (
+          {isFullWorkspace && !sideCollapsed && (
             <button
               type="button"
               className={`schedule-resize-handle ${isResizing ? 'is-resizing' : ''}`}
