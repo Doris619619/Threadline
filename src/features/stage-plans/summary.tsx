@@ -19,14 +19,16 @@ export function StageSummary({
   plan,
   tasks,
   today,
+  compact = false,
 }: {
   plan: StagePlan;
   tasks: Task[];
   today: string;
+  compact?: boolean;
 }) {
   const groups = stageTaskGroups(tasks, plan.id);
   return (
-    <div className="stage-summary">
+    <div className={'stage-summary' + (compact ? ' is-compact' : '')}>
       <p className="stage-range">
         <time dateTime={plan.startDate}>
           {rangeDate(plan.startDate, today.slice(0, 4))}

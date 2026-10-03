@@ -4,6 +4,7 @@ import type { Task } from '@/types/domain';
 import {
   bootstrapLocalAdapterWorkspace,
   openWorkspaceSection,
+  openTaskMenu,
 } from './support/workspace';
 
 import { createStage } from './support/stage-plans';
@@ -43,7 +44,9 @@ test('keeps all 16 tasks while scheduling, moving dates, completing, hiding and 
   ).toHaveCount(1);
   await expect(row.locator('time')).toHaveText('今天');
   await expect(page.locator('.schedule-panel')).toContainText('冲刺任务1');
-  await row.getByRole('button', { name: '冲刺任务1更多操作', exact: true }).click();
+  await openTaskMenu(
+    row.getByRole('button', { name: '冲刺任务1更多操作', exact: true }),
+  );
   await page.getByRole('menuitem', { name: '安排到其他日期', exact: true }).click();
   await page.getByLabel('移期日期').fill('2026-08-25');
   await page.getByRole('button', { name: '确认改期', exact: true }).click();

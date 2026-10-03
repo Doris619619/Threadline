@@ -35,6 +35,13 @@ export type WorkspaceCommands = {
   createTask: (task: Task) => Promise<Task>;
   /** 等待普通字段持久化成功，供规划表单和完成操作处理失败。 */
   saveTaskConfirmed: (task: Task, original?: Task) => Promise<Task>;
+  /** 按显式投入日期保存累计实际分钟，未安排任务仍保持原状态。 */
+  recordTaskActual: (
+    original: Task,
+    minutes: number | undefined,
+    date: string,
+    complete?: boolean,
+  ) => Promise<Task>;
   createDailyTemplate: (daily: Daily) => Promise<void>;
   saveDailyTemplate: (daily: Daily) => Promise<void>;
   /** 保存一个日期实例并在真实写入完成后 resolve，供首页等待后收尾。 */

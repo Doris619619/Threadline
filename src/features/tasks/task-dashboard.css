@@ -28,6 +28,8 @@
   display: flex;
   align-items: center;
   align-self: stretch;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-left: auto;
   padding-left: 20px;
   border-left: 1px solid var(--border-subtle);
@@ -43,7 +45,7 @@
 
 .metric-strip {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
   padding: 16px 24px;
 }
 
@@ -53,6 +55,48 @@
 
 .metric-strip .tl-stat strong em {
   font-style: normal;
+}
+.day-time-planned-stat {
+  min-width: 0;
+}
+.day-time-planned-stat .tl-stat {
+  padding: 0;
+}
+.metric-strip .day-time-fraction {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.16em;
+  white-space: normal;
+}
+.day-time-fraction > em {
+  white-space: nowrap;
+}
+.day-time-fraction .day-time-total,
+.day-time-fraction .day-time-fraction-divider {
+  font-size: 0.72em;
+}
+.day-time-fraction .day-time-fraction-divider {
+  color: var(--text-secondary);
+}
+/* 手机保留完整时间字符串；实际投入另起一行，文字放大时也不逐字拆分。 */
+@media (max-width: 480px) {
+  .metric-strip {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .metric-strip > .tl-stat {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-left: 0;
+    border-top: 1px solid var(--border-subtle);
+    padding: 10px 0 0;
+  }
+  .metric-strip > .tl-stat strong {
+    margin-top: 0;
+  }
 }
 
 .metric-strip .tl-stat strong small {
@@ -185,6 +229,11 @@
 .waiting-task-menu .is-danger {
   color: var(--danger);
 }
+.waiting-task-menu button:disabled,
+.task-actions-menu button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
 .waiting-date-backdrop {
   position: fixed;
   inset: 0;
@@ -230,10 +279,6 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
-}
-
-.home-summary {
-  display: none;
 }
 
 .dashboard h2 {
@@ -433,6 +478,14 @@
   opacity: 0.55;
 }
 
+/* 有鼠标的桌面通过行右键操作，触屏仍提供可点按的更多按钮。 */
+@media (hover: hover) and (pointer: fine) {
+  .stage-task-row .stage-task-actions > button.task-context-trigger,
+  .waiting-task-row .waiting-task-actions > button.task-context-trigger,
+  .task-actions-cell .task-actions > button.task-context-trigger {
+    display: none;
+  }
+}
 .task-actions {
   position: relative;
   opacity: 1;
@@ -489,7 +542,9 @@
   position: fixed;
   inset: auto;
   margin: 0;
-  width: 152px;
+  width: max-content;
+  min-width: 152px;
+  max-width: calc(100vw - 16px);
   max-height: calc(100dvh - 16px);
   overflow-y: auto;
   padding: 4px;
@@ -559,9 +614,11 @@
 
 .schedule-panel {
   /* 统一桌面单一日程网格定义，时间、复选框、项目、任务、预计、实际、操作共 7 列 */
-  --timeline-grid-columns: 86px 20px 48px minmax(130px, 1fr) 60px 60px 48px;
+  --timeline-grid-columns: minmax(86px, 0.55fr) 24px minmax(88px, 0.7fr)
+    minmax(130px, 3fr) minmax(88px, 0.6fr) minmax(88px, 0.6fr) 48px;
   --timeline-grid-gap: 3px;
   overflow: visible;
+  container-type: inline-size;
 }
 
 .timeline-scroll {
@@ -860,7 +917,7 @@
   animation: tl-fade-in 140ms ease;
 }
 
-/* 项目列固定占位，长名称省略但可从按钮名称或选择器读取完整文本。 */
+/* 项目列与日程宽度共同增长；宽屏完整名称换行，手机仍使用紧凑项目标签。 */
 .task-project-cell {
   min-width: 0;
 }
@@ -1027,21 +1084,26 @@
     padding: 0;
     border: 0;
   }
-  .home-summary {
-    display: inline-flex;
-    align-items: center;
-    width: fit-content;
-    max-width: 100%;
-    min-height: 44px;
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: var(--text-secondary-size);
-    font-weight: 500;
-    line-height: var(--text-secondary-leading);
+  .metric-strip {
+    display: grid;
+    order: 0;
+    flex-basis: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-control);
+    background: var(--surface);
   }
 
-  .metric-strip {
-    display: none;
+  .dashboard-overview .metric-strip {
+    flex-basis: 100%;
+    padding: 12px;
+  }
+  .overview-close-action {
+    order: 1;
+  }
+  .metric-strip .tl-stat strong {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .dashboard-columns {
@@ -1929,5 +1991,92 @@ button.task-duration-actual:focus-visible {
       flex-direction: column;
       align-items: flex-start;
     }
+  }
+}
+
+/* 收起侧栏保留组件与草稿，给日程整行宽度。 */
+.dashboard-columns.is-side-collapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
+.side-column[hidden] {
+  display: none;
+}
+.home-side-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.home-side-controls select {
+  min-width: 0;
+  flex: 1;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+.home-layout-toggle {
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-caption-size);
+  cursor: pointer;
+}
+.home-side-tasks {
+  display: grid;
+  gap: 16px;
+}
+#home-side-time[hidden],
+#home-side-tasks[hidden] {
+  display: none;
+}
+.day-time-distribution .stage-time-panel {
+  margin: 0;
+}
+/* 右栏宽度独立于屏幕宽度；项目明细单列，避免宽桌面的窄侧栏挤压标题与估时。 */
+.side-column {
+  container-type: inline-size;
+}
+@container (max-width: 700px) {
+  .day-time-distribution .stage-time-legend {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .day-time-distribution .stage-time-panel {
+    padding: var(--space-3);
+  }
+}
+@media (min-width: 761px) {
+  .schedule-panel {
+    --timeline-grid-columns: minmax(5.4rem, 0.55fr) 24px minmax(5.5rem, 0.8fr)
+      minmax(8rem, 3fr) minmax(6rem, 0.6fr) minmax(6rem, 0.6fr) 48px;
+  }
+  .timeline-row .task-project-trigger,
+  .timeline-row .task-project-trigger .tl-project-tag {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    overflow: visible;
+  }
+  .timeline-row .task-duration {
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+  .timeline-row .task-duration-input {
+    display: block;
+  }
+  .timeline-row-adding .project-inline-select {
+    max-width: none;
   }
 }

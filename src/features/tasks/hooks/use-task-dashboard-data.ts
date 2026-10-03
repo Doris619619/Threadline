@@ -9,7 +9,8 @@ import { isGeneralWaitingTask } from '@/features/stage-plans/rules';
 import type { CloseRecord, Project, Task, TaskTimeEntry } from '@/types/domain';
 
 /**
- * 从当前工作日期和持久化领域数据派生稳定视图；显式能力决定实际耗时真源或测试 fallback。
+ * 从工作日期派生日程与 Daily 的总量/剩余；完成态不减少总预计，实际耗时不自动扣减预计。
+ * 显式能力决定实际耗时真源或测试 fallback。
  */
 export function useTaskDashboardData({
   tasks,
@@ -57,6 +58,43 @@ export function useTaskDashboardData({
     : shown.reduce((sum, task) => sum + (task.actualDurationMinutes ?? 0), 0);
   const dailyActual = daily.reduce((sum, item) => sum + getDailyActualMinutes(item), 0);
   const dailyDone = daily.filter(isDailyCompleted).length;
+  const totalEstimates = [
+    ...shown.map((task) => task.plannedDurationMinutes),
+    ...daily.flatMap((item) =>
+      item.children.length
+        ? item.children.map((child) => child.plannedDurationMinutes)
+        : [undefined],
+    ),
+  ];
+  const totalPlannedMinutes = totalEstimates.reduce<number>(
+    (sum, minutes) => sum + (minutes ?? 0),
+    0,
+  );
+  const totalMissingCount = totalEstimates.filter(
+    (minutes) => minutes === undefined,
+  ).length;
+  // Daily 的父完成态允许「做过任一子项」，剩余工作量仍按未完成子项计算。
+  const remainingEstimates = [
+    ...shown
+      .filter((task) => !task.completed)
+      .map((task) => task.plannedDurationMinutes),
+    ...daily.flatMap((item) =>
+      item.children.length
+        ? item.children
+            .filter((child) => !child.completed)
+            .map((child) => child.plannedDurationMinutes)
+        : item.completed
+          ? []
+          : [undefined],
+    ),
+  ];
+  const remainingPlannedMinutes = remainingEstimates.reduce<number>(
+    (sum, minutes) => sum + (minutes ?? 0),
+    0,
+  );
+  const remainingMissingCount = remainingEstimates.filter(
+    (minutes) => minutes === undefined,
+  ).length;
 
   return {
     actual,
@@ -75,6 +113,10 @@ export function useTaskDashboardData({
     done,
     isDayClosed: closeRecords.some((record) => record.date === selectedDate),
     normalTaskTotal: shown.length + movedFromSelectedDate.length,
+    remainingPlannedMinutes,
+    remainingMissingCount,
+    totalPlannedMinutes,
+    totalMissingCount,
     shown,
     timed,
     tomorrow: addLocalDateDays(selectedDate, 1),

@@ -14,14 +14,20 @@ import { useStagePlans } from './state';
 import { stageTaskGroups } from './rules';
 import { PlanTaskRow } from './task-row';
 import { formatMinutes } from '@/features/tasks/task-time';
+import { stageProjectGroups } from './project-groups';
+import { TaskEstimateEditor } from './task-estimate-editor';
+import { TimeTaskList } from './time-task-list';
+import type { StageTimeView } from './time-view';
 
-/** 三组固定顺序且不截断；详情额外保留已放弃/已删除历史。 */
+/** 首页保留三种状态顺序，详情合并到项目时间明细；所有操作继续写同一 Task。 */
 export function StageTaskList({
   stageId,
   showHistory = false,
+  timeView,
 }: {
   stageId: string;
   showHistory?: boolean;
+  timeView?: StageTimeView;
 }) {
   const data = useWorkspaceData();
   const stages = useStagePlans();
@@ -68,43 +74,129 @@ export function StageTaskList({
       return error instanceof Error ? error.message : '安排失败，请重试。';
     }
   };
+  /** 分组沿用原 Task，详情日期/时长固定列；缺少预计显示暂定，实际仍区分未记录。 */
+  const renderTask = (task: Task) => (
+    <PlanTaskRow
+      key={task.id}
+      task={task}
+      today={today}
+      timeColumns={!!timeView}
+      project={
+        timeView || (task.status === 'waiting' && !task.completed)
+          ? undefined
+          : data.projects.find((project) => project.id === task.projectId)
+      }
+      estimate={
+        <TaskEstimateEditor
+          key={timeView?.metric === 'actual' ? 'actual' : 'planned'}
+          task={task}
+          today={today}
+          metric={timeView?.metric === 'actual' ? 'actual' : 'planned'}
+          displayLabel={
+            timeView &&
+            timeView.metric !== 'actual' &&
+            task.plannedDurationMinutes === undefined
+              ? '暂定'
+              : undefined
+          }
+          disabled={timeView?.saving}
+          onSave={
+            timeView
+              ? timeView.metric === 'actual'
+                ? timeView.saveActual
+                : timeView.saveEstimate
+              : (original, minutes) =>
+                  data.saveTaskConfirmed(
+                    { ...original, plannedDurationMinutes: minutes },
+                    original,
+                  )
+          }
+        />
+      }
+      selected={timeView?.selected === task.id}
+      disabled={timeView?.saving}
+      onSelect={timeView ? () => timeView.select(task.id) : undefined}
+      onHover={
+        timeView
+          ? (hovered) => timeView.hover(hovered ? task.id : undefined)
+          : undefined
+      }
+      onEdit={() => setEditing(task)}
+      onDate={() => setDating(task)}
+      onToday={timeView ? undefined : () => scheduleToday(task)}
+      onToggle={() => toggle(task)}
+      onRemove={() => stages.remove(stageId, task.id)}
+    />
+  );
   return (
-    <div className="stage-task-groups">
-      {(
-        [
-          ['waiting', '未安排'],
-          ['scheduled', '已安排'],
-          ['completed', '已完成'],
-        ] as const
-      ).map(([key, label]) => (
-        <section className="stage-task-group" key={key} aria-label={label}>
-          <h3>
-            {label}
-            <span>{groups[key].length}</span>
-          </h3>
-          {groups[key].length === 0 && (
-            <p className="stage-empty-group">暂无{label}任务</p>
+    <div className={timeView ? 'stage-time-list-pane' : 'stage-task-groups'}>
+      {timeView ? (
+        <TimeTaskList
+          tasks={data.tasks.filter(
+            (task) =>
+              task.stagePlanId === stageId &&
+              !task.deletedAt &&
+              task.status !== 'trashed' &&
+              task.status !== 'abandoned',
           )}
-          {groups[key].map((task) => (
-            <PlanTaskRow
-              key={task.id}
-              task={task}
-              today={today}
-              project={data.projects.find((project) => project.id === task.projectId)}
-              metadata={
-                task.plannedDurationMinutes !== undefined
-                  ? '预计 ' + formatMinutes(task.plannedDurationMinutes)
-                  : undefined
-              }
-              onEdit={() => setEditing(task)}
-              onDate={() => setDating(task)}
-              onToday={() => scheduleToday(task)}
-              onToggle={() => toggle(task)}
-              onRemove={() => stages.remove(stageId, task.id)}
-            />
-          ))}
-        </section>
-      ))}
+          projects={data.projects}
+          view={timeView}
+          renderTask={renderTask}
+        />
+      ) : (
+        (
+          [
+            ['waiting', '未安排'],
+            ['scheduled', '已安排'],
+            ['completed', '已完成'],
+          ] as const
+        ).map(([key, label]) => (
+          <section className="stage-task-group" key={key} aria-label={label}>
+            <h3>
+              {label}
+              <span>{groups[key].length}</span>
+            </h3>
+            {groups[key].length === 0 && (
+              <p className="stage-empty-group">暂无{label}任务</p>
+            )}
+            {key === 'waiting'
+              ? stageProjectGroups(groups.waiting, data.projects).map((group) => (
+                  <details
+                    key={group.id}
+                    open
+                    className="stage-waiting-project"
+                    data-stage-project-id={group.id}
+                    aria-label={(group.project?.name ?? '未知项目') + '未安排任务'}
+                  >
+                    <summary>
+                      <i
+                        aria-hidden="true"
+                        style={{
+                          background: group.project?.color ?? 'var(--text-secondary)',
+                        }}
+                      />
+                      <span>{group.project?.name ?? '未知项目'}</span>
+                      <small>{group.tasks.length} 项</small>
+                      <strong>
+                        {group.tasks.some(
+                          (task) => task.plannedDurationMinutes !== undefined,
+                        )
+                          ? formatMinutes(
+                              group.tasks.reduce(
+                                (sum, task) => sum + (task.plannedDurationMinutes ?? 0),
+                                0,
+                              ),
+                            )
+                          : '未估时'}
+                      </strong>
+                    </summary>
+                    {group.tasks.map(renderTask)}
+                  </details>
+                ))
+              : groups[key].map(renderTask)}
+          </section>
+        ))
+      )}
       {groups.history.length > 0 &&
         (showHistory ? (
           <details className="stage-history">

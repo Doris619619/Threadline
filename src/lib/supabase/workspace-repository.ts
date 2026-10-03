@@ -40,6 +40,10 @@ function assertResponse<T>(
 ): T {
   if (response.error?.message.includes('TASK_FIELD_CONFLICT'))
     throw new TaskConflictError();
+  if (response.error?.message.includes('TASK_ACTUAL_BELOW_FIXED_HISTORY'))
+    throw new Error(
+      '该日期的实际投入不足，不能减少其他日期的历史记录。请选择原投入日期。',
+    );
   if (response.error) throw new Error(`${operation}: ${response.error.message}`);
   if (response.data === null) throw new Error(`${operation}: empty response`);
   return response.data;
@@ -366,6 +370,33 @@ export class SupabaseWorkspaceRepository {
       p_expected: guard,
     });
     return mapTask(assertResponse('update task fields', response) as JsonRecord);
+  }
+
+  /** 显式指定实际增减的投入日期并检查旧基准；默认仅录入，计时结束可同时完成任务。 */
+  async recordTaskActual(
+    original: Task,
+    minutes: number | undefined,
+    date: string,
+    complete = false,
+  ): Promise<Task> {
+    const expected = taskRow(original) as Record<string, unknown>;
+    const response = await this.client.rpc('record_task_actual', {
+      p_task_id: original.id,
+      p_minutes: minutes ?? null,
+      p_entry_date: date,
+      p_complete: complete,
+      p_expected: Object.fromEntries(
+        [
+          'status',
+          'scheduled_date',
+          'deleted_at',
+          'project_id',
+          'actual_duration_minutes',
+          ...(complete ? ['completed'] : []),
+        ].map((key) => [key, expected[key]]),
+      ),
+    });
+    return mapTask(assertResponse('record task actual', response) as JsonRecord);
   }
 
   /** 写命令只执行一次；SETOF 回包可能受 max_rows 截断，成功后分页读取完整集合。 */

@@ -257,10 +257,10 @@ export function HomeStagePlans() {
   );
 }
 
-/** 完整详情与首页共享摘要和列表，删除阶段明确说明任务保留。 */
+/** 完整详情把摘要移入标题行，时间明细与任务操作共用右侧清单；删除阶段保留原任务。 */
 export function StageDetail() {
   const stages = useStagePlans();
-  const { tasks, projects } = useWorkspaceData();
+  const { tasks, projects, saveTaskConfirmed, recordTaskActual } = useWorkspaceData();
   const today = useAccountToday();
   const plan = stages.plans.find((item) => item.id === stages.detailId);
   const [edit, setEdit] = useState(false);
@@ -292,6 +292,7 @@ export function StageDetail() {
         <h1 ref={heading} tabIndex={-1}>
           {plan.name}
         </h1>
+        <StageSummary plan={plan} tasks={tasks} today={today} compact />
         <div>
           <button
             type="button"
@@ -314,10 +315,22 @@ export function StageDetail() {
           </button>
         </div>
       </header>
-      <StageSummary plan={plan} tasks={tasks} today={today} />
       <StageAddTask stageId={plan.id} projects={projects} />
-      <StageTimeChart tasks={tasks} projects={projects} stageId={plan.id} />
-      <StageTaskList stageId={plan.id} showHistory />
+      <StageTimeChart
+        tasks={tasks}
+        projects={projects}
+        plan={plan}
+        today={today}
+        onSaveEstimate={(original, minutes) =>
+          saveTaskConfirmed({ ...original, plannedDurationMinutes: minutes }, original)
+        }
+        onSaveActual={(original, minutes, date) =>
+          recordTaskActual(original, minutes, date!)
+        }
+        renderDetails={(view) => (
+          <StageTaskList stageId={plan.id} showHistory timeView={view} />
+        )}
+      />
       {error && (
         <p className="form-error" role="alert">
           {error}

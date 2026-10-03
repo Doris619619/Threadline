@@ -7,7 +7,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { Moon, CircleCheck } from 'lucide-react';
 import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
-import { StatItem } from '@/components/ui/stat-item';
+import { DayTimeStats } from './components/day-time-stats';
 import { Surface } from '@/components/ui/surface';
 import { DailyPanel, type DailyPanelHandle } from '@/features/daily/daily-panel';
 import { CalendarPanel } from '@/features/calendar/calendar-panel';
@@ -22,7 +22,6 @@ import { useDesktopWindow } from '@/lib/desktop-window-context';
 import { resolveActiveProject } from '@/lib/project-rules';
 import { getLocalDateKey } from '@/lib/local-date';
 import { WorkstationPanel } from '@/features/tasks/compact-workspace';
-import { formatMinutes } from '@/features/tasks/task-time';
 import { DesktopScheduleList } from '@/features/tasks/components/desktop-schedule-list';
 import { TaskLine } from '@/features/tasks/components/task-line';
 import { TimedTaskCreateRow } from '@/features/tasks/components/timed-task-create-row';
@@ -44,12 +43,26 @@ import { useTaskDashboardController } from '@/features/tasks/hooks/use-task-dash
 import { useCloseDay } from '@/features/tasks/hooks/use-close-day';
 import type { Task } from '@/types/domain';
 import { HomeStagePlans } from '@/features/stage-plans/board';
+import { DayTimeChart } from './components/day-time-chart';
+import { usePersistentState } from '@/hooks/use-persistent-state';
+import { useAccountToday } from '@/features/settings/account-timezone-provider';
 
 /**
  * 按当前工作台视图渲染首页、功能页或 Electron 紧凑窗口；顶部收尾入口沿用 Daily 保存屏障。
  */
 export function TaskDashboard() {
   const { active, selectedDate } = useWorkspaceView();
+  const today = useAccountToday();
+  const [sideCollapsed, setSideCollapsed] = usePersistentState(
+    'threadline.home-side-collapsed.v1',
+    false,
+  );
+  const [sideView, setSideView] = usePersistentState<'tasks' | 'time'>(
+    'threadline.home-side-view.v1',
+    'tasks',
+    (value) => (value === 'time' ? 'time' : 'tasks'),
+  );
+  const [preparingSideView, setPreparingSideView] = useState(false);
   const { isWorkstation } = useDesktopWindow();
   const startupProgress = useOptionalStartupProgress();
   const {
@@ -72,6 +85,7 @@ export function TaskDashboard() {
     updateHighlightColor,
     createTask,
     saveTaskConfirmed,
+    recordTaskActual,
     createDailyTemplate,
     createProject,
     updateProject,
@@ -106,8 +120,25 @@ export function TaskDashboard() {
       closeDialog.current?.showModal();
     } catch {
       // Daily 行已显示具体错误；不打开收尾弹窗，也不清空输入。
+      setSideCollapsed(false);
+      setSideView('tasks');
     } finally {
       setPreparingClose(false);
+    }
+  };
+
+  /** 隐藏 Daily 前确认失焦草稿；失败保留任务视图，让用户直接修正错误。 */
+  const changeSideView = async (view: 'tasks' | 'time') => {
+    if (preparingSideView) return;
+    setPreparingSideView(true);
+    try {
+      if (view !== sideView) await dailyPanel.current?.flush();
+      setSideView(view);
+    } catch {
+      setSideView('tasks');
+      setSideCollapsed(false);
+    } finally {
+      setPreparingSideView(false);
     }
   };
 
@@ -135,7 +166,6 @@ export function TaskDashboard() {
     daily,
     dailyActual,
     dailyDone,
-    done,
     draggingTaskId,
     dropTarget,
     handlePointerDragEnd,
@@ -150,7 +180,10 @@ export function TaskDashboard() {
     isDayClosed,
     isResizingSchedule,
     moveTask: move,
-    normalTaskTotal,
+    remainingPlannedMinutes,
+    remainingMissingCount,
+    totalPlannedMinutes,
+    totalMissingCount,
     reorderWorkstation,
     rescheduleTask,
     scheduleRatio,
@@ -183,6 +216,12 @@ export function TaskDashboard() {
   /** 行内编辑传入打开时的快照并等待确认；完成切换保留即时反馈。 */
   const update = (task: Task, original?: Task) =>
     original ? saveTaskConfirmed(task, original) : updateImmediate(task);
+  /** 快捷估时只提交预计字段，并沿用打开编辑器时的任务冲突基准。 */
+  const saveEstimate = (original: Task, minutes: number | undefined) =>
+    saveTaskConfirmed({ ...original, plannedDurationMinutes: minutes }, original);
+  /** 所选日期的投入显式入账，保留原 Task 的安排、项目和完成状态。 */
+  const saveActual = (original: Task, minutes: number | undefined, date?: string) =>
+    recordTaskActual(original, minutes, date ?? selectedDate);
 
   const { createProjectDirectly, createWaitingTask, createTimedTask, saveTask } =
     useTaskCreateAndEdit({
@@ -272,54 +311,25 @@ export function TaskDashboard() {
   return (
     <div className="dashboard dashboard-annotatable" data-testid="home-panel">
       <Surface className="dashboard-overview" variant="flat">
-        <p className="home-summary" aria-live="polite">
-          今日任务 {normalTaskTotal} · 已完成 {done}
-        </p>
-        <div className="metric-strip">
-          <StatItem
-            label="普通任务"
-            value={
-              <>
-                <em>{done}</em>
-                <small>/ {normalTaskTotal}</small>
-              </>
-            }
-          />
-          <StatItem
-            label="Daily"
-            value={
-              <>
-                <em>{dailyDone}</em>
-                <small>/ {daily.length}</small>
-              </>
-            }
-          />
-          <StatItem
-            label="普通实际"
-            value={
-              <>
-                <em>{formatMinutes(actual)}</em>
-              </>
-            }
-          />
-          <StatItem
-            label="Daily 实际"
-            value={
-              <>
-                <em>{formatMinutes(dailyActual)}</em>
-              </>
-            }
-          />
-          <StatItem
-            label="今日总实际"
-            value={
-              <>
-                <em>{formatMinutes(actual + dailyActual)}</em>
-              </>
-            }
-          />
-        </div>
+        <DayTimeStats
+          remaining={remainingPlannedMinutes}
+          total={totalPlannedMinutes}
+          remainingMissing={remainingMissingCount}
+          totalMissing={totalMissingCount}
+          actual={actual + dailyActual}
+        />
         <div className="overview-close-action">
+          {sideCollapsed && (
+            <button
+              type="button"
+              className="home-layout-toggle"
+              aria-expanded={false}
+              aria-controls="home-side-column"
+              onClick={() => setSideCollapsed(false)}
+            >
+              展开右栏
+            </button>
+          )}
           <button
             type="button"
             className="finish-day"
@@ -340,7 +350,7 @@ export function TaskDashboard() {
         </div>
       </Surface>
       <div
-        className="dashboard-columns"
+        className={'dashboard-columns' + (sideCollapsed ? ' is-side-collapsed' : '')}
         style={{ '--schedule-ratio': `${scheduleRatio}fr` } as React.CSSProperties}
         onPointerMove={handlePointerDragMove}
         onPointerUp={handlePointerDragEnd}
@@ -350,6 +360,7 @@ export function TaskDashboard() {
           highlightColor={highlightColor}
           isDropTarget={dropTarget === 'schedule'}
           isFullWorkspace
+          sideCollapsed={sideCollapsed}
           isResizing={isResizingSchedule}
           isAdding={createDrafts.timedOpen}
           onAdd={() => createDrafts.openTimed(defaultProjectId)}
@@ -363,106 +374,150 @@ export function TaskDashboard() {
           onToggleEraser={() => toggleAnnotationTool('eraser')}
         >
           {() => (
-            <DesktopScheduleList>
-              {timed.map((task) => (
-                <TaskLine
-                  key={task.id}
-                  task={task}
-                  onUpdate={update}
-                  onEdit={() => open(task, 'normal')}
-                  onMove={move}
-                  onReschedule={() => setRescheduling(task)}
+            <>
+              <DesktopScheduleList>
+                {timed.map((task) => (
+                  <TaskLine
+                    key={task.id}
+                    task={task}
+                    onUpdate={update}
+                    onEdit={() => open(task, 'normal')}
+                    onMove={move}
+                    onReschedule={() => setRescheduling(task)}
+                    projects={workspaceProjects}
+                    onAddProject={createProjectDirectly}
+                    draggable={!annotationInteractionLocked}
+                    isDragging={draggingTaskId === task.id}
+                    autoFocusTime={autoFocusTimeTaskId === task.id}
+                    onTimeFocused={() => setAutoFocusTimeTaskId(null)}
+                    interactionLocked={annotationInteractionLocked}
+                    onDragStart={() => handleTaskDragStart(task.id)}
+                    onDragEnd={handleTaskDragEnd}
+                    onPointerDragStart={(event) =>
+                      handlePointerDragStart(task.id, event)
+                    }
+                    onPointerDragMove={handlePointerDragMove}
+                    onPointerDragEnd={handlePointerDragEnd}
+                    inWorkstation={workstationTaskIds.includes(task.id)}
+                    onToggleWorkstation={toggleWorkstationTask}
+                    inSchedulePanel
+                  />
+                ))}
+                <TimedTaskCreateRow
+                  open={createDrafts.timedOpen}
+                  draft={createDrafts.timedDraft}
                   projects={workspaceProjects}
-                  onAddProject={createProjectDirectly}
-                  draggable={!annotationInteractionLocked}
-                  isDragging={draggingTaskId === task.id}
-                  autoFocusTime={autoFocusTimeTaskId === task.id}
-                  onTimeFocused={() => setAutoFocusTimeTaskId(null)}
-                  interactionLocked={annotationInteractionLocked}
-                  onDragStart={() => handleTaskDragStart(task.id)}
-                  onDragEnd={handleTaskDragEnd}
-                  onPointerDragStart={(event) => handlePointerDragStart(task.id, event)}
-                  onPointerDragMove={handlePointerDragMove}
-                  onPointerDragEnd={handlePointerDragEnd}
-                  inWorkstation={workstationTaskIds.includes(task.id)}
-                  onToggleWorkstation={toggleWorkstationTask}
-                  inSchedulePanel
+                  onCreate={createTimedTask}
+                  onCreateProject={createProjectDirectly}
+                  onChange={createDrafts.updateTimedDraft}
+                  onReset={() => createDrafts.resetTimed(defaultProjectId)}
+                  onClose={createDrafts.closeTimed}
                 />
-              ))}
-              <TimedTaskCreateRow
-                open={createDrafts.timedOpen}
-                draft={createDrafts.timedDraft}
-                projects={workspaceProjects}
-                onCreate={createTimedTask}
-                onCreateProject={createProjectDirectly}
-                onChange={createDrafts.updateTimedDraft}
-                onReset={() => createDrafts.resetTimed(defaultProjectId)}
-                onClose={createDrafts.closeTimed}
-              />
-            </DesktopScheduleList>
+              </DesktopScheduleList>
+            </>
           )}
         </SchedulePanel>
-        <div className="side-column">
-          <HomeStagePlans />
-          <WaitingTaskPanel
-            isDropTarget={dropTarget === 'waiting'}
-            onDragLeave={() => setDropTarget(null)}
-            onDragOver={handleWaitingDragOver}
-            onDrop={handleWaitingDrop}
+        <div id="home-side-column" className="side-column" hidden={sideCollapsed}>
+          <div className="home-side-controls">
+            <select
+              aria-label="右栏显示内容"
+              aria-controls="home-side-tasks home-side-time"
+              value={sideView}
+              disabled={preparingSideView}
+              onChange={(event) =>
+                void changeSideView(event.target.value as 'tasks' | 'time')
+              }
+            >
+              <option value="tasks">任务列表</option>
+              <option value="time">今日时间分布</option>
+            </select>
+            <button
+              type="button"
+              className="home-layout-toggle"
+              aria-expanded={true}
+              aria-controls="home-side-column"
+              onClick={() => setSideCollapsed(true)}
+            >
+              收起右栏
+            </button>
+          </div>
+          <div id="home-side-time" hidden={sideView !== 'time'}>
+            <DayTimeChart
+              tasks={tasks}
+              projects={workspaceProjects}
+              today={today}
+              date={selectedDate}
+              entries={taskTimeEntriesAuthoritative ? taskTimeEntries : undefined}
+              onSaveEstimate={saveEstimate}
+              onSaveActual={saveActual}
+            />
+          </div>
+          <div
+            id="home-side-tasks"
+            className="home-side-tasks"
+            hidden={sideView !== 'tasks'}
           >
-            <div className="waiting-tasks">
-              {(['important', 'normal'] as const).map((importance) => {
-                const items = waiting.filter(
-                  (task) => (task.importance ?? 'normal') === importance,
-                );
-                return (
-                  <WaitingTaskGroup
-                    key={importance}
-                    importance={importance}
-                    count={items.length}
-                    onAdd={() => createDrafts.openQuick(defaultProjectId, importance)}
-                  >
-                    {items.map((task) => (
-                      <WaitingTaskRow
-                        key={task.id}
-                        task={task}
+            <HomeStagePlans />
+            <WaitingTaskPanel
+              isDropTarget={dropTarget === 'waiting'}
+              onDragLeave={() => setDropTarget(null)}
+              onDragOver={handleWaitingDragOver}
+              onDrop={handleWaitingDrop}
+            >
+              <div className="waiting-tasks">
+                {(['important', 'normal'] as const).map((importance) => {
+                  const items = waiting.filter(
+                    (task) => (task.importance ?? 'normal') === importance,
+                  );
+                  return (
+                    <WaitingTaskGroup
+                      key={importance}
+                      importance={importance}
+                      count={items.length}
+                      onAdd={() => createDrafts.openQuick(defaultProjectId, importance)}
+                    >
+                      {items.map((task) => (
+                        <WaitingTaskRow
+                          key={task.id}
+                          task={task}
+                          projects={workspaceProjects}
+                          onEdit={() => open(task, 'waiting')}
+                          onDelete={(id) => transitionTask(id, 'trashed')}
+                          onSchedule={(id, date) => {
+                            const pending = transitionTask(id, 'scheduled', date);
+                            if (date === getLocalDateKey()) setAutoFocusTimeTaskId(id);
+                            return pending;
+                          }}
+                          onComplete={(id) => {
+                            return completeWaitingTask(id, getLocalDateKey());
+                          }}
+                        />
+                      ))}
+                      <WaitingTaskCreateRow
+                        open={
+                          createDrafts.quickOpen &&
+                          createDrafts.quickDraft.importance === importance
+                        }
+                        draft={createDrafts.quickDraft}
                         projects={workspaceProjects}
-                        onEdit={() => open(task, 'waiting')}
-                        onDelete={(id) => transitionTask(id, 'trashed')}
-                        onSchedule={(id, date) => {
-                          const pending = transitionTask(id, 'scheduled', date);
-                          if (date === getLocalDateKey()) setAutoFocusTimeTaskId(id);
-                          return pending;
-                        }}
-                        onComplete={(id) => {
-                          return completeWaitingTask(id, getLocalDateKey());
-                        }}
+                        onCreate={createWaitingTask}
+                        onCreateProject={createProjectDirectly}
+                        onChange={createDrafts.updateQuickDraft}
+                        onReset={() => createDrafts.resetQuick(defaultProjectId)}
+                        onClose={createDrafts.closeQuick}
                       />
-                    ))}
-                    <WaitingTaskCreateRow
-                      open={
-                        createDrafts.quickOpen &&
-                        createDrafts.quickDraft.importance === importance
-                      }
-                      draft={createDrafts.quickDraft}
-                      projects={workspaceProjects}
-                      onCreate={createWaitingTask}
-                      onCreateProject={createProjectDirectly}
-                      onChange={createDrafts.updateQuickDraft}
-                      onReset={() => createDrafts.resetQuick(defaultProjectId)}
-                      onClose={createDrafts.closeQuick}
-                    />
-                  </WaitingTaskGroup>
-                );
-              })}
-            </div>
-          </WaitingTaskPanel>
-          <DailyPanel
-            ref={dailyPanel}
-            items={daily}
-            date={selectedDate}
-            onSave={saveDailyEntry}
-          />
+                    </WaitingTaskGroup>
+                  );
+                })}
+              </div>
+            </WaitingTaskPanel>
+            <DailyPanel
+              ref={dailyPanel}
+              items={daily}
+              date={selectedDate}
+              onSave={saveDailyEntry}
+            />
+          </div>
         </div>
       </div>
       <AnnotationLayer

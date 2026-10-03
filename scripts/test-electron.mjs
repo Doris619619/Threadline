@@ -13,6 +13,7 @@ import { terminateOwnedProcess } from './desktop-build-runtime.mjs';
 import { testElectronLoginRace } from './test-electron-login-race.mjs';
 import { testElectronInteractionFeedback } from './test-electron-interaction-feedback.mjs';
 import { testElectronDisplayRecovery } from './test-electron-display-recovery.mjs';
+import { testElectronZoom } from './test-electron-zoom.mjs';
 
 const rendererPort = process.env.THREADLINE_ELECTRON_E2E_PORT ?? '3123';
 const rendererUrl = `http://127.0.0.1:${rendererPort}`;
@@ -417,6 +418,8 @@ try {
     );
   }, 'Edge side and vertical position must survive a process restart');
   await testElectronLoginRace(application, restartedPage);
+  // 缩放检查包含刷新；放在原生恢复断言之后，避免重新水合改变这些检查的初始偏好。
+  await testElectronZoom(application, restartedPage);
   console.log(
     'Electron window smoke test passed, including persisted Edge position and login races.',
   );
