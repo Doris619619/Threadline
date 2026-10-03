@@ -13,6 +13,14 @@ Web/PWA 保持完整工作台。Windows Electron 使用同一 Main BrowserWindow
 - 工作站每个新进程初始宽度 200 logical px，保留有效位置；当前运行期间可调至 340px，切换和收起/展开保留用户宽度。默认高度 200px，按列表自然高度加 68px 调整，范围 96–220px；大量任务只滚动列表，不滚动标题栏。
 - Full 默认 1280×840，最小 800×560；屏幕工作区域不足时做可见性保护。最大化和最小化期间不保存异常 bounds。
 
+## 页面缩放快捷键
+
+完整工作台及工作站支持 Ctrl＋加号（或 Ctrl＋等号）放大、Ctrl＋减号缩小，Ctrl＋0 恢复 100%；主键盘与小键盘均可使用。输入框有焦点时同样有效，普通输入、输入法组合及其他快捷键继续透传。浏览器版使用浏览器自身缩放。
+
+无菜单 Main 在 `before-input-event` 中处理缩放，仅调整页面内容，不改变原生窗口位置与尺寸。Electron 44 的 `setZoomMode('isolated')` 将缩放限制在该 WebContents；刷新保留本窗口倍率，固定尺寸 Edge 不响应这些按键、不继承主窗口倍率。无需迁移或新增云端、IPC 接口。实现依据 [Electron 窗口内快捷键](https://www.electronjs.org/docs/latest/tutorial/keyboard-shortcuts#intercepting-events-in-the-main-process) 与 [独立缩放 API](https://www.electronjs.org/docs/latest/api/web-contents#contentssetzoommodemode)。
+
+`tests/electron-zoom-controls.test.ts` 验证按键与输入法边界；真实 Electron 的 `scripts/test-electron-zoom.mjs` 覆盖主键盘/小键盘加减、焦点输入框、Ctrl+0、刷新后倍率、页面重排、同源窗口隔离与原生尺寸保持，并接入原窗口 smoke。桌面安装版需要后续构建发布才能获得新快捷键。
+
 ## 贴边入口与尺寸稳定性
 
 “收起”只隐藏工作站，入口显示时用 `showInactive` 避免抢焦点。入口和工作站均原生置顶；悬停不展开，明确单击或键盘激活恢复工作站。超过 4 DIP 算拖动，松手吸附到所在显示器左右边缘，拖动结束不展开。
