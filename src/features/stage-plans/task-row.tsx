@@ -1,6 +1,8 @@
 /** @fileoverview 阶段和项目共用同一 Task 行；轻量安排、完成与菜单操作不复制任务。 */
 'use client';
-import { useState, useRef, type ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
+import { useTaskMenu } from '@/features/tasks/hooks/use-task-menu';
+import { TaskTimerMenuAction } from '@/features/tasks/components/task-timer-menu-action';
 import { MoreHorizontal } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ProjectTag } from '@/components/ui/project-tag';
@@ -32,8 +34,8 @@ export function PlanTaskRow({
   project?: Project;
   estimate?: ReactNode;
 }) {
-  const [menu, setMenu] = useState(false);
-  const anchor = useRef<HTMLButtonElement>(null);
+  const menu = useTaskMenu();
+  const menuAnchor = useRef<HTMLButtonElement>(null);
   const { busy, error, run } = useGuardedAction();
   return (
     <div
@@ -44,6 +46,8 @@ export function PlanTaskRow({
       }
       data-stage-task-id={task.id}
       aria-busy={busy}
+      onContextMenu={menu.onContextMenu}
+      onKeyDown={menu.onKeyDown}
     >
       <Checkbox
         checked={task.completed}
@@ -81,29 +85,38 @@ export function PlanTaskRow({
           )
         )}
         <button
-          ref={anchor}
+          ref={menuAnchor}
           type="button"
           aria-label={task.title + '更多操作'}
-          aria-expanded={menu}
+          aria-haspopup="menu"
+          aria-expanded={menu.open}
           disabled={busy}
-          onClick={() => setMenu((open) => !open)}
+          onClick={menu.toggle}
         >
           <MoreHorizontal size={17} aria-hidden="true" />
         </button>
-        {menu && (
+        {menu.open && (
           <TaskActionsPopover
-            anchor={anchor}
+            anchor={menuAnchor}
+            point={menu.point}
             label={task.title + '任务操作'}
             className="waiting-task-menu"
             role="menu"
-            onClose={() => setMenu(false)}
+            onClose={menu.close}
           >
+            {!task.completed && (
+              <TaskTimerMenuAction
+                taskId={task.id}
+                onClose={menu.close}
+                role="menuitem"
+              />
+            )}
             {!task.completed && (
               <button
                 type="button"
                 role="menuitem"
                 onClick={() => {
-                  setMenu(false);
+                  menu.close();
                   onDate();
                 }}
               >
@@ -114,7 +127,7 @@ export function PlanTaskRow({
               type="button"
               role="menuitem"
               onClick={() => {
-                setMenu(false);
+                menu.close();
                 onEdit();
               }}
             >
@@ -125,7 +138,7 @@ export function PlanTaskRow({
                 type="button"
                 role="menuitem"
                 onClick={() => {
-                  setMenu(false);
+                  menu.close();
                   void run(onRemove);
                 }}
               >

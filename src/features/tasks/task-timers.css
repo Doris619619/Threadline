@@ -1,4 +1,4 @@
-/** @fileoverview 标题右侧三计时器横排，窄屏换行，任务名称与控制保持完整可读。 */
+/** @fileoverview 标题右侧最多三张红/绿计时卡；桌面右键删除、触屏更多菜单，设置按需打开。 */
 .home-timer-slot {
   flex: 1 1 0;
   min-width: 0;
@@ -15,10 +15,6 @@
   flex-shrink: 0;
 }
 .task-timers {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
   min-width: 0;
 }
 .task-timer-strip {
@@ -26,52 +22,124 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   width: 100%;
+  max-width: 984px;
+  justify-self: end;
+}
+.task-timer-strip:empty {
+  display: none;
+}
+.task-timer-strip:has(.task-timer:only-child) {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 320px;
+}
+.task-timer-strip:has(.task-timer:nth-child(2):last-child) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 652px;
 }
 .task-timer {
-  padding: 10px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-control);
-  background: var(--surface);
+  --timer-color: var(--success);
+  --timer-ink: color-mix(in srgb, var(--timer-color) 85%, var(--text-primary));
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--timer-color) 35%, var(--border));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--timer-color) 6%, var(--surface));
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  position: relative;
 }
-.task-timer > strong {
-  font-size: var(--text-caption-size);
-  overflow-wrap: anywhere;
+.task-timer[data-mode='down'] {
+  --timer-color: var(--danger);
 }
-.task-timer small,
-.task-timer-clock span {
-  color: var(--text-secondary);
-  font-size: var(--text-caption-size);
+.task-timer-symbol {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--timer-color);
+  background: color-mix(in srgb, var(--timer-color) 12%, var(--surface));
 }
-.task-timer-clock {
+.task-timer-body {
+  min-width: 0;
+}
+.task-timer-heading {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 2px 8px;
+  min-width: 0;
 }
-.task-timer-clock time {
-  font-size: 1.3rem;
+.task-timer-mode {
+  color: var(--timer-ink);
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.task-timer-heading strong {
+  flex: 1 1 4em;
+  min-width: 0;
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.task-timer-readout {
+  display: block;
+  color: var(--timer-ink);
+  font-size: clamp(1.25rem, 10cqi, 1.75rem);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  white-space: nowrap;
+}
+.task-timer-date,
+.task-timer-ended {
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+  line-height: 1.5;
+}
+.task-timer-date {
+  display: block;
+  grid-column: 1 / -1;
 }
 .task-timer-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  flex-shrink: 0;
+  gap: 8px;
 }
 .task-timers button {
   min-height: 44px;
+  min-width: 44px;
   padding: 6px 8px;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-control);
-  background: var(--surface-secondary);
-  color: var(--text-primary);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--timer-ink);
   font: inherit;
   font-size: var(--text-caption-size);
   cursor: pointer;
+}
+.task-timer-actions button,
+.task-timers .task-timer-more {
+  display: grid;
+  place-items: center;
+}
+.task-timers .task-timer-more {
+  display: none;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-secondary);
+}
+.task-timers .task-timer-primary {
+  background: color-mix(in srgb, var(--timer-color) 14%, var(--surface));
+  border-color: color-mix(in srgb, var(--timer-color) 45%, var(--border));
 }
 .task-timers button:disabled {
   opacity: 0.6;
@@ -79,14 +147,11 @@
 }
 .task-timer-form {
   width: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: 8px;
-  padding: 10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
+  display: grid;
+  gap: 16px;
+}
+.task-timer-selected-title {
+  overflow-wrap: anywhere;
 }
 .task-timer-form label {
   min-width: 100px;
@@ -95,9 +160,6 @@
   flex-direction: column;
   font-size: var(--text-caption-size);
   gap: 4px;
-}
-.task-timer-form label:first-child {
-  flex: 3;
 }
 .task-timer-form select,
 .task-timer-form input {
@@ -114,6 +176,28 @@
 .tl-header[data-home='true']:has(.task-timer, .task-timer-form) h1::after {
   display: none;
 }
+/* 侧栏、标题与日期消耗宽度时，三个时钟仍保持同样的纵向对齐。 */
+@container (max-width: 17rem) {
+  .task-timer-symbol {
+    display: none;
+  }
+  .task-timer-body {
+    grid-column: 1 / -1;
+  }
+  .task-timer-actions {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+}
+@media (max-width: 1440px) {
+  .tl-header[data-home='true']:has(.task-timer:nth-child(3)) {
+    flex-wrap: wrap;
+  }
+  .tl-header[data-home='true']:has(.task-timer:nth-child(3)) .home-timer-slot {
+    order: 2;
+    flex-basis: 100%;
+  }
+}
 @media (max-width: 1200px) {
   .tl-header[data-home='true'] {
     flex-wrap: wrap;
@@ -122,12 +206,61 @@
     order: 2;
     flex-basis: 100%;
   }
-  .task-timer-strip {
-    grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
-  }
 }
 @media (max-width: 760px) {
   .task-timer-strip {
     grid-template-columns: minmax(0, 1fr);
   }
+  .task-timer-strip:has(.task-timer:nth-child(2):last-child) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (hover: none), (pointer: coarse), (max-width: 760px) {
+  .task-timer {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .task-timer-symbol {
+    display: none;
+  }
+  .task-timers .task-timer-more {
+    display: grid;
+  }
+}
+.task-timer-menu button {
+  min-height: 44px;
+}
+.task-timer .form-error {
+  grid-column: 1 / -1;
+}
+.task-timer-form footer button {
+  min-height: 44px;
+  padding: 8px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  background: var(--surface-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+.task-timer-form button[type='submit'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+@media (max-width: 760px) {
+  .manager-dialog-backdrop:has(.task-timer-dialog) {
+    align-items: end;
+    padding: 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  .manager-dialog.task-timer-dialog {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+  }
+  .waiting-task-menu button {
+    min-height: 44px;
+  }
+}
+.task-timer:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }

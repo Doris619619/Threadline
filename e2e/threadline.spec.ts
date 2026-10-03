@@ -785,7 +785,7 @@ test('moves postponed work out of the original date remaining estimate', async (
     .getByRole('button', { name: '确认结束今天', exact: true })
     .click();
   await expect(page.locator('.metric-strip .tl-stat').first()).toContainText(
-    '今日剩余预计',
+    '剩余 / 当日预计',
   );
   await page.getByRole('button', { name: '后一天' }).click();
   await expect(page.getByRole('checkbox', { name: '完成邮件处理' })).toBeVisible();

@@ -30,6 +30,7 @@ export function DayTimeChart({
         projects={projects}
         today={today}
         day={{ date, entries }}
+        compactSummary
         onSaveEstimate={onSaveEstimate}
         onSaveActual={onSaveActual}
       />

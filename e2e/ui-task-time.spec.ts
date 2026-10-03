@@ -105,18 +105,55 @@ test('runs three independent timers, resumes after reload and records completion
   await page.clock.install();
   const timers = page.getByRole('region', { name: '任务计时器', exact: true });
   for (let i = 0; i < 3; i++) {
-    await timers.getByRole('button', { name: '+ 任务计时器', exact: true }).click();
-    await timers.getByLabel('计时任务').selectOption('demo-stage-time-task-' + i);
+    await openWorkspaceSection(page, '计划');
+    if (!(await page.getByTestId('stage-detail').isVisible()))
+      await page
+        .getByRole('button', { name: '查看阶段 多项目时间验收', exact: true })
+        .click();
+    const row = page.locator('[data-stage-task-id="demo-stage-time-task-' + i + '"]');
+    if (info.project.name === 'preview-desktop') await row.click({ button: 'right' });
+    else await row.getByRole('button', { name: /更多操作/ }).click();
+    await page.getByRole('menuitem', { name: '加入计时', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: '加入计时', exact: true });
     if (i === 2) {
-      await timers.getByLabel('计时方式').selectOption('down');
-      await timers.getByLabel('倒计时分钟').fill('1');
+      await dialog.getByLabel('计时方式').selectOption('down');
+      await dialog.getByLabel('倒计时分钟').fill('1');
     }
-    await timers.getByRole('button', { name: '开始计时', exact: true }).click();
+    await dialog.getByRole('button', { name: '开始计时', exact: true }).click();
+    await openWorkspaceSection(page, '首页');
+    if (i === 0 && info.project.name === 'preview-desktop') {
+      const title = (await page
+        .getByRole('heading', { name: '任务大厅', exact: true })
+        .boundingBox())!;
+      const firstTimer = (await timers.locator('.task-timer').boundingBox())!;
+      expect(firstTimer.x).toBeGreaterThan(title.x + title.width);
+      expect(firstTimer.y).toBeLessThan(title.y + title.height);
+    }
   }
   await expect(timers.locator('.task-timer')).toHaveCount(3);
+  await expect(timers.locator('[data-mode="up"] .task-timer-mode')).toHaveText([
+    '正计时',
+    '正计时',
+  ]);
+  await expect(timers.locator('[data-mode="down"] .task-timer-mode')).toHaveText(
+    '倒计时',
+  );
+  await openWorkspaceSection(page, '计划');
+  const duplicate = page.locator('[data-stage-task-id="demo-stage-time-task-0"]');
+  await duplicate.getByRole('button', { name: /更多操作/ }).click();
   await expect(
-    timers.getByRole('button', { name: '+ 任务计时器', exact: true }),
-  ).toHaveCount(0);
+    page.getByRole('menuitem', { name: '已加入计时', exact: true }),
+  ).toBeDisabled();
+  await page.keyboard.press('Escape');
+  await page
+    .locator('[data-stage-task-id="demo-stage-time-task-4"]')
+    .getByRole('button', { name: /更多操作/ })
+    .click();
+  await expect(
+    page.getByRole('menuitem', { name: '最多三个计时器', exact: true }),
+  ).toBeDisabled();
+  await page.keyboard.press('Escape');
+  await openWorkspaceSection(page, '首页');
   await page.clock.fastForward(35000);
   await timers
     .locator('.task-timer')
@@ -135,7 +172,101 @@ test('runs three independent timers, resumes after reload and records completion
   await expect(timers.locator('.task-timer').nth(1).locator('time')).toHaveText(
     /^01:\d\d$/,
   );
-  await expect(timers.locator('.task-timer').nth(2)).toContainText('倒计时已到时');
+  await expect(timers.locator('.task-timer').nth(2).locator('time')).toHaveAttribute(
+    'aria-label',
+    '倒计时已到时',
+  );
+  await expect(timers).not.toContainText('按分钟四舍五入');
+  await expect(timers).not.toContainText('结束时完成任务');
+  const timerBounds = await timers.locator('.task-timer').evaluateAll((cards) =>
+    cards.map((card) => ({
+      y: card.getBoundingClientRect().y,
+      overflow: card.scrollWidth > card.clientWidth + 1,
+      clocksReadable: [...card.querySelectorAll('time')].every(
+        (clock) =>
+          clock.getBoundingClientRect().height <=
+          parseFloat(getComputedStyle(clock).lineHeight) + 1,
+      ),
+      controlsAccessible: [...card.querySelectorAll('button')]
+        .filter((button) => getComputedStyle(button).display !== 'none')
+        .every(
+          (button) =>
+            button.getBoundingClientRect().width >= 44 &&
+            button.getBoundingClientRect().height >= 44,
+        ),
+      controlsSeparate: [...card.querySelectorAll('button')]
+        .filter((button) => getComputedStyle(button).display !== 'none')
+        .map((button) => button.getBoundingClientRect())
+        .every((rect, index, rects) =>
+          rects
+            .slice(index + 1)
+            .every(
+              (other) =>
+                rect.right <= other.left ||
+                other.right <= rect.left ||
+                rect.bottom <= other.top ||
+                other.bottom <= rect.top,
+            ),
+        ),
+    })),
+  );
+  expect(
+    timerBounds.every(
+      (card) =>
+        !card.overflow &&
+        card.clocksReadable &&
+        card.controlsAccessible &&
+        card.controlsSeparate,
+    ),
+  ).toBe(true);
+  if (info.project.name === 'preview-desktop')
+    expect(new Set(timerBounds.map((card) => card.y)).size).toBe(1);
+  await page.screenshot({ path: info.outputPath('home-timers.png') });
+  if (info.project.name === 'preview-desktop') {
+    await page.setViewportSize({ width: 2560, height: 1440 });
+    const heading = (await page
+      .getByRole('heading', { name: '任务大厅', exact: true })
+      .boundingBox())!;
+    const cards = await timers.locator('.task-timer').evaluateAll((items) =>
+      items.map((item) => ({
+        x: item.getBoundingClientRect().x,
+        y: item.getBoundingClientRect().y,
+      })),
+    );
+    expect(
+      cards.every(
+        (card) =>
+          card.x > heading.x + heading.width && card.y < heading.y + heading.height,
+      ),
+    ).toBe(true);
+    await page.screenshot({ path: info.outputPath('home-timers-wide.png') });
+    await page.setViewportSize({ width: 1280, height: 720 });
+  }
+  for (const scheme of ['light', 'dark']) {
+    await page.evaluate((scheme) => {
+      document.documentElement.dataset.colorScheme = scheme;
+    }, scheme);
+    expect(
+      (await new AxeBuilder({ page }).include('.task-timers').analyze()).violations,
+    ).toEqual([]);
+    await page.screenshot({ path: info.outputPath('home-timers-' + scheme + '.png') });
+  }
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+  ).toBe(true);
+  expect(
+    await timers
+      .locator('.task-timer')
+      .evaluateAll((cards) =>
+        cards.every((card) => card.scrollWidth <= card.clientWidth + 1),
+      ),
+  ).toBe(true);
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '';
+  });
   await page.reload();
   await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
   await expect(timers.locator('.task-timer')).toHaveCount(3);
@@ -161,15 +292,74 @@ test('runs three independent timers, resumes after reload and records completion
     completed: true,
     status: 'active',
   });
-  await page.screenshot({ path: info.outputPath('home-timers.png') });
   expect(
     (await new AxeBuilder({ page }).include('.task-timers').analyze()).violations,
   ).toEqual([]);
 });
 
+test('adds timers from schedule and waiting menus and removes only the timer', async ({
+  page,
+}, info) => {
+  await page.goto('/');
+  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
+  const before = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('threadline.preview-demo.v1:threadline.tasks.v1')!),
+  );
+  const row = page.locator('.timeline-row').filter({ hasText: '邮件处理' });
+  if (info.project.name === 'preview-desktop') {
+    await row.getByRole('button', { name: '邮件处理更多操作', exact: true }).focus();
+    await page.keyboard.press('Shift+F10');
+  } else
+    await row.getByRole('button', { name: '邮件处理更多操作', exact: true }).click();
+  await page.getByRole('button', { name: '加入计时', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '加入计时', exact: true });
+  await dialog.getByLabel('计时方式').selectOption('down');
+  await dialog.getByLabel('倒计时分钟').fill('15');
+  await page.screenshot({ path: info.outputPath('timer-settings.png') });
+  await dialog.getByRole('button', { name: '开始计时', exact: true }).click();
+  const card = page.locator('.task-timer');
+  await expect(card).toHaveAttribute('data-mode', 'down');
+  if (info.project.name === 'preview-desktop') await card.click({ button: 'right' });
+  else
+    await card
+      .getByRole('button', { name: '邮件处理计时器更多操作', exact: true })
+      .click();
+  const menu = page.getByRole('menu', { name: '邮件处理计时器操作', exact: true });
+  await expect(menu).toBeVisible();
+  expect(
+    (await new AxeBuilder({ page }).include('.task-timer-menu').analyze()).violations,
+  ).toEqual([]);
+  await page.screenshot({ path: info.outputPath('timer-menu.png') });
+  await menu.getByRole('menuitem', { name: '删除计时器', exact: true }).click();
+  await expect(card).toHaveCount(0);
+  const waiting = page.locator('.waiting-task-row').first();
+  if (info.project.name === 'preview-desktop') await waiting.click({ button: 'right' });
+  else await waiting.getByRole('button', { name: /更多操作/ }).click();
+  await page.getByRole('menuitem', { name: '加入计时', exact: true }).click();
+  await dialog.getByRole('button', { name: '开始计时', exact: true }).click();
+  await expect(card).toHaveAttribute('data-mode', 'up');
+  if (info.project.name === 'preview-desktop') {
+    await card.focus();
+    await page.keyboard.press('Shift+F10');
+  } else await card.getByRole('button', { name: /计时器更多操作/ }).click();
+  await page.getByRole('menuitem', { name: '删除计时器', exact: true }).click();
+  await expect(card).toHaveCount(0);
+  expect(
+    await page.evaluate(() =>
+      JSON.parse(
+        localStorage.getItem('threadline.preview-demo.v1:threadline.tasks.v1')!,
+      ),
+    ),
+  ).toEqual(before);
+  await page.reload();
+  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
+  await expect(card).toHaveCount(0);
+});
+
 test('keeps the home layout while switching the right column and using wide screen space', async ({
   page,
 }, info) => {
+  test.setTimeout(90000);
   await page.goto('/');
   await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
   const schedule = page.locator('.schedule-panel');
@@ -181,7 +371,7 @@ test('keeps the home layout while switching the right column and using wide scre
   const initialSchedule = (await schedule.boundingBox())!;
   await choice.selectOption('time');
   await expect(
-    side.getByRole('region', { name: '当日时间分布', exact: true }),
+    side.getByRole('region', { name: '日程时间分布', exact: true }),
   ).toBeVisible();
   await expect(page.locator('#home-side-tasks')).not.toBeVisible();
   const switchedSchedule = (await schedule.boundingBox())!;
@@ -195,9 +385,16 @@ test('keeps the home layout while switching the right column and using wide scre
     expect(rightBounds.y).toBe(initialSchedule.y);
   }
   const chart = side.locator('.stage-time-panel');
+  await expect(chart.locator('.stage-time-metrics')).toHaveCount(0);
+  await expect(chart.locator('.stage-time-description')).toHaveCount(0);
+  await expect(chart.locator('.stage-time-switcher button')).toHaveCount(3);
+  await expect(page.locator('[data-day-remaining]')).toHaveText('1h30min');
+  await expect(page.locator('[data-day-total]')).toHaveText('3h');
+  await page.locator('.dashboard-overview').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: info.outputPath('home-header.png') });
   await expect
     .poll(() =>
-      chart.locator('.stage-time-metrics strong').evaluateAll((values) =>
+      page.locator('.day-time-fraction > em').evaluateAll((values) =>
         values.flatMap((value) => {
           const style = getComputedStyle(value);
           const height = value.getBoundingClientRect().height;
@@ -228,6 +425,8 @@ test('keeps the home layout while switching the right column and using wide scre
     chart.getByRole('button', { name: '实际投入', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
   await page.reload();
+  // WebKit 冷启动加载真实业务模块；先等工作台，避免把 5s 控件等待当成偏好丢失。
+  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
   await expect(choice).toHaveValue('time');
   await expect(chart).toBeVisible();
   const before = (await page.locator('.schedule-panel').boundingBox())!.width;
@@ -238,6 +437,7 @@ test('keeps the home layout while switching the right column and using wide scre
       .poll(async () => (await page.locator('.schedule-panel').boundingBox())!.width)
       .toBeGreaterThan(before + 200);
   await page.reload();
+  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
   await expect(page.locator('#home-side-column')).not.toBeVisible();
   await page.getByRole('button', { name: '展开右栏', exact: true }).click();
   await expect(choice).toHaveValue('time');

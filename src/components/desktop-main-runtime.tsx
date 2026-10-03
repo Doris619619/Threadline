@@ -33,8 +33,9 @@ function WorkspaceRuntime() {
                 <AppShell>
                   <HabitsStateProvider>
                     <WorkspaceDataProvider>
-                      <TaskTimers />
-                      <WorkspaceContent />
+                      <TaskTimers>
+                        <WorkspaceContent />
+                      </TaskTimers>
                     </WorkspaceDataProvider>
                   </HabitsStateProvider>
                 </AppShell>

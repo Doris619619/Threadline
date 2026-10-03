@@ -5,6 +5,8 @@
 import { CalendarDays, MoreHorizontal, Trash2 } from 'lucide-react';
 import { formatEstimate } from '../task-time';
 import { useRef, useState } from 'react';
+import { useTaskMenu } from '../hooks/use-task-menu';
+import { TaskTimerMenuAction } from './task-timer-menu-action';
 import { useGuardedAction } from '@/hooks/use-guarded-action';
 import { ManagementDialog } from '@/components/ui/management-dialog';
 import { TaskActionsPopover } from './task-actions-popover';
@@ -29,13 +31,13 @@ export function WaitingTaskRow({
   onEdit: () => void;
   onSchedule: (taskId: string, date: string) => Promise<unknown> | void;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const menu = useTaskMenu();
+  const menuAnchor = useRef<HTMLButtonElement>(null);
   const [dateOpen, setDateOpen] = useState(false);
-  const anchor = useRef<HTMLButtonElement>(null);
   const { busy, error, run } = useGuardedAction();
   /** 动作启动即收起菜单；失败保留任务和日期，允许明确重试。 */
   const submit = (action: () => Promise<unknown> | void) => {
-    setMenuOpen(false);
+    menu.close();
     void run(async () => {
       await action();
       setDateOpen(false);
@@ -45,7 +47,12 @@ export function WaitingTaskRow({
   const today = getLocalDateKey();
   const tomorrow = addLocalDateDays(today, 1);
   return (
-    <div className="waiting-task-row" aria-busy={busy}>
+    <div
+      className="waiting-task-row"
+      aria-busy={busy}
+      onContextMenu={menu.onContextMenu}
+      onKeyDown={menu.onKeyDown}
+    >
       <Checkbox
         aria-label={`完成${task.title}`}
         checked={false}
@@ -70,22 +77,29 @@ export function WaitingTaskRow({
       <div className="waiting-task-actions">
         <button
           type="button"
-          ref={anchor}
+          ref={menuAnchor}
           disabled={busy}
           aria-label={`${task.title}更多操作`}
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((value) => !value)}
+          aria-haspopup="menu"
+          aria-expanded={menu.open}
+          onClick={menu.toggle}
         >
           <MoreHorizontal size={18} />
         </button>
-        {menuOpen && (
+        {menu.open && (
           <TaskActionsPopover
-            anchor={anchor}
+            anchor={menuAnchor}
+            point={menu.point}
             label={`${task.title}待安排操作`}
             className="waiting-task-menu"
             role="menu"
-            onClose={() => setMenuOpen(false)}
+            onClose={menu.close}
           >
+            <TaskTimerMenuAction
+              taskId={task.id}
+              onClose={menu.close}
+              role="menuitem"
+            />
             <button
               type="button"
               role="menuitem"
@@ -97,7 +111,7 @@ export function WaitingTaskRow({
               type="button"
               role="menuitem"
               onClick={() => {
-                setMenuOpen(false);
+                menu.close();
                 setDateOpen(true);
               }}
             >

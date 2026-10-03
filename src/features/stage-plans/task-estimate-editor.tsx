@@ -138,11 +138,6 @@ export function TaskEstimateEditor({
           </button>
         </form>
       )}
-      {original && actual && (
-        <p className="stage-time-description">
-          填写任务累计实际时长，本次增减计入所选日期，不改变安排或完成状态。
-        </p>
-      )}
       {error && (
         <p className="form-error" role="alert">
           {error}

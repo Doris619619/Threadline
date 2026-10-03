@@ -24,13 +24,14 @@ function dateLabel(date: string, today: string) {
   );
 }
 
-/** 三个总量同时可见；剩余只排除已完成任务，逾期和未安排任务继续计入工作量。 */
+/** 阶段并列三个总量，首页仅切换口径；剩余只排除完成任务，保存中锁定切换并保留草稿。 */
 export function StageTimeChart({
   tasks,
   projects,
   plan,
   today,
   day,
+  compactSummary = false,
   onSaveEstimate,
   onSaveActual,
 }: {
@@ -39,6 +40,7 @@ export function StageTimeChart({
   plan?: StagePlan;
   today: string;
   day?: { date: string; entries?: TaskTimeEntry[] };
+  compactSummary?: boolean;
   onSaveEstimate: SaveStageEstimate;
   onSaveActual: SaveStageEstimate;
 }) {
@@ -51,9 +53,7 @@ export function StageTimeChart({
     key,
     ...stageTimeBreakdown(tasks, projects, plan?.id, key, day),
   }));
-  const { groups, total, missing } = summaries.find(
-    (summary) => summary.key === metric,
-  )!;
+  const { groups, total } = summaries.find((summary) => summary.key === metric)!;
   const active = hovered ?? selected;
   const item = groups
     .flatMap((group) => group.items)
@@ -85,7 +85,7 @@ export function StageTimeChart({
     : dateLabel(day!.date, today);
   const remainingRange = plan
     ? today > plan.endDate
-      ? '阶段已结束 · 未完成任务仍保留'
+      ? '已结束'
       : dateLabel(today < plan.startDate ? plan.startDate : today, today) +
         '—' +
         dateLabel(plan.endDate, today)
@@ -94,11 +94,14 @@ export function StageTimeChart({
     <section className="stage-time-panel" aria-labelledby={titleId}>
       <header>
         <div>
-          <h2 id={titleId}>{plan ? '时间分布' : '当日时间分布'}</h2>
-          <span>每块是一项任务 · 同色系属于同一项目</span>
+          <h2 id={titleId}>{plan ? '时间分布' : '日程时间分布'}</h2>
         </div>
       </header>
-      <div className="stage-time-metrics" role="group" aria-label="阶段时间统计">
+      <div
+        className={compactSummary ? 'stage-time-switcher' : 'stage-time-metrics'}
+        role="group"
+        aria-label={compactSummary ? '时间分布口径' : '阶段时间统计'}
+      >
         {summaries.map((summary) => (
           <button
             type="button"
@@ -112,37 +115,28 @@ export function StageTimeChart({
               setHovered(undefined);
             }}
           >
-            <span>
-              {summary.key === 'planned'
-                ? plan
-                  ? '整个阶段预计'
-                  : '当日预计'
-                : metricLabels[summary.key]}
-            </span>
-            <strong>{formatMinutes(summary.total)}</strong>
-            <small>
-              {summary.key === 'planned'
-                ? stageRange
-                : summary.key === 'remaining'
-                  ? remainingRange
-                  : plan
-                    ? '阶段任务累计投入'
-                    : '当日实际投入'}
-            </small>
+            {compactSummary ? (
+              metricLabels[summary.key]
+            ) : (
+              <>
+                <span>
+                  {summary.key === 'planned'
+                    ? plan
+                      ? '整个阶段预计'
+                      : '当日预计'
+                    : metricLabels[summary.key]}
+                </span>
+                <strong>{formatMinutes(summary.total)}</strong>
+                {summary.key !== 'actual' && (
+                  <small>
+                    {summary.key === 'planned' ? stageRange : remainingRange}
+                  </small>
+                )}
+              </>
+            )}
           </button>
         ))}
       </div>
-      <p className="stage-time-description">
-        {plan
-          ? metric === 'planned'
-            ? '阶段全部任务的预计总量，包含已完成任务。'
-            : metric === 'remaining'
-              ? '未完成任务的预计合计，包含未安排和逾期任务；不扣减已记录的实际时间。'
-              : '阶段任务的累计实际时长。可直接编辑实际时长并选择本次调整的投入日期。'
-          : metric === 'actual'
-            ? '所选日期的实际投入，包含已移期任务留下的当天记录；Daily 单独统计。'
-            : '所选日期日程任务的预计时长；剩余只统计未完成任务。Daily 单独统计。'}
-      </p>
       <StageTimeRing
         sectors={sectors}
         total={total}
@@ -166,11 +160,6 @@ export function StageTimeChart({
               ? '未记录'
               : '未估时'
             : formatMinutes(item.minutes)}
-        </p>
-      )}
-      {missing > 0 && (
-        <p className="stage-time-missing">
-          {missing} 项{metric === 'actual' ? '未记录' : '未估时'}，未计入占比
         </p>
       )}
       <div className="stage-time-legend" aria-label="项目时间明细" key={metric}>

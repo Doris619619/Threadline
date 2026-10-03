@@ -11,13 +11,6 @@
   margin: 0;
   font-size: var(--text-section-size);
 }
-.stage-time-panel header span,
-.stage-time-description,
-.stage-time-missing {
-  font-size: var(--text-caption-size);
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
 .stage-time-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -57,6 +50,36 @@
 .stage-time-metrics strong {
   font-size: var(--text-section-size);
   font-variant-numeric: tabular-nums;
+}
+/* 首页总量在统计栏，圆环这里只保留三个等宽口径按钮。 */
+.stage-time-switcher {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-1);
+  margin-block: var(--space-3);
+  padding: var(--space-1);
+  border-radius: var(--radius-control);
+  background: var(--surface-secondary);
+}
+.stage-time-switcher button {
+  min-height: var(--touch-target);
+  min-width: 0;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-caption-size);
+  cursor: pointer;
+}
+.stage-time-switcher button[aria-pressed='true'] {
+  border-color: var(--border);
+  background: var(--surface);
+}
+.stage-time-switcher button:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 .stage-time-visual {
   position: relative;
@@ -137,9 +160,6 @@
   border-radius: var(--radius-sm);
   font-size: var(--text-secondary-size);
   overflow-wrap: anywhere;
-}
-.stage-time-missing {
-  margin: var(--space-2) 0;
 }
 .stage-time-legend {
   display: grid;

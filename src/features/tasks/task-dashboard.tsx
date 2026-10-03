@@ -7,7 +7,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { Moon, CircleCheck } from 'lucide-react';
 import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
-import { StatItem } from '@/components/ui/stat-item';
+import { DayTimeStats } from './components/day-time-stats';
 import { Surface } from '@/components/ui/surface';
 import { DailyPanel, type DailyPanelHandle } from '@/features/daily/daily-panel';
 import { CalendarPanel } from '@/features/calendar/calendar-panel';
@@ -22,7 +22,6 @@ import { useDesktopWindow } from '@/lib/desktop-window-context';
 import { resolveActiveProject } from '@/lib/project-rules';
 import { getLocalDateKey } from '@/lib/local-date';
 import { WorkstationPanel } from '@/features/tasks/compact-workspace';
-import { formatMinutes } from '@/features/tasks/task-time';
 import { DesktopScheduleList } from '@/features/tasks/components/desktop-schedule-list';
 import { TaskLine } from '@/features/tasks/components/task-line';
 import { TimedTaskCreateRow } from '@/features/tasks/components/timed-task-create-row';
@@ -183,6 +182,8 @@ export function TaskDashboard() {
     moveTask: move,
     remainingPlannedMinutes,
     remainingMissingCount,
+    totalPlannedMinutes,
+    totalMissingCount,
     reorderWorkstation,
     rescheduleTask,
     scheduleRatio,
@@ -310,27 +311,13 @@ export function TaskDashboard() {
   return (
     <div className="dashboard dashboard-annotatable" data-testid="home-panel">
       <Surface className="dashboard-overview" variant="flat">
-        <div className="metric-strip">
-          <StatItem
-            label="今日剩余预计"
-            value={
-              <>
-                <em>{formatMinutes(remainingPlannedMinutes)}</em>
-                {remainingMissingCount > 0 && (
-                  <small>＋{remainingMissingCount} 项未估时</small>
-                )}
-              </>
-            }
-          />
-          <StatItem
-            label="今日实际投入"
-            value={
-              <>
-                <em>{formatMinutes(actual + dailyActual)}</em>
-              </>
-            }
-          />
-        </div>
+        <DayTimeStats
+          remaining={remainingPlannedMinutes}
+          total={totalPlannedMinutes}
+          remainingMissing={remainingMissingCount}
+          totalMissing={totalMissingCount}
+          actual={actual + dailyActual}
+        />
         <div className="overview-close-action">
           {sideCollapsed && (
             <button

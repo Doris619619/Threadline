@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ProjectTag } from '@/components/ui/project-tag';
 import { TaskActionsPopover } from './task-actions-popover';
 import { TaskRowActions } from '@/features/tasks/components/task-row-actions';
+import { useTaskMenu } from '../hooks/use-task-menu';
 import {
   formatMinutes,
   formatEstimate,
@@ -70,6 +71,8 @@ export function TaskLine({
   onToggleWorkstation?: (taskId: string) => void;
 }) {
   const project = resolveTaskProject(projects, task.projectId);
+  const menu = useTaskMenu();
+  const menuAnchor = useRef<HTMLButtonElement>(null);
   const timed = inSchedulePanel || Boolean(task.plannedStartTime);
   const canDrag = draggable && !interactionLocked;
   const canChangeWorkflow = !task.completed;
@@ -498,6 +501,8 @@ export function TaskLine({
         !canDrag && 'is-drag-disabled',
       )}
       draggable={canDrag && !editingField}
+      onContextMenu={menu.onContextMenu}
+      onKeyDown={menu.onKeyDown}
       onDragStart={(event) => {
         if (!canDrag || editingField) {
           event.preventDefault();
@@ -579,6 +584,8 @@ export function TaskLine({
 
       <TaskRowActions
         taskId={task.id}
+        menu={menu}
+        menuAnchor={menuAnchor}
         title={task.title}
         canChangeWorkflow={canChangeWorkflow}
         canDrag={canDrag}
