@@ -34,6 +34,36 @@
   padding-left: 20px;
   border-left: 1px solid var(--border-subtle);
 }
+/* 右栏显示和展开/收起并入统计横条，与结束今天同组，侧栏顶部直接展示内容。 */
+.dashboard-overview .metric-strip {
+  flex-basis: 360px;
+}
+.overview-close-action .home-side-controls {
+  flex: 1 1 auto;
+}
+.overview-close-action .home-side-controls select {
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 100%;
+  font-size: var(--text-caption-size);
+}
+@media (max-width: 760px) {
+  .dashboard-overview .overview-close-action {
+    width: 100%;
+    margin-left: 0;
+    gap: 8px;
+  }
+  .overview-close-action .home-side-controls {
+    flex-basis: 100%;
+  }
+  .overview-close-action .home-side-controls select {
+    flex: 1 1 auto;
+    width: 0;
+  }
+  .overview-close-action .home-layout-toggle {
+    flex-shrink: 0;
+  }
+}
 
 .workspace-loading {
   min-height: 240px;

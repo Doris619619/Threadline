@@ -319,17 +319,29 @@ export function TaskDashboard() {
           actual={actual + dailyActual}
         />
         <div className="overview-close-action">
-          {sideCollapsed && (
+          <div className="home-side-controls">
+            <select
+              aria-label="右栏显示内容"
+              aria-controls="home-side-tasks home-side-time"
+              value={sideView}
+              disabled={preparingSideView}
+              onChange={(event) =>
+                void changeSideView(event.target.value as 'tasks' | 'time')
+              }
+            >
+              <option value="tasks">任务列表</option>
+              <option value="time">今日时间分布</option>
+            </select>
             <button
               type="button"
               className="home-layout-toggle"
-              aria-expanded={false}
+              aria-expanded={!sideCollapsed}
               aria-controls="home-side-column"
-              onClick={() => setSideCollapsed(false)}
+              onClick={() => setSideCollapsed((collapsed) => !collapsed)}
             >
-              展开右栏
+              {sideCollapsed ? '展开右栏' : '收起右栏'}
             </button>
-          )}
+          </div>
           <button
             type="button"
             className="finish-day"
@@ -418,29 +430,6 @@ export function TaskDashboard() {
           )}
         </SchedulePanel>
         <div id="home-side-column" className="side-column" hidden={sideCollapsed}>
-          <div className="home-side-controls">
-            <select
-              aria-label="右栏显示内容"
-              aria-controls="home-side-tasks home-side-time"
-              value={sideView}
-              disabled={preparingSideView}
-              onChange={(event) =>
-                void changeSideView(event.target.value as 'tasks' | 'time')
-              }
-            >
-              <option value="tasks">任务列表</option>
-              <option value="time">今日时间分布</option>
-            </select>
-            <button
-              type="button"
-              className="home-layout-toggle"
-              aria-expanded={true}
-              aria-controls="home-side-column"
-              onClick={() => setSideCollapsed(true)}
-            >
-              收起右栏
-            </button>
-          </div>
           <div id="home-side-time" hidden={sideView !== 'time'}>
             <DayTimeChart
               tasks={tasks}

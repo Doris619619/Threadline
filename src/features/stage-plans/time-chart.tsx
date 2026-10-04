@@ -1,4 +1,4 @@
-/** @fileoverview 阶段总预计、剩余预计和实际投入共用单层任务圆环，并提供原地耗时编辑明细。 */
+/** @fileoverview 三种时间口径共用统计与原地编辑，阶段可切换经典双环和新版引线图。 */
 'use client';
 import { useId, useState, type ReactNode } from 'react';
 import type { Task, Project, StagePlan, TaskTimeEntry } from '@/types/domain';
@@ -9,6 +9,9 @@ import {
   type StageTimeMetric,
 } from './time-breakdown';
 import { StageTimeRing } from './time-ring';
+import { ClassicTimeRing } from './time-ring-classic';
+import { softTimeColor } from './time-colors';
+import { usePersistentState } from '@/hooks/use-persistent-state';
 import { TaskEstimateEditor, type SaveStageEstimate } from './task-estimate-editor';
 import type { StageTimeView } from './time-view';
 
@@ -51,6 +54,12 @@ export function StageTimeChart({
   const [selected, setSelected] = useState<string>();
   const [hovered, setHovered] = useState<string>();
   const [saving, setSaving] = useState(false);
+  const [layout, setLayout] = usePersistentState<'classic' | 'new'>(
+    'threadline.stage-time-layout',
+    'new',
+    (value) => (value === 'classic' ? 'classic' : 'new'),
+  );
+  const classic = !!plan && layout === 'classic';
   const titleId = useId();
   const summaries = (['planned', 'remaining', 'actual'] as const).map((key) => ({
     key,
@@ -99,6 +108,25 @@ export function StageTimeChart({
         <div>
           <h2 id={titleId}>{plan ? '时间分布' : '日程时间分布'}</h2>
         </div>
+        {plan && (
+          <div
+            className="stage-time-layout-switch"
+            role="group"
+            aria-label="计划时间分布样式"
+          >
+            {(['classic', 'new'] as const).map((value) => (
+              <button
+                type="button"
+                key={value}
+                aria-pressed={layout === value}
+                disabled={saving}
+                onClick={() => setLayout(value)}
+              >
+                {value === 'classic' ? '经典' : '新版'}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
       <div
         className={
@@ -151,23 +179,48 @@ export function StageTimeChart({
           </button>
         ))}
       </div>
-      <div className={'stage-time-body' + (renderDetails ? ' is-unified' : '')}>
+      <div
+        className={
+          'stage-time-body' +
+          (renderDetails ? ' is-unified' : '') +
+          (classic ? ' is-classic' : '')
+        }
+      >
         <div className="stage-time-plot">
-          <StageTimeRing
-            sectors={sectors}
-            total={total}
-            active={active}
-            centerTitle={metricLabels[metric]}
-            emptyLabel={
-              metric === 'actual'
-                ? '暂无实际记录'
-                : metric === 'remaining'
-                  ? '暂无剩余预计'
-                  : '暂无预计时间'
-            }
-            onSelect={select}
-            onHover={setHovered}
-          />
+          {classic ? (
+            <ClassicTimeRing
+              groups={groups}
+              sectors={sectors}
+              total={total}
+              active={active}
+              centerTitle={metricLabels[metric]}
+              emptyLabel={
+                metric === 'actual'
+                  ? '暂无实际记录'
+                  : metric === 'remaining'
+                    ? '暂无剩余预计'
+                    : '暂无预计时间'
+              }
+              onSelect={select}
+              onHover={setHovered}
+            />
+          ) : (
+            <StageTimeRing
+              sectors={sectors}
+              total={total}
+              active={active}
+              centerTitle={metricLabels[metric]}
+              emptyLabel={
+                metric === 'actual'
+                  ? '暂无实际记录'
+                  : metric === 'remaining'
+                    ? '暂无剩余预计'
+                    : '暂无预计时间'
+              }
+              onSelect={select}
+              onHover={setHovered}
+            />
+          )}
           {item && (
             <p className="stage-time-selection" aria-live="polite">
               {item.title} ·{' '}
@@ -205,7 +258,10 @@ export function StageTimeChart({
                   onMouseEnter={() => setHovered(group.id)}
                   onMouseLeave={() => setHovered(undefined)}
                 >
-                  <i aria-hidden="true" style={{ background: group.color }} />
+                  <i
+                    aria-hidden="true"
+                    style={{ background: softTimeColor(group.color) }}
+                  />
                   <span>{group.name}</span>
                   <strong>{formatMinutes(group.total)}</strong>
                   <small>
@@ -234,7 +290,10 @@ export function StageTimeChart({
                           onMouseEnter={() => setHovered(item.id)}
                           onMouseLeave={() => setHovered(undefined)}
                         >
-                          <i aria-hidden="true" style={{ background: item.color }} />
+                          <i
+                            aria-hidden="true"
+                            style={{ background: softTimeColor(item.color) }}
+                          />
                           <span>{item.title}</span>
                         </button>
                         {task &&

@@ -5,6 +5,7 @@ import type { Project, Task } from '@/types/domain';
 import { formatMinutes } from '@/features/tasks/task-time';
 import { stageProjectGroups } from './project-groups';
 import type { StageTimeView } from './time-view';
+import { softTimeColor } from './time-colors';
 
 const filters = [
   ['all', '全部'],
@@ -58,7 +59,7 @@ export function TimeTaskList({
           <summary>
             <i
               aria-hidden="true"
-              style={{ background: group.project?.color ?? '#8792a2' }}
+              style={{ background: softTimeColor(group.project?.color ?? '#8792a2') }}
             />
             <span>{group.project?.name ?? '未知项目'}</span>
             <small>{group.tasks.length} 项</small>

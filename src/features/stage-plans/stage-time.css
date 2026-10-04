@@ -1,4 +1,4 @@
-/** @fileoverview 三种时间统计、任务引线圆环和原地耗时表单；文字与圆环分别响应宽度。 */
+/** @fileoverview 三种时间统计、经典/新版圆环与原地耗时表单；文字和图形分别响应宽度。 */
 .stage-time-panel {
   padding: var(--space-5);
   margin: var(--space-5) 0;
@@ -127,6 +127,53 @@
 .stage-time-panel h2 {
   margin: 0;
   font-size: var(--text-section-size);
+}
+/* 样式切换只占标题右侧，不增加说明行；两种圆环共享任务组件，保留编辑草稿。 */
+.stage-time-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.stage-time-layout-switch {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-control);
+  background: var(--surface-secondary);
+}
+.stage-time-layout-switch button {
+  min-height: var(--touch-target);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-caption-size);
+  cursor: pointer;
+}
+.stage-time-layout-switch button[aria-pressed='true'] {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+.stage-time-layout-switch button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.stage-time-classic {
+  max-width: 440px;
+  aspect-ratio: 1;
+}
+@container (min-width: 820px) {
+  .stage-time-body.is-classic.is-unified {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 1.15fr);
+    align-items: center;
+  }
+  .is-classic .stage-time-list-pane {
+    max-height: 480px;
+  }
 }
 .stage-time-metrics {
   display: grid;

@@ -5,8 +5,9 @@ import { formatMinutes } from '@/features/tasks/task-time';
 import { ringSector, type StageTimeSector } from './time-breakdown';
 import { stageTimeLabelLayout } from './time-label-layout';
 import { TimeRingCenter } from './time-ring-center';
+import { softTimeColor } from './time-colors';
 
-/** 引线使用项目原色并与标签共用任务 ID；观察真实尺寸，文字不随圆环缩小。 */
+/** 引线沿用项目色相的柔和色阶，与标签共用任务 ID；文字不随圆环缩小。 */
 export function StageTimeRing({
   sectors,
   total,
@@ -84,7 +85,7 @@ export function StageTimeRing({
               x: layout.cx,
               y: layout.cy,
             })}
-            fill={sector.color}
+            fill={softTimeColor(sector.color)}
             opacity={
               !active || active === sector.id || active === sector.projectId ? 1 : 0.35
             }
@@ -98,7 +99,7 @@ export function StageTimeRing({
             data-stage-line={label.id}
             points={label.points}
             fill="none"
-            stroke={label.projectColor ?? label.color}
+            stroke={softTimeColor(label.projectColor ?? label.color)}
             strokeWidth="1"
             opacity={
               !active || active === label.id || active === label.projectId ? 0.7 : 0.25
