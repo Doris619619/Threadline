@@ -1,4 +1,4 @@
-/** @fileoverview 三种时间口径共用统计与原地编辑，阶段可切换经典双环和新版引线图。 */
+/** @fileoverview 标题内时间摘要切换统计口径，经典双环与新版引线图共用原地编辑。 */
 'use client';
 import { useId, useState, type ReactNode } from 'react';
 import type { Task, Project, StagePlan, TaskTimeEntry } from '@/types/domain';
@@ -28,7 +28,7 @@ function dateLabel(date: string, today: string) {
   );
 }
 
-/** 阶段共用左右图表与操作清单，首页保留轻量明细；保存中锁定口径，剩余只排除完成项。 */
+/** 阶段在图表标题内并列时间摘要，首页保留轻量切换；保存中锁定口径，剩余只排除完成项。 */
 export function StageTimeChart({
   tasks,
   projects,
@@ -102,12 +102,64 @@ export function StageTimeChart({
         '—' +
         dateLabel(plan.endDate, today)
     : stageRange;
+  const timeSummary = (
+    <div
+      className={
+        compactSummary
+          ? 'stage-time-switcher'
+          : plan
+            ? 'stage-time-summary'
+            : 'stage-time-metrics'
+      }
+      role="group"
+      aria-label={compactSummary ? '时间分布口径' : '阶段时间统计'}
+    >
+      {summaries.map((summary) => (
+        <button
+          type="button"
+          key={summary.key}
+          aria-label={metricLabels[summary.key]}
+          aria-pressed={metric === summary.key}
+          title={
+            summary.key === 'actual'
+              ? undefined
+              : summary.key === 'planned'
+                ? stageRange
+                : remainingRange
+          }
+          disabled={saving}
+          onClick={() => {
+            setMetric(summary.key);
+            setSelected(undefined);
+            setHovered(undefined);
+          }}
+        >
+          {compactSummary ? (
+            metricLabels[summary.key]
+          ) : (
+            <>
+              <span>
+                {summary.key === 'planned'
+                  ? plan
+                    ? metricLabels.planned
+                    : '当日预计'
+                  : metricLabels[summary.key]}
+              </span>
+              <strong>{formatMinutes(summary.total)}</strong>
+              {!plan && summary.key !== 'actual' && (
+                <small>{summary.key === 'planned' ? stageRange : remainingRange}</small>
+              )}
+            </>
+          )}
+        </button>
+      ))}
+    </div>
+  );
   return (
     <section className="stage-time-panel" aria-labelledby={titleId}>
-      <header>
-        <div>
-          <h2 id={titleId}>{plan ? '时间分布' : '日程时间分布'}</h2>
-        </div>
+      <header className={plan ? 'stage-time-header' : undefined}>
+        <h2 id={titleId}>{plan ? '时间分布' : '日程时间分布'}</h2>
+        {plan && timeSummary}
         {plan && (
           <div
             className="stage-time-layout-switch"
@@ -128,57 +180,7 @@ export function StageTimeChart({
           </div>
         )}
       </header>
-      <div
-        className={
-          compactSummary
-            ? 'stage-time-switcher'
-            : 'stage-time-metrics' + (plan ? ' is-stage' : '')
-        }
-        role="group"
-        aria-label={compactSummary ? '时间分布口径' : '阶段时间统计'}
-      >
-        {summaries.map((summary) => (
-          <button
-            type="button"
-            key={summary.key}
-            aria-label={metricLabels[summary.key]}
-            aria-pressed={metric === summary.key}
-            title={
-              summary.key === 'actual'
-                ? undefined
-                : summary.key === 'planned'
-                  ? stageRange
-                  : remainingRange
-            }
-            disabled={saving}
-            onClick={() => {
-              setMetric(summary.key);
-              setSelected(undefined);
-              setHovered(undefined);
-            }}
-          >
-            {compactSummary ? (
-              metricLabels[summary.key]
-            ) : (
-              <>
-                <span>
-                  {summary.key === 'planned'
-                    ? plan
-                      ? '整个阶段预计'
-                      : '当日预计'
-                    : metricLabels[summary.key]}
-                </span>
-                <strong>{formatMinutes(summary.total)}</strong>
-                {!plan && summary.key !== 'actual' && (
-                  <small>
-                    {summary.key === 'planned' ? stageRange : remainingRange}
-                  </small>
-                )}
-              </>
-            )}
-          </button>
-        ))}
-      </div>
+      {!plan && timeSummary}
       <div
         className={
           'stage-time-body' +

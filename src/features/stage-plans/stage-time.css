@@ -1,4 +1,4 @@
-/** @fileoverview 三种时间统计、经典/新版圆环与原地耗时表单；文字和图形分别响应宽度。 */
+/** @fileoverview 无框时间摘要、经典/新版圆环与原地耗时表单；标题和图形分别响应宽度。 */
 .stage-time-panel {
   padding: var(--space-5);
   margin: var(--space-5) 0;
@@ -10,6 +10,7 @@
 }
 .stage-detail .stage-time-panel {
   margin-block: 0;
+  border: 0;
 }
 .stage-time-body {
   min-width: 0;
@@ -215,16 +216,85 @@
   font-size: var(--text-section-size);
   font-variant-numeric: tabular-nums;
 }
-.stage-time-metrics.is-stage {
-  margin-top: var(--space-2);
+/* 三个总量靠近图表，用留白和选中下划线分组，不再叠加三张统计卡片。 */
+.stage-time-panel > .stage-time-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 420px) auto;
+  grid-template-areas: 'title metrics layout';
+  gap: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
 }
-.stage-time-metrics.is-stage button {
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 4px var(--space-2);
-  padding-block: var(--space-2);
+.stage-time-header h2 {
+  grid-area: title;
+}
+.stage-time-header .stage-time-layout-switch {
+  grid-area: layout;
+}
+.stage-time-summary {
+  grid-area: metrics;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  min-width: 0;
+}
+.stage-time-summary button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: var(--touch-target);
+  min-width: 0;
+  padding: var(--space-2) 0 var(--space-3);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  container-type: inline-size;
+}
+.stage-time-summary button::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 24px;
+  height: 2px;
+  border-radius: 1px;
+  background: transparent;
+}
+.stage-time-summary button[aria-pressed='true']::after {
+  background: var(--accent);
+}
+.stage-time-summary button span {
+  color: var(--text-secondary);
+  font-size: max(13px, var(--text-caption-size));
+}
+.stage-time-summary button:is(:hover, [aria-pressed='true']) span {
+  color: var(--accent-text);
+}
+.stage-time-summary strong {
+  font-size: min(1.375rem, 20cqi);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.stage-time-summary button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+@container (max-width: 700px) {
+  .stage-time-panel > .stage-time-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'title layout' 'metrics metrics';
+    gap: var(--space-2);
+  }
+  .stage-time-summary {
+    gap: var(--space-2);
+  }
 }
 /* 首页总量在统计栏，圆环这里只保留三个等宽口径按钮。 */
 .stage-time-switcher {
