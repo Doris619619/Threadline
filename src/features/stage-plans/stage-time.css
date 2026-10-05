@@ -61,7 +61,7 @@
   }
 }
 @container (max-width: 819px) {
-  .stage-time-body.is-unified > .stage-time-list-pane {
+  .stage-time-body.is-unified .stage-time-details-slot > .stage-time-list-pane {
     padding-top: var(--space-3);
     border-top: 1px solid var(--border-subtle);
   }
@@ -164,17 +164,7 @@
   cursor: wait;
 }
 .stage-time-classic {
-  max-width: 440px;
   aspect-ratio: 1;
-}
-@container (min-width: 820px) {
-  .stage-time-body.is-classic.is-unified {
-    grid-template-columns: minmax(0, 1fr) minmax(340px, 1.15fr);
-    align-items: center;
-  }
-  .is-classic .stage-time-list-pane {
-    max-height: 480px;
-  }
 }
 .stage-time-metrics {
   display: grid;
@@ -225,7 +215,7 @@
   padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--border-subtle);
 }
-.stage-time-header h2 {
+.stage-time-header .stage-time-heading {
   grid-area: title;
 }
 .stage-time-header .stage-time-layout-switch {

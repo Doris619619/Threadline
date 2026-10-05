@@ -1,4 +1,4 @@
-/** @fileoverview 标题内时间摘要切换统计口径，经典双环与新版引线图共用原地编辑。 */
+/** @fileoverview 经典完整图表明细与新版合并视图共用统计和保存，独立保留各版输入草稿。 */
 'use client';
 import { useId, useState, type ReactNode } from 'react';
 import type { Task, Project, StagePlan, TaskTimeEntry } from '@/types/domain';
@@ -11,7 +11,7 @@ import {
 import { StageTimeRing } from './time-ring';
 import { ClassicTimeRing } from './time-ring-classic';
 import { softTimeColor } from './time-colors';
-import { usePersistentState } from '@/hooks/use-persistent-state';
+import { ClassicTimeLegend } from './time-legend-classic';
 import { TaskEstimateEditor, type SaveStageEstimate } from './task-estimate-editor';
 import type { StageTimeView } from './time-view';
 
@@ -28,7 +28,7 @@ function dateLabel(date: string, today: string) {
   );
 }
 
-/** 阶段在图表标题内并列时间摘要，首页保留轻量切换；保存中锁定口径，剩余只排除完成项。 */
+/** 经典保留双环和简明图例，下方另放状态清单；新版合并右侧操作，保存中锁定切换。 */
 export function StageTimeChart({
   tasks,
   projects,
@@ -39,6 +39,9 @@ export function StageTimeChart({
   onSaveEstimate,
   onSaveActual,
   renderDetails,
+  renderClassicTasks,
+  layout = 'new',
+  onLayoutChange,
 }: {
   tasks: Task[];
   projects: Project[];
@@ -49,23 +52,23 @@ export function StageTimeChart({
   onSaveEstimate: SaveStageEstimate;
   onSaveActual: SaveStageEstimate;
   renderDetails?: (view: StageTimeView) => ReactNode;
+  renderClassicTasks?: (view: StageTimeView) => ReactNode;
+  layout?: 'classic' | 'new';
+  onLayoutChange?: (layout: 'classic' | 'new') => void;
 }) {
   const [metric, setMetric] = useState<StageTimeMetric>('planned');
   const [selected, setSelected] = useState<string>();
   const [hovered, setHovered] = useState<string>();
   const [saving, setSaving] = useState(false);
-  const [layout, setLayout] = usePersistentState<'classic' | 'new'>(
-    'threadline.stage-time-layout',
-    'new',
-    (value) => (value === 'classic' ? 'classic' : 'new'),
-  );
   const classic = !!plan && layout === 'classic';
   const titleId = useId();
   const summaries = (['planned', 'remaining', 'actual'] as const).map((key) => ({
     key,
     ...stageTimeBreakdown(tasks, projects, plan?.id, key, day),
   }));
-  const { groups, total } = summaries.find((summary) => summary.key === metric)!;
+  const { groups, total, missing } = summaries.find(
+    (summary) => summary.key === metric,
+  )!;
   const active = hovered ?? selected;
   const item = groups
     .flatMap((group) => group.items)
@@ -155,174 +158,239 @@ export function StageTimeChart({
       ))}
     </div>
   );
+  const view: StageTimeView = {
+    metric,
+    selected,
+    active,
+    saving,
+    select,
+    hover: setHovered,
+    saveEstimate,
+    saveActual,
+  };
   return (
-    <section className="stage-time-panel" aria-labelledby={titleId}>
-      <header className={plan ? 'stage-time-header' : undefined}>
-        <h2 id={titleId}>{plan ? '时间分布' : '日程时间分布'}</h2>
-        {plan && timeSummary}
-        {plan && (
-          <div
-            className="stage-time-layout-switch"
-            role="group"
-            aria-label="计划时间分布样式"
-          >
-            {(['classic', 'new'] as const).map((value) => (
-              <button
-                type="button"
-                key={value}
-                aria-pressed={layout === value}
-                disabled={saving}
-                onClick={() => setLayout(value)}
-              >
-                {value === 'classic' ? '经典' : '新版'}
-              </button>
-            ))}
-          </div>
-        )}
-      </header>
-      {!plan && timeSummary}
-      <div
-        className={
-          'stage-time-body' +
-          (renderDetails ? ' is-unified' : '') +
-          (classic ? ' is-classic' : '')
-        }
+    <>
+      <section
+        className={'stage-time-panel' + (classic ? ' is-classic-panel' : '')}
+        aria-labelledby={titleId}
       >
-        <div className="stage-time-plot">
-          {classic ? (
-            <ClassicTimeRing
-              groups={groups}
-              sectors={sectors}
-              total={total}
-              active={active}
-              centerTitle={metricLabels[metric]}
-              emptyLabel={
-                metric === 'actual'
-                  ? '暂无实际记录'
-                  : metric === 'remaining'
-                    ? '暂无剩余预计'
-                    : '暂无预计时间'
-              }
-              onSelect={select}
-              onHover={setHovered}
-            />
-          ) : (
-            <StageTimeRing
-              sectors={sectors}
-              total={total}
-              active={active}
-              centerTitle={metricLabels[metric]}
-              emptyLabel={
-                metric === 'actual'
-                  ? '暂无实际记录'
-                  : metric === 'remaining'
-                    ? '暂无剩余预计'
-                    : '暂无预计时间'
-              }
-              onSelect={select}
-              onHover={setHovered}
-            />
+        <header
+          className={
+            classic
+              ? 'stage-time-classic-header'
+              : plan
+                ? 'stage-time-header'
+                : undefined
+          }
+        >
+          <div className="stage-time-heading">
+            <h2 id={titleId}>{plan ? '时间分布' : '日程时间分布'}</h2>
+            {classic && <span>内圈项目 · 外圈任务</span>}
+          </div>
+          {plan && !classic && timeSummary}
+          {classic && (
+            <div
+              className="stage-time-classic-switch"
+              role="group"
+              aria-label="时间统计口径"
+            >
+              {(['planned', 'actual'] as const).map((value) => (
+                <button
+                  type="button"
+                  key={value}
+                  aria-pressed={metric === value}
+                  disabled={saving}
+                  onClick={() => {
+                    setMetric(value);
+                    setSelected(undefined);
+                    setHovered(undefined);
+                  }}
+                >
+                  {value === 'planned' ? '预计' : '实际'}
+                </button>
+              ))}
+            </div>
           )}
-          {item && (
-            <p className="stage-time-selection" aria-live="polite">
-              {item.title} ·{' '}
-              {item.minutes === undefined
-                ? metric === 'actual'
-                  ? '未记录'
-                  : '未估时'
-                : formatMinutes(item.minutes)}
-            </p>
+          {plan && (
+            <div
+              className="stage-time-layout-switch"
+              role="group"
+              aria-label="计划时间分布样式"
+            >
+              {(['classic', 'new'] as const).map((value) => (
+                <button
+                  type="button"
+                  key={value}
+                  aria-pressed={layout === value}
+                  disabled={saving}
+                  onClick={() => {
+                    if (value === 'classic' && metric === 'remaining')
+                      setMetric('planned');
+                    onLayoutChange?.(value);
+                  }}
+                >
+                  {value === 'classic' ? '经典' : '新版'}
+                </button>
+              ))}
+            </div>
           )}
-        </div>
-        {renderDetails ? (
-          renderDetails({
-            metric,
-            selected,
-            active,
-            saving,
-            select,
-            hover: setHovered,
-            saveEstimate,
-            saveActual,
-          })
-        ) : (
-          <div className="stage-time-legend" aria-label="项目时间明细" key={metric}>
-            {!groups.length && (
-              <p className="stage-time-empty">
-                {metric === 'remaining'
-                  ? '所有任务均已完成，或尚未添加任务。'
-                  : '添加任务后，在这里查看时间分布。'}
+        </header>
+        {!plan && timeSummary}
+        <div
+          className={
+            'stage-time-body' +
+            (renderDetails ? ' is-unified' : '') +
+            (classic ? ' is-classic' : '')
+          }
+        >
+          <div className="stage-time-plot">
+            {classic ? (
+              <ClassicTimeRing
+                groups={groups}
+                sectors={sectors}
+                total={total}
+                active={active}
+                centerTitle={metric === 'actual' ? '实际总时间' : '预计总时间'}
+                emptyLabel={
+                  metric === 'actual'
+                    ? '暂无实际记录'
+                    : metric === 'remaining'
+                      ? '暂无剩余预计'
+                      : '暂无预计时间'
+                }
+                onSelect={select}
+                onHover={setHovered}
+              />
+            ) : (
+              <StageTimeRing
+                sectors={sectors}
+                total={total}
+                active={active}
+                centerTitle={metricLabels[metric]}
+                emptyLabel={
+                  metric === 'actual'
+                    ? '暂无实际记录'
+                    : metric === 'remaining'
+                      ? '暂无剩余预计'
+                      : '暂无预计时间'
+                }
+                onSelect={select}
+                onHover={setHovered}
+              />
+            )}
+            {item && !classic && (
+              <p className="stage-time-selection" aria-live="polite">
+                {item.title} ·{' '}
+                {item.minutes === undefined
+                  ? metric === 'actual'
+                    ? '未记录'
+                    : '未估时'
+                  : formatMinutes(item.minutes)}
               </p>
             )}
-            {groups.map((group) => (
-              <details key={group.id} open>
-                <summary
-                  onMouseEnter={() => setHovered(group.id)}
-                  onMouseLeave={() => setHovered(undefined)}
-                >
-                  <i
-                    aria-hidden="true"
-                    style={{ background: softTimeColor(group.color) }}
-                  />
-                  <span>{group.name}</span>
-                  <strong>{formatMinutes(group.total)}</strong>
-                  <small>
-                    {total ? Math.round((group.total / total) * 100) + '%' : '—'}
-                  </small>
-                </summary>
-                <ul>
-                  {group.items.map((item) => {
-                    const task = tasks.find((task) => task.id === item.id);
-                    const label =
-                      item.minutes === undefined
-                        ? metric === 'actual'
-                          ? '未记录'
-                          : '未估时'
-                        : formatMinutes(item.minutes);
-                    return (
-                      <li key={item.id} data-stage-time-task={item.id}>
-                        <button
-                          type="button"
-                          className="stage-time-task"
-                          aria-label={item.title + ' ' + label}
-                          aria-pressed={selected === item.id}
-                          onClick={() => select(item.id)}
-                          onFocus={() => setHovered(item.id)}
-                          onBlur={() => setHovered(undefined)}
-                          onMouseEnter={() => setHovered(item.id)}
-                          onMouseLeave={() => setHovered(undefined)}
-                        >
-                          <i
-                            aria-hidden="true"
-                            style={{ background: softTimeColor(item.color) }}
-                          />
-                          <span>{item.title}</span>
-                        </button>
-                        {task &&
-                        task.status !== 'trashed' &&
-                        task.status !== 'abandoned' &&
-                        !task.deletedAt ? (
-                          <TaskEstimateEditor
-                            task={task}
-                            metric={metric === 'actual' ? 'actual' : 'planned'}
-                            today={today}
-                            entryDate={day?.date}
-                            displayLabel={label}
-                            onSave={metric === 'actual' ? saveActual : saveEstimate}
-                            disabled={saving}
-                          />
-                        ) : (
-                          <span className="stage-time-actual-value">{label}</span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </details>
-            ))}
           </div>
+          {plan && (
+            <ClassicTimeLegend
+              groups={groups}
+              tasks={tasks}
+              today={today}
+              view={view}
+              hidden={!classic}
+            />
+          )}
+          {renderDetails ? (
+            <div className="stage-time-details-slot" hidden={classic}>
+              {renderDetails(view)}
+            </div>
+          ) : (
+            <div className="stage-time-legend" aria-label="项目时间明细" key={metric}>
+              {!groups.length && (
+                <p className="stage-time-empty">
+                  {metric === 'remaining'
+                    ? '所有任务均已完成，或尚未添加任务。'
+                    : '添加任务后，在这里查看时间分布。'}
+                </p>
+              )}
+              {groups.map((group) => (
+                <details key={group.id} open>
+                  <summary
+                    onMouseEnter={() => setHovered(group.id)}
+                    onMouseLeave={() => setHovered(undefined)}
+                  >
+                    <i
+                      aria-hidden="true"
+                      style={{ background: softTimeColor(group.color) }}
+                    />
+                    <span>{group.name}</span>
+                    <strong>{formatMinutes(group.total)}</strong>
+                    <small>
+                      {total ? Math.round((group.total / total) * 100) + '%' : '—'}
+                    </small>
+                  </summary>
+                  <ul>
+                    {group.items.map((item) => {
+                      const task = tasks.find((task) => task.id === item.id);
+                      const label =
+                        item.minutes === undefined
+                          ? metric === 'actual'
+                            ? '未记录'
+                            : '未估时'
+                          : formatMinutes(item.minutes);
+                      return (
+                        <li key={item.id} data-stage-time-task={item.id}>
+                          <button
+                            type="button"
+                            className="stage-time-task"
+                            aria-label={item.title + ' ' + label}
+                            aria-pressed={selected === item.id}
+                            onClick={() => select(item.id)}
+                            onFocus={() => setHovered(item.id)}
+                            onBlur={() => setHovered(undefined)}
+                            onMouseEnter={() => setHovered(item.id)}
+                            onMouseLeave={() => setHovered(undefined)}
+                          >
+                            <i
+                              aria-hidden="true"
+                              style={{ background: softTimeColor(item.color) }}
+                            />
+                            <span>{item.title}</span>
+                          </button>
+                          {task &&
+                          task.status !== 'trashed' &&
+                          task.status !== 'abandoned' &&
+                          !task.deletedAt ? (
+                            <TaskEstimateEditor
+                              task={task}
+                              metric={metric === 'actual' ? 'actual' : 'planned'}
+                              today={today}
+                              entryDate={day?.date}
+                              displayLabel={label}
+                              onSave={metric === 'actual' ? saveActual : saveEstimate}
+                              disabled={saving}
+                            />
+                          ) : (
+                            <span className="stage-time-actual-value">{label}</span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </details>
+              ))}
+            </div>
+          )}
+        </div>
+        {classic && missing > 0 && (
+          <p className="stage-time-missing">
+            {missing} 项{metric === 'actual' ? '未记录' : '未估时'}，未计入占比
+          </p>
         )}
-      </div>
-    </section>
+      </section>
+      {renderClassicTasks && (
+        <div className="stage-classic-tasks-slot" hidden={!classic}>
+          {renderClassicTasks(view)}
+        </div>
+      )}
+    </>
   );
 }

@@ -14,6 +14,7 @@ import { useWorkspaceData } from '@/features/workspace/workspace-data-context';
 import { ManagementDialog } from '@/components/ui/management-dialog';
 import { Button } from '@/components/ui/button';
 import { useGuardedAction } from '@/hooks/use-guarded-action';
+import { usePersistentState } from '@/hooks/use-persistent-state';
 import type { StagePlan } from '@/types/domain';
 import { stageStatus, visibleHomeStages, type StageStatus } from './rules';
 import { useStagePlans } from './state';
@@ -257,7 +258,7 @@ export function HomeStagePlans() {
   );
 }
 
-/** 完整详情把摘要移入标题行，时间明细与任务操作共用右侧清单；删除阶段保留原任务。 */
+/** 经典保留原整页摘要、双环明细与状态清单，新版合并清单；两版操作同一 Task。 */
 export function StageDetail() {
   const stages = useStagePlans();
   const { tasks, projects, saveTaskConfirmed, recordTaskActual } = useWorkspaceData();
@@ -265,6 +266,12 @@ export function StageDetail() {
   const plan = stages.plans.find((item) => item.id === stages.detailId);
   const [edit, setEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [layout, setLayout] = usePersistentState<'classic' | 'new'>(
+    'threadline.stage-time-layout',
+    'new',
+    (value) => (value === 'classic' ? 'classic' : 'new'),
+  );
+  const classic = layout === 'classic';
   const { busy, error, run } = useGuardedAction();
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -283,7 +290,10 @@ export function StageDetail() {
       </section>
     );
   return (
-    <section className="stage-detail" data-testid="stage-detail">
+    <section
+      className={'stage-detail' + (classic ? ' is-classic-detail' : '')}
+      data-testid="stage-detail"
+    >
       <button type="button" className="stage-back" onClick={back}>
         <ArrowLeft size={18} />
         返回计划
@@ -292,7 +302,7 @@ export function StageDetail() {
         <h1 ref={heading} tabIndex={-1}>
           {plan.name}
         </h1>
-        <StageSummary plan={plan} tasks={tasks} today={today} compact />
+        {!classic && <StageSummary plan={plan} tasks={tasks} today={today} compact />}
         <div>
           <button
             type="button"
@@ -315,12 +325,15 @@ export function StageDetail() {
           </button>
         </div>
       </header>
+      {classic && <StageSummary plan={plan} tasks={tasks} today={today} />}
       <StageAddTask stageId={plan.id} projects={projects} />
       <StageTimeChart
         tasks={tasks}
         projects={projects}
         plan={plan}
         today={today}
+        layout={layout}
+        onLayoutChange={setLayout}
         onSaveEstimate={(original, minutes) =>
           saveTaskConfirmed({ ...original, plannedDurationMinutes: minutes }, original)
         }
@@ -329,6 +342,9 @@ export function StageDetail() {
         }
         renderDetails={(view) => (
           <StageTaskList stageId={plan.id} showHistory timeView={view} />
+        )}
+        renderClassicTasks={(view) => (
+          <StageTaskList stageId={plan.id} showHistory timeView={view} classic />
         )}
       />
       {error && (

@@ -1,0 +1,135 @@
+/** @fileoverview 经典计划整页布局：旧版双环与简明滚动图例、下方独立状态任务区。 */
+.stage-time-details-slot {
+  display: contents;
+}
+.stage-time-details-slot[hidden],
+.stage-classic-tasks-slot[hidden],
+.stage-time-classic-legend[hidden] {
+  display: none;
+}
+.stage-detail .stage-time-panel.is-classic-panel {
+  margin-block: var(--space-3);
+  border: 1px solid var(--border-subtle);
+}
+.stage-time-classic-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.stage-time-classic-header .stage-time-heading {
+  flex: 1 1 auto;
+}
+.stage-time-classic-header .stage-time-heading > span,
+.stage-time-missing {
+  font-size: var(--text-caption-size);
+  color: var(--text-secondary);
+}
+.stage-time-classic-switch {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface-secondary);
+}
+.stage-time-classic-switch button {
+  min-width: 52px;
+  min-height: var(--touch-target);
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-caption-size);
+  cursor: pointer;
+}
+.stage-time-classic-switch button[aria-pressed='true'] {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+.stage-time-body.is-classic {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.1fr);
+  gap: 32px;
+  align-items: center;
+  margin-top: var(--space-3);
+}
+.is-classic .stage-time-classic {
+  width: min(100%, 340px);
+  max-width: 340px;
+  margin-inline: auto;
+}
+.stage-time-classic-legend {
+  display: block;
+  max-height: 340px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: var(--space-1);
+  border: 0;
+}
+.stage-time-classic-legend details + details {
+  margin-top: var(--space-3);
+}
+.stage-time-classic-legend ul {
+  padding-left: 14px;
+}
+.stage-time-classic-legend li {
+  align-items: center;
+}
+.stage-time-classic-legend .stage-estimate-trigger {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.stage-time-classic-legend .stage-estimate-trigger:hover {
+  color: var(--accent-text);
+  background: var(--surface-secondary);
+}
+.stage-time-missing {
+  margin: var(--space-2) 0 0;
+}
+.stage-classic-task-groups {
+  margin: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.stage-classic-task-groups .plan-task-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+}
+.stage-classic-task-groups .stage-estimate-trigger {
+  padding-inline: 0;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.stage-classic-task-groups
+  .stage-task-row
+  .stage-task-actions
+  > button.task-context-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+@container (max-width: 760px) {
+  .stage-time-body.is-classic {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+  .stage-time-classic-legend {
+    max-height: 300px;
+  }
+}
+@media (max-width: 760px) {
+  .stage-classic-task-groups {
+    padding: var(--space-3);
+  }
+}

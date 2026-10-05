@@ -5,7 +5,6 @@ import {
   type StageTimeGroup,
   type StageTimeSector,
 } from './time-breakdown';
-import { softTimeColor } from './time-colors';
 import { TimeRingCenter } from './time-ring-center';
 
 /** 共用真实分母生成两层扇区；右侧明细提供键盘/触屏选择，零值不会生成扇区。 */
@@ -57,7 +56,9 @@ export function ClassicTimeRing({
               key={project.id}
               data-stage-project-slice={project.id}
               d={ringSector(start, fraction, 78, 107)}
-              fill={softTimeColor(project.color)}
+              fill={project.color}
+              stroke="var(--surface)"
+              strokeWidth="1.5"
               opacity={
                 !active ||
                 active === project.id ||
@@ -75,9 +76,9 @@ export function ClassicTimeRing({
             key={sector.id}
             data-stage-slice={sector.id}
             d={ringSector(sector.start, sector.fraction, 112, 144)}
-            fill={softTimeColor(sector.color)}
+            fill={sector.color}
             stroke="var(--surface)"
-            strokeWidth="1"
+            strokeWidth="1.5"
             opacity={
               !active || active === sector.id || active === sector.projectId ? 1 : 0.35
             }
