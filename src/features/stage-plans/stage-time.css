@@ -356,11 +356,10 @@
   text-align: center;
   gap: var(--space-1);
   pointer-events: none;
-  container-type: inline-size;
 }
 .stage-time-center-title,
 .stage-time-center small {
-  font-size: min(var(--text-caption-size), 18cqi);
+  font-size: min(var(--text-caption-size), var(--time-center-title-max-size, 13px));
   color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
@@ -373,6 +372,8 @@
 }
 .stage-time-center-sample {
   position: absolute;
+  left: 0;
+  top: 0;
   visibility: hidden;
   width: max-content;
   font-size: 1.5rem;
@@ -594,7 +595,7 @@
   }
   .stage-time-center-title,
   .stage-time-center small {
-    font-size: min(13px, 18cqi);
+    font-size: min(13px, var(--time-center-title-max-size, 13px));
   }
 }
 @media (prefers-reduced-motion: reduce) {
