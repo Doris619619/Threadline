@@ -74,7 +74,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium webkit
       - name: Verify WebKit ring resizing
-        run: pnpm test:preview e2e/ui-task-time.spec.ts --project=preview-iphone-webkit --grep 'fits long center totals' --repeat-each=3
+        run: pnpm test:preview e2e/ui-task-time.spec.ts --project=preview-iphone-webkit --grep 'fits long center totals' --repeat-each=3 --trace=off
       - run: pnpm test:preview
       - run: pnpm test:together:e2e
       - uses: actions/upload-artifact@v4
