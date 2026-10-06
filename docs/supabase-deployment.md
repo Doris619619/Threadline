@@ -10,6 +10,12 @@
 
 用 `pnpm test:stage:db` 在隔离 PostgreSQL 执行全套原始迁移与阶段合同；`pnpm test:supabase:integration` 还包含同账号双客户端阶段/任务 Realtime、跨账号拒绝和并发版本检查。前者不验证网络同步，后者要求运行本地 Docker/Supabase。字段、发布顺序和截图见 [阶段计划](stage-plans.md)。
 
+## 0.1.13 实际投入记账迁移
+
+`202610030001_task_actual_entry_date.sql` 在同一事务中记录指定日期的实际投入并可完成计时任务，使用调用方打开时的 Task 基准拒绝冲突；减少时长只扣减本次指定日期的记录，保留其他日期历史。旧接口保持兼容，无新增表或字段。
+
+2026-10-06，按 PR #55 的合并发布授权，对关联 Production 先执行 dry-run，确认只有这一项缺失迁移后应用成功。随后 `migration list --linked` 的 24 项本地/远端迁移一致，最终 dry-run 返回 `upToDate: true` 与空迁移清单。该记录证明迁移已部署；实际账号操作与实体设备验收仍需单独核验。
+
 ## 两人空间迁移
 
 新功能依次应用 `202609280001_together.sql` 与 `202609300001_together_review_safety.sql`，再发布客户端。新增独立成员 RLS、幂等 RPC 与 rooms Realtime，不放宽个人数据权限。成果图片改为微信发送，应用只记录主动声明与验收，因此不需要 Storage 或清理 Cron。部署步骤、测试边界及 localhost 展示见 [两人空间](together-space.md)。
