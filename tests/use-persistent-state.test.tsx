@@ -1,7 +1,14 @@
 /** @fileoverview 验证本地状态只水合一次，并按账号接收跨标签删除且不回写旧值。 */
 
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import { LocalStorageStateRepository } from '@/lib/repository';
 import { workspaceStorageKey } from '@/lib/workspace-runtime';
@@ -27,6 +34,7 @@ function SharedStateProbe({ synchronizeTabs = true }: { synchronizeTabs?: boolea
   );
 }
 
+/** 验证 inline 清洗器的引用变化不会重复水合本地状态。 */
 function InlineNormalizerProbe() {
   const [value, , hydrated] = usePersistentState<string[]>(
     'threadline.inline-normalizer.test',
@@ -44,6 +52,28 @@ function InlineNormalizerProbe() {
 }
 
 describe('usePersistentState', () => {
+  /** 失败也清理组件、监听与 mock，防止一个失败污染后续跨标签案例。 */
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    localStorage.removeItem(workspaceStorageKey(sharedKey));
+    localStorage.removeItem(workspaceStorageKey('threadline.inline-normalizer.test'));
+  });
+
+  it('subscribes before hydration so an immediate cross-tab deletion is not missed', async () => {
+    const key = workspaceStorageKey(sharedKey);
+    localStorage.setItem(key, '["old"]');
+    const listen = vi.spyOn(window, 'addEventListener');
+    const write = vi.spyOn(LocalStorageStateRepository.prototype, 'write');
+    render(<SharedStateProbe />);
+    expect(screen.getByTestId('shared-value')).toHaveTextContent('loading');
+    expect(listen).toHaveBeenCalledWith('storage', expect.any(Function));
+    localStorage.setItem(key, '[]');
+    act(() => window.dispatchEvent(new StorageEvent('storage', { key })));
+    await screen.findByText('empty');
+    expect(write).not.toHaveBeenCalled();
+  });
+
   it('receives the latest owner value without echoing a stale storage event', async () => {
     const key = workspaceStorageKey(sharedKey);
     localStorage.setItem(key, JSON.stringify(['old']));

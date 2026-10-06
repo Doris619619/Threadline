@@ -112,9 +112,9 @@ export function usePersistentState<T>(
     };
   }, [key, repository, synchronizeTabs]);
 
-  /** 跨标签只接收所属账号/运行环境的最新值；恢复前台时补齐后台漏掉的事件。 */
+  /** 初始化时即订阅所属账号的跨标签变更，避免水合提交与下一次 effect 之间漏掉删除。 */
   useEffect(() => {
-    if (!hydrated || !synchronizeTabs) return;
+    if (!synchronizeTabs) return;
     const refresh = () => {
       const current = readCurrentValue(
         key,
@@ -143,7 +143,7 @@ export function usePersistentState<T>(
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [hydrated, key, synchronizeTabs]);
+  }, [key, synchronizeTabs]);
 
   return [value, setPersistentValue, hydrated];
 }
