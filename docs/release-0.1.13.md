@@ -20,7 +20,14 @@
 
 ## 审计与验证
 
-正式依赖审计发现原锁文件有 3 项严重、4 项高危漏洞。Next.js 与配套 ESLint 配置升级到 16.3.6，electron-updater 升级到 6.8.9，并更新 sharp、builder-util-runtime、js-yaml、source-map-js 的兼容补丁版本；没有增加根依赖或强制覆盖版本。升级后 `pnpm audit --prod --audit-level=high` 返回 `No known vulnerabilities found`。漏洞依据来自 [Next.js 维护者公告](https://github.com/vercel/next.js/security/advisories/GHSA-vcvr-r3jv-pc5j)、[Electron builder 维护者公告](https://github.com/electron-userland/electron-builder/security/advisories/GHSA-p2f4-r6v6-j797) 和依赖审计；依赖命中不代表本项目已经遭到攻击。
+正式依赖审计发现原锁文件有 3 项严重、4 项高危漏洞。Next.js 与配套 ESLint 配置升级到 16.3.6，electron-updater 升级到 6.8.9，并更新 sharp、builder-util-runtime、js-yaml、source-map-js 的兼容补丁版本；没有增加根依赖。升级后 `pnpm audit --prod --audit-level=high` 返回 `No known vulnerabilities found`。漏洞依据来自 [Next.js 维护者公告](https://github.com/vercel/next.js/security/advisories/GHSA-vcvr-r3jv-pc5j)、[Electron builder 维护者公告](https://github.com/electron-userland/electron-builder/security/advisories/GHSA-p2f4-r6v6-j797) 和依赖审计；依赖命中不代表本项目已经遭到攻击。
+
+完整构建依赖扫描另发现 40 项告警。兼容更新并在 `pnpm-workspace.yaml` 固定 undici 6.28.1、fast-uri 3.1.8、brace-expansion 2.1.7/5.0.12、http-cache-semantics 4.3.0 后，剩余以下两项上游未发布补丁的构建依赖告警。保留扫描结果，不忽略公告；这两个包不属于生产依赖，不进入应用运行路径。
+
+| 构建依赖         | 告警与当前边界                                                                                                                                                                                                            |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| braces 3.0.3     | [高危：深层括号模式造成栈耗尽](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)。本仓库的 Next ESLint 配置没有设置外部 `rootDir` 模式，路径源于仓库和固定配置，不接收用户任务文本。公告标注暂无补丁，npm 也没有 3.0.4。 |
+| sprintf-js 1.1.3 | [中危：无界精度格式造成拒绝服务](https://github.com/advisories/GHSA-hp3w-g68c-fv3c)。调用链属于 Electron 构建下载工具的代理日志，不是 Threadline 用户接口；npm 尚无 1.1.4。                                               |
 
 审计覆盖 PR 改动的任务记账事务、并发基准、账号隔离、本机同步、恢复计时、计划两版布局与 Electron 缩放。全量单元/组件与覆盖率检查通过：97 文件、501 项；隔离 PostgreSQL 合同 51 项通过。
 
