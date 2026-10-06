@@ -59,6 +59,8 @@
   .overview-close-action .home-side-controls select {
     flex: 1 1 auto;
     width: 0;
+    /* 保持手机选择器的实际字号，避免桌面紧凑样式覆盖全局表单保护。 */
+    font-size: max(16px, 1rem);
   }
   .overview-close-action .home-layout-toggle {
     flex-shrink: 0;
@@ -508,8 +510,8 @@
   opacity: 0.55;
 }
 
-/* 有鼠标的桌面通过行右键操作，触屏仍提供可点按的更多按钮。 */
-@media (hover: hover) and (pointer: fine) {
+/* 桌面布局通过行右键操作；手机布局即使报告精细指针也保留可点按入口。 */
+@media (min-width: 761px) and (hover: hover) and (pointer: fine) {
   .stage-task-row .stage-task-actions > button.task-context-trigger,
   .waiting-task-row .waiting-task-actions > button.task-context-trigger,
   .task-actions-cell .task-actions > button.task-context-trigger {

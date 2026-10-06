@@ -28,6 +28,7 @@ const localStorageKeys = [
   'threadline.home-side-view.v1',
   'threadline.projects.v1',
   'threadline.stage-plans.v1',
+  'threadline.stage-time-layout',
   'threadline.daily-by-date.v1',
   'threadline.daily-history.v1',
   'threadline.daily-templates.v1',
@@ -124,7 +125,9 @@ export async function openProjectCreateDialog(
 export async function openSeededTaskEditor(page: Page) {
   const task = page.locator('.timeline-row').filter({ hasText: '邮件处理' });
   await expect(task).toBeVisible();
-  await task.getByRole('button', { name: '邮件处理更多操作' }).click();
+  await openTaskMenu(
+    task.getByRole('button', { name: '邮件处理更多操作', includeHidden: true }),
+  );
   await page.getByRole('button', { name: '详细编辑', exact: true }).click();
   await expect(page.getByRole('dialog', { name: '编辑任务' })).toBeVisible();
 }

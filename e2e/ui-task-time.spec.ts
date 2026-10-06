@@ -3,6 +3,60 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { openWorkspaceSection, openTaskMenu } from './support/workspace';
 
+/** 经典整页保留双环、简明图例和独立状态区，原地估时与切换后的持久化共用同一 Task。 */
+test('retains classic dual rings and separate task groups while sharing inline estimates', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
+  await openWorkspaceSection(page, '计划');
+  await page
+    .getByRole('button', { name: '查看阶段 多项目时间验收', exact: true })
+    .click();
+  const detail = page.getByTestId('stage-detail');
+  const chart = detail.locator('.stage-time-panel');
+  await chart.getByRole('button', { name: '经典', exact: true }).click();
+  const legend = chart.getByLabel('项目时间明细', { exact: true });
+  const tasks = detail.locator('.stage-classic-task-groups');
+  await expect(chart.locator('[data-stage-project-slice]')).toHaveCount(5);
+  await expect(chart.locator('[data-stage-slice]')).toHaveCount(20);
+  await expect(legend).toBeVisible();
+  await expect(legend.getByRole('checkbox')).toHaveCount(0);
+  await expect(
+    tasks.getByRole('region', { name: '未安排', exact: true }),
+  ).toBeVisible();
+  await expect(tasks.locator('.stage-task-row')).toHaveCount(22);
+  await expect(detail.locator('.stage-time-list-pane')).toBeHidden();
+  const chartBox = (await chart.boundingBox())!;
+  const tasksBox = (await tasks.boundingBox())!;
+  expect(tasksBox.y).toBeGreaterThanOrEqual(chartBox.y + chartBox.height);
+  await legend
+    .getByRole('button', { name: '编辑 验收任务 2预计分钟', exact: true })
+    .click();
+  await legend.getByLabel('验收任务 2预计分钟', { exact: true }).fill('65');
+  await legend.getByLabel('验收任务 2预计分钟', { exact: true }).press('Enter');
+  await expect(
+    legend.getByRole('button', { name: '编辑 验收任务 2预计分钟', exact: true }),
+  ).toHaveText('1h5min');
+  await page.reload();
+  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
+  await openWorkspaceSection(page, '计划');
+  await page
+    .getByRole('button', { name: '查看阶段 多项目时间验收', exact: true })
+    .click();
+  await expect(
+    chart.getByRole('button', { name: '经典', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await chart.getByRole('button', { name: '新版', exact: true }).click();
+  await expect(tasks).toBeHidden();
+  await expect(chart.locator('.stage-time-list-pane')).toBeVisible();
+  await expect(
+    chart
+      .locator('.stage-time-list-pane')
+      .getByRole('button', { name: '编辑 验收任务 2预计分钟', exact: true }),
+  ).toHaveText('1h5min');
+});
+
 test('persists inline time and preserves the same task through scheduling/completion', async ({
   page,
 }, info) => {
@@ -15,12 +69,16 @@ test('persists inline time and preserves the same task through scheduling/comple
     .click();
   const detail = page.getByTestId('stage-detail');
   const chart = detail.locator('.stage-time-panel');
-  await expect(detail.locator('.stage-task-row')).toHaveCount(22);
+  await expect(detail.locator('.stage-task-row').filter({ visible: true })).toHaveCount(
+    22,
+  );
   await expect(chart.locator('[data-stage-slice]')).toHaveCount(20);
   await expect(chart.locator('[data-stage-line]')).toHaveCount(20);
   await expect(chart.locator('[data-stage-label]')).toHaveCount(20);
-  // 图表明细和任务操作只保留一份；筛选只改变清单，保持所有正时长引线。
-  await expect(detail.locator('.stage-time-legend')).toHaveCount(0);
+  // 只显示当前布局的明细；隐藏的经典清单保留编辑草稿，筛选不删图表引线。
+  await expect(
+    detail.locator('.stage-time-legend').filter({ visible: true }),
+  ).toHaveCount(0);
   await expect(detail.locator('.stage-summary')).toHaveCount(1);
   await expect(detail.locator('.stage-detail-heading .stage-summary')).toBeVisible();
   const stateFilter = chart.getByRole('combobox', { name: '筛选阶段任务状态' });
@@ -81,8 +139,8 @@ test('persists inline time and preserves the same task through scheduling/comple
   await chart
     .getByRole('button', { name: '编辑 验收任务 2预计分钟', exact: true })
     .click();
-  await chart.getByLabel('验收任务 2预计分钟').fill('65');
-  await chart.getByLabel('验收任务 2预计分钟').press('Enter');
+  await chart.getByLabel('验收任务 2预计分钟', { exact: true }).fill('65');
+  await chart.getByLabel('验收任务 2预计分钟', { exact: true }).press('Enter');
   await expect(chart.locator('[data-stage-slice]')).toHaveCount(21);
   await page.reload();
   await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
@@ -97,24 +155,29 @@ test('persists inline time and preserves the same task through scheduling/comple
   await chart
     .getByRole('button', { name: '编辑 验收任务 2累计实际分钟', exact: true })
     .click();
-  await chart.getByLabel('验收任务 2累计实际分钟').fill('10');
+  await chart.getByLabel('验收任务 2累计实际分钟', { exact: true }).fill('10');
   await chart.getByRole('button', { name: '保存', exact: true }).click();
   // 计划详情不再提供「→ 今天」，安排快捷入口沿用首页同一 Task。
   await expect(detail.getByRole('button', { name: '→ 今天', exact: true })).toHaveCount(
     0,
   );
-  await detail.getByRole('button', { name: '首页显示', exact: true }).click();
+  await detail.getByRole('button', { name: '显示在首页', exact: true }).click();
   await openWorkspaceSection(page, '首页');
   const homeRow = page.locator(
     '.home-stage-card [data-stage-task-id="demo-stage-time-task-1"]',
   );
   await homeRow.getByRole('button', { name: '→ 今天', exact: true }).click();
   await openWorkspaceSection(page, '计划');
-  await page
-    .getByRole('button', { name: '查看阶段 多项目时间验收', exact: true })
-    .click();
-  const row = detail.locator('[data-stage-task-id="demo-stage-time-task-1"]');
-  await expect(row.locator('time')).toHaveText('今天');
+  // 导航回计划会恢复原详情，不重复寻找只在总览中的阶段入口。
+  await expect(detail).toBeVisible();
+  const row = chart.locator('[data-stage-task-id="demo-stage-time-task-1"]');
+  const scheduledDate = await page.evaluate(
+    () =>
+      JSON.parse(
+        localStorage.getItem('threadline.preview-demo.v1:threadline.tasks.v1')!,
+      ).find((task: { id: string }) => task.id === 'demo-stage-time-task-1').date,
+  );
+  await expect(row.locator('time')).toHaveAttribute('datetime', scheduledDate);
   await row.getByRole('checkbox').check();
   await stateFilter.selectOption('completed');
   await expect(chart.locator('.stage-task-row')).toHaveCount(2);
@@ -221,7 +284,9 @@ test('fits long center totals to the inner ring after resizing and text zoom', a
   await expect(
     chart.locator('[data-stage-label="demo-stage-time-task-0"]'),
   ).toHaveAttribute('aria-pressed', 'true');
-  await openTaskMenu(task.getByRole('button', { name: /更多操作/ }));
+  await openTaskMenu(
+    task.getByRole('button', { name: /更多操作/, includeHidden: true }),
+  );
   await page.getByRole('menuitem', { name: '编辑', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
@@ -243,9 +308,14 @@ test('runs three independent timers, resumes after reload and records completion
       await page
         .getByRole('button', { name: '查看阶段 多项目时间验收', exact: true })
         .click();
-    const row = page.locator('[data-stage-task-id="demo-stage-time-task-' + i + '"]');
+    const row = page
+      .locator('[data-stage-task-id="demo-stage-time-task-' + i + '"]')
+      .filter({ visible: true });
     if (info.project.name === 'preview-desktop') await row.click({ button: 'right' });
-    else await openTaskMenu(row.getByRole('button', { name: /更多操作/ }));
+    else
+      await openTaskMenu(
+        row.getByRole('button', { name: /更多操作/, includeHidden: true }),
+      );
     await page.getByRole('menuitem', { name: '加入计时', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: '加入计时', exact: true });
     if (i === 2) {
@@ -324,14 +394,17 @@ test('runs three independent timers, resumes after reload and records completion
   }
   await expect(timers.locator('.task-timer')).toHaveCount(3);
   await expect(timers.locator('.task-timer-symbol, .task-timer-mode')).toHaveCount(0);
-  await expect(timers.locator('[data-mode="up"] time')).toHaveCount(2);
-  await expect(timers.locator('[data-mode="down"] time')).toHaveAttribute(
-    'aria-label',
-    /倒计时/,
-  );
+  await expect(timers.locator('[data-mode="up"] .task-timer-readout')).toHaveCount(2);
+  await expect(
+    timers.locator('[data-mode="down"] .task-timer-readout'),
+  ).toHaveAttribute('aria-label', /倒计时/);
   await openWorkspaceSection(page, '计划');
-  const duplicate = page.locator('[data-stage-task-id="demo-stage-time-task-0"]');
-  await openTaskMenu(duplicate.getByRole('button', { name: /更多操作/ }));
+  const duplicate = page
+    .locator('[data-stage-task-id="demo-stage-time-task-0"]')
+    .filter({ visible: true });
+  await openTaskMenu(
+    duplicate.getByRole('button', { name: /更多操作/, includeHidden: true }),
+  );
   await expect(
     page.getByRole('menuitem', { name: '已加入计时', exact: true }),
   ).toBeDisabled();
@@ -339,7 +412,8 @@ test('runs three independent timers, resumes after reload and records completion
   await openTaskMenu(
     page
       .locator('[data-stage-task-id="demo-stage-time-task-4"]')
-      .getByRole('button', { name: /更多操作/ }),
+      .filter({ visible: true })
+      .getByRole('button', { name: /更多操作/, includeHidden: true }),
   );
   await expect(
     page.getByRole('menuitem', { name: '最多三个计时器', exact: true }),
@@ -355,19 +429,18 @@ test('runs three independent timers, resumes after reload and records completion
   const pausedClock = await timers
     .locator('.task-timer')
     .first()
-    .locator('time')
+    .locator('.task-timer-readout')
     .innerText();
   await page.clock.fastForward(35000);
-  await expect(timers.locator('.task-timer').first().locator('time')).toHaveText(
-    pausedClock,
-  );
-  await expect(timers.locator('.task-timer').nth(1).locator('time')).toHaveText(
-    /^01:\d\d$/,
-  );
-  await expect(timers.locator('.task-timer').nth(2).locator('time')).toHaveAttribute(
-    'aria-label',
-    '倒计时已到时',
-  );
+  await expect(
+    timers.locator('.task-timer').first().locator('.task-timer-readout'),
+  ).toHaveText(pausedClock);
+  await expect(
+    timers.locator('.task-timer').nth(1).locator('.task-timer-readout'),
+  ).toHaveText(/^00:01:\d\d$/);
+  await expect(
+    timers.locator('.task-timer').nth(2).locator('.task-timer-readout'),
+  ).toHaveAttribute('aria-label', '倒计时已到时');
   await expect(timers).not.toContainText('按分钟四舍五入');
   await expect(timers).not.toContainText('结束时完成任务');
   const timerBounds = await timers.locator('.task-timer').evaluateAll((cards) =>
@@ -490,12 +563,12 @@ test('runs three independent timers, resumes after reload and records completion
     (await new AxeBuilder({ page }).include('.task-timers').analyze()).violations,
   ).toEqual([]);
   await page.clock.fastForward(7200000);
-  await expect(timers.locator('.task-timer').first().locator('time')).toHaveText(
-    /^02:\d\d:\d\d$/,
-  );
+  await expect(
+    timers.locator('.task-timer').first().locator('.task-timer-readout'),
+  ).toHaveText(/^02:\d\d:\d\d$/);
   expect(
     await timers
-      .locator('time')
+      .locator('.task-timer-readout')
       .evaluateAll((clocks) =>
         clocks.every(
           (clock) =>
@@ -521,7 +594,11 @@ test('adds timers from schedule and waiting menus and removes only the timer', a
     await page.keyboard.press('Shift+F10');
   } else
     await openTaskMenu(
-      row.getByRole('button', { name: '邮件处理更多操作', exact: true }),
+      row.getByRole('button', {
+        name: '邮件处理更多操作',
+        exact: true,
+        includeHidden: true,
+      }),
     );
   await page.getByRole('button', { name: '加入计时', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '加入计时', exact: true });
@@ -534,7 +611,11 @@ test('adds timers from schedule and waiting menus and removes only the timer', a
   if (info.project.name === 'preview-desktop') await card.click({ button: 'right' });
   else
     await card
-      .getByRole('button', { name: '邮件处理计时器更多操作', exact: true })
+      .getByRole('button', {
+        name: '邮件处理计时器更多操作',
+        exact: true,
+        includeHidden: true,
+      })
       .click();
   const menu = page.getByRole('menu', { name: '邮件处理计时器操作', exact: true });
   await expect(menu).toBeVisible();
@@ -545,7 +626,11 @@ test('adds timers from schedule and waiting menus and removes only the timer', a
   await menu.getByRole('menuitem', { name: '删除计时器', exact: true }).click();
   await expect(card).toHaveCount(0);
   await openTaskMenu(
-    row.getByRole('button', { name: '邮件处理更多操作', exact: true }),
+    row.getByRole('button', {
+      name: '邮件处理更多操作',
+      exact: true,
+      includeHidden: true,
+    }),
   );
   await expect(
     page.getByRole('button', { name: '加入计时', exact: true }),
@@ -554,19 +639,28 @@ test('adds timers from schedule and waiting menus and removes only the timer', a
   await dialog.getByRole('button', { name: '开始计时', exact: true }).click();
   await expect(card).toHaveCount(1);
   if (info.project.name === 'preview-desktop') await card.click({ button: 'right' });
-  else await card.getByRole('button', { name: /计时器更多操作/ }).click();
+  else
+    await card
+      .getByRole('button', { name: /计时器更多操作/, includeHidden: true })
+      .click();
   await page.getByRole('menuitem', { name: '删除计时器', exact: true }).click();
   await expect(card).toHaveCount(0);
   const waiting = page.locator('.waiting-task-row').first();
   if (info.project.name === 'preview-desktop') await waiting.click({ button: 'right' });
-  else await openTaskMenu(waiting.getByRole('button', { name: /更多操作/ }));
+  else
+    await openTaskMenu(
+      waiting.getByRole('button', { name: /更多操作/, includeHidden: true }),
+    );
   await page.getByRole('menuitem', { name: '加入计时', exact: true }).click();
   await dialog.getByRole('button', { name: '开始计时', exact: true }).click();
   await expect(card).toHaveAttribute('data-mode', 'up');
   if (info.project.name === 'preview-desktop') {
     await card.focus();
     await page.keyboard.press('Shift+F10');
-  } else await card.getByRole('button', { name: /计时器更多操作/ }).click();
+  } else
+    await card
+      .getByRole('button', { name: /计时器更多操作/, includeHidden: true })
+      .click();
   await page.getByRole('menuitem', { name: '删除计时器', exact: true }).click();
   await expect(card).toHaveCount(0);
   expect(
@@ -587,7 +681,11 @@ test('re-adds the same task after timer removal across open tabs', async ({
 }, info) => {
   await page.goto('/');
   await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
-  const more = page.getByRole('button', { name: '邮件处理更多操作', exact: true });
+  const more = page.getByRole('button', {
+    name: '邮件处理更多操作',
+    exact: true,
+    includeHidden: true,
+  });
   await openTaskMenu(more);
   await page.getByRole('button', { name: '加入计时', exact: true }).click();
   await page
@@ -603,7 +701,7 @@ test('re-adds the same task after timer removal across open tabs', async ({
   else
     await page
       .locator('.task-timer')
-      .getByRole('button', { name: /计时器更多操作/ })
+      .getByRole('button', { name: /计时器更多操作/, includeHidden: true })
       .click();
   await page.getByRole('menuitem', { name: '删除计时器', exact: true }).click();
   await expect(page.locator('.task-timer')).toHaveCount(0);
@@ -614,7 +712,11 @@ test('re-adds the same task after timer removal across open tabs', async ({
   await page.keyboard.press('Escape');
   await expect(other.locator('.task-timer')).toHaveCount(0);
   await openTaskMenu(
-    other.getByRole('button', { name: '邮件处理更多操作', exact: true }),
+    other.getByRole('button', {
+      name: '邮件处理更多操作',
+      exact: true,
+      includeHidden: true,
+    }),
   );
   await expect(
     other.getByRole('button', { name: '加入计时', exact: true }),

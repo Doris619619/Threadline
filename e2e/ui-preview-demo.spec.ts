@@ -93,7 +93,7 @@ test('keeps single field focus and persists stage estimates into the time chart'
   await expect(chart.locator('[data-stage-slice]')).toHaveCount(2);
   await expect(
     chart.getByRole('button', { name: '编辑 暂不估时预计分钟', exact: true }),
-  ).toHaveText('未估时');
+  ).toHaveText('暂定');
   await detail.getByLabel('添加阶段任务', { exact: true }).fill('整理假期照片');
   await detail.getByLabel('预计分钟（选填）', { exact: true }).fill('60');
   await detail.getByRole('button', { name: '+ 添加任务', exact: true }).click();

@@ -45,7 +45,11 @@ test('keeps all 16 tasks while scheduling, moving dates, completing, hiding and 
   await expect(row.locator('time')).toHaveText('今天');
   await expect(page.locator('.schedule-panel')).toContainText('冲刺任务1');
   await openTaskMenu(
-    row.getByRole('button', { name: '冲刺任务1更多操作', exact: true }),
+    row.getByRole('button', {
+      name: '冲刺任务1更多操作',
+      exact: true,
+      includeHidden: true,
+    }),
   );
   await page.getByRole('menuitem', { name: '安排到其他日期', exact: true }).click();
   await page.getByLabel('移期日期').fill('2026-08-25');
@@ -89,9 +93,12 @@ test('keeps all 16 tasks while scheduling, moving dates, completing, hiding and 
     .getByRole('button', { name: '显示在首页', exact: true })
     .click();
   await page.getByRole('button', { name: '查看阶段 冲刺', exact: true }).click();
-  await expect(page.getByTestId('stage-detail').locator('.stage-task-row')).toHaveCount(
-    16,
-  );
+  await expect(
+    page
+      .getByTestId('stage-detail')
+      .locator('.stage-task-row')
+      .filter({ visible: true }),
+  ).toHaveCount(16);
   await page.getByRole('button', { name: '删除阶段', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('所有任务都会保留');
   await page.getByRole('button', { name: '删除阶段，保留任务', exact: true }).click();
@@ -127,9 +134,12 @@ test('shows every pinned future stage and expires at account midnight while reta
   await page.getByLabel('添加阶段任务').fill('历史也能追加');
   await page.getByLabel('添加阶段任务').press('Enter');
   await expect(page.getByLabel('添加阶段任务')).toBeFocused();
-  await expect(page.getByTestId('stage-detail').locator('.stage-task-row')).toHaveCount(
-    2,
-  );
+  await expect(
+    page
+      .getByTestId('stage-detail')
+      .locator('.stage-task-row')
+      .filter({ visible: true }),
+  ).toHaveCount(2);
   await page.getByRole('button', { name: '返回计划', exact: true }).click();
   await expect(page.getByRole('tab', { name: /^过去/ })).toHaveAttribute(
     'aria-selected',

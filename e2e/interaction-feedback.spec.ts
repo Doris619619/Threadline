@@ -50,13 +50,18 @@ test('menus and project picker escape a one-row list without changing its width'
   const row = page.locator('.timeline-row');
   await expect(row).toHaveCount(1);
   const before = await row.boundingBox();
-  const more = row.getByRole('button', { name: '邮件处理更多操作' });
+  const more = row.getByRole('button', {
+    name: '邮件处理更多操作',
+    includeHidden: true,
+  });
   if (await more.isVisible()) await more.hover();
   else await row.hover();
   await expect(page.getByRole('button', { name: '详细编辑', exact: true })).toHaveCount(
     0,
   );
-  await openTaskMenu(row.getByRole('button', { name: '邮件处理更多操作' }));
+  await openTaskMenu(
+    row.getByRole('button', { name: '邮件处理更多操作', includeHidden: true }),
+  );
   const menu = page.getByRole('group', { name: '邮件处理操作' });
   await expect(menu).toBeVisible();
   const button = menu.getByRole('button', { name: '删除', exact: true });
@@ -71,7 +76,9 @@ test('menus and project picker escape a one-row list without changing its width'
   expect((await row.boundingBox())!.width).toBeCloseTo(before!.width, 0);
   await page.keyboard.press('Escape');
   await expect(menu).toHaveCount(0);
-  await openTaskMenu(row.getByRole('button', { name: '邮件处理更多操作' }));
+  await openTaskMenu(
+    row.getByRole('button', { name: '邮件处理更多操作', includeHidden: true }),
+  );
   await expect(menu).toBeVisible();
   await page.getByRole('heading', { name: '任务大厅' }).click();
   await expect(menu).toHaveCount(0);
@@ -172,7 +179,9 @@ test('waiting menu remains clickable outside a clipped panel and schedules exact
     el.style.overflow = 'hidden';
     el.style.maxHeight = '44px';
   });
-  await openTaskMenu(row.getByRole('button', { name: /更多操作/ }));
+  await openTaskMenu(
+    row.getByRole('button', { name: /更多操作/, includeHidden: true }),
+  );
   const menu = page.getByRole('menu', { name: `${title}待安排操作` });
   const remove = menu.getByRole('menuitem', { name: '删除', exact: true });
   expect(
