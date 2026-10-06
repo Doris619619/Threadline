@@ -229,10 +229,14 @@ test('fits long center totals to the inner ring after resizing and text zoom', a
   for (const fontSize of ['', '200%']) {
     for (const width of [600, 390, 320, 240]) {
       await chart.locator('.stage-time-visual').evaluate(
-        (node, options) => {
+        async (node, options) => {
           (node as HTMLElement).style.width = options.width + 'px';
           (node as HTMLElement).style.maxWidth = '100%';
           document.documentElement.style.fontSize = options.fontSize;
+          // 先让浏览器呈现新布局及 ResizeObserver 的更新，不能把旧几何当作适配成功。
+          await new Promise<void>((resolve) => {
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+          });
         },
         { width, fontSize },
       );
@@ -246,7 +250,11 @@ test('fits long center totals to the inner ring after resizing and text zoom', a
             const box = node.getBoundingClientRect();
             const value = node.querySelector('strong')!;
             const text = value.getBoundingClientRect();
+            const plot = node.parentElement!;
+            const plotWidth = plot.getBoundingClientRect().width;
+            const svgWidth = plot.querySelector('svg')!.viewBox.baseVal.width;
             const fits =
+              Math.abs(svgWidth - plotWidth) <= 1 &&
               text.width <= box.width * 0.95 + 1 &&
               text.left >= box.left &&
               text.right <= box.right &&
@@ -257,6 +265,8 @@ test('fits long center totals to the inner ring after resizing and text zoom', a
                   {
                     boxWidth: box.width,
                     valueWidth: text.width,
+                    plotWidth,
+                    svgWidth,
                     textHeight: text.height,
                     lineHeight: getComputedStyle(value).lineHeight,
                     font: getComputedStyle(value).font,
