@@ -20,6 +20,8 @@
 
 ## 审计与验证
 
+正式依赖审计发现原锁文件有 3 项严重、4 项高危漏洞。Next.js 与配套 ESLint 配置升级到 16.3.6，electron-updater 升级到 6.8.9，并更新 sharp、builder-util-runtime、js-yaml、source-map-js 的兼容补丁版本；没有增加根依赖或强制覆盖版本。升级后 `pnpm audit --prod --audit-level=high` 返回 `No known vulnerabilities found`。漏洞依据来自 [Next.js 维护者公告](https://github.com/vercel/next.js/security/advisories/GHSA-vcvr-r3jv-pc5j)、[Electron builder 维护者公告](https://github.com/electron-userland/electron-builder/security/advisories/GHSA-p2f4-r6v6-j797) 和依赖审计；依赖命中不代表本项目已经遭到攻击。
+
 审计覆盖 PR 改动的任务记账事务、并发基准、账号隔离、本机同步、恢复计时、计划两版布局与 Electron 缩放。全量单元/组件与覆盖率检查通过：97 文件、501 项；隔离 PostgreSQL 合同 51 项通过。
 
 Linux Preview 的 WebKit 检查发现窄内圈、200% 文字下数字超过可用宽度，已增加中心区域的 Safari 文本缩放约束。浏览器入口同时按实际界面更新：桌面右键、触屏更多、只核对可见布局的任务行，以及区分计时读数与开始时间。原有几何、账本和持久化断言继续保留，不跳过失败门禁。
