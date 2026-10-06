@@ -238,7 +238,11 @@ test('fits long center totals to the inner ring after resizing and text zoom', a
       );
       await expect
         .poll(() =>
-          center.evaluate((node) => {
+          // 原子读取几何，不在每次轮询前额外采集整页 Locator 快照。
+          page.evaluate(() => {
+            const node = document.querySelector(
+              '.stage-time-panel .stage-time-center',
+            )!;
             const box = node.getBoundingClientRect();
             const value = node.querySelector('strong')!;
             const text = value.getBoundingClientRect();
