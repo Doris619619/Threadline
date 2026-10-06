@@ -31,7 +31,7 @@ export function TaskTimers({ children }: { children: ReactNode }) {
   );
 }
 
-/** 墙钟恢复刷新/后台耗时，倒计时到零暂停；菜单在任意页面可打开，卡片仅在首页展示。 */
+/** 墙钟恢复后台耗时，首次启动时刻独立于暂停锚点；菜单在各页可打开，卡片仅在首页展示。 */
 function TaskTimersSession({
   owner,
   children,
@@ -126,6 +126,7 @@ function TaskTimersSession({
           targetMs: minutes * 60000,
           elapsedMs: 0,
           startedAt: stamp,
+          firstStartedAt: stamp,
           entryDate: today,
         },
       ];

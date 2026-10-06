@@ -6,10 +6,16 @@ import { useGuardedAction } from '@/hooks/use-guarded-action';
 import { useTaskMenu } from '../hooks/use-task-menu';
 import { TaskActionsPopover } from './task-actions-popover';
 import { pauseTimer, timerClock, timerElapsed, type TaskTimer } from '../timer-rules';
+import {
+  accountClockParts,
+  getAccountTimezone,
+  timezoneLabel,
+} from '@/lib/account-clock';
+import { useAccountTimezone } from '@/features/settings/account-timezone-provider';
 import type { Task } from '@/types/domain';
 import type { SaveStageEstimate } from '@/features/stage-plans/task-estimate-editor';
 
-/** 卡片只展示名称和时间；模式保留在悬停与朗读标签，删除只移除本机计时。 */
+/** 同排卡片统一展示名称、时分秒和首次开始时间；按账号时区显示，继续计时不改开始时刻。 */
 export function TaskTimerCard({
   timer,
   task,
@@ -30,10 +36,22 @@ export function TaskTimerCard({
   const { busy, error, run } = useGuardedAction();
   const menu = useTaskMenu();
   const menuAnchor = useRef<HTMLElement>(null);
+  useAccountTimezone();
+  const zone = getAccountTimezone();
   const elapsed = timerElapsed(timer, now);
   const ended = timer.mode === 'down' && elapsed >= timer.targetMs;
   const running = timer.startedAt !== undefined && !ended;
   const title = task?.title ?? timer.title;
+  const started =
+    timer.firstStartedAt === undefined
+      ? undefined
+      : accountClockParts(new Date(timer.firstStartedAt), zone);
+  const startLabel = started
+    ? `开始于 ${started.date.replaceAll('-', '/')} ${started.time.slice(0, 5)}`
+    : '开始时间未记录';
+  const startDescription = started
+    ? `${startLabel}（${timezoneLabel(zone)}）`
+    : '旧计时器没有保存首次开始时刻，暂停后不能推算准确开始时间';
   /** 发送前冻结基准与分钟数；失败重试同一保存意图，避免未知网络结果重复记账。 */
   const finish = () =>
     void run(async () => {
@@ -65,6 +83,7 @@ export function TaskTimerCard({
       <div className="task-timer-body">
         <div className="task-timer-heading">
           <strong title={title}>{title}</strong>
+          {ended && <span className="task-timer-ended">已到时</span>}
         </div>
         <time
           className="task-timer-readout"
@@ -76,7 +95,6 @@ export function TaskTimerCard({
         >
           {timerClock(timer.mode === 'up' ? elapsed : timer.targetMs - elapsed)}
         </time>
-        {ended && <span className="task-timer-ended">已到时</span>}
       </div>
       <div className="task-timer-actions">
         <button
@@ -104,7 +122,12 @@ export function TaskTimerCard({
           disabled={busy}
           onClick={finish}
           aria-label={busy ? '保存中…' : timer.pending ? '重试保存' : '完成并记耗时'}
-          title={'完成任务并记录 ' + Math.round(elapsed / 60000) + ' 分钟'}
+          title={
+            '完成任务并记录 ' +
+            Math.round(elapsed / 60000) +
+            ' 分钟' +
+            (timer.entryDate !== today ? ' · 记入 ' + timer.entryDate : '')
+          }
         >
           {busy ? '…' : timer.pending ? '重试' : <Check size={18} aria-hidden="true" />}
         </button>
@@ -144,9 +167,18 @@ export function TaskTimerCard({
           </button>
         </TaskActionsPopover>
       )}
-      {timer.entryDate !== today && (
-        <small className="task-timer-date">记入 {timer.entryDate}</small>
-      )}
+      <time
+        className="task-timer-date"
+        dateTime={
+          timer.firstStartedAt === undefined
+            ? undefined
+            : new Date(timer.firstStartedAt).toISOString()
+        }
+        title={startDescription}
+        aria-label={startDescription}
+      >
+        {startLabel}
+      </time>
       {error && (
         <p role="alert" className="form-error">
           {error}

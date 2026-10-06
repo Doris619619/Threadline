@@ -8,6 +8,8 @@ export type TaskTimer = {
   targetMs: number;
   elapsedMs: number;
   startedAt?: number;
+  /** 首次启动的绝对时刻；暂停、继续和刷新都保留，旧缓存可能缺失。 */
+  firstStartedAt?: number;
   entryDate: string;
   pending?: { original: Task; minutes: number };
 };
@@ -22,20 +24,21 @@ export function timerElapsed(timer: TaskTimer, now: number) {
 export function pauseTimer(timer: TaskTimer, now: number): TaskTimer {
   return { ...timer, elapsedMs: timerElapsed(timer, now), startedAt: undefined };
 }
-/** 分秒显示不依赖地区格式，超一小时仍显示完整小时。 */
+/** 统一用时分秒，小时不在一天后归零，避免短计时与跨日计时显示不同格式。 */
 export function timerClock(milliseconds: number) {
   const seconds = Math.max(0, Math.floor(milliseconds / 1000));
   const h = Math.floor(seconds / 3600);
   const m = Math.floor(seconds / 60) % 60;
   const s = seconds % 60;
   return (
-    (h ? String(h).padStart(2, '0') + ':' : '') +
+    String(h).padStart(2, '0') +
+    ':' +
     String(m).padStart(2, '0') +
     ':' +
     String(s).padStart(2, '0')
   );
 }
-/** 仅接纳当前版本有效的三条记录，损坏本地缓存不能制造无期限倒计时。 */
+/** 仅接纳三条有效记录；旧版仅在未累计过暂停耗时时恢复首次启动锚点，不猜历史开始时间。 */
 export function normalizeTaskTimers(value: TaskTimer[]): TaskTimer[] {
   return Array.isArray(value)
     ? value
@@ -50,7 +53,20 @@ export function normalizeTaskTimers(value: TaskTimer[]): TaskTimer[] {
             Number.isFinite(timer.targetMs) &&
             timer.targetMs > 0 &&
             (timer.startedAt === undefined || Number.isFinite(timer.startedAt)) &&
+            (timer.firstStartedAt === undefined ||
+              (Number.isFinite(timer.firstStartedAt) &&
+                timer.firstStartedAt >= 0 &&
+                timer.firstStartedAt <= 8.64e15)) &&
             /^\d{4}-\d{2}-\d{2}$/.test(timer.entryDate),
+        )
+        .map((timer) =>
+          timer.firstStartedAt === undefined &&
+          timer.elapsedMs === 0 &&
+          timer.startedAt !== undefined &&
+          timer.startedAt >= 0 &&
+          timer.startedAt <= 8.64e15
+            ? { ...timer, firstStartedAt: timer.startedAt }
+            : timer,
         )
         .slice(0, 3)
     : [];

@@ -1,4 +1,4 @@
-/** @fileoverview 标题右侧最多三张红/绿计时卡；桌面右键删除、触屏更多菜单，设置按需打开。 */
+/** @fileoverview 最多三张红/绿计时卡等宽等高，底部统一显示开始时间；桌面右键和触屏菜单。 */
 .home-timer-slot {
   flex: 1 1 0;
   min-width: 0;
@@ -23,7 +23,7 @@
   width: max-content;
   max-width: 100%;
   margin-left: auto;
-  align-items: flex-start;
+  align-items: stretch;
 }
 .task-timer-strip:empty {
   display: none;
@@ -87,6 +87,12 @@
 .task-timer-date {
   display: block;
   grid-column: 1 / -1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.task-timer-ended {
+  flex-shrink: 0;
 }
 .task-timer-actions {
   display: flex;

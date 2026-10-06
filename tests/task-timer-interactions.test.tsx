@@ -8,6 +8,7 @@ import { WaitingTaskRow } from '@/features/tasks/components/waiting-task-row';
 import { PlanTaskRow } from '@/features/stage-plans/task-row';
 import { TaskLine } from '@/features/tasks/components/task-line';
 import { TaskTimerContext } from '@/features/tasks/task-timer-context';
+import { setAccountTimezone } from '@/lib/account-clock';
 import type { TaskTimer } from '@/features/tasks/timer-rules';
 import type { Task } from '@/types/domain';
 
@@ -32,10 +33,44 @@ const timer: TaskTimer = {
 };
 afterEach(() => {
   cleanup();
+  setAccountTimezone(undefined);
   vi.restoreAllMocks();
 });
 
-test('waiting task right click shares the tap menu and Escape restores its trigger', () => {
+test('start footer follows the account timezone and stays fixed after resuming', () => {
+  const firstStartedAt = Date.parse('2026-10-03T07:30:00Z');
+  setAccountTimezone('Asia/Shanghai');
+  const props = {
+    task,
+    timer: { ...timer, firstStartedAt },
+    now: firstStartedAt,
+    today: '2026-10-06',
+    onChange: vi.fn(),
+    onRemove: vi.fn(),
+    onRecord: vi.fn(),
+  };
+  const view = render(<TaskTimerCard {...props} />);
+  expect(screen.getByText('开始于 2026/10/03 15:30')).toHaveAttribute(
+    'datetime',
+    '2026-10-03T07:30:00.000Z',
+  );
+  expect(screen.getByText('开始于 2026/10/03 15:30')).toHaveAttribute(
+    'title',
+    '开始于 2026/10/03 15:30（中国 · 北京时间）',
+  );
+  view.rerender(
+    <TaskTimerCard
+      {...props}
+      timer={{ ...props.timer, startedAt: firstStartedAt + 3600000 }}
+    />,
+  );
+  expect(screen.getByText('开始于 2026/10/03 15:30')).toBeVisible();
+  setAccountTimezone('America/New_York');
+  view.rerender(<TaskTimerCard {...props} />);
+  expect(screen.getByText('开始于 2026/10/03 03:30')).toBeVisible();
+});
+
+test('waiting task right click shares the tap menu and Escape restores task focus', () => {
   const request = vi.fn();
   render(
     <TaskTimerContext.Provider value={{ ready: true, taskIds: [], request }}>
@@ -50,6 +85,11 @@ test('waiting task right click shares the tap menu and Escape restores its trigg
     </TaskTimerContext.Provider>,
   );
   const trigger = screen.getByRole('button', { name: task.title + '更多操作' });
+  const taskMain = screen.getByRole('button', {
+    name: task.title + '· 待定',
+    exact: true,
+  });
+  taskMain.focus();
   fireEvent.contextMenu(trigger.closest('.waiting-task-row')!, {
     clientX: 100,
     clientY: 80,
@@ -57,7 +97,7 @@ test('waiting task right click shares the tap menu and Escape restores its trigg
   const action = screen.getByRole('menuitem', { name: '加入计时' });
   fireEvent.keyDown(action, { key: 'Escape' });
   expect(screen.queryByRole('menu')).toBeNull();
-  expect(trigger).toHaveFocus();
+  expect(taskMain).toHaveFocus();
   fireEvent.click(trigger);
   fireEvent.click(screen.getByRole('menuitem', { name: '加入计时' }));
   expect(request).toHaveBeenCalledExactlyOnceWith(task.id);
