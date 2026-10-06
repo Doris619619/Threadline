@@ -5,7 +5,7 @@ import { openWorkspaceSection } from './support/workspace';
 import type { Task } from '@/types/domain';
 import { projectTaskState } from '@/features/projects/project-task-rules';
 
-/** 真实鼠标/键盘焦点只有一层反馈；选填分钟持久化后进入项目/任务双层图，跨主题不溢出。 */
+/** 真实鼠标/键盘焦点只有一层反馈；选填分钟持久化后进入单层任务图，跨主题不溢出。 */
 test('keeps single field focus and persists stage estimates into the time chart', async ({
   page,
 }, info) => {
@@ -91,7 +91,9 @@ test('keeps single field focus and persists stage estimates into the time chart'
   await page.mouse.move(0, 0);
   await expect(chart.locator('.stage-time-center strong')).toHaveText('2h');
   await expect(chart.locator('[data-stage-slice]')).toHaveCount(2);
-  await expect(chart).toContainText('1 项未估时');
+  await expect(
+    chart.getByRole('button', { name: '编辑 暂不估时预计分钟', exact: true }),
+  ).toHaveText('暂定');
   await detail.getByLabel('添加阶段任务', { exact: true }).fill('整理假期照片');
   await detail.getByLabel('预计分钟（选填）', { exact: true }).fill('60');
   await detail.getByRole('button', { name: '+ 添加任务', exact: true }).click();
@@ -105,12 +107,13 @@ test('keeps single field focus and persists stage estimates into the time chart'
     .click();
   await page.mouse.move(0, 0);
   await expect(chart.locator('.stage-time-center strong')).toHaveText('3h');
-  await chart.getByRole('button', { name: '实际', exact: true }).click();
+  await chart.getByRole('button', { name: '实际投入', exact: true }).click();
   await expect(chart.locator('[data-stage-slice]')).toHaveCount(0);
   await expect(chart).toContainText('暂无实际记录');
-  await chart.getByRole('button', { name: '预计', exact: true }).click();
-  await chart.getByRole('button', { name: '阅读清单 1h30min' }).click();
-  await expect(chart.locator('.stage-time-center strong')).toHaveText('1h30min');
+  await chart.getByRole('button', { name: '总预计', exact: true }).click();
+  await chart.getByRole('button', { name: '阅读清单', exact: true }).click();
+  await expect(chart.locator('.stage-time-center strong')).toHaveText('3h');
+  await expect(chart.locator('.stage-time-selection')).toContainText('阅读清单');
   await page.screenshot({
     path: info.outputPath('stage-time-chart.png'),
     fullPage: true,
@@ -128,7 +131,7 @@ test('keeps single field focus and persists stage estimates into the time chart'
 /** 冷启动含动态业务模块及本地 hydration；CI trace 显示 WebKit 会超过 10s，后续操作仍用默认时限。 */
 async function awaitDemoWorkspace(page: Page) {
   await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByLabel('演示模式说明')).toBeVisible();
+  await expect(page.getByLabel('演示模式说明')).toHaveCount(0);
 }
 
 /** 收尾入口在首屏统计区域可达，各主题保持轻量颜色，键盘打开后取消不改变当天数据。 */
@@ -153,8 +156,8 @@ test('keeps day closing in the overview across themes', async ({ page }, info) =
       expect(bounds.height).toBeGreaterThanOrEqual(44);
       expect(bounds.x + bounds.width).toBeLessThanOrEqual(page.viewportSize()!.width);
       if (page.viewportSize()!.width <= 760) {
-        const summary = (await page.locator('.home-summary').boundingBox())!;
-        expect(Math.abs(summary.y - bounds.y)).toBeLessThan(2);
+        const metrics = (await page.locator('.metric-strip').boundingBox())!;
+        expect(metrics.y + metrics.height).toBeLessThanOrEqual(bounds.y);
       } else {
         const overview = (await page.locator('.dashboard-overview').boundingBox())!;
         const metrics = (await page.locator('.metric-strip').boundingBox())!;
@@ -497,7 +500,6 @@ test('keeps stage demo task identity and stage membership after scheduling and r
     .first()
     .evaluate((row) => {
       const check = row.querySelector('.tl-checkbox > span')!.getBoundingClientRect();
-      const project = row.querySelector('.tl-project-tag')!.getBoundingClientRect();
       const title = row.querySelector<HTMLElement>('.stage-task-title')!;
       const titleBox = title.getBoundingClientRect();
       const style = getComputedStyle(title);
@@ -507,8 +509,6 @@ test('keeps stage demo task identity and stage membership after scheduling and r
           titleBox.top +
           parseFloat(style.paddingTop) +
           parseFloat(style.lineHeight) / 2,
-        projectCenter: project.top + project.height / 2,
-        projectRight: project.right,
         titleLeft: titleBox.left,
         extraMetadata: row.querySelectorAll('.plan-task-meta').length,
       };
@@ -516,10 +516,9 @@ test('keeps stage demo task identity and stage membership after scheduling and r
   expect(
     Math.abs(alignment.checkCenter - alignment.firstLineCenter),
   ).toBeLessThanOrEqual(2);
-  expect(
-    Math.abs(alignment.projectCenter - alignment.firstLineCenter),
-  ).toBeLessThanOrEqual(2);
-  expect(alignment.projectRight).toBeLessThanOrEqual(alignment.titleLeft);
+  await expect(stage.locator('.stage-waiting-project summary').first()).toContainText(
+    '其他',
+  );
   expect(alignment.extraMetadata).toBe(0);
   const snapshot = () =>
     page.evaluate(() =>
@@ -537,7 +536,7 @@ test('keeps stage demo task identity and stage membership after scheduling and r
     .getByRole('button', { name: '→ 今天', exact: true })
     .click();
   await expect(
-    page.locator('.schedule-panel').getByText(item.title, { exact: true }),
+    page.locator('.timeline-row').getByText(item.title, { exact: true }),
   ).toBeVisible();
   await expect(stage.locator('.stage-task-row')).toHaveCount(16);
   await page.reload();
@@ -615,7 +614,9 @@ test('opens an interactive isolated demo and persists Daily and newly created ta
     .getByPlaceholder('任务名称（按 Enter 保存）')
     .fill('演示：整理今日笔记');
   await schedule.getByTitle('保存任务').click();
-  await expect(schedule.getByText('演示：整理今日笔记', { exact: true })).toBeVisible();
+  await expect(
+    schedule.locator('.timeline-row').getByText('演示：整理今日笔记', { exact: true }),
+  ).toBeVisible();
   await page.reload();
   await awaitDemoWorkspace(page);
   await expect(daily.locator('textarea')).toHaveCount(0);
@@ -623,7 +624,9 @@ test('opens an interactive isolated demo and persists Daily and newly created ta
     daily.getByLabel('算法训练 完成一道动态规划题并整理思路实际耗时'),
   ).toHaveValue('18');
   await expect(normal.getByText('演示：提交研究计划', { exact: true })).toBeVisible();
-  await expect(schedule.getByText('演示：整理今日笔记', { exact: true })).toBeVisible();
+  await expect(
+    schedule.locator('.timeline-row').getByText('演示：整理今日笔记', { exact: true }),
+  ).toBeVisible();
   await daily.getByRole('checkbox', { name: '完成 Daily 算法训练' }).uncheck();
   await expect(
     daily.getByRole('checkbox', {

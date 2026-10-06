@@ -1,7 +1,15 @@
-# 文件用途：定义 Threadline 工作区的 pnpm 安装布局和受审核依赖构建脚本策略。
+# 文件用途：定义 Threadline 的 pnpm 安装布局、受审核构建脚本和兼容安全补丁约束。
 
 nodeLinker: hoisted
 storeDir: .pnpm-store
+
+# 仅替换仍落在已公开漏洞范围内的构建间接依赖，保持各自原主版本 API。
+overrides:
+  'undici@^6': 6.28.1
+  'fast-uri@^3': 3.1.8
+  'brace-expansion@^2': 2.1.7
+  'brace-expansion@^5': 5.0.12
+  'http-cache-semantics@^4': 4.3.0
 
 allowBuilds:
   electron: true

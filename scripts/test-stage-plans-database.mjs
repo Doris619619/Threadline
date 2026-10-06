@@ -406,6 +406,181 @@ try {
       .length === 0,
     'invalid estimate rolls back whole stage',
   );
+  // 显式日期实际命令保持未安排 Task，完成计时才沿用原完成待办规则。
+  /** 读取真正服务端字段作为冲突基准，每次失败保留原任务与账本。 */
+  async function actualGuard(taskId, complete = false) {
+    const task = (await asUser(a, 'select * from tasks where id=$1', [taskId])).rows[0];
+    return Object.fromEntries(
+      [
+        'status',
+        'scheduled_date',
+        'deleted_at',
+        'project_id',
+        'actual_duration_minutes',
+        ...(complete ? ['completed'] : []),
+      ].map((key) => [key, task[key]]),
+    );
+  }
+  const beforeActual = await actualGuard(timedTask);
+  await asUser(a, 'select record_task_actual($1,$2,$3,$4)', [
+    timedTask,
+    15,
+    '2026-10-03',
+    JSON.stringify(beforeActual),
+  ]);
+  check(
+    (await actualGuard(timedTask)).status === 'waiting',
+    'actual on waiting retains state',
+  );
+  check(
+    (await actualGuard(timedTask)).scheduled_date === null,
+    'actual does not schedule waiting task',
+  );
+  await rejects(
+    () =>
+      asUser(a, 'select record_task_actual($1,$2,$3,$4)', [
+        timedTask,
+        15,
+        '2026-10-03',
+        JSON.stringify(beforeActual),
+      ]),
+    'TASK_FIELD_CONFLICT',
+  );
+  await asUser(a, 'select record_task_actual($1,$2,$3,$4)', [
+    timedTask,
+    25,
+    '2026-10-04',
+    JSON.stringify(await actualGuard(timedTask)),
+  ]);
+  check(
+    (
+      await asUser(
+        a,
+        'select minutes from task_time_entries where task_id=$1 order by entry_date',
+        [timedTask],
+      )
+    ).rows
+      .map((r) => r.minutes)
+      .join(',') === '15,10',
+    'actual dates retain independent balances',
+  );
+  const guard25 = await actualGuard(timedTask);
+  await rejects(
+    () =>
+      asUser(a, 'select record_task_actual($1,$2,$3,$4)', [
+        timedTask,
+        0,
+        '2026-10-04',
+        JSON.stringify(guard25),
+      ]),
+    'TASK_ACTUAL_BELOW_FIXED_HISTORY',
+  );
+  check(
+    (await actualGuard(timedTask)).actual_duration_minutes === 25,
+    'failed reduction rolls back task total',
+  );
+  await rejects(
+    () =>
+      asUser(b, 'select record_task_actual($1,$2,$3,$4)', [
+        timedTask,
+        30,
+        '2026-10-04',
+        JSON.stringify(guard25),
+      ]),
+    'TASK_NOT_FOUND',
+  );
+  await rejects(
+    () =>
+      asUser(null, 'select record_task_actual($1,$2,$3,$4)', [
+        timedTask,
+        30,
+        '2026-10-04',
+        JSON.stringify(guard25),
+      ]),
+    'permission denied',
+  );
+  await rejects(
+    () =>
+      asUser(a, 'select record_task_actual($1,$2,$3,$4)', [
+        timedTask,
+        -1,
+        '2026-10-04',
+        JSON.stringify(guard25),
+      ]),
+    'INVALID_TASK_ACTUAL',
+  );
+  await rejects(
+    () =>
+      asUser(a, 'select record_task_actual($1,$2,$3,$4)', [
+        timedTask,
+        30,
+        null,
+        JSON.stringify(guard25),
+      ]),
+    'INVALID_TASK_ACTUAL',
+  );
+  await rejects(
+    () =>
+      asUser(a, 'update tasks set actual_duration_minutes=30 where id=$1', [timedTask]),
+    'TASK_ACTUAL_DATE_REQUIRED',
+  );
+  await asUser(a, 'select record_task_actual($1,$2,$3,$4)', [
+    timedTask,
+    15,
+    '2026-10-04',
+    JSON.stringify(await actualGuard(timedTask)),
+  ]);
+  await asUser(a, 'select record_task_actual($1,$2,$3,$4)', [
+    timedTask,
+    null,
+    '2026-10-03',
+    JSON.stringify(await actualGuard(timedTask)),
+  ]);
+  check(
+    (await actualGuard(timedTask)).actual_duration_minutes === null,
+    'clear is not zero and leaves ledger balance zero',
+  );
+  const waitingCompleteGuard = await actualGuard(timedTask, true);
+  await asUser(a, 'select record_task_actual($1,$2,$3,$4,$5)', [
+    timedTask,
+    30,
+    '2026-10-04',
+    JSON.stringify(waitingCompleteGuard),
+    true,
+  ]);
+  const completedTask = (
+    await asUser(a, 'select * from tasks where id=$1', [timedTask])
+  ).rows[0];
+  check(
+    completedTask.completed &&
+      completedTask.status === 'active' &&
+      completedTask.scheduled_date.toISOString().startsWith('2026-10-04'),
+    'timer actual and waiting completion are one transaction',
+  );
+  await rejects(
+    () =>
+      asUser(a, 'select record_task_actual($1,$2,$3,$4,$5)', [
+        timedTask,
+        30,
+        '2026-10-04',
+        JSON.stringify(waitingCompleteGuard),
+        true,
+      ]),
+    'TASK_FIELD_CONFLICT',
+  );
+  await asUser(a, 'update tasks set actual_duration_minutes=35 where id=$1', [
+    timedTask,
+  ]);
+  check(
+    (
+      await asUser(
+        a,
+        "select minutes from task_time_entries where task_id=$1 and entry_date='2026-10-04'",
+        [timedTask],
+      )
+    ).rows[0].minutes === 35,
+    'ordinary actual editing retains scheduled date after explicit command',
+  );
   console.log('Stage plans PostgreSQL: ' + checks + ' checks passed.');
 } catch (error) {
   console.error('Stage database check failed:', error.message, error.code ?? '');

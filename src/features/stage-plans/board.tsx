@@ -14,6 +14,7 @@ import { useWorkspaceData } from '@/features/workspace/workspace-data-context';
 import { ManagementDialog } from '@/components/ui/management-dialog';
 import { Button } from '@/components/ui/button';
 import { useGuardedAction } from '@/hooks/use-guarded-action';
+import { usePersistentState } from '@/hooks/use-persistent-state';
 import type { StagePlan } from '@/types/domain';
 import { stageStatus, visibleHomeStages, type StageStatus } from './rules';
 import { useStagePlans } from './state';
@@ -257,14 +258,20 @@ export function HomeStagePlans() {
   );
 }
 
-/** 完整详情与首页共享摘要和列表，删除阶段明确说明任务保留。 */
+/** 经典保留原整页摘要、双环明细与状态清单，新版合并清单；两版操作同一 Task。 */
 export function StageDetail() {
   const stages = useStagePlans();
-  const { tasks, projects } = useWorkspaceData();
+  const { tasks, projects, saveTaskConfirmed, recordTaskActual } = useWorkspaceData();
   const today = useAccountToday();
   const plan = stages.plans.find((item) => item.id === stages.detailId);
   const [edit, setEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [layout, setLayout] = usePersistentState<'classic' | 'new'>(
+    'threadline.stage-time-layout',
+    'new',
+    (value) => (value === 'classic' ? 'classic' : 'new'),
+  );
+  const classic = layout === 'classic';
   const { busy, error, run } = useGuardedAction();
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -283,7 +290,10 @@ export function StageDetail() {
       </section>
     );
   return (
-    <section className="stage-detail" data-testid="stage-detail">
+    <section
+      className={'stage-detail' + (classic ? ' is-classic-detail' : '')}
+      data-testid="stage-detail"
+    >
       <button type="button" className="stage-back" onClick={back}>
         <ArrowLeft size={18} />
         返回计划
@@ -292,6 +302,7 @@ export function StageDetail() {
         <h1 ref={heading} tabIndex={-1}>
           {plan.name}
         </h1>
+        {!classic && <StageSummary plan={plan} tasks={tasks} today={today} compact />}
         <div>
           <button
             type="button"
@@ -314,10 +325,28 @@ export function StageDetail() {
           </button>
         </div>
       </header>
-      <StageSummary plan={plan} tasks={tasks} today={today} />
+      {classic && <StageSummary plan={plan} tasks={tasks} today={today} />}
       <StageAddTask stageId={plan.id} projects={projects} />
-      <StageTimeChart tasks={tasks} projects={projects} stageId={plan.id} />
-      <StageTaskList stageId={plan.id} showHistory />
+      <StageTimeChart
+        tasks={tasks}
+        projects={projects}
+        plan={plan}
+        today={today}
+        layout={layout}
+        onLayoutChange={setLayout}
+        onSaveEstimate={(original, minutes) =>
+          saveTaskConfirmed({ ...original, plannedDurationMinutes: minutes }, original)
+        }
+        onSaveActual={(original, minutes, date) =>
+          recordTaskActual(original, minutes, date!)
+        }
+        renderDetails={(view) => (
+          <StageTaskList stageId={plan.id} showHistory timeView={view} />
+        )}
+        renderClassicTasks={(view) => (
+          <StageTaskList stageId={plan.id} showHistory timeView={view} classic />
+        )}
+      />
       {error && (
         <p className="form-error" role="alert">
           {error}

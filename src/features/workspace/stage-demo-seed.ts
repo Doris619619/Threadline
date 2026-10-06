@@ -42,6 +42,15 @@ export function createDemoStagePlans(today = getLocalDateKey()): StagePlan[] {
       createdAt: stamp,
       updatedAt: stamp,
     },
+    {
+      id: 'demo-stage-time',
+      name: '多项目时间验收',
+      startDate: addLocalDateDays(today, -2),
+      endDate: addLocalDateDays(today, 4),
+      homeVisible: false,
+      createdAt: stamp,
+      updatedAt: stamp,
+    },
   ];
 }
 
@@ -79,18 +88,41 @@ export function createDemoStageTasks(today = getLocalDateKey()): Task[] {
           ]
         : group === 2
           ? ['完成听力练习', '复盘写作', '整理口语题库']
-          : ['完成期末复习', '整理错题']
+          : group === 3
+            ? ['完成期末复习', '整理错题']
+            : Array.from({ length: 22 }, (_, i) =>
+                i === 0
+                  ? '整理这段时间的课程资料与访学申请清单，记录需要继续跟进的事项和完整准备步骤'
+                  : '验收任务 ' + (i + 1),
+              )
     ).map((title, index): Task => {
-      const completed = group === 3 || (group === 0 && index >= 10);
+      const completed =
+        group === 3 || (group === 0 && index >= 10) || (group === 4 && index === 3);
       const scheduled = completed || (group === 0 && index >= 7);
       return {
         id: plan.id + '-task-' + index,
         stagePlanId: plan.id,
-        projectId: 'other',
+        projectId:
+          group === 4
+            ? ['work', 'course', 'research', 'life', 'other'][index % 5]
+            : 'other',
         title,
         importance: 'normal',
         status: scheduled ? 'active' : 'waiting',
         completed,
+        plannedDurationMinutes:
+          group === 4
+            ? index === 1
+              ? undefined
+              : index === 2
+                ? 0
+                : index === 4
+                  ? 1
+                  : index % 3 === 0
+                    ? 150
+                    : 30 + index * 5
+            : undefined,
+        actualDurationMinutes: group === 4 && completed ? 45 : undefined,
         date: scheduled ? addLocalDateDays(plan.startDate, index % 3) : undefined,
         schedulePendingTime: scheduled && !completed,
         createdAt: plan.createdAt,

@@ -5,16 +5,20 @@
 'use client';
 
 import { GripVertical, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useTaskMenu } from '../hooks/use-task-menu';
+import { useRef, type RefObject } from 'react';
 import { TaskActionsPopover } from './task-actions-popover';
+import { TaskTimerMenuAction } from './task-timer-menu-action';
 import { cn } from '@/lib/cn';
 import type { TaskStatus } from '@/types/domain';
 
 /**
- * 渲染工作站开关、更多菜单和拖拽柄。移动端默认只展示干净的更多菜单，次要操作收敛到菜单内。
+ * 渲染工作站开关和拖拽柄；桌面通过行右键操作，触屏保留更多菜单。
  */
 export function TaskRowActions({
   taskId,
+  menu: controlledMenu,
+  menuAnchor: controlledAnchor,
   title,
   canChangeWorkflow,
   canDrag,
@@ -29,6 +33,8 @@ export function TaskRowActions({
   onPointerDragEnd,
 }: {
   taskId: string;
+  menu?: ReturnType<typeof useTaskMenu>;
+  menuAnchor?: RefObject<HTMLButtonElement | null>;
   title: string;
   canChangeWorkflow: boolean;
   canDrag: boolean;
@@ -42,12 +48,13 @@ export function TaskRowActions({
   onPointerDragMove?: (event: React.PointerEvent<HTMLButtonElement>) => void;
   onPointerDragEnd?: (event: React.PointerEvent<HTMLButtonElement>) => void;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-
+  const localMenu = useTaskMenu();
+  const localAnchor = useRef<HTMLButtonElement>(null);
+  const menu = controlledMenu ?? localMenu;
+  const menuAnchor = controlledAnchor ?? localAnchor;
   return (
     <div className="task-actions-cell">
-      <div className={cn('task-actions', menuOpen && 'is-open')}>
+      <div className={cn('task-actions', menu.open && 'is-open')}>
         {onToggleWorkstation && (
           <button
             type="button"
@@ -61,23 +68,29 @@ export function TaskRowActions({
         )}
         <button
           type="button"
+          className="task-context-trigger"
           aria-label={`${title}更多操作`}
-          ref={triggerRef}
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((open) => !open)}
+          ref={menuAnchor}
+          aria-expanded={menu.open}
+          onClick={menu.toggle}
         >
           <MoreHorizontal size={17} />
         </button>
-        {menuOpen && (
+        {menu.open && (
           <TaskActionsPopover
-            anchor={triggerRef}
-            onClose={() => setMenuOpen(false)}
+            anchor={menuAnchor}
+            point={menu.point}
+            onClose={menu.close}
             label={`${title}操作`}
           >
+            {canChangeWorkflow && (
+              <TaskTimerMenuAction taskId={taskId} onClose={menu.close} />
+            )}
             <button
               type="button"
+
               onClick={() => {
-                setMenuOpen(false);
+                menu.close();
                 onEdit();
               }}
             >
@@ -87,8 +100,9 @@ export function TaskRowActions({
             {canChangeWorkflow && (
               <button
                 type="button"
+
                 onClick={() => {
-                  setMenuOpen(false);
+                  menu.close();
                   onReschedule();
                 }}
               >
@@ -98,8 +112,9 @@ export function TaskRowActions({
             {canChangeWorkflow && (
               <button
                 type="button"
+
                 onClick={() => {
-                  setMenuOpen(false);
+                  menu.close();
                   onMove(taskId, 'waiting');
                 }}
               >
@@ -109,8 +124,9 @@ export function TaskRowActions({
             {canChangeWorkflow && (
               <button
                 type="button"
+
                 onClick={() => {
-                  setMenuOpen(false);
+                  menu.close();
                   onMove(taskId, 'abandoned');
                 }}
               >
@@ -119,8 +135,9 @@ export function TaskRowActions({
             )}
             <button
               type="button"
+
               onClick={() => {
-                setMenuOpen(false);
+                menu.close();
                 onMove(taskId, 'trashed');
               }}
             >

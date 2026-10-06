@@ -10,6 +10,7 @@ import '../features/tasks/compact-workspace.css';
 import '../components/app-shell.css';
 import '../features/tasks/task-dashboard.css';
 import '../features/tasks/task-estimates.css';
+import '../features/tasks/task-timers.css';
 import '../features/daily/daily.css';
 import '../features/tasks/task-dialogs.css';
 import '../features/projects/projects.css';
@@ -47,6 +48,7 @@ import '../features/together/review.css';
 import '../features/stage-plans/stage-plans.css';
 import '../features/stage-plans/stage-editor.css';
 import '../features/stage-plans/stage-time.css';
+import '../features/stage-plans/stage-classic.css';
 import '../features/projects/project-detail.css';
 
 import '../components/ui/project-picker.css';

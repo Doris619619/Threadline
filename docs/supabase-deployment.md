@@ -10,6 +10,12 @@
 
 用 `pnpm test:stage:db` 在隔离 PostgreSQL 执行全套原始迁移与阶段合同；`pnpm test:supabase:integration` 还包含同账号双客户端阶段/任务 Realtime、跨账号拒绝和并发版本检查。前者不验证网络同步，后者要求运行本地 Docker/Supabase。字段、发布顺序和截图见 [阶段计划](stage-plans.md)。
 
+## 0.1.13 实际投入记账迁移
+
+`202610030001_task_actual_entry_date.sql` 在同一事务中记录指定日期的实际投入并可完成计时任务，使用调用方打开时的 Task 基准拒绝冲突；减少时长只扣减本次指定日期的记录，保留其他日期历史。旧接口保持兼容，无新增表或字段。
+
+2026-10-06，按 PR #55 的合并发布授权，对关联 Production 先执行 dry-run，确认只有这一项缺失迁移后应用成功。随后 `migration list --linked` 的 24 项本地/远端迁移一致，最终 dry-run 返回 `upToDate: true` 与空迁移清单。该记录证明迁移已部署；实际账号操作与实体设备验收仍需单独核验。
+
 ## 两人空间迁移
 
 新功能依次应用 `202609280001_together.sql` 与 `202609300001_together_review_safety.sql`，再发布客户端。新增独立成员 RLS、幂等 RPC 与 rooms Realtime，不放宽个人数据权限。成果图片改为微信发送，应用只记录主动声明与验收，因此不需要 Storage 或清理 Cron。部署步骤、测试边界及 localhost 展示见 [两人空间](together-space.md)。
@@ -97,7 +103,7 @@ NEXT_PUBLIC_THREADLINE_CLOUD_ENV=production
 Preview 有两种允许状态：
 
 - 有 staging/test Supabase：配置其 URL/key，并设置 `NEXT_PUBLIC_THREADLINE_CLOUD_ENV=staging` 或 `test`。
-- 没有第二个项目：不设置 URL/key，Preview 自动展示可交互的演示工作台，无需登录、不占 Supabase 项目名额。首页常驻“演示模式”说明；示例包含今日任务、重要/普通待安排、带固定计划的 Daily 子项和无子项 Daily。
+- 没有第二个项目：不设置 URL/key，Preview 自动展示可交互的演示工作台，无需登录、不占 Supabase 项目名额。页面直接显示业务内容，不添加演示横幅；示例包含今日任务、重要/普通待安排、带固定计划的 Daily 子项和无子项 Daily。
 
 配置了云连接的 Preview 若声明 `production`、只缺一半配置，或启用 test adapter，构建会失败。演示标记由 `next.config.ts` 根据 `VERCEL_ENV=preview`、空 URL/key 且非 Electron 构建推导，不是用户可开启的 Production 开关。演示不会发起 Supabase 读写，数据存于 `threadline.preview-demo.v1:` 独立命名空间，不读取旧本地业务记录。
 

@@ -144,7 +144,10 @@ test('keeps all pinned tasks and card sections readable in both color schemes', 
     }
     await page.getByRole('button', { name: '查看阶段 国庆假期', exact: true }).click();
     await expect(
-      page.getByTestId('stage-detail').locator('.stage-task-row'),
+      page
+        .getByTestId('stage-detail')
+        .locator('.stage-task-row')
+        .filter({ visible: true }),
     ).toHaveCount(16);
     await verifyLayout(page);
     await page.getByRole('button', { name: '返回计划', exact: true }).click();

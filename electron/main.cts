@@ -39,6 +39,7 @@ import {
 import { readFramelessGeometry } from './window-geometry.cjs';
 import { registerDesktopUpdates } from './desktop-updates.cjs';
 import { registerAutoStart } from './auto-start.cjs';
+import { registerDesktopZoom } from './zoom-controls.cjs';
 
 // Windows/Linux 默认菜单会占用紧凑窗口的标题区域，必须在 app ready 前移除。
 Menu.setApplicationMenu(null);
@@ -213,7 +214,7 @@ function protectRendererNavigation(window: BrowserWindow): void {
   });
 }
 
-/** 创建受保护 BrowserWindow；角色由受信任 Renderer URL 中的只读标记传递。 */
+/** 创建受保护 BrowserWindow；主窗口启用独立缩放，角色由受信任 URL 的只读标记传递。 */
 function createWindow(
   role: WindowRole,
   options: Electron.BrowserWindowConstructorOptions,
@@ -231,6 +232,7 @@ function createWindow(
     },
   });
   protectRendererNavigation(window);
+  if (role === 'main') registerDesktopZoom(window);
   return window;
 }
 

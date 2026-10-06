@@ -7,6 +7,7 @@ import {
   bootstrapLocalAdapterWorkspace,
   openProjectCreateDialog,
   openWorkspaceSection,
+  openTaskMenu,
 } from './support/workspace';
 
 /**
@@ -150,7 +151,9 @@ test.describe('desktop task drag scheduling', () => {
     const waitingTask = page.locator('.waiting-task-row').filter({ hasText: '取快递' });
     const schedulePanel = page.locator('.schedule-panel');
 
-    await waitingTask.getByRole('button', { name: '取快递更多操作' }).click();
+    await openTaskMenu(
+      waitingTask.getByRole('button', { name: '取快递更多操作', includeHidden: true }),
+    );
     await page
       .getByRole('menu', { name: '取快递待安排操作' })
       .getByRole('menuitem', { name: '安排到今天', exact: true })
@@ -318,7 +321,9 @@ test('does not offer incomplete-work transitions for a completed task', async ({
   page,
 }) => {
   const completed = page.locator('.timeline-row').filter({ hasText: '领域论文' });
-  await completed.getByRole('button', { name: '领域论文更多操作' }).click();
+  await openTaskMenu(
+    completed.getByRole('button', { name: '领域论文更多操作', includeHidden: true }),
+  );
   const menu = page.getByRole('group', { name: '领域论文操作', exact: true });
   await expect(menu).toBeVisible();
 
@@ -482,7 +487,9 @@ test('keeps all timed task creation controls visible in a compact desktop schedu
   )
     throw new Error('新增日程字段不可见。');
   expect(taskBox.width).toBeGreaterThanOrEqual(120);
-  expect(projectBox.width).toBeLessThanOrEqual(72);
+  // 项目列随日程区域扩展，保留名称空间，并避免挤占紧凑视口的任务输入。
+  expect(projectBox.width).toBeGreaterThanOrEqual(80);
+  expect(projectBox.width).toBeLessThan(timelineBox.width * 0.25);
   expect(existingTimeBox.width).toBeLessThanOrEqual(92);
   expect(plannedInputBox.width).toBeGreaterThanOrEqual(58);
   expect(actualInputBox.width).toBeGreaterThanOrEqual(58);
@@ -631,11 +638,15 @@ test('creates a Daily definition that appears on following dates', async ({ page
 });
 
 test('moves an item to waiting then schedules it for today', async ({ page }) => {
-  await page.getByRole('button', { name: '邮件处理更多操作' }).click();
+  await openTaskMenu(
+    page.getByRole('button', { name: '邮件处理更多操作', includeHidden: true }),
+  );
   await page.getByRole('button', { name: '待安排', exact: true }).click();
   const waiting = page.locator('.waiting-task-row').filter({ hasText: '邮件处理' });
   await expect(waiting).toBeVisible();
-  await waiting.getByRole('button', { name: '邮件处理更多操作' }).click();
+  await openTaskMenu(
+    waiting.getByRole('button', { name: '邮件处理更多操作', includeHidden: true }),
+  );
   await page
     .getByRole('menu', { name: '邮件处理待安排操作' })
     .getByRole('menuitem', { name: '安排到今天', exact: true })
@@ -684,7 +695,9 @@ test('manages Daily independently with planned checklist items', async ({ page }
 
 test('records rescheduling and waiting deletion in history', async ({ page }) => {
   const pickup = page.locator('.waiting-task-row').filter({ hasText: '取快递' });
-  await pickup.getByRole('button', { name: '取快递更多操作' }).click();
+  await openTaskMenu(
+    pickup.getByRole('button', { name: '取快递更多操作', includeHidden: true }),
+  );
   await page
     .getByRole('menu', { name: '取快递待安排操作' })
     .getByRole('menuitem', { name: '删除', exact: true })
@@ -692,7 +705,9 @@ test('records rescheduling and waiting deletion in history', async ({ page }) =>
   await expect(pickup).not.toBeVisible();
 
   const email = page.locator('.timeline-row').filter({ hasText: '邮件处理' });
-  await email.getByRole('button', { name: '邮件处理更多操作' }).click();
+  await openTaskMenu(
+    email.getByRole('button', { name: '邮件处理更多操作', includeHidden: true }),
+  );
   await page
     .getByRole('group', { name: '邮件处理操作', exact: true })
     .getByRole('button', { name: '移期', exact: true })
@@ -704,7 +719,9 @@ test('records rescheduling and waiting deletion in history', async ({ page }) =>
 
 test('can choose a future date when rescheduling', async ({ page }) => {
   const email = page.locator('.timeline-row').filter({ hasText: '邮件处理' });
-  await email.getByRole('button', { name: '邮件处理更多操作' }).click();
+  await openTaskMenu(
+    email.getByRole('button', { name: '邮件处理更多操作', includeHidden: true }),
+  );
   await page
     .getByRole('group', { name: '邮件处理操作', exact: true })
     .getByRole('button', { name: '移期', exact: true })
@@ -722,7 +739,9 @@ test('can choose a future date when rescheduling', async ({ page }) => {
 
 test('deletes a task and restores it from trash', async ({ page }) => {
   const pickup = page.locator('.waiting-task-row').filter({ hasText: '取快递' });
-  await pickup.getByRole('button', { name: '取快递更多操作' }).click();
+  await openTaskMenu(
+    pickup.getByRole('button', { name: '取快递更多操作', includeHidden: true }),
+  );
   await page
     .getByRole('menu', { name: '取快递待安排操作' })
     .getByRole('menuitem', { name: '删除', exact: true })
@@ -774,14 +793,16 @@ test('closes today and moves unfinished work into waiting', async ({ page }) => 
   await expect(page.getByRole('button', { name: '今日已结束' })).toBeDisabled();
 });
 
-test('keeps postponed work in the original date task denominator', async ({ page }) => {
+test('moves postponed work out of the original date remaining estimate', async ({
+  page,
+}) => {
   await page.getByRole('button', { name: '结束今天', exact: true }).click();
   await page
     .getByRole('dialog')
     .getByRole('button', { name: '确认结束今天', exact: true })
     .click();
   await expect(page.locator('.metric-strip .tl-stat').first()).toContainText(
-    /2\s*\/\s*6/,
+    '剩余 / 当日预计',
   );
   await page.getByRole('button', { name: '后一天' }).click();
   await expect(page.getByRole('checkbox', { name: '完成邮件处理' })).toBeVisible();
