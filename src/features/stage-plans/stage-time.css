@@ -44,6 +44,18 @@
   font: inherit;
   font-size: var(--text-caption-size);
 }
+/* 项数紧跟项目名称，只有项目总时长使用右侧对齐空间。 */
+.stage-time-task-list .stage-waiting-project summary > span {
+  flex: 0 1 auto;
+}
+.stage-time-task-list .stage-waiting-project summary > small,
+.stage-time-task-list .stage-waiting-project summary > strong {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.stage-time-task-list .stage-waiting-project summary > strong {
+  margin-inline-start: auto;
+}
 @container (min-width: 820px) {
   .stage-time-body.is-unified {
     display: grid;
