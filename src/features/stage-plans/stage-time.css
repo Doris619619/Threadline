@@ -363,6 +363,15 @@
   color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
+/* 圆心只容纳两行名称；完整长标题保留在任务明细，避免窄屏挤出圆环。 */
+.stage-time-center-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  max-width: 100%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
 .stage-time-center strong {
   font-size: 1.5rem;
   font-weight: 700;

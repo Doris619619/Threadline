@@ -30,6 +30,31 @@ test('retains classic dual rings and separate task groups while sharing inline e
   const chartBox = (await chart.boundingBox())!;
   const tasksBox = (await tasks.boundingBox())!;
   expect(tasksBox.y).toBeGreaterThanOrEqual(chartBox.y + chartBox.height);
+  const longTask = legend
+    .locator('.stage-time-task')
+    .filter({ hasText: '整理这段时间' });
+  await longTask.click();
+  await page.mouse.move(0, 0);
+  await expect(chart.locator('.stage-time-center-title')).toHaveText(
+    await longTask.innerText(),
+  );
+  // 真实选择长任务名后，标题和时长都必须留在圆心内；移动窄屏也保留完整明细。
+  await expect
+    .poll(() =>
+      chart.locator('.stage-time-center').evaluate((node) => {
+        const center = node.getBoundingClientRect();
+        const title = node.querySelector('.stage-time-center-title')!;
+        const label = title.getBoundingClientRect();
+        const value = node.querySelector('strong')!.getBoundingClientRect();
+        const lineHeight = parseFloat(getComputedStyle(title).lineHeight);
+        return (
+          label.height <= lineHeight * 2 + 1 &&
+          label.top >= center.top - 1 &&
+          value.bottom <= center.bottom + 1
+        );
+      }),
+    )
+    .toBe(true);
   await legend
     .getByRole('button', { name: '编辑 验收任务 2预计分钟', exact: true })
     .click();
