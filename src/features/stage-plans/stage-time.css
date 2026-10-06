@@ -333,6 +333,9 @@
   width: 100%;
   max-width: 920px;
   margin-inline: auto;
+  /* 引线标签参与画布高度测量；阻止 Safari 自动放大形成尺寸反馈，仍保留用户显式缩放。 */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 .stage-time-visual svg {
   display: block;
@@ -354,9 +357,6 @@
   gap: var(--space-1);
   pointer-events: none;
   container-type: inline-size;
-  /* Safari 的文本自动放大会让可见数字与隐藏测量样本的字宽不同；保留显式文字缩放。 */
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
 }
 .stage-time-center-title,
 .stage-time-center small {
