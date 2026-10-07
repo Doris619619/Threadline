@@ -12,7 +12,10 @@ import { _electron as electron } from 'playwright';
 import { terminateOwnedProcess } from './desktop-build-runtime.mjs';
 import { testElectronLoginRace } from './test-electron-login-race.mjs';
 import { testElectronInteractionFeedback } from './test-electron-interaction-feedback.mjs';
-import { testElectronDisplayRecovery } from './test-electron-display-recovery.mjs';
+import {
+  testElectronCrossDpiRecovery,
+  testElectronDisplayRecovery,
+} from './test-electron-display-recovery.mjs';
 import { testElectronZoom } from './test-electron-zoom.mjs';
 
 const rendererPort = process.env.THREADLINE_ELECTRON_E2E_PORT ?? '3123';
@@ -190,6 +193,7 @@ try {
     'maximize and restore must retain the normal window geometry',
   );
   await testElectronInteractionFeedback(application, page);
+  await testElectronCrossDpiRecovery(application, page);
   await testElectronDisplayRecovery(application);
   await page.getByRole('button', { name: '工作站', exact: true }).click();
   await page.getByTestId('workstation-panel').waitFor();

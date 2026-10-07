@@ -1,5 +1,122 @@
-/** @fileoverview 用真实 BrowserWindow 和隔离的 screen 替身验证跨屏松手及工作区缩小恢复。 */
+/** @fileoverview 用真实 BrowserWindow 验证实体双屏 DPI 切换，以及 screen 替身驱动的工作区恢复。 */
 import assert from 'node:assert/strict';
+
+/** 在宿主已有不同 DPI 双屏时，验证完整窗口和 200 DIP 工作站的真实跨屏 hydration，单屏环境直接跳过。 */
+export async function testElectronCrossDpiRecovery(application, page) {
+  const scenario = await application.evaluate(({ BrowserWindow, screen }) => {
+    const window = BrowserWindow.getAllWindows().find((item) =>
+      item.webContents.getURL().includes('role=main'),
+    );
+    const displays = screen
+      .getAllDisplays()
+      .sort((left, right) => left.scaleFactor - right.scaleFactor);
+    const source = displays[0];
+    const target = displays.find(
+      (display) => display.scaleFactor !== source.scaleFactor,
+    );
+    if (!target) return undefined;
+    const original = window.getBounds();
+    const from = {
+      x: source.workArea.x + 24,
+      y: source.workArea.y + 24,
+      width: Math.min(1000, source.workArea.width - 48),
+      height: Math.min(700, source.workArea.height - 48),
+    };
+    const to = {
+      x: target.workArea.x + 24,
+      y: target.workArea.y + 24,
+      width: 200,
+      height: 111,
+    };
+    window.setBounds(from);
+    return {
+      original,
+      from,
+      to,
+      fullTarget: {
+        ...to,
+        width: Math.min(1000, target.workArea.width - 48),
+        height: Math.min(600, target.workArea.height - 48),
+      },
+      sourceScale: source.scaleFactor,
+      targetScale: target.scaleFactor,
+    };
+  });
+  if (!scenario) return;
+  try {
+    const fullResult = await page.evaluate(
+      (geometry) =>
+        window.threadlineDesktop.hydrateDesktopState({
+          requestId: 998,
+          mode: 'full',
+          presentation: 'expanded',
+          windowStates: { full: geometry },
+        }),
+      scenario.fullTarget,
+    );
+    const fullActual = await application.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()
+        .find((item) => item.webContents.getURL().includes('role=main'))
+        .getContentSize(),
+    );
+    assert.ok(
+      Math.abs(fullActual[0] - scenario.fullTarget.width) <= 1 &&
+        Math.abs(fullActual[1] - scenario.fullTarget.height) <= 1,
+      'native full bounds keep the requested DIP dimensions after crossing DPI',
+    );
+    assert.equal(
+      fullResult.geometry.width,
+      fullActual[0],
+      'full canonical width matches final native content',
+    );
+    await application.evaluate(
+      ({ BrowserWindow }, geometry) =>
+        BrowserWindow.getAllWindows()
+          .find((item) => item.webContents.getURL().includes('role=main'))
+          .setBounds(geometry),
+      scenario.from,
+    );
+    const result = await page.evaluate(
+      (geometry) =>
+        window.threadlineDesktop.hydrateDesktopState({
+          requestId: 1000,
+          mode: 'workstation',
+          presentation: 'expanded',
+          windowStates: { workstation: geometry },
+        }),
+      scenario.to,
+    );
+    const actual = await application.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()
+        .find((item) => item.webContents.getURL().includes('role=main'))
+        .getContentSize(),
+    );
+    assert.equal(
+      actual[0],
+      200,
+      `native workstation stays 200 DIP across ${scenario.sourceScale} to ${scenario.targetScale} scale`,
+    );
+    assert.equal(
+      result.geometry.width,
+      actual[0],
+      'hydrate canonical width matches native content after crossing DPI',
+    );
+    console.log(
+      `Electron real cross-DPI recovery passed: ${scenario.sourceScale} to ${scenario.targetScale}, full and workstation.`,
+    );
+  } finally {
+    await page.evaluate(
+      (geometry) =>
+        window.threadlineDesktop.hydrateDesktopState({
+          requestId: 1001,
+          mode: 'full',
+          presentation: 'expanded',
+          windowStates: { full: geometry },
+        }),
+      scenario.original,
+    );
+  }
+}
 
 /** 不改宿主机显示设置；仅在测试 Electron 进程内模拟小屏，并在 finally 恢复所有 screen 方法。 */
 export async function testElectronDisplayRecovery(application) {
