@@ -251,13 +251,6 @@ export function StageTimeChart({
                 total={total}
                 active={active}
                 centerTitle={metric === 'actual' ? '实际总时间' : '预计总时间'}
-                emptyLabel={
-                  metric === 'actual'
-                    ? '暂无实际记录'
-                    : metric === 'remaining'
-                      ? '暂无剩余预计'
-                      : '暂无预计时间'
-                }
                 onSelect={select}
                 onHover={setHovered}
               />
@@ -267,13 +260,6 @@ export function StageTimeChart({
                 total={total}
                 active={active}
                 centerTitle={metricLabels[metric]}
-                emptyLabel={
-                  metric === 'actual'
-                    ? '暂无实际记录'
-                    : metric === 'remaining'
-                      ? '暂无剩余预计'
-                      : '暂无预计时间'
-                }
                 onSelect={select}
                 onHover={setHovered}
               />

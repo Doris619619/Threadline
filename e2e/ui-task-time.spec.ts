@@ -3,6 +3,117 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { openWorkspaceSection, openTaskMenu } from './support/workspace';
 
+/** 零值只留口径和时长，中心文字四角位于内圈内；任务标签和时长有不同颜色与字重。 */
+test('keeps empty ring text clear of the ring and separates callout time from task names', async ({
+  page,
+}, info) => {
+  await page.goto('/');
+  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
+  await page
+    .getByRole('combobox', { name: '右栏显示内容', exact: true })
+    .selectOption('time');
+  const chart = page.locator('#home-side-column .stage-time-panel');
+  const callout = chart.locator('.stage-time-callout').first();
+  await expect(callout).toBeVisible();
+  for (const theme of ['blue', 'anya', 'classic', 'cottage']) {
+    for (const scheme of ['light', 'dark']) {
+      await page.evaluate(
+        ({ theme, scheme }) => {
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.dataset.colorScheme = scheme;
+        },
+        { theme, scheme },
+      );
+      const styles = await callout.evaluate((node) => {
+        const name = getComputedStyle(node.querySelector('span')!);
+        const time = getComputedStyle(node.querySelector('small')!);
+        return {
+          nameColor: name.color,
+          timeColor: time.color,
+          nameWeight: name.fontWeight,
+          timeWeight: time.fontWeight,
+        };
+      });
+      expect(styles.timeColor).not.toBe(styles.nameColor);
+      expect(Number(styles.timeWeight)).toBeGreaterThan(Number(styles.nameWeight));
+    }
+  }
+  await page.evaluate(() => {
+    document.documentElement.dataset.theme = 'classic';
+    document.documentElement.dataset.colorScheme = 'light';
+  });
+  await chart.screenshot({ path: info.outputPath('ring-callout-hierarchy.png') });
+  await page.evaluate(() => {
+    const key = 'threadline.preview-demo.v1:threadline.tasks.v1';
+    const tasks = JSON.parse(localStorage.getItem(key)!);
+    for (const task of tasks) task.plannedDurationMinutes = 0;
+    localStorage.setItem(key, JSON.stringify(tasks));
+  });
+  await page.reload();
+  await expect(chart.locator('.stage-time-center strong')).toHaveText('0min');
+  await expect(chart.locator('.stage-time-center small')).toHaveCount(0);
+  await expect(chart).not.toContainText('暂无预计时间');
+  expect(
+    await chart
+      .locator('.stage-time-center-title')
+      .evaluate((node) => parseFloat(getComputedStyle(node).fontSize)),
+  ).toBeGreaterThanOrEqual(11);
+  for (const fontSize of ['', '200%']) {
+    for (const width of [360, 280, 240]) {
+      await chart.locator('.stage-time-visual').evaluate(
+        async (node, { width, fontSize }) => {
+          (node as HTMLElement).style.width = width + 'px';
+          (node as HTMLElement).style.maxWidth = '100%';
+          document.documentElement.style.fontSize = fontSize;
+          await new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          );
+        },
+        { width, fontSize },
+      );
+      await expect
+        .poll(() =>
+          chart.locator('.stage-time-center').evaluate((node) => {
+            const svg = node.parentElement!.querySelector('svg')!;
+            const circle = svg.querySelector('circle')!;
+            const box = svg.getBoundingClientRect();
+            const scale = box.width / svg.viewBox.baseVal.width;
+            const cx = box.left + Number(circle.getAttribute('cx')) * scale;
+            const cy = box.top + Number(circle.getAttribute('cy')) * scale;
+            const radius =
+              (Number(circle.getAttribute('r')) -
+                Number(circle.getAttribute('stroke-width')) / 2) *
+              scale;
+            return [...node.querySelectorAll('.stage-time-center-title, strong')].every(
+              (text) => {
+                const rect = text.getBoundingClientRect();
+                if (
+                  text.classList.contains('stage-time-center-title') &&
+                  parseFloat(getComputedStyle(text).fontSize) < 11
+                ) {
+                  return false;
+                }
+                return [rect.left, rect.right].every((x) =>
+                  [rect.top, rect.bottom].every(
+                    (y) => Math.hypot(x - cx, y - cy) <= radius - 1,
+                  ),
+                );
+              },
+            );
+          }),
+        )
+        .toBe(true);
+    }
+  }
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '';
+  });
+  await chart.locator('.stage-time-visual').evaluate((node) => {
+    (node as HTMLElement).style.width = '';
+  });
+  await chart.screenshot({ path: info.outputPath('empty-ring-clearance.png') });
+});
+
 /** 经典整页保留双环、简明图例和独立状态区，原地估时与切换后的持久化共用同一 Task。 */
 test('retains classic dual rings and separate task groups while sharing inline estimates', async ({
   page,

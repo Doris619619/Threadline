@@ -1,22 +1,21 @@
-/** @fileoverview 根据圆环内圈和当前字体的真实宽度调整总时长，保持完整数字在一行内。 */
+/** @fileoverview 在圆环内侧留白区域适配名称与时长，保持数字一行且不与圆环相碰。 */
 'use client';
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { formatMinutes } from '@/features/tasks/task-time';
 
-/** 测量独立的原字号文本，避免缩小后的文本反过来触发字号震荡。 */
+/** 测量独立原字号样本，同时限制字宽与剩余高度；零值只显示口径与 0min。 */
 export function TimeRingCenter({
   total,
   title,
-  emptyLabel,
   style,
 }: {
   total: number;
   title: string;
-  emptyLabel: string;
   style: CSSProperties;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const sample = useRef<HTMLSpanElement>(null);
+  const titleNode = useRef<HTMLSpanElement>(null);
   const [sizes, setSizes] = useState<{
     fontSize: number;
     titleMaxSize: number;
@@ -26,17 +25,26 @@ export function TimeRingCenter({
   useLayoutEffect(() => {
     const node = container.current;
     const text = sample.current;
-    if (!node || !text) return;
-    /** 从独立样本计算一行字宽，标题与数字共用内圈像素；只保存变化后的稳定尺寸。 */
+    const heading = titleNode.current;
+    if (!node || !text || !heading) return;
+    /** 独立样本避免反馈震荡；长标题占用两行时，时长也必须适配剩余高度。 */
     const fit = () => {
       // 圆形边缘与字体像素取整预留余量，避免窄内圈恰好卡在字宽边界。
       const available = node.clientWidth * 0.9;
       const natural = text.getBoundingClientRect().width;
       if (!available || !natural) return;
       const preferred = parseFloat(getComputedStyle(text).fontSize);
+      const gap = parseFloat(getComputedStyle(node).rowGap) || 0;
+      const remainingHeight =
+        node.clientHeight - heading.getBoundingClientRect().height - gap;
       const fontSize =
-        Math.floor(preferred * Math.min(1, available / natural) * 64) / 64;
-      const titleMaxSize = node.clientWidth * 0.18;
+        Math.floor(
+          Math.min(
+            preferred * Math.min(1, available / natural),
+            Math.max(1, remainingHeight) / 1.25,
+          ) * 64,
+        ) / 64;
+      const titleMaxSize = Math.max(11, node.clientWidth * 0.18);
       setSizes((previous) =>
         previous?.fontSize === fontSize && previous.titleMaxSize === titleMaxSize
           ? previous
@@ -46,9 +54,10 @@ export function TimeRingCenter({
     const observer = new ResizeObserver(fit);
     observer.observe(node);
     observer.observe(text);
+    observer.observe(heading);
     fit();
     return () => observer.disconnect();
-  }, [duration]);
+  }, [duration, title]);
   return (
     <div
       ref={container}
@@ -60,12 +69,13 @@ export function TimeRingCenter({
         } as CSSProperties
       }
     >
-      <span className="stage-time-center-title">{title}</span>
+      <span ref={titleNode} className="stage-time-center-title">
+        {title}
+      </span>
       <strong style={{ fontSize: sizes?.fontSize }}>{duration}</strong>
       <span ref={sample} className="stage-time-center-sample" aria-hidden="true">
         {duration}
       </span>
-      {total === 0 && <small>{emptyLabel}</small>}
     </div>
   );
 }
