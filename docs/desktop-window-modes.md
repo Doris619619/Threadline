@@ -78,3 +78,7 @@ Main 通过 `applyFramelessGeometry` 应用完整窗口及工作站 bounds，立
 `scripts/test-electron-display-recovery.mjs` 在宿主已有不同 DPI 实体屏幕时，额外验证完整窗口与工作站跨屏 hydration 的实际内容尺寸；单一缩放屏幕环境跳过该检查。本机隔离 profile 的 150%→250% 原生切换、工作站重启恢复 200 DIP 及完整 Electron smoke 已通过；`tests/electron-window-geometry.test.ts` 覆盖 DPI 覆盖校正、一 DIP 容忍和最大化/最小化边界。这些验证未修改系统显示设置，不能代替新安装版真实开机自启动验收。
 
 2026-10-07 本轮代码检查：99 文件 512 项单元/组件测试及覆盖率门禁、全仓 lint、TypeScript 与改动文件格式检查通过。隔离启动脚本未触发启动错误；测试退出前先释放刻意暂停的 HTML 并等待加载结束，避免退出动作被误报为 `ERR_FAILED`。用户正在运行的安装版与登录缓存保持原状。
+
+窗口 smoke 在任务大厅可见后先断言没有打开的模态或 popover，再有界检查标题栏拖拽；失败时记录原生 bounds、阻挡节点及样式加载状态。复查曾在未等待业务就绪的旧断言读到一次 `no-drag`，原快照没有 DOM 记录，不能确定触发源；随后隔离探针连续八帧均为 `drag` 且无弹层，补充就绪前提后的原生完整回归通过。产品的弹层拖拽保护规则未改动。
+
+Windows 目录包由干净提交 `10030bc` 生成，`pnpm desktop:build:dir` 与 `pnpm test:electron:packaged` 通过，核对 production `threadline://app`、CSP、Preload、图标、单实例恢复、登录入口居中和关闭退出。产物为 `release/win-unpacked/Threadline.exe`，Manifest 见 `release/build-manifests/package-dir.json`；仅本地构建，未发布、安装或替换当前 0.1.13，也未执行真实重启后的自启动验收。
