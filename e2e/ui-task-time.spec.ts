@@ -7,11 +7,18 @@ const timerStorageKey = 'threadline.preview-demo.v1:threadline.task-timers.v1:lo
 const taskStorageKey = 'threadline.preview-demo.v1:threadline.tasks.v1';
 const entryStorageKey = 'threadline.preview-demo.v1:threadline.task-time-entries.v1';
 
+/** load 早于工作区水合；只给真实日程面板的启动等待 30s，业务和几何断言仍用默认 5s。 */
+async function waitForPreviewWorkspace(page: Page) {
+  await expect(page.getByTestId('home-panel').locator('.schedule-panel')).toBeVisible({
+    timeout: 30_000,
+  });
+}
+
 /** 用三条有效本机计时恢复已到时场景；后续延长全部通过真实卡片操作，不改变任务或账本。 */
 async function restoreExpiredCountdown(page: Page) {
   await page.clock.install({ time: new Date('2026-10-03T08:00:00Z') });
   await page.goto('/');
-  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
+  await waitForPreviewWorkspace(page);
   const titles = await page.evaluate(
     ({ tasksKey, timersKey }) => {
       const tasks: { id: string; title: string }[] = JSON.parse(
@@ -43,9 +50,12 @@ async function restoreExpiredCountdown(page: Page) {
     { tasksKey: taskStorageKey, timersKey: timerStorageKey },
   );
   await page.reload();
+  await waitForPreviewWorkspace(page);
   await expect(page.locator('.task-timer')).toHaveCount(3);
-  // 水合结束后冻结墙钟；测试明确推进续时分钟数，避免机器速度影响秒数断言。
-  await page.clock.pauseAt(new Date('2026-10-03T08:01:00Z'));
+  // 时钟安装在导航前并自然运行到水合结束；冻结点跟随当前时间，避免慢 CI 超过固定的 08:01。
+  // 种子计时均已暂停，此处推进一分钟不产生额外耗时或账本写入。
+  const freezeAt = await page.evaluate(() => Date.now() + 60_000);
+  await page.clock.pauseAt(freezeAt);
   return titles;
 }
 
@@ -288,7 +298,7 @@ test('keeps empty ring text clear of the ring and separates callout time from ta
   page,
 }, info) => {
   await page.goto('/');
-  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
+  await waitForPreviewWorkspace(page);
   await page
     .getByRole('combobox', { name: '右栏显示内容', exact: true })
     .selectOption('time');
@@ -330,6 +340,7 @@ test('keeps empty ring text clear of the ring and separates callout time from ta
     localStorage.setItem(key, JSON.stringify(tasks));
   });
   await page.reload();
+  await waitForPreviewWorkspace(page);
   await expect(chart.locator('.stage-time-center strong')).toHaveText('0min');
   await expect(chart.locator('.stage-time-center small')).toHaveCount(0);
   await expect(chart).not.toContainText('暂无预计时间');
