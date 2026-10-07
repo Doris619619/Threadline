@@ -36,7 +36,7 @@ import {
   type LogicalWorkArea,
   type WindowStateConfig,
 } from '../src/lib/desktop-window-policy.js';
-import { readFramelessGeometry } from './window-geometry.cjs';
+import { applyFramelessGeometry, readFramelessGeometry } from './window-geometry.cjs';
 import { registerDesktopUpdates } from './desktop-updates.cjs';
 import { registerAutoStart } from './auto-start.cjs';
 import { registerDesktopZoom } from './zoom-controls.cjs';
@@ -86,6 +86,7 @@ let completedMoveDisplay: Electron.Display | undefined;
 let intentionallyClosingEdge = false;
 let rebuildingMain = false;
 let reconcilingDisplays = false;
+let pendingDisplayReason: string | undefined;
 let isQuitting = false;
 let latestState: CanonicalDesktopState = {
   mode: 'full',
@@ -339,7 +340,7 @@ function applyMainNativeState(
     compactLimits?.maxWidth ?? 0,
     compactLimits?.maxHeight ?? 0,
   );
-  mainWindow.setBounds(geometry);
+  applyFramelessGeometry(mainWindow, geometry);
   const display = screen.getDisplayMatching(mainWindow.getBounds());
   mainDisplaySignature = `${display.id}:${display.scaleFactor}`;
 }
@@ -429,11 +430,54 @@ function publishCompletedMove(): void {
   publishUserGeometry();
 }
 
-/** 安全显示 Main，然后释放无状态 Edge，保持至少一个可见 surface 的切换不变量。 */
-function revealMain(): void {
+/** 在广播或显示前得到原生最终 bounds；最大化保留还原尺寸，普通 Full 用当前工作区夹取。 */
+function prepareMainReveal(): WindowStateConfig {
   if (!mainWindow || mainWindow.isDestroyed())
     throw new Error('Main window is unavailable');
   if (mainWindow.isMinimized()) mainWindow.restore();
+  if (latestState.mode === 'full' && !mainWindow.isMaximized()) {
+    const current = readFramelessGeometry(mainWindow);
+    const area = screen.getDisplayMatching(mainWindow.getBounds()).workArea;
+    const safe = fitWindowToWorkArea(current, area);
+    if (
+      ['x', 'y', 'width', 'height'].some(
+        (key) =>
+          current[key as keyof typeof current] !== safe[key as keyof typeof safe],
+      )
+    ) {
+      applyMainNativeState('full', safe);
+    }
+    latestState.windowStates.full = readFramelessGeometry(mainWindow);
+  }
+  return (
+    latestState.windowStates[latestState.mode] ?? readFramelessGeometry(mainWindow)
+  );
+}
+
+/** 安全显示 Main 并返回最终 geometry；若 ACK 等待后又发生原生变化，广播新 revision 让 Renderer 保存同一尺寸。 */
+function revealMain(): WindowStateConfig {
+  if (!mainWindow || mainWindow.isDestroyed())
+    throw new Error('Main window is unavailable');
+  const previousGeometry = latestState.windowStates[latestState.mode];
+  const geometry = prepareMainReveal();
+  if (
+    desktopStateInitialized &&
+    ['x', 'y', 'width', 'height'].some(
+      (key) =>
+        previousGeometry?.[key as keyof WindowStateConfig] !==
+        geometry[key as keyof WindowStateConfig],
+    )
+  ) {
+    stateRevision += 1;
+    mainWindow.webContents.send('desktop:state-changed', {
+      ...latestState,
+      geometry,
+      visibleSurface: 'main',
+      stateRevision,
+      origin: 'recovery',
+      reason: 'before-reveal-display-fit',
+    });
+  }
   mainWindow.show();
   mainWindow.focus();
   if (edgeWindow && !edgeWindow.isDestroyed()) {
@@ -443,6 +487,7 @@ function revealMain(): void {
     currentEdge.destroy();
     intentionallyClosingEdge = false;
   }
+  return geometry;
 }
 
 /** 迟到操作只返回当前状态，不得重放旧尺寸或重新隐藏登录窗口。 */
@@ -473,23 +518,25 @@ async function ensureVisibleSurface(
   if (!mainWindow || mainWindow.isDestroyed()) await createMainWindow();
   if (intent !== windowIntent || isQuitting) return currentNativeResult();
   const mode = latestState.mode === 'full' ? 'full' : 'workstation';
-  const geometry = resolveNativeBounds(mode, latestState.windowStates[mode]);
+  let geometry = resolveNativeBounds(mode, latestState.windowStates[mode]);
   latestState = {
     ...latestState,
     mode,
     presentation: 'expanded',
+    windowStates: { ...latestState.windowStates, [mode]: geometry },
   };
   stateRevision += 1;
   applyMainNativeState(mode, geometry);
   await waitForMainReadyToShow();
   if (intent !== windowIntent || isQuitting) return currentNativeResult();
+  geometry = prepareMainReveal();
   try {
     await publishCanonicalState(geometry, 'main', 'recovery', reason);
   } catch {
     // Renderer 无响应时仍需显示 Main，确保至少一个 surface 可见。
   }
   if (intent !== windowIntent || isQuitting) return currentNativeResult();
-  revealMain();
+  geometry = revealMain();
   if (edgeWindow && !edgeWindow.isDestroyed()) {
     intentionallyClosingEdge = true;
     edgeWindow.destroy();
@@ -637,69 +684,77 @@ async function revealEdge(intent: number): Promise<void> {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
 }
 
-/** 在显示器增删、DPI 或 work area 变化后，对 Main 与 Edge 复用同一 geometry policy。 */
+/** 合并排队的显示器变化并逐轮读取最新工作区；加载期只校正隐藏窗口，不等待尚未挂载的 Renderer ACK。 */
 async function reconcileDisplayState(reason: string): Promise<void> {
-  if (reconcilingDisplays || isQuitting) return;
+  if (isQuitting) return;
+  pendingDisplayReason = reason;
+  if (reconcilingDisplays || !mainWindow || mainWindow.isDestroyed()) return;
   reconcilingDisplays = true;
-  const intent = ++windowIntent;
   try {
-    const mode = latestState.mode;
-    const currentGeometry =
-      mode === 'full' &&
-      mainWindow &&
-      !mainWindow.isDestroyed() &&
-      !mainWindow.isMinimized() &&
-      !mainWindow.isMaximized() &&
-      latestState.presentation === 'expanded'
-        ? readFramelessGeometry(mainWindow)
-        : latestState.windowStates[mode];
-    const geometry = resolveNativeBounds(mode, currentGeometry);
-    latestState = {
-      ...latestState,
-      windowStates: { ...latestState.windowStates, [mode]: geometry },
-    };
-    stateRevision += 1;
-    const edgeVisible = Boolean(
-      latestState.presentation === 'edge-collapsed' &&
-      edgeWindow &&
-      !edgeWindow.isDestroyed() &&
-      edgeWindow.isVisible(),
-    );
-    if (edgeVisible) {
-      // 收起时只移动入口；后台 Renderer 可能被节流，不以 ACK 超时强制展开。
-      placeEdgeWindow(
-        edgeWindow!,
-        screen.getDisplayMatching({
-          ...geometry,
-          x: geometry.x ?? 0,
-          y: geometry.y ?? 0,
-        }),
-      );
-      mainWindow?.webContents.send('desktop:state-changed', {
+    while (pendingDisplayReason && !isQuitting) {
+      const currentReason = pendingDisplayReason;
+      pendingDisplayReason = undefined;
+      const intent = ++windowIntent;
+      const mode = latestState.mode;
+      const currentGeometry =
+        mode === 'full' &&
+        mainWindow &&
+        !mainWindow.isDestroyed() &&
+        !mainWindow.isMinimized() &&
+        !mainWindow.isMaximized() &&
+        latestState.presentation === 'expanded'
+          ? readFramelessGeometry(mainWindow)
+          : latestState.windowStates[mode];
+      const geometry = resolveNativeBounds(mode, currentGeometry);
+      latestState = {
         ...latestState,
-        geometry,
-        visibleSurface: 'edge',
-        stateRevision,
-        origin: 'recovery',
-        reason,
-      });
-      return;
-    }
-    applyMainNativeState(mode, geometry);
-    await waitForMainReadyToShow();
-    if (intent !== windowIntent || isQuitting) return;
-    try {
-      await publishCanonicalState(geometry, 'main', 'recovery', reason);
-    } catch {
-      // 等待期间用户可能已经收起；旧的显示器同步不能覆盖这个新选择。
-      if (
+        windowStates: { ...latestState.windowStates, [mode]: geometry },
+      };
+      stateRevision += 1;
+      const edgeVisible = Boolean(
         latestState.presentation === 'edge-collapsed' &&
         edgeWindow &&
         !edgeWindow.isDestroyed() &&
-        edgeWindow.isVisible()
-      )
-        return;
-      await ensureVisibleSurface('display-state-sync-timeout', intent);
+        edgeWindow.isVisible(),
+      );
+      if (edgeVisible) {
+        // 收起时只移动入口；后台 Renderer 可能被节流，不以 ACK 超时强制展开。
+        placeEdgeWindow(
+          edgeWindow!,
+          screen.getDisplayMatching({
+            ...geometry,
+            x: geometry.x ?? 0,
+            y: geometry.y ?? 0,
+          }),
+        );
+        mainWindow?.webContents.send('desktop:state-changed', {
+          ...latestState,
+          geometry,
+          visibleSurface: 'edge',
+          stateRevision,
+          origin: 'recovery',
+          reason: currentReason,
+        });
+        continue;
+      }
+      applyMainNativeState(mode, geometry);
+      if (!desktopStateInitialized) continue;
+      await waitForMainReadyToShow();
+      if (isQuitting) return;
+      if (intent !== windowIntent) continue;
+      try {
+        await publishCanonicalState(geometry, 'main', 'recovery', currentReason);
+      } catch {
+        // 等待期间用户可能已经收起；旧的显示器同步不能覆盖这个新选择。
+        if (
+          latestState.presentation === 'edge-collapsed' &&
+          edgeWindow &&
+          !edgeWindow.isDestroyed() &&
+          edgeWindow.isVisible()
+        )
+          continue;
+        await ensureVisibleSurface('display-state-sync-timeout', intent);
+      }
     }
   } finally {
     reconcilingDisplays = false;
@@ -764,7 +819,7 @@ async function applyDesktopState(
     mode === latestState.mode && mainWindow && !mainWindow.isDestroyed()
       ? readFramelessGeometry(mainWindow)
       : payload.windowStates[mode];
-  const geometry = resolveNativeBounds(
+  let geometry = resolveNativeBounds(
     mode,
     origin === 'renderer-command' && payload.presentation === 'edge-collapsed'
       ? sourceGeometry
@@ -800,6 +855,7 @@ async function applyDesktopState(
   await waitForMainReadyToShow();
   if (intent !== windowIntent || isQuitting)
     return currentNativeResult(payload.requestId);
+  geometry = prepareMainReveal();
   if (origin !== 'renderer-command') {
     try {
       await publishCanonicalState(geometry, 'main', origin, fallbackReason);
@@ -809,7 +865,7 @@ async function applyDesktopState(
   }
   if (intent !== windowIntent || isQuitting)
     return currentNativeResult(payload.requestId);
-  revealMain();
+  geometry = revealMain();
   return {
     requestId: payload.requestId,
     stateRevision,
@@ -1034,7 +1090,7 @@ function registerDesktopIpc(): void {
   });
 }
 
-/** 创建初始隐藏 Main，并注册 handshake 前必要的 renderer 故障与 closed 保护。 */
+/** 创建初始隐藏 Main；原生最小尺寸必须服从启动时的 DIP 工作区，避免高缩放小屏将窗口撑出屏幕。 */
 async function createMainWindow(): Promise<void> {
   loadCompactPreferences();
   const initialBounds = resolveSafeWindowState(
@@ -1045,11 +1101,13 @@ async function createMainWindow(): Promise<void> {
   );
   const window = createWindow('main', {
     frame: false,
-    minWidth: 800,
+    minWidth: Math.min(800, initialBounds.width),
     minHeight: Math.min(560, initialBounds.height),
     ...initialBounds,
   });
   mainWindow = window;
+  if (pendingDisplayReason)
+    void reconcileDisplayState(pendingDisplayReason).catch(exitAfterStartupFailure);
   const initialDisplay = screen.getDisplayMatching(window.getBounds());
   mainDisplaySignature = `${initialDisplay.id}:${initialDisplay.scaleFactor}`;
   let userRequestedClose = false;
@@ -1101,7 +1159,7 @@ function bootstrapApplication(): void {
         () => mainWindow,
         (event) => isTrustedSender(event, 'main'),
       );
-      await createMainWindow();
+      // 开机时屏幕/DPI 可在 Renderer loadURL 尚未结束时变化，监听必须先于窗口创建。
       screen.on(
         'display-removed',
         () =>
@@ -1119,6 +1177,7 @@ function bootstrapApplication(): void {
         () =>
           void reconcileDisplayState('display-added').catch(exitAfterStartupFailure),
       );
+      await createMainWindow();
       if (!entryWindowShown && !desktopStateInitialized)
         startupWatchdog = setTimeout(
           () =>

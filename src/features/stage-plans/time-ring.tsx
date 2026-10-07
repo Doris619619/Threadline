@@ -7,13 +7,12 @@ import { stageTimeLabelLayout } from './time-label-layout';
 import { TimeRingCenter } from './time-ring-center';
 import { softTimeColor } from './time-colors';
 
-/** 引线沿用项目色相的柔和色阶，与标签共用任务 ID；文字不随圆环缩小。 */
+/** 引线沿用项目色相；圆心文字区域置于内圈的内接方形以内，四角也保留留白。 */
 export function StageTimeRing({
   sectors,
   total,
   active,
   centerTitle,
-  emptyLabel,
   onSelect,
   onHover,
 }: {
@@ -21,7 +20,6 @@ export function StageTimeRing({
   total: number;
   active?: string;
   centerTitle: string;
-  emptyLabel: string;
   onSelect: (id: string) => void;
   onHover: (id: string | undefined) => void;
 }) {
@@ -110,12 +108,11 @@ export function StageTimeRing({
       <TimeRingCenter
         total={total}
         title={centerTitle}
-        emptyLabel={emptyLabel}
         style={{
-          left: layout.cx - layout.inner * 0.85,
-          top: layout.cy - layout.inner * 0.85,
-          width: layout.inner * 1.7,
-          height: layout.inner * 1.7,
+          left: layout.cx - layout.inner * 0.65,
+          top: layout.cy - layout.inner * 0.65,
+          width: layout.inner * 1.3,
+          height: layout.inner * 1.3,
         }}
       />
       {layout.labels.map((label) => (

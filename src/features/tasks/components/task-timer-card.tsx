@@ -1,10 +1,11 @@
-/** @fileoverview 红色倒计时与绿色正计时卡片；直接暂停/继续和完成，删除放入上下文菜单。 */
+/** @fileoverview 正/倒计时卡片；到时提供续时浮层，完成统一记账，删除放入上下文菜单。 */
 'use client';
 import { Check, MoreHorizontal, Pause, Play, Trash2 } from 'lucide-react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useGuardedAction } from '@/hooks/use-guarded-action';
 import { useTaskMenu } from '../hooks/use-task-menu';
 import { TaskActionsPopover } from './task-actions-popover';
+import { TaskTimerExtension } from './task-timer-extension';
 import { pauseTimer, timerClock, timerElapsed, type TaskTimer } from '../timer-rules';
 import {
   accountClockParts,
@@ -15,13 +16,14 @@ import { useAccountTimezone } from '@/features/settings/account-timezone-provide
 import type { Task } from '@/types/domain';
 import type { SaveStageEstimate } from '@/features/stage-plans/task-estimate-editor';
 
-/** 同排卡片统一展示名称、时分秒和首次开始时间；按账号时区显示，继续计时不改开始时刻。 */
+/** 同排卡片展示首次开始时间；续时只提交分钟，由会话核验最新状态，完成时才记账。 */
 export function TaskTimerCard({
   timer,
   task,
   now,
   today,
   onChange,
+  onExtend,
   onRemove,
   onRecord,
 }: {
@@ -30,17 +32,23 @@ export function TaskTimerCard({
   now: number;
   today: string;
   onChange: (timer: TaskTimer) => void;
+  onExtend: (minutes: number) => void;
   onRemove: () => void;
   onRecord: SaveStageEstimate;
 }) {
   const { busy, error, run } = useGuardedAction();
   const menu = useTaskMenu();
   const menuAnchor = useRef<HTMLElement>(null);
+  const extensionAnchor = useRef<HTMLButtonElement>(null);
+  const [extensionOpen, setExtensionOpen] = useState(false);
   useAccountTimezone();
   const zone = getAccountTimezone();
   const elapsed = timerElapsed(timer, now);
   const ended = timer.mode === 'down' && elapsed >= timer.targetMs;
   const running = timer.startedAt !== undefined && !ended;
+  const canExtend = ended && !busy && !timer.pending;
+  // 保存或外部续时使面板失效时清除打开意图，避免下次到时自动重开。
+  if (extensionOpen && !canExtend) setExtensionOpen(false);
   const title = task?.title ?? timer.title;
   const started =
     timer.firstStartedAt === undefined
@@ -52,6 +60,26 @@ export function TaskTimerCard({
   const startDescription = started
     ? `${startLabel}（${timezoneLabel(zone)}）`
     : '旧计时器没有保存首次开始时刻，暂停后不能推算准确开始时间';
+  /** 主操作在到时后打开续时选项；待保存的计时不能继续或延长。 */
+  const primaryAction = () => {
+    if (busy || timer.pending) return;
+    if (ended) {
+      menu.close();
+      setExtensionOpen(true);
+    } else {
+      onChange(
+        running ? pauseTimer(timer, Date.now()) : { ...timer, startedAt: Date.now() },
+      );
+    }
+  };
+  /** 只发送续时分钟；会话在最新计时器上执行规则，防止覆盖跨标签保存意图。 */
+  const extend = (minutes: number) => {
+    if (!canExtend) return;
+    onExtend(minutes);
+    setExtensionOpen(false);
+  };
+  /** 取消、Escape 与原生轻关闭统一收起面板，焦点由浮层返回主按钮。 */
+  const closeExtension = () => setExtensionOpen(false);
   /** 发送前冻结基准与分钟数；失败重试同一保存意图，避免未知网络结果重复记账。 */
   const finish = () =>
     void run(async () => {
@@ -99,19 +127,19 @@ export function TaskTimerCard({
       <div className="task-timer-actions">
         <button
           type="button"
-          className="task-timer-primary"
-          aria-label={running ? '暂停' : '继续'}
-          title={running ? '暂停' : '继续'}
-          disabled={busy || ended || !!timer.pending}
-          onClick={() =>
-            onChange(
-              running
-                ? pauseTimer(timer, Date.now())
-                : { ...timer, startedAt: Date.now() },
-            )
+          ref={extensionAnchor}
+          className={
+            'task-timer-primary' + (ended ? ' task-timer-extension-trigger' : '')
           }
+          aria-label={ended ? '延长' : running ? '暂停' : '继续'}
+          aria-expanded={ended ? extensionOpen : undefined}
+          title={ended ? '延长' : running ? '暂停' : '继续'}
+          disabled={busy || !!timer.pending}
+          onClick={primaryAction}
         >
-          {running ? (
+          {ended ? (
+            '延长'
+          ) : running ? (
             <Pause size={18} aria-hidden="true" />
           ) : (
             <Play size={18} aria-hidden="true" />
@@ -143,6 +171,15 @@ export function TaskTimerCard({
           <MoreHorizontal size={18} aria-hidden="true" />
         </button>
       </div>
+      {extensionOpen && canExtend && (
+        <TaskTimerExtension
+          anchor={extensionAnchor}
+          positionAnchor={menuAnchor}
+          elapsedMs={elapsed}
+          onExtend={extend}
+          onClose={closeExtension}
+        />
+      )}
       {menu.open && (
         <TaskActionsPopover
           anchor={menuAnchor}

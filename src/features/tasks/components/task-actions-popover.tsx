@@ -1,4 +1,4 @@
-/** @fileoverview 任务菜单进入浏览器顶层，避开日程滚动裁切，并按视口空间定位。 */
+/** @fileoverview 任务浮层进入浏览器顶层，按定位锚点避让视口，退出时焦点返回触发器。 */
 'use client';
 import {
   useLayoutEffect,
@@ -10,9 +10,10 @@ import {
 import { createPortal } from 'react-dom';
 import type { TaskMenuPoint } from '../hooks/use-task-menu';
 
-/** 原生 popover 避让视口；桌面隐藏更多后，菜单退出返回打开前的焦点或任务主体。 */
+/** 原生 popover 可用独立 positionAnchor 定位；anchor 始终负责退出焦点，未指定时兼作定位。 */
 export function TaskActionsPopover({
   anchor,
+  positionAnchor,
   children,
   onClose,
   label,
@@ -22,6 +23,7 @@ export function TaskActionsPopover({
   point,
 }: {
   anchor: RefObject<HTMLElement | null>;
+  positionAnchor?: RefObject<HTMLElement | null>;
   children: ReactNode;
   onClose: () => void;
   label: string;
@@ -39,13 +41,14 @@ export function TaskActionsPopover({
     const menu = ref.current;
     const trigger = anchor.current;
     if (!menu || !trigger) return;
+    const positionedAt = positionAnchor?.current ?? trigger;
     const previousFocus =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : undefined;
-    /** 菜单不参与列表布局，窗口不足时向上展开并保留内部滚动。 */
+    /** 按卡片或触发器的边界定位；右键坐标仍优先，窗口不足时向上避让。 */
     const position = () => {
-      const box = trigger.getBoundingClientRect();
+      const box = positionedAt.getBoundingClientRect();
       const height = menu.getBoundingClientRect().height;
       const width = menu.getBoundingClientRect().width;
       const bottom = point?.y ?? box.bottom;
@@ -93,7 +96,7 @@ export function TaskActionsPopover({
         )?.focus({ preventScroll: true });
       menu.hidePopover();
     };
-  }, [anchor, align, point]);
+  }, [anchor, align, point, positionAnchor]);
   /** 菜单上下键跳过禁用项；Escape 关闭并回到触发器，不把按键传给任务行。 */
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === 'Escape') {

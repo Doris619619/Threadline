@@ -1,4 +1,4 @@
-/** @fileoverview 跨手机与桌面验收独立预计、生理期流程和稳定外观的可读性，并保留页面截图。 */
+/** @fileoverview 跨手机与桌面验收日程控件对齐、独立预计、生理期流程和稳定外观的可读性，并保留页面截图。 */
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import {
@@ -163,6 +163,104 @@ test('waiting creation gives estimates usable width in narrow columns', async ({
   await expect(
     waiting.locator('.waiting-task-row').filter({ hasText: '窄栏新增预计测试' }),
   ).toContainText('1h30min');
+});
+
+/** 1152 DIP 桌面和窄日程面板共享七列，耗时控件不能单独撑高行或伸出表头背景。 */
+test('schedule duration controls match inline fields and share aligned desktop tracks', async ({
+  page,
+}, info) => {
+  test.skip((page.viewportSize()?.width ?? 0) <= 760, '桌面紧凑行；手机保留触控布局。');
+  await page.setViewportSize({ width: 1152, height: 800 });
+  const schedule = page.locator('.schedule-panel');
+  await schedule.getByRole('button', { name: '添加', exact: true }).click();
+  const form = schedule.locator('.timed-task-create-row');
+  const actual = schedule.locator('button.task-duration-actual').first();
+  for (const theme of ['blue', 'classic']) {
+    await page.evaluate((theme) => {
+      document.documentElement.dataset.theme = theme;
+    }, theme);
+    await form.evaluate(async (element) => {
+      await Promise.all(
+        element.getAnimations({ subtree: true }).map((animation) => animation.finished),
+      );
+    });
+    await actual.hover();
+    const metrics = await schedule.evaluate((panel) => {
+      /** 在同一次布局读取中比较表头、现有行、新增行和控件，避免跨帧位置误差。 */
+      const rect = (selector: string) => {
+        const element = panel.querySelector(selector);
+        if (!element) throw new Error(`日程缺少 ${selector}`);
+        return element.getBoundingClientRect().toJSON();
+      };
+      const scroll = panel.querySelector<HTMLElement>('.timeline-scroll')!;
+      const head = panel.querySelector<HTMLElement>('.timeline-head')!;
+      const row = panel.querySelector<HTMLElement>(
+        '.timeline-row:not(.timeline-row-adding)',
+      )!;
+      return {
+        viewport: { width: scroll.clientWidth, content: scroll.scrollWidth },
+        head: rect('.timeline-head'),
+        row: rect('.timeline-row:not(.timeline-row-adding)'),
+        draft: rect('.timed-task-create-row'),
+        actual: rect('button.task-duration-actual'),
+        planned: rect('.task-duration-planned'),
+        inputs: [
+          rect('.timed-create-title-input'),
+          rect('.timeline-time-input'),
+          rect('.timed-create-planned-cell input'),
+          rect('.timed-create-actual-cell input'),
+        ],
+        plannedColumn: rect('.timeline-col-planned'),
+        actualColumn: rect('.timeline-col-actual'),
+        actionsColumn: rect('.timeline-col-actions'),
+        draftActions: rect('.timed-create-actions'),
+        tracks: [head, row].map(
+          (element) => getComputedStyle(element).gridTemplateColumns,
+        ),
+      };
+    });
+    expect(metrics.viewport.content).toBeLessThanOrEqual(metrics.viewport.width + 1);
+    expect(metrics.tracks[1]).toBe(metrics.tracks[0]);
+    expect(metrics.actual.height).toBe(26);
+    expect(metrics.planned.height).toBe(26);
+    for (const input of metrics.inputs) {
+      expect(input.height).toBe(26);
+      expect(Math.abs(input.y - metrics.inputs[0].y)).toBeLessThan(1);
+    }
+    expect(metrics.inputs[2].x).toBe(metrics.plannedColumn.x);
+    expect(metrics.inputs[2].width).toBe(metrics.plannedColumn.width);
+    expect(metrics.inputs[3].x).toBe(metrics.actualColumn.x);
+    expect(metrics.inputs[3].width).toBe(metrics.actualColumn.width);
+    expect(metrics.actual.x).toBe(metrics.actualColumn.x);
+    expect(metrics.draftActions.x).toBe(metrics.actionsColumn.x);
+    expect(metrics.actual.right).toBeLessThanOrEqual(metrics.head.right);
+    expect(metrics.draft.right).toBe(metrics.head.right);
+    await schedule.screenshot({
+      path: info.outputPath(`schedule-inline-${theme}.png`),
+    });
+  }
+
+  // 用户调窄面板时允许局部横滚；滚动内容的整行背景仍必须和所有轨道等宽。
+  await schedule.evaluate((panel) => {
+    panel.style.width = '420px';
+  });
+  const narrow = await schedule.evaluate((panel) => {
+    const scroll = panel.querySelector<HTMLElement>('.timeline-scroll')!;
+    const head = panel.querySelector<HTMLElement>('.timeline-head')!;
+    const draft = panel.querySelector<HTMLElement>('.timed-task-create-row')!;
+    const actions = panel.querySelector<HTMLElement>('.timed-create-actions')!;
+    return {
+      viewport: scroll.clientWidth,
+      content: scroll.scrollWidth,
+      headRight: head.getBoundingClientRect().right,
+      draftRight: draft.getBoundingClientRect().right,
+      actionsRight: actions.getBoundingClientRect().right,
+    };
+  });
+  expect(narrow.content).toBeGreaterThan(narrow.viewport);
+  expect(narrow.actionsRight).toBeLessThanOrEqual(narrow.headRight);
+  expect(narrow.draftRight).toBe(narrow.headRight);
+  await expectNoUnexpectedHorizontalOverflow(page);
 });
 
 test('independent estimates persist through schedule and waiting; compact pages stay readable', async ({

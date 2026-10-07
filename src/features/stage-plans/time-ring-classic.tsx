@@ -7,14 +7,13 @@ import {
 } from './time-breakdown';
 import { TimeRingCenter } from './time-ring-center';
 
-/** 共用真实分母生成两层扇区；右侧明细提供键盘/触屏选择，零值不会生成扇区。 */
+/** 共用真实分母生成两层扇区；圆心留在内圈内接方形以内，零值不会生成扇区。 */
 export function ClassicTimeRing({
   groups,
   sectors,
   total,
   active,
   centerTitle,
-  emptyLabel,
   onSelect,
   onHover,
 }: {
@@ -23,7 +22,6 @@ export function ClassicTimeRing({
   total: number;
   active?: string;
   centerTitle: string;
-  emptyLabel: string;
   onSelect: (id: string) => void;
   onHover: (id?: string) => void;
 }) {
@@ -90,12 +88,11 @@ export function ClassicTimeRing({
       <TimeRingCenter
         total={group?.total ?? (item?.minutes === undefined ? total : item.minutes)}
         title={group?.name ?? (item?.minutes === undefined ? centerTitle : item.title)}
-        emptyLabel={emptyLabel}
         style={{
-          left: '29.28125%',
-          top: '29.28125%',
-          width: '41.4375%',
-          height: '41.4375%',
+          left: '34.15625%',
+          top: '34.15625%',
+          width: '31.6875%',
+          height: '31.6875%',
         }}
       />
     </div>

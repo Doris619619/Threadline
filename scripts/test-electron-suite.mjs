@@ -1,5 +1,5 @@
 /**
- * @fileoverview 以显式 local adapter 验证 Electron 静态 Renderer、Main/Preload 与窗口 smoke。
+ * @fileoverview 以显式 local adapter 验证 Electron 静态 Renderer、Main/Preload、启动显示变化与窗口 smoke。
  */
 
 import { spawnSync } from 'node:child_process';
@@ -30,6 +30,7 @@ function runNode(script) {
 }
 
 runPnpm(['desktop:compile']);
+runNode('scripts/test-electron-startup-display.mjs');
 runPnpm(['desktop:renderer']);
 runPnpm(['build:web']);
 runNode('scripts/test-electron.mjs');

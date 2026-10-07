@@ -66,3 +66,19 @@ Web/PWA 保持完整工作台。Windows Electron 使用同一 Main BrowserWindow
 ## 跨显示器恢复
 
 完整窗口恢复及跨屏后按目标显示器 DIP 工作区限制宽高与位置，不只检查是否露出 240×160 的区域；显示器增删、缩放和工作区变化优先读取当前原生位置。正常同屏拖动继续保留用户位置；最大化、最小化和工作站不走完整窗口拖动修正。小屏时最小尺寸不超过目标可用尺寸。纯策略测试不能替代不同缩放比例的真实双屏拖动验收。
+
+启动加载 Renderer 之前就注册显示器监听，原生窗口构造时的最小宽高也服从当前 DIP 工作区。加载期间工作区缩小时立即校正隐藏 Main，不等待尚未挂载的 Renderer ACK；显示完整窗口前再读取一次当前原生位置和工作区。连续的显示器变化会排队处理最新工作区，避免前一次 ACK 未完成时丢弃第二次 DPI 或尺寸变化。
+
+实体双屏中还确认了独立的原生 DPI 覆盖：初始窗口在 150% 屏幕，恢复保存于 250% 屏幕的 200×111 DIP 工作站时，Renderer 请求宽度已正确归一化为 200，但第一次 `setBounds` 内 Windows 将内容尺寸扩大到 340×191，达到工作站宽度上限；随后自动高度只缩短高度并保留了错误宽度。旧 Main 对照构建同样复现。完整窗口跨屏也可能受到同一尺寸覆盖，造成右侧窗口按钮离开工作区。
+
+Main 通过 `applyFramelessGeometry` 应用完整窗口及工作站 bounds，立即以真实内容尺寸比较目标规格；宽高偏差超过一 DIP 时在目标屏幕再施加一次原始规格。稳定的取整差异不重复处理，最大化和最小化仍由系统管理；用户正常调整窗口不会触发反向尺寸重设。广播、握手返回和后续保存使用最终原生 geometry。
+
+`node scripts/test-electron-startup-display.mjs` 使用隔离 profile、真实 BrowserWindow 与测试进程内的 screen 替身，覆盖 720×480 DIP 小工作区、Renderer 加载时 1536×920→1152×672，以及前一次 ACK 等待中的连续工作区缩小。测试不修改 Windows 显示设置或用户登录缓存；屏幕开机枚举与实体多屏验收仍需在新安装版验证。
+
+`scripts/test-electron-display-recovery.mjs` 在宿主已有不同 DPI 实体屏幕时，额外验证完整窗口与工作站跨屏 hydration 的实际内容尺寸；单一缩放屏幕环境跳过该检查。本机隔离 profile 的 150%→250% 原生切换、工作站重启恢复 200 DIP 及完整 Electron smoke 已通过；`tests/electron-window-geometry.test.ts` 覆盖 DPI 覆盖校正、一 DIP 容忍和最大化/最小化边界。这些验证未修改系统显示设置，不能代替新安装版真实开机自启动验收。
+
+2026-10-07 本轮代码检查：99 文件 512 项单元/组件测试及覆盖率门禁、全仓 lint、TypeScript 与改动文件格式检查通过。隔离启动脚本未触发启动错误；测试退出前先释放刻意暂停的 HTML 并等待加载结束，避免退出动作被误报为 `ERR_FAILED`。用户正在运行的安装版与登录缓存保持原状。
+
+窗口 smoke 在任务大厅可见后先断言没有打开的模态或 popover，再有界检查标题栏拖拽；失败时记录原生 bounds、阻挡节点及样式加载状态。复查曾在未等待业务就绪的旧断言读到一次 `no-drag`，原快照没有 DOM 记录，不能确定触发源；随后隔离探针连续八帧均为 `drag` 且无弹层，补充就绪前提后的原生完整回归通过。产品的弹层拖拽保护规则未改动。
+
+Windows 目录包由干净提交 `10030bc` 生成，`pnpm desktop:build:dir` 与 `pnpm test:electron:packaged` 通过，核对 production `threadline://app`、CSP、Preload、图标、单实例恢复、登录入口居中和关闭退出。产物为 `release/win-unpacked/Threadline.exe`，Manifest 见 `release/build-manifests/package-dir.json`；仅本地构建，未发布、安装或替换当前 0.1.13，也未执行真实重启后的自启动验收。

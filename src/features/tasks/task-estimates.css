@@ -1,4 +1,4 @@
-/** @fileoverview 独立预计分钟表单的共享样式，兼容新建行与任务详情。 */
+/** @fileoverview 独立预计分钟表单的共享样式；桌面日程与其他行内控件等高，手机及详情保留触控尺寸。 */
 .estimate-field {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -76,8 +76,9 @@
     display: none;
   }
   .timed-create-planned-cell .estimate-field input {
-    min-height: 28px;
-    padding: 2px 4px;
+    min-height: 26px;
+    height: 26px;
+    padding: 0 4px;
     font-size: 0.8125rem;
   }
 }

@@ -1,5 +1,5 @@
 /**
- * @fileoverview 通过 Playwright Electron 执行桌面壳的窗口切换冒烟验证，并保证测试进程可确定退出。
+ * @fileoverview 等待业务与原生标题栏样式就绪后验证 Electron 窗口切换，并保证测试进程可确定退出。
  */
 
 import assert from 'node:assert/strict';
@@ -12,7 +12,10 @@ import { _electron as electron } from 'playwright';
 import { terminateOwnedProcess } from './desktop-build-runtime.mjs';
 import { testElectronLoginRace } from './test-electron-login-race.mjs';
 import { testElectronInteractionFeedback } from './test-electron-interaction-feedback.mjs';
-import { testElectronDisplayRecovery } from './test-electron-display-recovery.mjs';
+import {
+  testElectronCrossDpiRecovery,
+  testElectronDisplayRecovery,
+} from './test-electron-display-recovery.mjs';
 import { testElectronZoom } from './test-electron-zoom.mjs';
 
 const rendererPort = process.env.THREADLINE_ELECTRON_E2E_PORT ?? '3123';
@@ -136,14 +139,22 @@ try {
     (await inspectWindows(application)).filter((window) => window.visible).length,
     1,
   );
+  // bridge 先于业务就绪；无弹层时再检查拖拽，避免将合法的 modal 保护当作窗口错误。
+  await page.getByRole('heading', { name: '任务大厅', exact: true }).waitFor();
   assert.equal(
-    await page
-      .locator('.full-window-chrome')
-      .evaluate((element) =>
-        getComputedStyle(element).getPropertyValue('-webkit-app-region'),
-      ),
-    'drag',
-    'frameless Full chrome must provide a continuous drag region',
+    await page.locator('dialog[open], [aria-modal="true"], :popover-open').count(),
+    0,
+    'initial Full workspace must not contain an unexpected open modal or popover',
+  );
+  await waitFor(
+    () =>
+      page
+        .locator('.full-window-chrome')
+        .evaluate(
+          (element) =>
+            getComputedStyle(element).getPropertyValue('-webkit-app-region') === 'drag',
+        ),
+    'frameless Full chrome styles must provide a continuous drag region',
   );
   await page.getByRole('button', { name: '最小化窗口' }).click();
   await waitFor(
@@ -190,6 +201,7 @@ try {
     'maximize and restore must retain the normal window geometry',
   );
   await testElectronInteractionFeedback(application, page);
+  await testElectronCrossDpiRecovery(application, page);
   await testElectronDisplayRecovery(application);
   await page.getByRole('button', { name: '工作站', exact: true }).click();
   await page.getByTestId('workstation-panel').waitFor();
@@ -430,6 +442,39 @@ try {
     'Electron windows at failure:',
     await inspectWindows(application).catch(() => []),
   );
+  if (application) {
+    const failurePage = application
+      .windows()
+      .find((candidate) => candidate.url().includes('threadline-role=main'));
+    // 不把合法 modal 的 no-drag 或尚未加载的样式误归因为原生窗口故障。
+    if (failurePage)
+      console.error(
+        'Renderer readiness at failure:',
+        await failurePage
+          .evaluate(() => ({
+            readyState: document.readyState,
+            titlebarRegion: document.querySelector('.full-window-chrome')
+              ? getComputedStyle(
+                  document.querySelector('.full-window-chrome'),
+                ).getPropertyValue('-webkit-app-region')
+              : undefined,
+            blockers: [
+              ...document.querySelectorAll(
+                'dialog[open], [aria-modal="true"], :popover-open',
+              ),
+            ].map((node) => ({
+              role: node.getAttribute('role'),
+              label: node.getAttribute('aria-label'),
+              className: node.className,
+              markup: node.outerHTML.slice(0, 1000),
+            })),
+            styles: [...document.querySelectorAll('link[rel="stylesheet"]')].map(
+              (node) => ({ href: node.href, loaded: Boolean(node.sheet) }),
+            ),
+          }))
+          .catch(() => undefined),
+      );
+  }
 } finally {
   await application?.evaluate(({ app }) => app.exit(0)).catch(() => undefined);
   await Promise.race([

@@ -18,12 +18,14 @@ AppShell 提前返回 EdgeTab，使其内部 WorkspaceDataProvider 被卸载；D
 - 网络或读取异常不会由应用主动删除登录凭证；认证恢复失败时可手动重试，online/focus 只在失败后触发重试。真实失效、主动退出等 Supabase SIGNED_OUT 仍回到登录页。
 - 认证和只读 HTTP 请求有 20 秒取消 deadline，并保留调用者的 AbortSignal。业务 RPC 写入不新增取消或自动重试，避免把未知提交结果当作未保存。
 - 启动页等待超过 20 秒显示重新加载入口，但不改变任何阶段的真实状态；Realtime 仍不阻塞已加载工作台。
+- 读取账号个人设置和本机自启动状态时保持同一启动页。旧门禁把未知设置当成需要引导，提前撤去主启动页，显示“正在准备你的工作台”，完成账号读取后又恢复主启动页；现在仅在确认需要填写引导或读取失败时显示设置页，错误仍保留重新读取和退出账号入口。
 
 Web/PWA 和 Electron 共用认证恢复逻辑；只有原生窗口操作受 Electron bridge 限制。安装版的静态 Renderer 直接连接 Supabase，不经过 Vercel 服务端。无 schema、RLS、生产迁移或账号策略变更。
 
 ## 回归验证
 
 - `pnpm exec vitest run tests/desktop-startup-recovery.test.tsx tests/session-recovery.test.tsx tests/cloud-recovery-deadline.test.ts tests/threadline-startup-screen.test.tsx`
+- `pnpm exec vitest run tests/onboarding-startup-continuity.test.tsx`：延迟个人设置、本机自启动及业务数据读取，验证全程保留同一启动 DOM，并覆盖首次引导、两类读取失败与进入工作台后的后台刷新。
 - `pnpm desktop:compile && node scripts/test-electron-entry-recovery.mjs`：真实 Main/Preload、独立 userData、本地无账号测试页面；检查紧凑到登录、Edge 到登录、迟到 startup 和非法用途。
 - `pnpm test`、`pnpm lint`、`pnpm typecheck`、`pnpm desktop:build`。
 
