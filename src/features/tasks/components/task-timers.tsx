@@ -1,4 +1,4 @@
-/** @fileoverview 共享三任务计时会话：任务菜单加入、账号隔离持久化、首页标题展示和异步完成记账。 */
+/** @fileoverview 共享三任务计时会话：账号隔离、首页展示、按最新本机状态续时和异步完成记账。 */
 'use client';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -11,6 +11,7 @@ import { usePersistentState } from '@/hooks/use-persistent-state';
 import {
   timerElapsed,
   pauseTimer,
+  extendCountdown,
   normalizeTaskTimers,
   type TaskTimer,
 } from '../timer-rules';
@@ -31,7 +32,7 @@ export function TaskTimers({ children }: { children: ReactNode }) {
   );
 }
 
-/** 墙钟恢复后台耗时，首次启动时刻独立于暂停锚点；菜单在各页可打开，卡片仅在首页展示。 */
+/** 墙钟恢复后台耗时并按最新缓存应用续时；首次开始独立于恢复锚点，卡片仅在首页展示。 */
 function TaskTimersSession({
   owner,
   children,
@@ -134,6 +135,19 @@ function TaskTimersSession({
     if (error) return error;
     setNow(stamp);
   };
+  /** 续时只接收分钟意图；在最新缓存上复核到时与保存状态，避免旧面板覆盖另一标签的操作。 */
+  const extend = useCallback(
+    (id: string, minutes: number) => {
+      const stamp = Date.now();
+      setTimers((current) =>
+        current.map((timer) =>
+          timer.id === id ? extendCountdown(timer, minutes, stamp) : timer,
+        ),
+      );
+      setNow(stamp);
+    },
+    [setTimers],
+  );
   return (
     <TaskTimerContext.Provider
       value={{
@@ -162,6 +176,7 @@ function TaskTimersSession({
                       current.map((item) => (item.id === timer.id ? next : item)),
                     )
                   }
+                  onExtend={(minutes) => extend(timer.id, minutes)}
                   onRemove={() =>
                     setTimers((current) =>
                       current.filter((item) => item.id !== timer.id),

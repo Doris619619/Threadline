@@ -1,4 +1,4 @@
-/** @fileoverview 最多三张红/绿计时卡等宽等高，底部统一显示开始时间；桌面右键和触屏菜单。 */
+/** @fileoverview 等宽正/倒计时卡与续时浮层；桌面锚定，手机底部选项保留 44px 触控。 */
 .home-timer-slot {
   flex: 1 1 0;
   min-width: 0;
@@ -58,6 +58,8 @@
   flex-wrap: nowrap;
   gap: 2px 8px;
   min-width: 0;
+  /* 到时标签与名称使用同一行高，续时移除标签时卡片高度保持不变。 */
+  line-height: 1.5;
 }
 .task-timer-heading strong {
   flex: 1 1 4em;
@@ -126,6 +128,11 @@
 .task-timers .task-timer-primary {
   background: color-mix(in srgb, var(--timer-color) 14%, var(--surface));
   border-color: color-mix(in srgb, var(--timer-color) 45%, var(--border));
+}
+.task-timers .task-timer-extension-trigger {
+  min-width: 40px;
+  padding: 4px 6px;
+  border-radius: var(--radius-control);
 }
 .task-timers button:disabled {
   opacity: 0.6;
@@ -260,4 +267,115 @@
 .task-timer:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+/* 原生顶层浮层独立于计时卡，切换自定义输入不挤动卡片与日程。 */
+.task-timer-extension {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  width: min(276px, calc(100vw - 16px));
+  max-height: calc(100dvh - 16px);
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-card);
+  -webkit-app-region: no-drag;
+}
+.task-timer-extension:popover-open {
+  display: grid;
+  gap: 10px;
+}
+.task-timer-extension-elapsed {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.task-timer-extension-presets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.task-timer-extension button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.task-timer-extension-presets button {
+  padding-inline: 2px;
+  white-space: nowrap;
+}
+.task-timer-extension button:hover,
+.task-timer-extension button:active {
+  background: var(--accent-soft);
+}
+.task-timer-extension button:focus-visible,
+.task-timer-extension input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.task-timer-extension-custom {
+  width: 100%;
+}
+.task-timer-extension-form {
+  display: grid;
+  gap: 8px;
+}
+.task-timer-extension-form label {
+  font-size: 14px;
+}
+.task-timer-extension-form input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 16px;
+}
+.task-timer-extension-form .form-error {
+  margin: 0;
+}
+.task-timer-extension-form footer {
+  display: flex;
+  justify-content: end;
+  gap: 8px;
+}
+.task-timer-extension-form footer button {
+  padding-inline: 16px;
+}
+.task-timer-extension-form button[type='submit'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+@media (hover: none), (pointer: coarse), (max-width: 760px) {
+  .task-timers .task-timer-extension-trigger {
+    min-width: 44px;
+  }
+}
+@media (max-width: 760px) {
+  /* 覆盖通用浮层的内联锚点坐标，手机保持紧凑底部面板与安全区。 */
+  .task-timer-extension {
+    top: auto !important;
+    left: 12px !important;
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: auto;
+    max-height: calc(100dvh - 24px);
+  }
 }

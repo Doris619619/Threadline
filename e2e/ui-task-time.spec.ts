@@ -1,7 +1,287 @@
-/** @fileoverview 独立 Preview 验证密集任务标签、原地时间持久化、首页折叠、大屏与三并行计时。 */
-import { test, expect } from '@playwright/test';
+/** @fileoverview 独立 Preview 验证时间图、首页布局、三并行计时和不会写账本的到时续时流程。 */
+import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { openWorkspaceSection, openTaskMenu } from './support/workspace';
+
+const timerStorageKey = 'threadline.preview-demo.v1:threadline.task-timers.v1:local';
+const taskStorageKey = 'threadline.preview-demo.v1:threadline.tasks.v1';
+const entryStorageKey = 'threadline.preview-demo.v1:threadline.task-time-entries.v1';
+
+/** 用三条有效本机计时恢复已到时场景；后续延长全部通过真实卡片操作，不改变任务或账本。 */
+async function restoreExpiredCountdown(page: Page) {
+  await page.clock.install({ time: new Date('2026-10-03T08:00:00Z') });
+  await page.goto('/');
+  await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
+  const titles = await page.evaluate(
+    ({ tasksKey, timersKey }) => {
+      const tasks: { id: string; title: string }[] = JSON.parse(
+        localStorage.getItem(tasksKey)!,
+      );
+      const selected = [0, 1, 2].map((index) => {
+        const task = tasks.find((task) => task.id === 'demo-stage-time-task-' + index);
+        if (!task) throw new Error(`演示缺少第 ${index + 1} 个计时任务`);
+        return task;
+      });
+      const now = Date.now();
+      localStorage.setItem(
+        timersKey,
+        JSON.stringify(
+          selected.map((task, index) => ({
+            id: 'extension-timer-' + index,
+            taskId: task.id,
+            title: task.title,
+            mode: index === 0 ? 'down' : 'up',
+            targetMs: 10 * 60000,
+            elapsedMs: index === 0 ? 10 * 60000 : 2 * 60000,
+            firstStartedAt: now - 10 * 60000,
+            entryDate: '2026-10-03',
+          })),
+        ),
+      );
+      return selected.map((task) => task.title);
+    },
+    { tasksKey: taskStorageKey, timersKey: timerStorageKey },
+  );
+  await page.reload();
+  await expect(page.locator('.task-timer')).toHaveCount(3);
+  // 水合结束后冻结墙钟；测试明确推进续时分钟数，避免机器速度影响秒数断言。
+  await page.clock.pauseAt(new Date('2026-10-03T08:01:00Z'));
+  return titles;
+}
+
+/** 记录计时卡与页头的矩形；浮层打开、编辑及恢复都不能重排已经显示的三张卡。 */
+async function readTimerLayout(page: Page) {
+  return page.locator('.tl-header').evaluate((header) => ({
+    height: header.getBoundingClientRect().height,
+    cards: [...header.querySelectorAll('.task-timer')].map((card) => {
+      const { x, y, width, height } = card.getBoundingClientRect();
+      return { x, y, width, height };
+    }),
+  }));
+}
+
+/** 用实际文字矩形检查时钟不越过卡片边界，也不与同一行的操作按钮重叠。 */
+async function expectTimerControlsFit(page: Page) {
+  const fits = await page.locator('.task-timer').evaluateAll((cards) =>
+    cards.every((card) => {
+      const readout = card.querySelector('.task-timer-readout')!;
+      const range = document.createRange();
+      range.selectNodeContents(readout);
+      const text = range.getBoundingClientRect();
+      const actions = card
+        .querySelector('.task-timer-actions')!
+        .getBoundingClientRect();
+      const bounds = card.getBoundingClientRect();
+      return (
+        text.left >= bounds.left &&
+        text.right <= bounds.right - 8 &&
+        (text.bottom <= actions.top || text.right <= actions.left - 2)
+      );
+    }),
+  );
+  expect(fits).toBe(true);
+}
+
+/** 对比真实持久化业务数据，不把计时器自己的本机保存误当成任务入账。 */
+async function readTimerBusinessSnapshot(page: Page) {
+  return page.evaluate(
+    ({ tasksKey, entriesKey }) => ({
+      tasks: localStorage.getItem(tasksKey),
+      entries: localStorage.getItem(entriesKey),
+    }),
+    { tasksKey: taskStorageKey, entriesKey: entryStorageKey },
+  );
+}
+
+test('countdown presets resume repeatedly without moving three cards or writing the task ledger', async ({
+  page,
+}, info) => {
+  if (info.project.name === 'preview-desktop')
+    await page.setViewportSize({ width: 1280, height: 800 });
+  await restoreExpiredCountdown(page);
+  const card = page.locator('.task-timer').first();
+  const panel = page.getByRole('group', { name: '延长倒计时', exact: true });
+  const layout = await readTimerLayout(page);
+  const business = await readTimerBusinessSnapshot(page);
+  const originalStart = await card.locator('.task-timer-date').innerText();
+  if (info.project.name === 'preview-desktop') {
+    expect(new Set(layout.cards.map((card) => card.y)).size).toBe(1);
+    expect(layout.cards.every((card) => card.width === 188)).toBe(true);
+  }
+  await expect(card.locator('.task-timer-readout')).toHaveText('00:00:00');
+  await expectTimerControlsFit(page);
+  await card.getByRole('button', { name: '延长', exact: true }).click();
+  await expect(panel).toBeVisible();
+  await expect(panel).toContainText(/已用\s*10\s*分钟/);
+  await expect(panel.getByRole('heading')).toHaveCount(0);
+  await expect(panel).not.toContainText(originalStart);
+  const presets = panel.locator('.task-timer-extension-presets button');
+  await expect(presets).toHaveCount(4);
+  expect(
+    await presets.evaluateAll((buttons) =>
+      buttons.every((button) => {
+        const range = document.createRange();
+        range.selectNodeContents(button);
+        const text = range.getBoundingClientRect();
+        const bounds = button.getBoundingClientRect();
+        // 数字与单位属于两个 JSX 文本节点；同一行的文字矩形共享垂直区域。
+        const fragments = [...range.getClientRects()];
+        return (
+          fragments.length > 0 &&
+          Math.max(...fragments.map((rect) => rect.top)) <
+            Math.min(...fragments.map((rect) => rect.bottom)) &&
+          text.left >= bounds.left &&
+          text.right <= bounds.right
+        );
+      }),
+    ),
+  ).toBe(true);
+  expect(await readTimerLayout(page)).toEqual(layout);
+  await panel.getByRole('button', { name: '5分钟', exact: true }).click();
+  await expect(panel).not.toBeVisible();
+  await expect(card.locator('.task-timer-readout')).toHaveText('00:05:00');
+  await expect(card.locator('.task-timer-readout')).toHaveAttribute(
+    'aria-label',
+    '倒计时运行中',
+  );
+  expect(await readTimerLayout(page)).toEqual(layout);
+  await expectTimerControlsFit(page);
+  expect(await readTimerBusinessSnapshot(page)).toEqual(business);
+  await page.clock.fastForward(5 * 60000);
+  await expect(card.locator('.task-timer-readout')).toHaveText('00:00:00');
+  await card.getByRole('button', { name: '延长', exact: true }).click();
+  await expect(panel).toContainText(/已用\s*15\s*分钟/);
+  await panel.getByRole('button', { name: '10分钟', exact: true }).click();
+  await expect(card.locator('.task-timer-readout')).toHaveText('00:10:00');
+  await expect(card.locator('.task-timer-date')).toHaveText(originalStart);
+  expect(await readTimerLayout(page)).toEqual(layout);
+  await expectTimerControlsFit(page);
+  expect(await readTimerBusinessSnapshot(page)).toEqual(business);
+  await page.screenshot({ path: info.outputPath('countdown-second-extension.png') });
+});
+
+test('countdown custom input confirms with Enter, cancels with Escape and fits a mobile bottom panel', async ({
+  page,
+}, info) => {
+  await restoreExpiredCountdown(page);
+  const card = page.locator('.task-timer').first();
+  const panel = page.getByRole('group', { name: '延长倒计时', exact: true });
+  const extend = card.getByRole('button', { name: '延长', exact: true });
+  const layout = await readTimerLayout(page);
+  const business = await readTimerBusinessSnapshot(page);
+  await extend.click();
+  await expect(panel).toBeVisible();
+  const mobile = info.project.name !== 'preview-desktop';
+  if (mobile) {
+    const dimensions = await panel.evaluate((panel) => ({
+      rect: panel.getBoundingClientRect().toJSON(),
+      viewport: { width: innerWidth, height: innerHeight },
+      buttons: [...panel.querySelectorAll('button')].map((button) =>
+        button.getBoundingClientRect().toJSON(),
+      ),
+    }));
+    expect(dimensions.rect.left).toBeGreaterThanOrEqual(0);
+    expect(dimensions.rect.right).toBeLessThanOrEqual(dimensions.viewport.width);
+    expect(dimensions.viewport.height - dimensions.rect.bottom).toBeLessThanOrEqual(40);
+    expect(
+      dimensions.buttons.every((rect) => rect.width >= 44 && rect.height >= 44),
+    ).toBe(true);
+  } else {
+    const cardBox = (await card.boundingBox())!;
+    expect((await panel.boundingBox())!.y).toBeGreaterThanOrEqual(
+      cardBox.y + cardBox.height + 4,
+    );
+  }
+  expect(await readTimerLayout(page)).toEqual(layout);
+  await page.screenshot({ path: info.outputPath('countdown-extension-panel.png') });
+  await panel.getByRole('button', { name: '自定义', exact: true }).click();
+  const input = panel.getByLabel('延长分钟', { exact: true });
+  await expect(input).toBeFocused();
+  if (mobile) {
+    expect(
+      await input.evaluate((input) => parseFloat(getComputedStyle(input).fontSize)),
+    ).toBeGreaterThanOrEqual(16);
+    expect((await input.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  }
+  await input.fill('7');
+  await panel.getByRole('button', { name: '取消', exact: true }).click();
+  await expect(panel).not.toBeVisible();
+  await expect(extend).toBeFocused();
+  await expect(card.locator('.task-timer-readout')).toHaveText('00:00:00');
+  expect(await readTimerLayout(page)).toEqual(layout);
+  expect(await readTimerBusinessSnapshot(page)).toEqual(business);
+  await extend.click();
+  await panel.getByRole('button', { name: '自定义', exact: true }).click();
+  await input.fill('7');
+  await input.press('Escape');
+  await expect(panel).not.toBeVisible();
+  await expect(extend).toBeFocused();
+  await expect(card.locator('.task-timer-readout')).toHaveText('00:00:00');
+  expect(await readTimerLayout(page)).toEqual(layout);
+  expect(await readTimerBusinessSnapshot(page)).toEqual(business);
+  await extend.click();
+  await panel.getByRole('button', { name: '自定义', exact: true }).click();
+  await panel.getByLabel('延长分钟', { exact: true }).fill('1441');
+  await panel.getByLabel('延长分钟', { exact: true }).press('Enter');
+  await expect(panel.getByRole('alert')).toContainText('1—1440');
+  await expect(panel.getByLabel('延长分钟', { exact: true })).toHaveValue('1441');
+  expect(await readTimerBusinessSnapshot(page)).toEqual(business);
+  await panel.getByLabel('延长分钟', { exact: true }).fill('7');
+  await panel.getByLabel('延长分钟', { exact: true }).press('Enter');
+  await expect(panel).not.toBeVisible();
+  await expect(card.locator('.task-timer-readout')).toHaveText('00:07:00');
+  expect(await readTimerLayout(page)).toEqual(layout);
+  expect(await readTimerBusinessSnapshot(page)).toEqual(business);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+  ).toBe(true);
+});
+
+/** 存储事件尚未送达旧卡片时，续时必须核对本机最新值，不能复活删除或覆盖其他窗口的保存意图。 */
+for (const update of ['pending', 'running', 'removed'] as const) {
+  test(`countdown extension respects a silently ${update} timer from another tab`, async ({
+    page,
+  }) => {
+    await restoreExpiredCountdown(page);
+    const card = page.locator('.task-timer').first();
+    await card.getByRole('button', { name: '延长', exact: true }).click();
+    const panel = page.getByRole('group', { name: '延长倒计时', exact: true });
+    await expect(panel).toBeVisible();
+    const business = await readTimerBusinessSnapshot(page);
+    const expected = await page.evaluate(
+      ({ update, timersKey, tasksKey }) => {
+        const timers = JSON.parse(localStorage.getItem(timersKey)!);
+        if (update === 'removed') timers.shift();
+        else if (update === 'running') {
+          timers[0] = { ...timers[0], targetMs: 20 * 60000, startedAt: Date.now() };
+        } else {
+          const tasks = JSON.parse(localStorage.getItem(tasksKey)!);
+          timers[0] = {
+            ...timers[0],
+            pending: {
+              original: tasks.find(
+                (task: { id: string }) => task.id === timers[0].taskId,
+              ),
+              minutes: 10,
+            },
+          };
+        }
+        // 同页直接改 storage 不发事件，确定性模拟跨标签事件在用户点击之后才到达。
+        const raw = JSON.stringify(timers);
+        localStorage.setItem(timersKey, raw);
+        return raw;
+      },
+      { update, timersKey: timerStorageKey, tasksKey: taskStorageKey },
+    );
+    await panel.getByRole('button', { name: '5分钟', exact: true }).click();
+    await expect(panel).not.toBeVisible();
+    expect(
+      await page.evaluate((key) => localStorage.getItem(key), timerStorageKey),
+    ).toBe(expected);
+    expect(await readTimerBusinessSnapshot(page)).toEqual(business);
+    await expect(page.locator('.task-timer')).toHaveCount(update === 'removed' ? 2 : 3);
+  });
+}
 
 /** 零值只留口径和时长，中心文字四角位于内圈内；任务标签和时长有不同颜色与字重。 */
 test('keeps empty ring text clear of the ring and separates callout time from task names', async ({
