@@ -646,9 +646,9 @@
 
 .schedule-panel {
   /* 七列共享最小轨道和总宽；窄面板横滚时行背景必须包住所有列，常用桌面保留标题弹性。 */
-  --timeline-grid-columns: minmax(5.4rem, 0.55fr) 24px minmax(4.5rem, 0.7fr)
+  --timeline-grid-columns: minmax(5.4rem, 0.55fr) 24px minmax(5rem, 0.7fr)
     minmax(6.5rem, 3fr) minmax(4.5rem, 0.6fr) minmax(4.5rem, 0.6fr) 48px;
-  --timeline-min-width: calc(25.4rem + 106px);
+  --timeline-min-width: calc(25.9rem + 106px);
   --timeline-grid-gap: 3px;
   overflow: visible;
   container-type: inline-size;
