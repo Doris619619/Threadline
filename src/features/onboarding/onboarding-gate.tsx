@@ -1,4 +1,4 @@
-/** @fileoverview 登录后的首次个性化门禁：账号完成后仅补问本机自启动，等待设置时暂停业务加载遮罩。 */
+/** @fileoverview 登录后的首次个性化门禁：读取偏好沿用统一启动页，真正需要引导或失败恢复时才展示设置页。 */
 'use client';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { DesktopEntryChrome } from '@/components/desktop-entry-chrome';
@@ -15,21 +15,26 @@ import { useAutoStart } from './use-auto-start';
 import { GenderChoice } from './gender-choice';
 import type { Gender } from './account-preferences';
 
-/** 资料确认前不挂载业务树，首次进入后刷新本机开关不重新打断工作台。 */
+/** 资料确认前不挂载业务树；普通读取保留统一加载页，首次进入后刷新本机开关不重新打断工作台。 */
 export function OnboardingGate({ children }: { children: ReactNode }) {
   const account = useAccountPreferences()!;
   const autoStart = useAutoStart();
   const cloud = useOptionalCloudRuntime();
   const [entered, setEntered] = useState(false);
-  const setPersonalizationActive =
-    useOptionalStartupProgress()?.setPersonalizationActive;
+  const startup = useOptionalStartupProgress();
+  const setPersonalizationActive = startup?.setPersonalizationActive;
   const ready = Boolean(
     account.profile?.onboarding_completed_at && autoStart.state?.decided,
   );
+  const settingsLoaded = Boolean(account.profile && autoStart.state);
+  const settingsError = account.error ?? autoStart.error;
+  const showPersonalization =
+    !entered && !ready && (settingsLoaded || Boolean(settingsError));
+  /** 只为可交互的引导或错误恢复撤去遮罩，避免完成账号在两张加载页之间来回切换。 */
   useLayoutEffect(() => {
-    setPersonalizationActive?.(!entered && !ready);
+    setPersonalizationActive?.(showPersonalization);
     return () => setPersonalizationActive?.(false);
-  }, [entered, ready, setPersonalizationActive]);
+  }, [showPersonalization, setPersonalizationActive]);
   if (ready && !entered) setEntered(true);
   const [exitError, setExitError] = useState<string>();
   /** 失败留在引导，不能伪装已退出；旧账号会话由上层认证运行时销毁。 */
@@ -41,6 +46,8 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
     }
   };
   if (entered || ready) return children;
+  // 云运行时已提供完整加载页；Preview/独立入口保留原有等待卡片。
+  if (startup && !settingsLoaded && !settingsError) return null;
   return (
     <main className="onboarding-page">
       <DesktopEntryChrome />
