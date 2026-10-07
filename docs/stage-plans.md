@@ -14,6 +14,10 @@
 
 圆心选中名称最多两行，避免窄屏长标题挤出内圈；完整任务名保留在右侧明细和可访问文本中。中心时长仍按实际内圈宽度调整字号，保持一行。
 
+今日日程的表头、已有任务和新增行共享七列定义与总最小宽度，常用桌面窗口优先把弹性空间留给任务名；窄面板仍可局部横滚，但行背景包住全部列。桌面预计、实际、任务名和时间的行内输入统一为 26px 高，避免“记耗时”及实际输入被后续样式撑高；手机继续保留 44px 触控区域，放大文字时表格可增长。
+
+2026-10-07 日程对齐回归：Web 生产构建、类型与 lint 检查通过；1440/1024px 桌面、320px 手机及 iPhone WebKit 的相关布局和首次引导共 36 项浏览器检查通过，2 项桌面专属控件检查跳过手机。控件回归另在 1152px 窗口核对表头、已有行和新增行同列位置与宽度、26px 控件高度；420px 日程面板保留局部横滚且操作列仍在行背景内。截图：[经典主题日程对齐](screenshots/startup-ui-20261007/schedule-inline-classic.png)、[蓝色主题日程对齐](screenshots/startup-ui-20261007/schedule-inline-blue.png)。
+
 2026-10-06 项数对齐：仅调整新版项目标题的伸缩分配，项数紧邻名称，总时间仍靠右。格式检查、Web 生产构建及 nonce CSP/构建边界检查通过；用户实际 Edge 的 localhost 页面确认「工作 2 项」「课程 4 项」位于左侧，统计总量不变。未运行测试套件。截图：[项目项数靠近名称](screenshots/stage-task-time/stage-project-counts-left-live.png)。
 
 2026-10-05 经典整页恢复：TypeScript、改动组件 ESLint、Web 生产构建及 nonce CSP/构建边界检查通过。localhost 手动确认经典偏好重载保留、右侧仅名称和时长、下方三个状态区域完整存在，右侧与下方预计单框 Enter 保存后共用总量更新；验收修改已恢复原数字。查看 1440px 目标桌面视口及 390px 目标手机视口，经典窄屏上下排列，无页面横向溢出。未运行测试套件，未验收实体 iPhone 或 Windows 安装版。截图：[经典完整详情](screenshots/stage-task-time/stage-classic-complete-light-live.jpg)、[图表下方未安排清单](screenshots/stage-task-time/stage-classic-status-groups-live.jpg)。

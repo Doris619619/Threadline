@@ -1,5 +1,5 @@
 /**
- * @fileoverview 定义完整任务工作台、日程、待办、项目选择和待安排样式。
+ * @fileoverview 定义完整任务工作台与日程共享网格、统一行内控件、待办和项目选择样式。
  */
 
 /* ================= 仪表盘布局 ================= */
@@ -645,9 +645,10 @@
 /* ================= 今日日程（精确网格与独立预计/实际两列） ================= */
 
 .schedule-panel {
-  /* 统一桌面单一日程网格定义，时间、复选框、项目、任务、预计、实际、操作共 7 列 */
-  --timeline-grid-columns: minmax(86px, 0.55fr) 24px minmax(88px, 0.7fr)
-    minmax(130px, 3fr) minmax(88px, 0.6fr) minmax(88px, 0.6fr) 48px;
+  /* 七列共享最小轨道和总宽；窄面板横滚时行背景必须包住所有列，常用桌面保留标题弹性。 */
+  --timeline-grid-columns: minmax(5.4rem, 0.55fr) 24px minmax(4.5rem, 0.7fr)
+    minmax(6.5rem, 3fr) minmax(4.5rem, 0.6fr) minmax(4.5rem, 0.6fr) 48px;
+  --timeline-min-width: calc(25.4rem + 106px);
   --timeline-grid-gap: 3px;
   overflow: visible;
   container-type: inline-size;
@@ -662,7 +663,7 @@
 
 .timeline-head {
   display: grid;
-  min-width: 480px;
+  min-width: var(--timeline-min-width);
   grid-template-columns: var(--timeline-grid-columns);
   grid-template-areas: 'time check project title planned actual actions';
   align-items: center;
@@ -726,7 +727,7 @@
 
 .timeline-row {
   display: grid;
-  min-width: 480px;
+  min-width: var(--timeline-min-width);
   grid-template-columns: var(--timeline-grid-columns);
   grid-template-areas: 'time check project title planned actual actions';
   align-items: center;
@@ -2087,10 +2088,6 @@ button.task-duration-actual:focus-visible {
   }
 }
 @media (min-width: 761px) {
-  .schedule-panel {
-    --timeline-grid-columns: minmax(5.4rem, 0.55fr) 24px minmax(5.5rem, 0.8fr)
-      minmax(8rem, 3fr) minmax(6rem, 0.6fr) minmax(6rem, 0.6fr) 48px;
-  }
   .timeline-row .task-project-trigger,
   .timeline-row .task-project-trigger .tl-project-tag {
     white-space: normal;
@@ -2101,7 +2098,8 @@ button.task-duration-actual:focus-visible {
     white-space: normal;
     overflow: visible;
     overflow-wrap: anywhere;
-    min-height: 44px;
+    /* 桌面耗时单元和行内输入统一为 26px；手机仍由独立触控规则保留 44px。 */
+    min-height: 26px;
     display: flex;
     align-items: center;
   }
