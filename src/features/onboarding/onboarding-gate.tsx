@@ -90,7 +90,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   );
 }
 
-/** 分步保存：主题本机即时预览，性别由账号确认，最后提交才记录完成。 */
+/** 分步保存保持当前操作名称：主题本机预览，性别由账号确认，最后提交才记录完成。 */
 function OnboardingSteps({
   autoStart,
 }: {
@@ -113,12 +113,11 @@ function OnboardingSteps({
   useEffect(() => {
     heading.current?.focus();
   }, [step]);
-  /** 禁止重复提交；自启动成功但云保存失败时留在当前步，重试安全。 */
+  /** 禁止重复提交；失败保留当前步与错误至真实响应，重试不会提前撤掉反馈。 */
   const next = async (defer = false) => {
     if (locked.current) return;
     locked.current = true;
     setBusy(true);
-    setError(undefined);
     try {
       if (step === 0) setStep(1);
       else if (step === 1) {
@@ -129,6 +128,7 @@ function OnboardingSteps({
         await autoStart.save(defer ? undefined : enabled);
         if (!deviceOnly) await account.save(null, true);
       }
+      setError(undefined);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '保存失败，请重试。');
     } finally {
@@ -222,9 +222,10 @@ function OnboardingSteps({
           disabled={
             busy || (step === 1 && !gender) || (step === 0 && Boolean(themeError))
           }
+          aria-busy={busy}
           onClick={() => void next()}
         >
-          {busy ? '正在保存…' : last ? '进入工作台' : '继续'}
+          {last ? '进入工作台' : '继续'}
         </button>
       </div>
       <p className="onboarding-footnote">这些选择都可以在设置中修改。</p>

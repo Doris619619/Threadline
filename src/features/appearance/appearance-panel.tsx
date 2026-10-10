@@ -1,6 +1,6 @@
 /** @fileoverview Provides real theme previews and comparable Chinese font samples with independent device preferences. */
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
 import { ThemeChoices } from './theme-choices';
 import {
@@ -17,12 +17,13 @@ const fonts: { id: AppearanceFont; label: string }[] = [
   { id: 'source-han-sans', label: '思源黑体' },
   { id: 'source-han-serif', label: '思源宋体' },
 ];
-/** Preview fonts on entering this screen; do not preload unused fonts on the ordinary workspace. */
+/** Preview fonts on entering without inserting temporary copy that resizes the choices; failures remain actionable. */
 export function AppearancePanel() {
   const preferences = useAppearance();
   const [notice, setNotice] = useState('');
   const [unavailable, setUnavailable] = useState<AppearanceFont[]>([]);
   const [previewLoading, setPreviewLoading] = useState(true);
+  const selectionRevision = useRef(0);
   useEffect(() => {
     let cancelled = false;
     void Promise.all(
@@ -44,18 +45,23 @@ export function AppearancePanel() {
       cancelled = true;
     };
   }, []);
-  /** Persist each choice independently; a font failure retains the user's last readable selection. */
+  /** Retain retry feedback until the latest font choice settles, including local persistence failures. */
   const select = async (next: AppearancePreferences) => {
-    setNotice('');
+    const revision = ++selectionRevision.current;
     const saved = saveAppearance(next);
     if (!saved) setNotice('当前无法保存设置；本次窗口仍可使用所选外观。');
     try {
       await loadAppearanceFont(next.font, true);
       setUnavailable((items) => items.filter((id) => id !== next.font));
+      if (selectionRevision.current !== revision) return;
       // A successful retry of the same choice also restores its root attribute.
       applyFontResult(next.font, true);
+      setNotice(saved ? '' : '当前无法保存设置；本次窗口仍可使用所选外观。');
     } catch {
-      if (getAppearance().font === next.font) {
+      if (
+        selectionRevision.current === revision &&
+        getAppearance().font === next.font
+      ) {
         applyFontResult(next.font, false);
         setNotice('字体未能加载，暂时显示默认字体，请再次点击重试。');
       }
@@ -97,7 +103,7 @@ export function AppearancePanel() {
       </fieldset>
       <fieldset className="appearance-section">
         <legend>字体</legend>
-        <div className="appearance-font-options">
+        <div className="appearance-font-options" aria-busy={previewLoading}>
           {fonts.map(({ id, label }) => (
             <button
               key={id}
@@ -114,7 +120,6 @@ export function AppearancePanel() {
                 把时间留给重要的事<span>Threadline · 09:30 · 2026</span>
               </span>
               {unavailable.includes(id) && <small>字体暂未加载，点击重试</small>}
-              {previewLoading && id !== 'default' && <small>正在加载字体预览…</small>}
             </button>
           ))}
         </div>

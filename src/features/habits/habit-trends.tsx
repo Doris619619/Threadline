@@ -14,7 +14,7 @@ import type { HabitEntry, HabitRule } from './habit-types';
 import { formatHabitMinutes, habitMinutes } from './habit-time';
 import { habitGrade, habitRuleForDate } from './habit-statistics';
 
-/** 单一时刻轴避免睡觉、起床混在双轴图；详情按钮同时支持触控与键盘。 */
+/** 图表与标题始终保留相同布局；未读范围显示静态占位，不输出部分统计或可编辑日期。 */
 export function HabitTimeTrend({
   kind,
   entries,
@@ -23,6 +23,7 @@ export function HabitTimeTrend({
   end,
   average,
   count,
+  ready = true,
   onSelect,
 }: {
   kind: 'sleep' | 'wake';
@@ -32,10 +33,11 @@ export function HabitTimeTrend({
   end: string;
   average: number | null;
   count: number;
+  ready?: boolean;
   onSelect: (date: string) => void;
 }) {
   const dates = iterateLocalDateRange(createLocalDateRange(start, end));
-  const points = dates.map((date) => {
+  const points = (ready ? dates : []).map((date) => {
     const entry = entries.find(
       (row) => !row.deleted_at && row.kind === kind && row.business_date === date,
     );
@@ -54,10 +56,14 @@ export function HabitTimeTrend({
     <section className="habit-trend" aria-label={label}>
       <header>
         <h2>{label}</h2>
-        <span className="habit-caption">{count} 次记录</span>
+        <span className="habit-caption">
+          {ready ? `${count} 次记录` : '范围尚未读取'}
+        </span>
       </header>
       <p className="habit-average">
-        {average === null ? (
+        {!ready ? (
+          '—'
+        ) : average === null ? (
           '暂无记录'
         ) : (
           <>
@@ -66,110 +72,114 @@ export function HabitTimeTrend({
           </>
         )}
       </p>
-      {count ? (
-        <>
-          <div className="habit-chart" data-testid={`${kind}-trend`}>
-            <ResponsiveContainer width="100%" height={210}>
-              <LineChart
-                data={points}
-                margin={{ top: 12, right: 14, bottom: 0, left: 0 }}
-                onClick={(state) => {
-                  if (state.activeLabel) onSelect(String(state.activeLabel));
+      <div
+        className="habit-chart"
+        style={{ height: 210 }}
+        data-testid={`${kind}-trend`}
+      >
+        {ready && count ? (
+          <ResponsiveContainer width="100%" height={210}>
+            <LineChart
+              data={points}
+              margin={{ top: 12, right: 14, bottom: 0, left: 0 }}
+              onClick={(state) => {
+                if (state.activeLabel) onSelect(String(state.activeLabel));
+              }}
+            >
+              <CartesianGrid vertical={false} stroke="var(--border-subtle)" />
+              <XAxis
+                dataKey="date"
+                tickFormatter={(date: string) => date.slice(5)}
+                tickLine={false}
+                axisLine={false}
+                minTickGap={26}
+                tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
+              />
+              <YAxis
+                domain={['auto', 'auto']}
+                width={52}
+                tickFormatter={(value: number) => formatHabitMinutes(value, false)}
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
+              />
+              <Tooltip
+                content={({ active, label: date }) => {
+                  if (!active) return null;
+                  const point = points.find((item) => item.date === date);
+                  return point ? (
+                    <div className="habit-tooltip">
+                      <strong>{point.date}</strong>
+                      <p>
+                        {point.value === null
+                          ? '未记录'
+                          : formatHabitMinutes(point.value)}
+                      </p>
+                      <p>
+                        目标{' '}
+                        {point.target === null
+                          ? '读取中'
+                          : formatHabitMinutes(point.target)}
+                      </p>
+                      {point.entry && (
+                        <>
+                          <p>{habitGrade(point.entry, rules)}</p>
+                          <small>{point.entry.timezone}</small>
+                        </>
+                      )}
+                    </div>
+                  ) : null;
                 }}
-              >
-                <CartesianGrid vertical={false} stroke="var(--border-subtle)" />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(date: string) => date.slice(5)}
-                  tickLine={false}
-                  axisLine={false}
-                  minTickGap={26}
-                  tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
-                />
-                <YAxis
-                  domain={['auto', 'auto']}
-                  width={52}
-                  tickFormatter={(value: number) => formatHabitMinutes(value, false)}
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
-                />
-                <Tooltip
-                  content={({ active, label: date }) => {
-                    if (!active) return null;
-                    const point = points.find((item) => item.date === date);
-                    return point ? (
-                      <div className="habit-tooltip">
-                        <strong>{point.date}</strong>
-                        <p>
-                          {point.value === null
-                            ? '未记录'
-                            : formatHabitMinutes(point.value)}
-                        </p>
-                        <p>
-                          目标{' '}
-                          {point.target === null
-                            ? '读取中'
-                            : formatHabitMinutes(point.target)}
-                        </p>
-                        {point.entry && (
-                          <>
-                            <p>{habitGrade(point.entry, rules)}</p>
-                            <small>{point.entry.timezone}</small>
-                          </>
-                        )}
-                      </div>
-                    ) : null;
-                  }}
-                />
-                <Line
-                  type="stepAfter"
-                  dataKey="target"
-                  stroke="var(--text-secondary)"
-                  strokeDasharray="4 4"
-                  dot={false}
-                  isAnimationActive={false}
-                />
-                <Line
-                  type="linear"
-                  dataKey="value"
-                  stroke="var(--accent)"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                  activeDot={{ r: 5 }}
-                  connectNulls={false}
-                  isAnimationActive={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="habit-caption">
-            实线：记录时间 · 虚线：当时目标 · 点日期查看详情
+              />
+              <Line
+                type="stepAfter"
+                dataKey="target"
+                stroke="var(--text-secondary)"
+                strokeDasharray="4 4"
+                dot={false}
+                isAnimationActive={false}
+              />
+              <Line
+                type="linear"
+                dataKey="value"
+                stroke="var(--accent)"
+                strokeWidth={2}
+                dot={{ r: 3 }}
+                activeDot={{ r: 5 }}
+                connectNulls={false}
+                isAnimationActive={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="empty-copy">
+            {ready
+              ? `记录${kind === 'sleep' ? '睡觉' : '起床'}时间后查看趋势。`
+              : '所选统计范围尚未读取。'}
           </p>
-          <details className="habit-values">
-            <summary>查看每日数值</summary>
-            <ul>
-              {points.map((point) => (
-                <li key={point.date}>
-                  <button type="button" onClick={() => onSelect(point.date)}>
-                    <time>{point.date}</time>
-                    <span>
-                      {point.value === null
-                        ? '未记录'
-                        : formatHabitMinutes(point.value)}
-                    </span>
-                    <span>{point.entry ? habitGrade(point.entry, rules) : '—'}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </details>
-        </>
-      ) : (
-        <p className="empty-copy">
-          记录{kind === 'sleep' ? '睡觉' : '起床'}时间后查看趋势。
-        </p>
-      )}
+        )}
+      </div>
+      <p className="habit-caption">实线：记录时间 · 虚线：当时目标 · 点日期查看详情</p>
+      <details className="habit-values">
+        <summary>查看每日数值</summary>
+        <ul>
+          {!ready ? (
+            <li>所选统计范围尚未读取。</li>
+          ) : (
+            points.map((point) => (
+              <li key={point.date}>
+                <button type="button" onClick={() => onSelect(point.date)}>
+                  <time>{point.date}</time>
+                  <span>
+                    {point.value === null ? '未记录' : formatHabitMinutes(point.value)}
+                  </span>
+                  <span>{point.entry ? habitGrade(point.entry, rules) : '—'}</span>
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
+      </details>
     </section>
   );
 }

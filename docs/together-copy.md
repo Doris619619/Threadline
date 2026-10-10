@@ -222,14 +222,10 @@
 | 这件事完成了，对方见证了你的努力。                                           | copy.ts                                                     |
 | 这项操作已经完成，请刷新查看。                                               | repository.ts                                               |
 | 这一步需要对方来完成。                                                       | repository.ts                                               |
-| 正在保存…                                                                    | binding.tsx、dialog.tsx                                     |
-| 正在查看…                                                                    | binding.tsx                                                 |
 | 正在打开两人空间…                                                            | panel.tsx                                                   |
-| 正在读取…                                                                    | flag-board.tsx                                              |
 | 正在读取成果…                                                                | flag-detail.tsx、review.tsx                                 |
 | 正在读取空间资料…                                                            | binding.tsx                                                 |
 | 正在读取目标                                                                 | flag-board.tsx                                              |
-| 正在读取时间…                                                                | clock.tsx                                                   |
 | 正在核对本次成果，读取完成后才能验收。                                       | flag-detail.tsx                                             |
 | 正在进行                                                                     | panel.tsx                                                   |
 | 执行人取消                                                                   | supabase/migrations/202609280001_together.sql               |

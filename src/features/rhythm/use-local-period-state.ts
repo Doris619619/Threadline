@@ -8,7 +8,7 @@ import { validatePeriod, type PeriodDraft, type PeriodRecord } from './period-ru
 
 const periodsKey = 'threadline.test.periods.v1';
 
-/** 保留旧标记键；写入确认后才更新可见状态，不把存储失败当成成功。 */
+/** 仅首次读取显示加载；刷新保留已确认记录，写入确认后才更新可见状态。 */
 export function useLocalPeriodState() {
   const repository = useMemo(() => createPersistentStateRepository(), []);
   const [data, setData] = useState<{
@@ -16,6 +16,7 @@ export function useLocalPeriodState() {
     periods: PeriodRecord[];
   }>({ marks: {}, periods: [] });
   const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState<string>();
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
@@ -29,6 +30,7 @@ export function useLocalPeriodState() {
           setData({ marks: marks ?? {}, periods: periods ?? [] });
           setError(undefined);
           setLoading(false);
+          setReady(true);
         }
       })
       .catch(() => {
@@ -74,11 +76,12 @@ export function useLocalPeriodState() {
     marks: data.marks,
     periods: data.periods.filter((period) => !period.deletedAt),
     loading,
+    ready,
     error,
     save: (draft: PeriodDraft) => persist({ draft }),
     remove: (id: string) => persist({ id }),
     retry: () => {
-      setLoading(true);
+      setLoading(!ready);
       setAttempt((value) => value + 1);
     },
   };

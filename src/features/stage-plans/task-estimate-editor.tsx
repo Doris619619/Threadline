@@ -16,7 +16,7 @@ export type SaveStageEstimate = (
   date?: string,
 ) => Promise<unknown>;
 
-/** 预计回车或离焦保存、Esc 取消；实际保留按日调整，实时 Task 更新不得替换打开时基准。 */
+/** 预计回车或离焦保存、Esc 取消；提交期间操作名称稳定，实时 Task 更新不得替换打开时基准。 */
 export function TaskEstimateEditor({
   task,
   onSave,
@@ -152,7 +152,7 @@ export function TaskEstimateEditor({
                 </label>
               )}
               <button type="submit" disabled={busy || disabled}>
-                {busy ? '保存中…' : '保存'}
+                保存
               </button>
               <button type="button" disabled={busy || disabled} onClick={cancel}>
                 取消

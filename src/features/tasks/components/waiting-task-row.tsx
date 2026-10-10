@@ -15,7 +15,7 @@ import { ProjectTag } from '@/components/ui/project-tag';
 import { addLocalDateDays, getLocalDateKey } from '@/lib/local-date';
 import type { Project, Task } from '@/types/domain';
 
-/** 待安排主体可编辑，桌面右键和触屏更多保留安排及计时操作。 */
+/** 待安排主体可编辑，异步动作只锁定控件并保留错误；桌面右键和触屏更多保留安排及计时操作。 */
 export function WaitingTaskRow({
   projects,
   task,
@@ -162,7 +162,6 @@ export function WaitingTaskRow({
           </form>
         </ManagementDialog>
       )}
-      {busy && !dateOpen && <small role="status">正在保存…</small>}
       {error && !dateOpen && (
         <small className="form-error" role="alert">
           {error}

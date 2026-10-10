@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTogether } from './state';
 import type { Command } from './types';
 import { RejectedSpaceCommand, UnsentSpaceCommand } from './repository';
-/** 每个表单保持自己的请求；失败保留内容，成功才释放请求 ID。 */
+/** 每个表单保持自己的请求；失败保留内容和错误，重试成功才清错并释放请求 ID。 */
 export function useSpaceCommand() {
   const { run } = useTogether();
   const pending = useRef<Command | null>(null);
@@ -17,7 +17,7 @@ export function useSpaceCommand() {
       alive.current = false;
     };
   }, []);
-  /** 未发送或明确拒绝可修改草稿；结果不明时沿用原请求，后续离线不能抹去这种不确定性。 */
+  /** 未发送或明确拒绝可修改草稿；结果不明沿用原请求，重试期间保留上次错误直到结果确定。 */
   const submit = async (action: string, payload: Record<string, unknown>) => {
     if (locked.current) return null;
     if (
@@ -33,12 +33,12 @@ export function useSpaceCommand() {
     }
     locked.current = true;
     setBusy(true);
-    setError('');
     const wasUncertain = pending.current !== null;
     pending.current ??= { id: crypto.randomUUID(), action, payload };
     try {
       const result = await run(pending.current);
       pending.current = null;
+      if (alive.current) setError('');
       return alive.current ? result : null;
     } catch (reason) {
       if (

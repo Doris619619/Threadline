@@ -50,7 +50,11 @@ describe('AccountDisclosure', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Doris/ }));
     fireEvent.click(screen.getByRole('button', { name: '退出登录' }));
-    expect(screen.getByRole('button', { name: '正在退出…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '退出登录' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '退出登录' })).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent('网络暂不可用'),
     );

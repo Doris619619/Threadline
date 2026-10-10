@@ -25,7 +25,8 @@ import { cn } from '@/lib/cn';
 import type { Project, Task, TaskStatus } from '@/types/domain';
 
 /**
- * 渲染日程或无时间待办的一行。桌面用七列网格（contents 展开），手机用分组内连续双行（项目与标题 + 时间与耗时）。
+ * 渲染日程或无时间待办的一行；异步提交保持布局稳定，用锁定与 aria-busy 表达交互边界。
+ * 桌面用七列网格（contents 展开），手机用分组内连续双行（项目与标题 + 时间与耗时）。
  */
 export function TaskLine({
   task,
@@ -115,13 +116,12 @@ export function TaskLine({
     return () => window.cancelAnimationFrame(frame);
   }, [autoFocusTime, onTimeFocused, setEditingField]);
 
-  /** Enter 与失焦只提交一次，异步失败保留输入和原始基准，迟到结果不关闭新编辑。 */
+  /** Enter 与失焦只提交一次；重试期间保留错误和输入，迟到结果不关闭新编辑。 */
   const submitEdit = async (changes: Partial<Task>) => {
     if (submittedEdit.current || !editingOriginal) return false;
     submittedEdit.current = true;
     setSaving(true);
     const session = editSession.current;
-    setSaveError(undefined);
     try {
       const result = onUpdate(
         { ...editingOriginal, ...changes, updatedAt: new Date().toISOString() },
@@ -463,7 +463,6 @@ export function TaskLine({
               )}
             </>
           )}
-          {projectAction.busy && <small role="status">正在创建项目…</small>}
           {projectAction.error && (
             <p className="form-error" role="alert">
               {projectAction.error}
@@ -500,6 +499,7 @@ export function TaskLine({
         isDragging && 'is-dragging',
         !canDrag && 'is-drag-disabled',
       )}
+      aria-busy={saving || projectAction.busy}
       draggable={canDrag && !editingField}
       onContextMenu={menu.onContextMenu}
       onKeyDown={menu.onKeyDown}
@@ -557,7 +557,6 @@ export function TaskLine({
           </span>
         )}
 
-        {saving && <span role="status">保存中…</span>}
         {saveError && (
           <span role="alert" className="timeline-inline-error">
             {saveError}

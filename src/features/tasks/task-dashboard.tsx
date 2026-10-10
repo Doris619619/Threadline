@@ -48,7 +48,7 @@ import { usePersistentState } from '@/hooks/use-persistent-state';
 import { useAccountToday } from '@/features/settings/account-timezone-provider';
 
 /**
- * 按当前工作台视图渲染首页、功能页或 Electron 紧凑窗口；顶部收尾入口沿用 Daily 保存屏障。
+ * 按当前工作台视图渲染首页、功能页或 Electron 紧凑窗口；顶部收尾沿用 Daily 保存屏障且等待时保持入口文字稳定。
  */
 export function TaskDashboard() {
   const { active, selectedDate } = useWorkspaceView();
@@ -355,9 +355,7 @@ export function TaskDashboard() {
             ) : (
               <Moon size={18} aria-hidden="true" />
             )}
-            <span>
-              {isDayClosed ? '今日已结束' : preparingClose ? '正在保存…' : '结束今天'}
-            </span>
+            <span>{isDayClosed ? '今日已结束' : '结束今天'}</span>
           </button>
         </div>
       </Surface>

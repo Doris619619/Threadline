@@ -64,6 +64,7 @@ export interface HabitRepository {
 }
 type HabitsContext = {
   data: HabitData;
+  coveredRange: { start: string; end: string } | null;
   now: string;
   loading: boolean;
   ready: boolean;
@@ -84,6 +85,27 @@ type HabitsContext = {
 };
 const Context = createContext<HabitsContext | null>(null);
 
+/** 只选当前账号已成功读取的范围缓存；扩展范围时保留旧快照，不把新日期当作空记录。 */
+function cachedHabitSnapshot(queryClient: QueryClient, owner: string) {
+  let snapshot: { data: HabitData; range: { start: string; end: string } } | null =
+    null;
+  for (const [key, cached] of queryClient.getQueriesData<HabitData>({
+    queryKey: ['habits', owner],
+  })) {
+    const [, account, start, end] = key;
+    if (
+      !cached ||
+      account !== owner ||
+      typeof start !== 'string' ||
+      typeof end !== 'string'
+    )
+      continue;
+    if (!snapshot || (start <= snapshot.range.start && end >= snapshot.range.end))
+      snapshot = { data: cached, range: { start, end } };
+  }
+  return snapshot;
+}
+
 /** 单调合并每条记录，包括墓碑；日期移动后旧范围中的同一身份也必须移除。 */
 export function mergeHabitEntries(
   rows: HabitEntry[],
@@ -94,7 +116,7 @@ export function mergeHabitEntries(
     if ((result.get(row.id)?.version ?? 0) <= row.version) result.set(row.id, row);
   return [...result.values()];
 }
-/** 共用状态机：保存结果先确认，刷新失败与写入失败分开；失败请求由 UI 原样重试。 */
+/** 保存结果先确认，失败原样重试；扩展查询保留账号快照并公开真实读取范围。 */
 export function HabitStore({
   repository,
   children,
@@ -138,6 +160,11 @@ export function HabitStore({
       mounted.current = false;
     };
   }, []);
+  // 已确认快照独立于非活跃查询缓存的回收；同一账号扩展读取再慢也不撤掉已有内容。
+  const [retainedSnapshot, setRetainedSnapshot] = useState(() => ({
+    owner: repository.owner,
+    snapshot: cachedHabitSnapshot(queryClient, repository.owner),
+  }));
   const key = ['habits', repository.owner, range.start, range.end];
   const query = useQuery({
     queryKey: key,
@@ -161,7 +188,21 @@ export function HabitStore({
     staleTime: 60_000,
   });
   const fallback = useMemo(() => emptyHabitData(timezone), [timezone]);
-  const queried = query.data ?? fallback;
+  const snapshot = query.data
+    ? { data: query.data, range }
+    : retainedSnapshot.owner === repository.owner
+      ? retainedSnapshot.snapshot
+      : null;
+  // 随成功响应同步调整当前组件快照，换账号不继承旧数据，也不依赖后台缓存寿命。
+  if (
+    query.data &&
+    (retainedSnapshot.owner !== repository.owner ||
+      retainedSnapshot.snapshot?.data !== query.data ||
+      retainedSnapshot.snapshot.range.start !== range.start ||
+      retainedSnapshot.snapshot.range.end !== range.end)
+  )
+    setRetainedSnapshot({ owner: repository.owner, snapshot });
+  const queried = snapshot?.data ?? fallback;
   const settings = [queried.settings, account?.settings, confirmedSettings]
     .filter((value): value is HabitSettings => Boolean(value))
     .sort((a, b) => b.version - a.version)[0];
@@ -215,9 +256,9 @@ export function HabitStore({
       );
     }
   };
-  /** 保存前同步加锁，双击不生成并发写；失败保留冻结时间和稳定请求 ID。 */
+  /** 保存前同步加锁；确认同时合并缓存与保留快照，扩展范围未返回也不能撤销新值。 */
   const save = async (request: HabitRequest) => {
-    if (locked.current) throw new Error('正在保存，请稍后');
+    if (locked.current) throw new Error('请等待当前操作完成后重试');
     if (
       pending &&
       pending.requestId !== request.requestId &&
@@ -229,8 +270,7 @@ export function HabitStore({
     locked.current = true;
     setBusy(true);
     setPending(request);
-    setError(undefined);
-    setNotice(undefined);
+    if (pending?.requestId !== request.requestId) setError(undefined);
     let endWrite: (() => void) | undefined;
     try {
       if (!navigator.onLine)
@@ -242,6 +282,25 @@ export function HabitStore({
       for (const row of saved)
         if ((confirmed.current.get(row.id)?.version ?? 0) <= row.version)
           confirmed.current.set(row.id, row);
+      const confirmedRows = new Map(confirmed.current);
+      // 扩展查询尚无 data 或旧缓存已回收时，组件快照也必须立即采用写入确认。
+      setRetainedSnapshot((current) =>
+        current.owner === repository.owner && current.snapshot
+          ? {
+              ...current,
+              snapshot: {
+                ...current.snapshot,
+                data: {
+                  ...current.snapshot.data,
+                  entries: mergeHabitEntries(
+                    current.snapshot.data.entries,
+                    confirmedRows,
+                  ),
+                },
+              },
+            }
+          : current,
+      );
       queryClient.setQueriesData<HabitData>(
         { queryKey: ['habits', repository.owner] },
         (current) =>
@@ -253,6 +312,7 @@ export function HabitStore({
             : current,
       );
       setPending(null);
+      setError(undefined);
       void refresh();
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : '保存失败，请重试';
@@ -264,14 +324,14 @@ export function HabitStore({
       setBusy(false);
     }
   };
-  /** 设置失败交由设置表单保留草稿；配置成功后重新读取账号规则。 */
+  /** 设置失败保留表单草稿，并发调用以静态错误拒绝；成功后重新读取账号规则。 */
   const configure = async (
     zone: string,
     rules: RuleValues,
     version: number,
     requestId: string,
   ) => {
-    if (locked.current) throw new Error('正在保存，请稍后');
+    if (locked.current) throw new Error('请等待当前操作完成后重试');
     locked.current = true;
     setBusy(true);
     let endWrite: (() => void) | undefined;
@@ -304,9 +364,10 @@ export function HabitStore({
     <Context.Provider
       value={{
         data,
+        coveredRange: snapshot?.range ?? null,
         now,
-        loading: query.isPending,
-        ready: Boolean(query.data),
+        loading: !snapshot && query.isPending,
+        ready: Boolean(snapshot),
         error: error ?? query.error?.message,
         notice,
         pending,
@@ -314,9 +375,11 @@ export function HabitStore({
         save,
         configure,
         retry: () => {
-          if (!pending) setError(undefined);
-          setNotice(undefined);
-          void query.refetch();
+          // Query 管理读取错误；写入失败只能由确认或主动修改清除，旧读取不能抹掉新草稿。
+          void query.refetch().then((result) => {
+            if (result.error) return;
+            setNotice(undefined);
+          });
         },
         discard: () => {
           if (locked.current) return;

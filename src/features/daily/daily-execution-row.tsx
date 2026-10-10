@@ -52,7 +52,7 @@ function ActualMinutes({
   );
 }
 
-/** 展示父级汇总和常显子项；历史快照由结束今天统一生成，不设额外记录操作。 */
+/** 展示父级汇总和常显子项；提交期间保留原布局并通过 aria-busy 锁定勾选，失败保留草稿与重试。 */
 export function DailyExecutionRow({
   ref,
   daily,
@@ -77,7 +77,11 @@ export function DailyExecutionRow({
     (Number(draft.actual) || 0) +
     draft.childrenActual.reduce((sum, value) => sum + (Number(value) || 0), 0);
   return (
-    <section className="daily-group" aria-label={'Daily ' + daily.title}>
+    <section
+      className="daily-group"
+      aria-label={'Daily ' + daily.title}
+      aria-busy={saving}
+    >
       <div className="daily-parent">
         <Checkbox
           className="daily-check"
@@ -165,9 +169,6 @@ export function DailyExecutionRow({
           原有额外耗时 {daily.actual} 分钟，已计入合计
         </p>
       )}
-      <span className="daily-save-status" role="status">
-        {saving ? '正在保存…' : ''}
-      </span>
       {error && (
         <div className="daily-save-error" role="alert">
           <span>{error}</span>

@@ -1,4 +1,4 @@
-/** @fileoverview 覆盖少量日程的浮层裁切、悬停跳动、长项目名、新增帧与装扮关闭。 */
+/** @fileoverview 覆盖日程浮层、项目切换的逐帧稳定性、长项目名、新增帧与装扮关闭。 */
 import { expect, test } from '@playwright/test';
 import {
   bootstrapLocalAdapterWorkspace,
@@ -87,11 +87,62 @@ test('menus and project picker escape a one-row list without changing its width'
   const titleBox = await row.locator('.task-title').boundingBox();
   expect(projectBox!.x + projectBox!.width).toBeLessThanOrEqual(titleBox!.x + 1);
   await project.click();
+  // 同时观察DOM提交和每一渲染帧，捕获快写期间短暂插入的提示及其几何变化。
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    const target = document.querySelector<HTMLElement>('.timeline-row')!;
+    const samples: { text: string; height: number; titleWidth: number }[] = [];
+    const sample = () => {
+      samples.push({
+        text: target.innerText,
+        height: target.getBoundingClientRect().height,
+        titleWidth: target.querySelector('.task-title')!.getBoundingClientRect().width,
+      });
+    };
+    sample();
+    const observer = new MutationObserver(sample);
+    observer.observe(target, { subtree: true, childList: true, attributes: true });
+    let frame: number;
+    const tick = () => {
+      sample();
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    (
+      window as typeof window & { stopFeedbackProbe: () => typeof samples }
+    ).stopFeedbackProbe = () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      sample();
+      return samples;
+    };
+  });
   await page
     .getByRole('group', { name: '邮件处理选择项目' })
     .getByRole('button', { name: '【课程】', exact: true })
     .click();
   await expect(project).toHaveAccessibleName('邮件处理所属项目：课程');
+  await expect(row).toHaveAttribute('aria-busy', 'false');
+  const samples = await page.evaluate(() =>
+    (
+      window as typeof window & {
+        stopFeedbackProbe: () => { text: string; height: number; titleWidth: number }[];
+      }
+    ).stopFeedbackProbe(),
+  );
+  expect(samples.some((sample) => /保存中|正在保存/.test(sample.text))).toBe(false);
+  // 项目文字长度可改变正常列宽，等待帧不得超出操作前后合法尺寸范围。
+  const endpoints = [samples[0], samples.at(-1)!];
+  for (const dimension of ['height', 'titleWidth'] as const) {
+    expect(Math.max(...samples.map((sample) => sample[dimension]))).toBeLessThanOrEqual(
+      Math.max(...endpoints.map((sample) => sample[dimension])) + 0.5,
+    );
+    expect(
+      Math.min(...samples.map((sample) => sample[dimension])),
+    ).toBeGreaterThanOrEqual(
+      Math.min(...endpoints.map((sample) => sample[dimension])) - 0.5,
+    );
+  }
   // 界面变化不能替代持久化确认；刷新前直接核验已写入的项目身份。
   expect(
     await page.evaluate(() => {

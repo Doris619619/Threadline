@@ -96,14 +96,14 @@ export function CalendarPanel() {
     setView('day');
   };
 
-  /** 串行提交页面动作并保留失败；ref 阻止同一事件循环的重复请求。 */
+  /** 串行提交页面动作，重试保留原错误直到成功；ref 阻止同一事件循环的重复请求。 */
   const run = async (action: () => Promise<unknown>): Promise<boolean> => {
     if (lock.current) return false;
     lock.current = true;
     setBusy(true);
-    setError(undefined);
     try {
       await action();
+      setError(undefined);
       return true;
     } catch (error) {
       setError(error instanceof Error ? error.message : '操作失败，请重试。');

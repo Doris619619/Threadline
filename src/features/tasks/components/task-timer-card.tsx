@@ -16,7 +16,7 @@ import { useAccountTimezone } from '@/features/settings/account-timezone-provide
 import type { Task } from '@/types/domain';
 import type { SaveStageEstimate } from '@/features/stage-plans/task-estimate-editor';
 
-/** 同排卡片展示首次开始时间；续时只提交分钟，由会话核验最新状态，完成时才记账。 */
+/** 同排卡片展示首次开始时间；完成控件在提交与重试期间保持稳定，续时只提交分钟，完成时才记账。 */
 export function TaskTimerCard({
   timer,
   task,
@@ -100,6 +100,7 @@ export function TaskTimerCard({
     <article
       className="task-timer"
       aria-label={'计时 ' + title}
+      aria-busy={busy}
       title={(timer.mode === 'up' ? '正计时' : '倒计时') + ' · ' + title}
       data-running={running}
       data-mode={timer.mode}
@@ -149,7 +150,7 @@ export function TaskTimerCard({
           type="button"
           disabled={busy}
           onClick={finish}
-          aria-label={busy ? '保存中…' : timer.pending ? '重试保存' : '完成并记耗时'}
+          aria-label="完成并记耗时"
           title={
             '完成任务并记录 ' +
             Math.round(elapsed / 60000) +
@@ -157,7 +158,7 @@ export function TaskTimerCard({
             (timer.entryDate !== today ? ' · 记入 ' + timer.entryDate : '')
           }
         >
-          {busy ? '…' : timer.pending ? '重试' : <Check size={18} aria-hidden="true" />}
+          <Check size={18} aria-hidden="true" />
         </button>
         <button
           type="button"

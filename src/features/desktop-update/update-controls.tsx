@@ -7,7 +7,7 @@ import { useDesktopUpdate } from './update-runtime';
 const labels: Record<DesktopUpdateState['status'], string> = {
   unavailable: '此版本不支持自动更新',
   idle: '可检查是否有新版本',
-  checking: '正在检查更新…',
+  checking: '可检查是否有新版本',
   available: '发现新版本',
   current: '已是最新版本',
   downloading: '正在下载更新',
@@ -16,23 +16,24 @@ const labels: Record<DesktopUpdateState['status'], string> = {
   error: '更新未完成',
 };
 
-/** Web 无 bridge 时不渲染；按钮和进度在设置页与全局提示中共享真实状态。 */
+/** Web 无 bridge 时不渲染；共享真实更新阶段及未完成写入的静态阻止原因。 */
 export function UpdateControls() {
-  const { state, run } = useDesktopUpdate();
+  const { state, displayedState, run } = useDesktopUpdate();
   const pending = useSyncExternalStore(
     subscribeCloudWrites,
     getPendingCloudWrites,
     () => 0,
   );
   if (!state) return null;
+  const displayed = displayedState ?? state;
   const busy = ['checking', 'downloading', 'installing'].includes(state.status);
   return (
     <div className="desktop-update-controls">
       <p role="status">
-        {labels[state.status]}
-        {state.version ? ` · ${state.version}` : ''}
+        {labels[displayed.status]}
+        {displayed.version ? ` · ${displayed.version}` : ''}
       </p>
-      {state.message && <p>{state.message}</p>}
+      {displayed.message && <p>{displayed.message}</p>}
       {state.status === 'downloading' && (
         <progress aria-label="更新下载进度" value={state.percent ?? 0} max={100} />
       )}
@@ -42,6 +43,7 @@ export function UpdateControls() {
           type="button"
           className="tl-button tl-button--primary"
           disabled={busy || (state.status === 'downloaded' && pending > 0)}
+          aria-busy={busy}
           onClick={() =>
             void run(
               state.status === 'available'
@@ -52,18 +54,16 @@ export function UpdateControls() {
             )
           }
         >
-          {state.status === 'available'
+          {displayed.status === 'available'
             ? '下载更新'
-            : state.status === 'downloaded'
+            : displayed.status === 'downloaded'
               ? '重启并更新'
-              : busy
+              : state.status === 'downloading' || state.status === 'installing'
                 ? labels[state.status]
                 : '检查更新'}
         </button>
       )}
-      {state.status === 'downloaded' && pending > 0 && (
-        <p role="status">正在保存，完成后可重启更新。</p>
-      )}
+      {displayed.status === 'downloaded' && <p>重启更新前需要完成所有数据写入。</p>}
     </div>
   );
 }

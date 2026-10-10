@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { ManagementDialog } from '@/components/ui/management-dialog';
 import type { PeriodDraft } from './period-rules';
 
-/** 保存等待真实持久化；删除必须再次确认，取消不会写入数据。 */
+/** 保存等待真实持久化且保持操作名称；删除必须再次确认，取消不写入数据。 */
 export function PeriodEditor({
   initial,
   title,
@@ -28,12 +28,11 @@ export function PeriodEditor({
   const busyRef = useRef(false);
   const [error, setError] = useState<string>();
   const [deleting, setDeleting] = useState(false);
-  /** 不关闭失败表单，以便网络恢复或更正日期后重试。 */
+  /** 失败保留表单及既有错误；重试仅在真实成功后关闭，避免撤掉又显示错误。 */
   const commit = async () => {
     if (busyRef.current) return;
     busyRef.current = true;
     setBusy(true);
-    setError(undefined);
     try {
       if (deleting) await onDelete(initial.id);
       else
@@ -123,8 +122,13 @@ export function PeriodEditor({
           >
             取消
           </button>
-          <button className="period-save" type="submit" disabled={busy}>
-            {busy ? '保存中…' : deleting ? '确认删除' : '保存'}
+          <button
+            className="period-save"
+            type="submit"
+            disabled={busy}
+            aria-busy={busy}
+          >
+            {deleting ? '确认删除' : '保存'}
           </button>
         </footer>
       </form>

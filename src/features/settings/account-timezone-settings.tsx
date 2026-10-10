@@ -1,28 +1,30 @@
 /** @fileoverview 全局时区设置：成功响应立即生效，失败保留选择与幂等请求。 */
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useAccountTimezone } from './account-timezone-provider';
 import { TimezoneSelect } from './timezone-select';
 
-/** 账号设置与习惯页面共享同一份时区，更新不会改写历史记录。 */
+/** 账号设置与习惯页面共享时区；请求期间保持操作名称，更新不改写历史记录。 */
 export function AccountTimezoneSettings() {
   const account = useAccountTimezone();
   const [zone, setZone] = useState(account?.settings?.timezone ?? 'UTC');
   const [version, setVersion] = useState(account?.settings?.version ?? 0);
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   const [busy, setBusy] = useState(false);
+  const locked = useRef(false);
   const [message, setMessage] = useState('');
-  /** 设置保存直接确认账号版本；网络超时后可重用请求。 */
+  /** 保存直接确认账号版本；重试保留已有结果，网络超时后沿用幂等请求。 */
   const save = async () => {
-    if (!account || busy) return;
+    if (!account || locked.current) return;
+    locked.current = true;
     setBusy(true);
-    setMessage('');
     try {
       await account.saveTimezone(zone, version, requestId);
       setMessage('已保存，所有页面使用此时区。');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '保存失败，请重试');
     } finally {
+      locked.current = false;
       setBusy(false);
     }
   };
@@ -30,6 +32,7 @@ export function AccountTimezoneSettings() {
     <div className="settings-copy account-timezone-settings">
       <TimezoneSelect
         value={zone}
+        disabled={busy}
         onChange={(next) => {
           setZone(next);
           setVersion(account?.settings?.version ?? 0);
@@ -43,9 +46,10 @@ export function AccountTimezoneSettings() {
         type="button"
         className="tl-button tl-button--primary"
         disabled={busy || !account}
+        aria-busy={busy}
         onClick={() => void save()}
       >
-        {busy ? '保存中…' : '保存时区'}
+        保存时区
       </button>
       {message && <p role="status">{message}</p>}
       {account?.settings &&
@@ -54,6 +58,7 @@ export function AccountTimezoneSettings() {
           <button
             type="button"
             className="tl-button tl-button--secondary"
+            disabled={busy}
             onClick={() => {
               setVersion(account.settings!.version);
               setRequestId(crypto.randomUUID());

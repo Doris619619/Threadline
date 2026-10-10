@@ -27,7 +27,7 @@ function createDraft(daily: Daily) {
   };
 }
 
-/** 失焦、打卡和记录共用 flush；失败保留草稿，只在真实提交中显示保存状态。 */
+/** 失焦、打卡和记录共用 flush；失败保留草稿，只在真实提交中锁定交互。 */
 export function useDailyExecution(
   daily: Daily,
   date: string,

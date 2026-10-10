@@ -7,9 +7,10 @@ import { ArrowUpCircle, X } from 'lucide-react';
 import { useDesktopUpdate } from './update-runtime';
 import { UpdateControls } from './update-controls';
 
-/** 与原生标题栏保持同等鼠标密度；版本变化、下载完成均不自动展开面板。 */
+/** 与原生标题栏保持同等鼠标密度；检查保留入口及详情，版本确认不自动展开面板。 */
 export function DesktopUpdateEntry() {
-  const { state } = useDesktopUpdate();
+  const { displayedState, state: activeState } = useDesktopUpdate();
+  const state = displayedState ?? activeState;
   const [position, setPosition] = useState<{ top: number; right: number }>();
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);

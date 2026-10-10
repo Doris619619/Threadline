@@ -9,7 +9,7 @@ import {
 afterEach(() => vi.unstubAllGlobals());
 it('holds queued writes and releases idempotently', () => {
   const end = beginCloudWrite();
-  expect(() => lockForDesktopUpdate()).toThrow('正在保存');
+  expect(() => lockForDesktopUpdate()).toThrow('数据操作尚未完成');
   end();
   end();
   expect(getPendingCloudWrites()).toBe(0);

@@ -21,18 +21,25 @@ import {
 
 const UpdateContext = createContext<{
   state?: DesktopUpdateState;
+  displayedState?: DesktopUpdateState;
   run: (action: 'check' | 'download' | 'install') => Promise<void>;
 }>({ run: async () => undefined });
-/** 读取 Main 更新状态与受保存保护的操作入口。 */
+/** 读取 Main 权威状态、保留的上次检查结果与受保存保护的操作入口。 */
 export function useDesktopUpdate() {
   return useContext(UpdateContext);
 }
 
 export { UpdateControls } from './update-controls';
 
-/** 先订阅后读取，并用 revision 合并 IPC 返回和广播，避免快速状态被旧快照覆盖。 */
+/** 先订阅后读取并合并 revision；安装确认明确说明未完成写入的阻止原因。 */
 export function DesktopUpdateRuntime({ children }: { children: ReactNode }) {
   const [state, setState] = useState<DesktopUpdateState>();
+  const [confirmedState, setConfirmedState] = useState<DesktopUpdateState>();
+  // 检查更新只改变操作锁；当前详情及标题栏入口保留到新结果确认。
+  if (state && state.status !== 'checking' && confirmedState !== state)
+    setConfirmedState(state);
+  const displayedState =
+    state?.status === 'checking' ? (confirmedState ?? state) : state;
   const [notice, setNotice] = useState<string>();
   const [confirming, setConfirming] = useState(false);
   const pending = useSyncExternalStore(
@@ -72,7 +79,7 @@ export function DesktopUpdateRuntime({ children }: { children: ReactNode }) {
       installation.current?.unlock();
     };
   }, []);
-  /** 安装前独占写入；取消、IPC 失败和 Main 安装失败均释放。 */
+  /** 安装前独占写入；重试保留错误到 IPC 确认，取消或失败均释放写入锁。 */
   async function run(action: 'check' | 'download' | 'install', confirmed = false) {
     if (action === 'install' && !confirmed) {
       setConfirming(true);
@@ -81,7 +88,6 @@ export function DesktopUpdateRuntime({ children }: { children: ReactNode }) {
     const bridge = getMainDesktopBridge();
     if (!bridge) return;
     let unlock: (() => void) | undefined;
-    setNotice(undefined);
     try {
       if (action === 'install') {
         unlock = lockForDesktopUpdate();
@@ -92,6 +98,7 @@ export function DesktopUpdateRuntime({ children }: { children: ReactNode }) {
         : action === 'download'
           ? bridge.downloadUpdate()
           : bridge.installUpdate());
+      setNotice(undefined);
       setState((current) =>
         !current || next.revision >= current.revision ? next : current,
       );
@@ -106,15 +113,15 @@ export function DesktopUpdateRuntime({ children }: { children: ReactNode }) {
     }
   }
   return (
-    <UpdateContext.Provider value={{ state, run }}>
+    <UpdateContext.Provider value={{ state, displayedState, run }}>
       {children}
       {confirming && (
         <div className="desktop-update-confirmation">
           <ManagementDialog title="重启并更新" onClose={() => setConfirming(false)}>
             <p>
-              现在重启 Threadline 并安装新版？请先完成当前编辑，账号和已有数据会保留。
+              现在重启 Threadline
+              并安装新版？请先完成当前编辑及所有数据写入，账号和已有数据会保留。
             </p>
-            {pending > 0 && <p role="status">正在保存，请稍候。</p>}
             <div className="desktop-update-actions">
               <button
                 type="button"

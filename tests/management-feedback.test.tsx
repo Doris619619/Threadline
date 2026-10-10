@@ -1,4 +1,4 @@
-/** @fileoverview 用挂起/失败请求验证管理弹窗和待安排按钮的防连点、草稿保留与重试。 */
+/** @fileoverview 用挂起/失败请求验证稳定的管理弹窗和待安排按钮、同步防连点及失败草稿重试。 */
 import { createRef } from 'react';
 import {
   act,
@@ -71,6 +71,8 @@ for (const kind of ['项目', 'Daily'] as const) {
     expect(save).toHaveBeenCalledTimes(1);
     expect(submit).toBeDisabled();
     expect(field).toBeDisabled();
+    expect(dialog).toHaveAttribute('aria-busy', 'true');
+    expect(within(dialog).queryByRole('status')).toBeNull();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(dialog).toBeInTheDocument();
     await act(async () => request.reject(new Error('网络断开')));
@@ -112,13 +114,16 @@ it('waiting schedule responds immediately, blocks repeat clicks and allows retry
   });
   expect(schedule).toHaveBeenCalledTimes(1);
   expect(more).toBeDisabled();
-  expect(screen.getByRole('status')).toHaveTextContent('正在保存');
+  expect(more.closest('.waiting-task-row')).toHaveAttribute('aria-busy', 'true');
+  expect(screen.queryByRole('status')).toBeNull();
   await act(async () => request.reject(new Error('稍后重试')));
   expect(screen.getByRole('alert')).toHaveTextContent('稍后重试');
   expect(more).not.toBeDisabled();
   schedule.mockResolvedValueOnce(undefined);
   fireEvent.click(more);
   fireEvent.click(screen.getByRole('menuitem', { name: '安排到今天' }));
-  await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
+  await waitFor(() =>
+    expect(more.closest('.waiting-task-row')).toHaveAttribute('aria-busy', 'false'),
+  );
   expect(schedule).toHaveBeenCalledTimes(2);
 });

@@ -6,7 +6,7 @@ import { Cloud, LogOut, Settings } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { UserIdentity } from '@/features/auth/user-identity';
 
-/** 展开账号操作并在 Escape 或外部点击时关闭；不使用需方向键模型的 menu role。 */
+/** 展开账号操作并隔离退出请求；等待期间保持操作名称，Escape 或外部点击关闭浮层。 */
 export function AccountDisclosure({
   identity,
   onOpenSettings,
@@ -59,7 +59,6 @@ export function AccountDisclosure({
   /** 调用 Supabase signOut；失败时保持当前会话并显示恢复信息。 */
   const handleSignOut = async () => {
     setSigningOut(true);
-    setError(undefined);
     try {
       await signOut();
     } catch (cause) {
@@ -111,10 +110,10 @@ export function AccountDisclosure({
               type="button"
               className="is-danger"
               disabled={signingOut}
+              aria-busy={signingOut}
               onClick={() => void handleSignOut()}
             >
-              <LogOut size={18} aria-hidden="true" />{' '}
-              {signingOut ? '正在退出…' : '退出登录'}
+              <LogOut size={18} aria-hidden="true" /> 退出登录
             </button>
           </div>
           {error && (

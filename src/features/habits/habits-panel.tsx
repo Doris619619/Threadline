@@ -33,7 +33,7 @@ function shiftMonth(date: string, amount: number): string {
   return Temporal.PlainDate.from(date).add({ months: amount }).toString();
 }
 
-/** 今日打卡与历史选择相互独立，切换图表范围不能把当前点击写入历史日期。 */
+/** 扩展读取保留今日和页面结构；仅已读取范围参与统计、历史显示和编辑。 */
 export function HabitsPanel() {
   const state = useHabits();
   const { data, now, loading, error, notice, pending, busy, save, retry, setRange } =
@@ -50,8 +50,11 @@ export function HabitsPanel() {
   const [editing, setEditing] = useState<{ date: string; kind: HabitKind } | null>(
     null,
   );
-  /** 所有入口携带当前指标，只编辑用户点选的一项，日期与指标一起更新。 */
-  const openEntry = (date: string, kind: HabitKind) => setEditing({ date, kind });
+  /** 所有入口携带当前指标；未读取日期不能被当作空记录打开编辑。 */
+  const openEntry = (date: string, kind: HabitKind) => {
+    if (!isRangeReady(date, date)) return;
+    setEditing({ date, kind });
+  };
   const [settingsOpen, setSettingsOpen] = useState(false);
   const range =
     period === 'week' ? getWeekRange(anchor ?? today) : getMonthRange(anchor ?? today);
@@ -63,6 +66,15 @@ export function HabitsPanel() {
     historicalDate ?? today,
   ].sort()[0];
   const fetchEnd = [range.end, grid.at(-1)!, today].sort().at(-1)!;
+  /** 成功读取的范围才证明数据完整；新范围静态说明未就绪，不伪装成零值。 */
+  const isRangeReady = (start: string, end: string) =>
+    Boolean(
+      state.coveredRange &&
+      state.coveredRange.start <= start &&
+      state.coveredRange.end >= end,
+    );
+  const statisticsReady = isRangeReady(range.start, range.end);
+  const regularityReady = isRangeReady(habitAddDays(businessToday, -28), businessToday);
   useEffect(() => {
     setRange(fetchStart, fetchEnd);
   }, [fetchStart, fetchEnd, setRange]);
@@ -248,26 +260,38 @@ export function HabitsPanel() {
                   <div key={kind}>
                     <span>{kind === 'sleep' ? '早睡达标率' : '早起达标率'}</span>
                     <strong>
-                      {summary[kind].rate === null ? '—' : `${summary[kind].rate}%`}
+                      {!statisticsReady || summary[kind].rate === null
+                        ? '—'
+                        : `${summary[kind].rate}%`}
                     </strong>
                     <small>
-                      {summary[kind].awaitingRules
-                        ? '分档读取中'
-                        : `达标 ${summary[kind].achieved}`}{' '}
-                      / 已记录 {summary[kind].count}
+                      {!statisticsReady ? (
+                        '范围尚未读取'
+                      ) : (
+                        <>
+                          {summary[kind].awaitingRules
+                            ? '分档读取中'
+                            : `达标 ${summary[kind].achieved}`}{' '}
+                          / 已记录 {summary[kind].count}
+                        </>
+                      )}
                     </small>
                   </div>
                 ))}
                 <div>
                   <span>好状态天数</span>
                   <strong>
-                    {summary.efficiency.good}
+                    {statisticsReady ? summary.efficiency.good : '—'}
                     <small>天</small>
                   </strong>
-                  <small>已记录 {summary.efficiency.count} 天</small>
+                  <small>
+                    {statisticsReady
+                      ? `已记录 ${summary.efficiency.count} 天`
+                      : '范围尚未读取'}
+                  </small>
                 </div>
               </div>
-              {summary.mixedTimezones && (
+              {statisticsReady && summary.mixedTimezones && (
                 <p className="habit-caption">本区间按各条记录时区统计。</p>
               )}
             </div>
@@ -282,6 +306,7 @@ export function HabitsPanel() {
                   end={range.end < today ? range.end : today}
                   average={summary[kind].average}
                   count={summary[kind].count}
+                  ready={statisticsReady}
                   onSelect={(date) => openEntry(date, kind)}
                 />
               ))}
@@ -290,8 +315,9 @@ export function HabitsPanel() {
               <header>
                 <h2>每日状态</h2>
                 <span className="habit-caption">
-                  好 {summary.efficiency.good} · 中 {summary.efficiency.medium} · 差{' '}
-                  {summary.efficiency.poor}
+                  好 {statisticsReady ? summary.efficiency.good : '—'} · 中{' '}
+                  {statisticsReady ? summary.efficiency.medium : '—'} · 差{' '}
+                  {statisticsReady ? summary.efficiency.poor : '—'}
                 </span>
               </header>
               <div className="habit-status-legend" aria-label="工作效率图例">
@@ -318,18 +344,25 @@ export function HabitsPanel() {
                   const entry = activeEntries.find(
                     (item) => item.business_date === date && item.kind === 'efficiency',
                   );
+                  const dateReady = isRangeReady(date, date);
                   return (
                     <button
                       type="button"
                       key={date}
-                      disabled={date > today}
-                      data-status={entry?.efficiency ?? 'missing'}
-                      aria-label={`${date} 工作效率 ${entry ? EFFICIENCY_LABELS[entry.efficiency!] : '未记录'}`}
+                      disabled={date > today || !dateReady}
+                      data-status={
+                        dateReady ? (entry?.efficiency ?? 'missing') : 'unread'
+                      }
+                      aria-label={`${date} 工作效率 ${!dateReady ? '尚未读取' : entry ? EFFICIENCY_LABELS[entry.efficiency!] : '未记录'}`}
                       onClick={() => openEntry(date, 'efficiency')}
                     >
                       <small>{Number(date.slice(8))}</small>
                       <strong>
-                        {entry ? EFFICIENCY_LABELS[entry.efficiency!] : '—'}
+                        {!dateReady
+                          ? '未读'
+                          : entry
+                            ? EFFICIENCY_LABELS[entry.efficiency!]
+                            : '—'}
                       </strong>
                     </button>
                   );
@@ -339,12 +372,16 @@ export function HabitsPanel() {
           </section>
           <details className="habit-regularity">
             <summary>作息规律</summary>
-            {(['sleep', 'wake'] as const).map((kind) => (
-              <p key={kind}>
-                {kind === 'wake' ? '起床：' : '睡觉：'}
-                {habitRegularity(data.entries, data.rules, businessToday, kind)}
-              </p>
-            ))}
+            {regularityReady ? (
+              (['sleep', 'wake'] as const).map((kind) => (
+                <p key={kind}>
+                  {kind === 'wake' ? '起床：' : '睡觉：'}
+                  {habitRegularity(data.entries, data.rules, businessToday, kind)}
+                </p>
+              ))
+            ) : (
+              <p className="habit-caption">作息比较范围尚未读取。</p>
+            )}
           </details>
           <details className="habit-history">
             <summary>历史与补录</summary>
@@ -394,16 +431,21 @@ export function HabitsPanel() {
                 </span>
               ))}
               {grid.map((date) => {
+                const dateReady = isRangeReady(date, date);
                 const entry = activeEntries.find(
                   (item) => item.business_date === date && item.kind === historyKind,
                 );
-                const grade = entry ? habitGrade(entry, data.rules) : '未记录';
+                const grade = !dateReady
+                  ? '尚未读取'
+                  : entry
+                    ? habitGrade(entry, data.rules)
+                    : '未记录';
                 return (
                   <button
                     type="button"
                     key={date}
                     aria-label={`${date} ${grade}`}
-                    disabled={date > today}
+                    disabled={date > today || !dateReady}
                     data-outside={date.slice(0, 7) !== (month ?? today).slice(0, 7)}
                     data-today={date === today}
                     data-status={grade}

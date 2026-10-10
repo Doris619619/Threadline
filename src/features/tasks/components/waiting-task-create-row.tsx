@@ -11,7 +11,7 @@ import type { QuickTaskCreateDraft } from '@/features/tasks/hooks/use-task-creat
 import type { QuickTaskDraft } from '@/features/tasks/task-drafts';
 import type { Project } from '@/types/domain';
 
-/** 保持无时间待办的项目选择、Enter/Escape 和空标题取消行为。 */
+/** 保持无时间待办的项目选择、Enter/Escape 和空标题取消行为，提交期间锁定输入并保持操作名称稳定。 */
 export function WaitingTaskCreateRow({
   open,
   draft,
@@ -187,7 +187,7 @@ export function WaitingTaskCreateRow({
           className="tl-inline-confirm-btn quick-create-confirm-btn"
           onClick={confirm}
           title="保存待办"
-          aria-label={saving ? '正在保存任务' : '保存待办'}
+          aria-label="保存待办"
           disabled={saving}
         >
           <Check size={15} />

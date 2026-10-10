@@ -3,13 +3,14 @@ import type { QueryClient } from '@tanstack/react-query';
 import { beginCloudWrite } from '@/lib/cloud-write-guard';
 import type { SupabaseWorkspaceRepository } from '@/lib/supabase/workspace-repository';
 import type { Project, Task } from '@/types/domain';
+import type { MutationFeedback } from '@/lib/mutation-feedback';
 
 type Repository = Pick<
   SupabaseWorkspaceRepository,
   'saveProject' | 'createTask' | 'appendHistory'
 >;
 
-/** 保留项目 FK 前置条件；只等待任务本体确认，后台记录写入持续受重启保护。 */
+/** 只等待项目前置条件和任务确认；确认才清旧错误，随后记录写入独立报告失败并受重启保护。 */
 export async function createCloudTask(
   task: Task,
   projects: Project[],
@@ -17,10 +18,14 @@ export async function createCloudTask(
   client: QueryClient,
   owner: string,
   onError: (message: string | undefined) => void,
+  feedback?: MutationFeedback,
 ) {
-  if (!navigator.onLine) throw new Error('当前离线，无法创建任务。');
-  const endWrite = beginCloudWrite();
+  const confirmFeedback = feedback?.begin() ?? (() => onError(undefined));
+  const reportError = feedback?.report ?? onError;
+  let endWrite: (() => void) | undefined;
   try {
+    if (!navigator.onLine) throw new Error('当前离线，无法创建任务。');
+    endWrite = beginCloudWrite();
     const project = projects.find((item) => item.id === task.projectId);
     if (!project) throw new Error('任务项目不存在。');
     if (!project.updatedAt) {
@@ -38,6 +43,7 @@ export async function createCloudTask(
       ...rows.filter((item) => item.id !== saved.id),
       saved,
     ]);
+    confirmFeedback();
     /** 历史写失败只提示记录问题，不让用户再次创建已存在的任务。 */
     void (async () => {
       try {
@@ -57,15 +63,15 @@ export async function createCloudTask(
           ),
         );
       } catch {
-        onError('任务已创建，但记录同步失败，请刷新后检查。');
+        reportError('任务已创建，但记录同步失败，请刷新后检查。');
       } finally {
-        endWrite();
+        endWrite?.();
       }
     })();
     return saved;
   } catch (error) {
-    endWrite();
-    onError(error instanceof Error ? error.message : '任务创建失败');
+    endWrite?.();
+    reportError(error instanceof Error ? error.message : '任务创建失败');
     throw error;
   }
 }

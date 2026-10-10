@@ -152,7 +152,7 @@ it('hides immediately, rejects a second in-flight write, then restores on save f
     expect(screen.getByTestId('plans')).toHaveTextContent('冲刺:false'),
   );
   fireEvent.click(screen.getByText('隐藏'));
-  await screen.findByText('正在保存这个阶段，请稍候。');
+  await screen.findByText('这个阶段的操作尚未完成，请稍后重试。');
   expect(mocks.update).toHaveBeenCalledTimes(1);
   await act(async () => reject(new Error('写入失败')));
   await screen.findByText('写入失败');

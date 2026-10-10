@@ -1,4 +1,4 @@
-/** @fileoverview 让云端任务字段立即反馈，按任务串行保存，并隔离同步刷新与失败回滚。 */
+/** @fileoverview 让云端任务字段立即反馈，按任务串行保存，并隔离同步刷新、失败回滚与迟到提示。 */
 
 import {
   useCallback,
@@ -18,6 +18,7 @@ import {
   type TaskConflictDraft,
 } from '@/lib/task-patch';
 import { beginCloudWrite } from '@/lib/cloud-write-guard';
+import type { MutationFeedback } from '@/lib/mutation-feedback';
 
 type TaskRepository = Pick<
   SupabaseWorkspaceRepository,
@@ -40,11 +41,12 @@ function overlayTasks(rows: Task[], pending: Map<string, Task>): Task[] {
   return result;
 }
 
-/** 普通字段走即时反馈；同一任务按点击顺序写入，复合流转仍交给原有数据库命令。 */
+/** 普通字段按任务串行写入；可选共享反馈隔离其他模块的并发错误，复合流转仍走原子命令。 */
 export function useCloudTaskUpdates(
   ownerKey: string,
   repository: TaskRepository,
   onError: (message: string | undefined) => void,
+  feedback?: MutationFeedback,
 ) {
   const queryClient = useQueryClient();
   const scope = useMemo(
@@ -62,12 +64,33 @@ export function useCloudTaskUpdates(
     conflicts: TaskConflictDraft[];
   }>();
   const activeScope = useRef<typeof scope | undefined>(scope);
+  const feedbackRevisionRef = useRef(0);
   useLayoutEffect(() => {
     activeScope.current = scope;
+    feedbackRevisionRef.current = 0;
     return () => {
       if (activeScope.current === scope) activeScope.current = undefined;
     };
   }, [scope]);
+
+  /** 新失败形成独立反馈版本；较早或其他账号的成功不能移除它。 */
+  const reportError = useCallback(
+    (message: string) => {
+      if (activeScope.current !== scope) return;
+      feedbackRevisionRef.current += 1;
+      if (feedback) feedback.report(message);
+      else onError(message);
+    },
+    [feedback, onError, scope],
+  );
+  /** 当前会话的前置拒绝也推进错误版本；保留 Promise 失败供表单保存草稿。 */
+  const rejectPreflight = useCallback(
+    (error: Error): Promise<never> => {
+      reportError(error.message);
+      return Promise.reject(error);
+    },
+    [reportError],
+  );
   const query = useQuery({
     queryKey: scope.key,
     queryFn: ({ signal }) => repository.listTasks(signal),
@@ -128,14 +151,20 @@ export function useCloudTaskUpdates(
       });
     } catch (error) {
       if (activeScope.current === scope && !isCancelledError(error)) {
-        onError('任务已保存，但耗时同步失败，请刷新后重试。');
+        reportError('任务已保存，但耗时同步失败，请刷新后重试。');
       }
     }
-  }, [onError, ownerKey, queryClient, repository, scope]);
+  }, [ownerKey, queryClient, reportError, repository, scope]);
 
-  /** 只回写当前任务，避免较早的整表快照覆盖其他任务；失败恢复最后一次已确认值。 */
+  /** 只回写当前任务；失败恢复最后确认值，当前写入成功只清除未被更新的反馈。 */
   const save = useCallback(
-    async (task: Task, previous: Task | undefined, entry: PendingTask) => {
+    async (
+      task: Task,
+      previous: Task | undefined,
+      entry: PendingTask,
+      feedbackRevision: number,
+      confirmFeedback?: () => void,
+    ) => {
       if (entry.blocked) return;
       let committed = false;
       try {
@@ -160,7 +189,7 @@ export function useCloudTaskUpdates(
           /* 读取失败保留最后确认值，下一次操作仍由字段冲突保护。 */
         }
         if (activeScope.current !== scope) return;
-        onError(
+        reportError(
           `任务保存失败，请重试：${error instanceof Error ? error.message : '云端写入失败'}`,
         );
       }
@@ -178,13 +207,20 @@ export function useCloudTaskUpdates(
         scope.pending.delete(task.id);
         publishPending();
       }
-      if (committed) void refreshTimeEntries();
+      if (committed) {
+        if (feedbackRevisionRef.current === feedbackRevision) {
+          if (confirmFeedback) confirmFeedback();
+          else onError(undefined);
+        }
+        void refreshTimeEntries();
+      }
     },
     [
       onError,
       publishPending,
       queryClient,
       refreshTimeEntries,
+      reportError,
       repository,
       scope,
       stopConflictedQueue,
@@ -196,10 +232,9 @@ export function useCloudTaskUpdates(
     (action: SetStateAction<Task[]>) => {
       if (activeScope.current !== scope) return;
       if (!navigator.onLine) {
-        onError('当前离线，任务未保存，请联网后重试。');
+        reportError('当前离线，任务未保存，请联网后重试。');
         return;
       }
-      onError(undefined);
       const current = overlayTasks(
         queryClient.getQueryData<Task[]>(scope.key) ?? [],
         new Map([...scope.pending].map(([id, entry]) => [id, entry.latest])),
@@ -212,7 +247,9 @@ export function useCloudTaskUpdates(
         try {
           endWrite = beginCloudWrite();
         } catch (error) {
-          onError(error instanceof Error ? error.message : '正在更新，请稍后再保存。');
+          reportError(
+            error instanceof Error ? error.message : '当前操作尚未完成，请稍后重试。',
+          );
           return;
         }
         const entry = scope.pending.get(task.id) ?? {
@@ -223,16 +260,18 @@ export function useCloudTaskUpdates(
         };
         entry.latest = task;
         scope.pending.set(task.id, entry);
+        const feedbackRevision = ++feedbackRevisionRef.current;
+        const confirmFeedback = feedback?.begin();
         entry.tail = entry.tail
-          .then(() => save(task, previous, entry))
+          .then(() => save(task, previous, entry, feedbackRevision, confirmFeedback))
           .finally(endWrite);
       }
       publishPending();
     },
-    [onError, publishPending, queryClient, save, scope],
+    [feedback, publishPending, queryClient, reportError, save, scope],
   );
 
-  /** 原子命令与普通编辑共用每任务队列；立即展示意图，失败恢复最后确认值。 */
+  /** 原子命令与普通编辑共用每任务队列；前置拒绝报告失败，确认成功只清除本轮反馈。 */
   const commitTask = useCallback(
     (
       taskId: string,
@@ -240,13 +279,24 @@ export function useCloudTaskUpdates(
       operation: (confirmed: Task) => Promise<Task>,
       original?: Task,
     ) => {
-      if (!navigator.onLine) return Promise.reject(new Error('当前离线，任务未保存。'));
+      if (activeScope.current !== scope)
+        return Promise.reject(new Error('账号会话已改变，请重新操作。'));
+      if (!navigator.onLine)
+        return rejectPreflight(new Error('当前离线，任务未保存。'));
       const previous =
         scope.pending.get(taskId)?.latest ??
         queryClient.getQueryData<Task[]>(scope.key)?.find((task) => task.id === taskId);
-      if (!previous) return Promise.reject(new Error('未找到任务，请刷新后重试。'));
-      const next = preview(previous);
-      const endWrite = beginCloudWrite();
+      if (!previous) return rejectPreflight(new Error('未找到任务，请刷新后重试。'));
+      let next: Task;
+      let endWrite: () => void;
+      try {
+        next = preview(previous);
+        endWrite = beginCloudWrite();
+      } catch (error) {
+        return rejectPreflight(
+          error instanceof Error ? error : new Error('当前操作尚未完成，请稍后重试。'),
+        );
+      }
       const entry = scope.pending.get(taskId) ?? {
         original: original ?? previous,
         latest: next,
@@ -255,7 +305,8 @@ export function useCloudTaskUpdates(
       };
       entry.latest = next;
       scope.pending.set(taskId, entry);
-      onError(undefined);
+      const feedbackRevision = ++feedbackRevisionRef.current;
+      const confirmFeedback = feedback?.begin();
       publishPending();
       const result = entry.tail.then(async () => {
         if (entry.blocked) {
@@ -267,6 +318,13 @@ export function useCloudTaskUpdates(
             throw new Error('账号会话已改变，请重新操作。');
           const saved = await operation(entry.confirmed);
           entry.confirmed = saved;
+          if (
+            activeScope.current === scope &&
+            feedbackRevisionRef.current === feedbackRevision
+          ) {
+            if (confirmFeedback) confirmFeedback();
+            else onError(undefined);
+          }
           return saved;
         } catch (error) {
           if (activeScope.current === scope) {
@@ -280,7 +338,9 @@ export function useCloudTaskUpdates(
             }
           }
           if (activeScope.current === scope)
-            onError(error instanceof Error ? error.message : '任务操作失败，请重试。');
+            reportError(
+              error instanceof Error ? error.message : '任务操作失败，请重试。',
+            );
           throw error;
         } finally {
           await queryClient.cancelQueries({ queryKey: scope.key, exact: true });
@@ -308,17 +368,29 @@ export function useCloudTaskUpdates(
       );
       return result;
     },
-    [onError, publishPending, queryClient, repository, scope, stopConflictedQueue],
+    [
+      feedback,
+      onError,
+      publishPending,
+      queryClient,
+      rejectPreflight,
+      reportError,
+      repository,
+      scope,
+      stopConflictedQueue,
+    ],
   );
 
-  /** 表单保留打开时基准，冲突由调用者展示且不关闭草稿；与行内和流转共用队列。 */
+  /** 表单保留打开时基准；当前会话的缺失基准报告失败，旧会话拒绝不污染新反馈。 */
   const saveTaskConfirmed = useCallback(
     (task: Task, original?: Task) => {
+      if (activeScope.current !== scope)
+        return Promise.reject(new Error('账号会话已改变，请重新操作。'));
       const previous =
         original ??
         scope.pending.get(task.id)?.latest ??
         queryClient.getQueryData<Task[]>(scope.key)?.find((row) => row.id === task.id);
-      if (!previous) return Promise.reject(new Error('任务不存在，请重新加载。'));
+      if (!previous) return rejectPreflight(new Error('任务不存在，请重新加载。'));
       const patch = taskFieldChanges(task, previous);
       return commitTask(
         task.id,
@@ -327,7 +399,7 @@ export function useCloudTaskUpdates(
         previous,
       );
     },
-    [commitTask, queryClient, repository, scope],
+    [commitTask, queryClient, rejectPreflight, repository, scope],
   );
   return {
     query,

@@ -106,6 +106,39 @@ it('immediately retains confirmed timezone when the following read fails or is s
   await waitFor(() => expect(task.result.current.notice).toBeUndefined());
   expect(task.result.current.data.settings.timezone).toBe('Asia/Shanghai');
 });
+it('keeps the confirmed snapshot during range expansion without claiming unread dates are covered', async () => {
+  const task = setup();
+  await waitFor(() => expect(task.result.current.ready).toBe(true));
+  const before = task.result.current.data;
+  const covered = task.result.current.coveredRange;
+  let resolve!: (data: ReturnType<typeof emptyHabitData>) => void;
+  vi.mocked(task.repository.list).mockImplementationOnce(
+    () =>
+      new Promise((done) => {
+        resolve = done;
+      }),
+  );
+  act(() => task.result.current.setRange('2000-01-01', covered!.end));
+  expect(task.result.current.loading).toBe(false);
+  expect(task.result.current.ready).toBe(true);
+  expect(task.result.current.data).toEqual(before);
+  expect(task.result.current.coveredRange).toEqual(covered);
+  // 扩展查询未返回时，旧范围缓存可能被回收；已确认页面仍由组件快照维持。
+  act(() =>
+    task.client.removeQueries({
+      queryKey: ['habits', task.repository.owner, covered!.start, covered!.end],
+      exact: true,
+    }),
+  );
+  task.rerender();
+  expect(task.result.current.loading).toBe(false);
+  expect(task.result.current.data).toEqual(before);
+  expect(task.result.current.coveredRange).toEqual(covered);
+  await act(async () => resolve(emptyHabitData('UTC')));
+  await waitFor(() =>
+    expect(task.result.current.coveredRange?.start).toBe('2000-01-01'),
+  );
+});
 it('never reuses the previous account cache while a different account is loading', async () => {
   const task = setup();
   await waitFor(() => expect(task.result.current.ready).toBe(true));
@@ -169,7 +202,7 @@ it('shows the frozen first click immediately and never lets stale lists erase co
   expect(task.result.current.busy).toBe(true);
   expect(task.result.current.pending).toEqual(request);
   await act(async () => {
-    await expect(task.result.current.save(request)).rejects.toThrow('正在保存');
+    await expect(task.result.current.save(request)).rejects.toThrow('当前操作');
   });
   expect(task.apply).toHaveBeenCalledTimes(1);
   await act(async () => {
@@ -225,6 +258,58 @@ it('retains the original ID and instant after a failed write', async () => {
   });
   expect(apply.mock.calls[0][0]).toEqual(apply.mock.calls[1][0]);
   expect(task.result.current.pending).toBeNull();
+});
+it('keeps an existing write error visible until a retried request actually succeeds', async () => {
+  let resolve!: (rows: HabitEntry[]) => void;
+  const apply = vi
+    .fn<HabitRepository['apply']>()
+    .mockRejectedValueOnce(new Error('timeout'))
+    .mockImplementationOnce(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+  const task = setup(apply);
+  await waitFor(() => expect(task.result.current.ready).toBe(true));
+  await act(async () => {
+    await expect(task.result.current.save(request)).rejects.toThrow('timeout');
+  });
+  let retry!: Promise<void>;
+  act(() => {
+    retry = task.result.current.save(request);
+  });
+  expect(task.result.current.busy).toBe(true);
+  expect(task.result.current.error).toBe('timeout');
+  expect(task.result.current.pending).toEqual(request);
+  await act(async () => {
+    resolve(saved);
+    await retry;
+  });
+  expect(task.result.current.error).toBeUndefined();
+  expect(task.result.current.pending).toBeNull();
+});
+it('does not let an earlier read retry clear a newly failed write draft', async () => {
+  const task = setup(
+    vi.fn<HabitRepository['apply']>().mockRejectedValue(new Error('write timeout')),
+  );
+  await waitFor(() => expect(task.result.current.ready).toBe(true));
+  let resolve!: (data: ReturnType<typeof emptyHabitData>) => void;
+  vi.mocked(task.repository.list).mockImplementationOnce(
+    () =>
+      new Promise((done) => {
+        resolve = done;
+      }),
+  );
+  act(() => task.result.current.retry());
+  await waitFor(() => expect(task.repository.list).toHaveBeenCalledTimes(2));
+  await act(async () => {
+    await expect(task.result.current.save(request)).rejects.toThrow('write timeout');
+  });
+  await act(async () => resolve(emptyHabitData('UTC')));
+  await waitFor(() => expect(task.client.isFetching()).toBe(0));
+  expect(task.result.current.pending).toEqual(request);
+  expect(task.result.current.error).toBe('write timeout');
 });
 it('does not roll back confirmation when statistics refresh fails', async () => {
   const task = setup();

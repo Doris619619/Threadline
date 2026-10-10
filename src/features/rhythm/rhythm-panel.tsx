@@ -12,7 +12,7 @@ import { useAccountToday } from '@/features/settings/account-timezone-provider';
 import { addLocalDateDays } from '@/lib/local-date';
 import { cn } from '@/lib/cn';
 
-/** 所有快捷动作使用今天，月历浏览独立于首页工作日期；历史记录可随时补录修改。 */
+/** 快捷动作使用今天；后台刷新保留已确认状态，首次读取和失败仍明确可见。 */
 export function RhythmPanel({ selectedDate }: { selectedDate: string }) {
   const today = useAccountToday();
   const [anchor, setAnchor] = useState(selectedDate.slice(0, 7));
@@ -21,12 +21,21 @@ export function RhythmPanel({ selectedDate }: { selectedDate: string }) {
     title: string;
     existing: boolean;
   }>();
-  const { marks, periods, loading, error, save, remove, retry } = useRhythmState();
+  const {
+    marks,
+    periods,
+    loading,
+    ready: hasData,
+    error,
+    save,
+    remove,
+    retry,
+  } = useRhythmState();
   const monthAnchor = `${anchor}-01`;
   const current = periods.find((record) => !record.endDate);
   const summary = summarizePeriods(periods);
   const sorted = [...periods].sort((a, b) => b.startDate.localeCompare(a.startDate));
-  const ready = !loading && !error;
+  const ready = hasData && !error;
   /** 新建草稿只在保存后生成持久记录。 */
   const add = (date: string, title = '补录生理期') =>
     setEditor({
@@ -44,7 +53,7 @@ export function RhythmPanel({ selectedDate }: { selectedDate: string }) {
         <h2>
           {loading
             ? '正在读取记录…'
-            : error
+            : error && !hasData
               ? '暂时无法读取记录'
               : current
                 ? `进行中 · 第 ${periodDays(current.startDate, today)} 天`
