@@ -43,7 +43,7 @@ function formatDeviation(actual: number, planned: number): string {
       : `比预计少 ${formatMinutes(-difference)}`;
 }
 
-/** 渲染可切换范围的洞察和浏览器打印入口。 */
+/** 渲染可切换范围的洞察；导出期间保持按钮名称并阻止重复请求。 */
 export function InsightsPanel({
   analyticsInput,
   selectedDate,
@@ -150,8 +150,7 @@ export function InsightsPanel({
             aria-busy={exportAction.busy}
             onClick={() => void exportAction.run(exportReport)}
           >
-            <Printer size={16} aria-hidden="true" />{' '}
-            {exportAction.busy ? '正在导出…' : '导出报告'}
+            <Printer size={16} aria-hidden="true" /> 导出报告
           </button>
         </div>
       </header>

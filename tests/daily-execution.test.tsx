@@ -1,4 +1,4 @@
-/** @fileoverview 验证首页 Daily 常显、完成联动、输入保存次序及失败草稿恢复。 */
+/** @fileoverview 验证首页 Daily 常显、无临时提示的提交边界、输入保存次序及失败草稿恢复。 */
 
 import {
   act,
@@ -65,6 +65,11 @@ describe('Daily home execution', () => {
     );
     fireEvent.change(input, { target: { value: '1' } });
     fireEvent.blur(input);
+    expect(screen.getByRole('region', { name: 'Daily 算法训练' })).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+    expect(screen.queryByRole('status')).toBeNull();
     fireEvent.change(input, { target: { value: '18' } });
     const onReady = vi.fn();
     let closing!: Promise<void>;

@@ -1,5 +1,12 @@
 /** @fileoverview 使用真实 Preview 偏好与引导组件验证两步流程、完成持久化和启动遮罩协调。 */
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
   AccountPreferencesProvider,
@@ -110,6 +117,42 @@ it('asks only for this device when the account has already completed onboarding'
   expect(
     JSON.parse(localStorage.getItem(previewPreferencesKey)!).preferences_version,
   ).toBe(2);
+});
+it('keeps the final action and previous failure visible until a retried device save confirms', async () => {
+  const bridge = installDesktopBridge();
+  localStorage.setItem(
+    previewPreferencesKey,
+    JSON.stringify({
+      owner_id: 'preview',
+      gender: 'female',
+      preferences_version: 2,
+      onboarding_completed_at: '2026-09-20T00:00:00Z',
+    }),
+  );
+  let resolve!: (state: {
+    supported: boolean;
+    enabled: boolean;
+    decided: boolean;
+  }) => void;
+  bridge.set.mockRejectedValueOnce(new Error('system denied')).mockImplementationOnce(
+    () =>
+      new Promise((done) => {
+        resolve = done;
+      }),
+  );
+  render(<Harness />);
+  const button = await screen.findByRole('button', { name: '进入工作台' });
+  fireEvent.click(screen.getByRole('switch'));
+  fireEvent.click(button);
+  const error = await screen.findByText('system denied');
+  fireEvent.click(button);
+  expect(button).toBeDisabled();
+  expect(button).toHaveTextContent('进入工作台');
+  expect(error).toBeVisible();
+  expect(screen.queryByText(/保存中|正在保存/)).toBeNull();
+  expect(screen.queryByText('工作台内容')).toBeNull();
+  await act(async () => resolve({ supported: true, enabled: true, decided: true }));
+  await screen.findByText('工作台内容');
 });
 
 it('allows deferring after a failed native enable without completing early', async () => {

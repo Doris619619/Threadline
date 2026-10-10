@@ -16,7 +16,7 @@ import {
 } from './habit-time';
 import { habitGrade, habitRuleForDate } from './habit-statistics';
 
-/** 未指定日期时实时打卡，睡觉和效率以 04:00 分日；指定历史日期只编辑该业务日。 */
+/** 打卡保留冻结值与同一个时间按钮；失败说明持续到确认，未读日期不能编辑。 */
 export function HabitToday({
   date: historicalDate = null,
   onEdit,
@@ -24,11 +24,14 @@ export function HabitToday({
   date?: string | null;
   onEdit: (date: string, kind: HabitKind) => void;
 }) {
-  const { data, now, pending, busy, save } = useHabits();
+  const { data, coveredRange, now, pending, busy, error, save } = useHabits();
   const today = habitBusinessDate(now, data.settings.timezone, 'wake');
   const businessToday =
     historicalDate ?? habitBusinessDate(now, data.settings.timezone, 'sleep');
   const activeEntries = data.entries.filter((entry) => !entry.deleted_at);
+  /** 缓存仅证明已读取范围；不能将扩展范围中尚未读取的日期当作未记录。 */
+  const isDateReady = (date: string) =>
+    Boolean(coveredRange && date >= coveredRange.start && date <= coveredRange.end);
   /** 一键时间只用于当前日；历史效率显式提交业务日期，不以当前时钟推算归属。 */
   const record = (kind: HabitKind, efficiency?: Efficiency) => {
     if (historicalDate && kind !== 'efficiency') {
@@ -66,6 +69,7 @@ export function HabitToday({
   return (
     <section
       className="habit-today"
+      aria-busy={busy}
       aria-label={historicalDate ? `${historicalDate} 习惯记录` : '今天打卡'}
     >
       {(['wake', 'sleep'] as const).map((kind) => {
@@ -80,6 +84,7 @@ export function HabitToday({
           (item) => item.kind === kind && item.business_date === date,
         );
         const rule = habitRuleForDate(data.rules, date);
+        const dateReady = isDateReady(date);
         const value = pendingChange?.occurred_at
           ? habitMinutes(
               habitLocalTime(pendingChange.occurred_at, pending!.timezone),
@@ -109,7 +114,9 @@ export function HabitToday({
               </small>
             </div>
             <div className="habit-record-value">
-              {entry && !pendingChange ? (
+              {!dateReady ? (
+                <span>该日期记录尚未读取</span>
+              ) : entry || pendingChange ? (
                 <button
                   type="button"
                   className="habit-time-button"
@@ -121,8 +128,6 @@ export function HabitToday({
                 >
                   {formatHabitMinutes(value!, false)}
                 </button>
-              ) : pendingChange ? (
-                <strong>{formatHabitMinutes(value!, false)}</strong>
               ) : (
                 <button
                   type="button"
@@ -140,12 +145,14 @@ export function HabitToday({
                   {historicalDate ? '补录' : kind === 'wake' ? '起床了' : '睡觉了'}
                 </button>
               )}
-              {(entry || pendingChange) && (
+              {dateReady && (entry || pendingChange) && (
                 <small>
                   {pendingChange
-                    ? busy
-                      ? '保存中…'
-                      : '尚未保存'
+                    ? error
+                      ? '尚未保存'
+                      : entry
+                        ? habitGrade(entry, data.rules)
+                        : null
                     : habitGrade(entry!, data.rules)}
                 </small>
               )}
@@ -181,7 +188,7 @@ export function HabitToday({
                 type="button"
                 key={value}
                 aria-pressed={selected === value}
-                disabled={busy || Boolean(pending)}
+                disabled={busy || Boolean(pending) || !isDateReady(businessToday)}
                 onClick={() => record('efficiency', value as Efficiency)}
               >
                 {label}
@@ -190,9 +197,9 @@ export function HabitToday({
           })}
         </div>
       </div>
-      {pending?.changes.some((change) => change.kind === 'efficiency') && (
+      {error && pending?.changes.some((change) => change.kind === 'efficiency') && (
         <p role="status" className="habit-caption">
-          {busy ? '状态保存中…' : '状态尚未保存'}
+          状态尚未保存
         </p>
       )}
     </section>

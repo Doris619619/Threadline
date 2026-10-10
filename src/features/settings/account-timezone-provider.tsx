@@ -55,8 +55,8 @@ function AccountTimezoneSession({ children }: { children: ReactNode }) {
   const alive = useRef(true);
   const [error, setError] = useState<string>();
   const [attempt, setAttempt] = useState(0);
+  /** 重试保留既有错误，只有新的成功读取才能恢复就绪状态。 */
   const retry = useCallback(() => {
-    setError(undefined);
     setAttempt((value) => value + 1);
   }, []);
   useEffect(() => {

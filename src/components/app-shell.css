@@ -203,6 +203,11 @@
   padding: var(--space-6) 28px 32px;
 }
 
+/* 按需页面模块首次读取时预留内容区，不闪现打开提示，也不动画化占位。 */
+.workspace-content-pending {
+  min-block-size: 12rem;
+}
+
 .tl-header {
   position: relative;
   container-type: inline-size;

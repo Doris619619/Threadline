@@ -36,6 +36,7 @@ import { TaskConflictDrafts } from '@/features/workspace/task-conflict-drafts';
 import { usesLocalWorkspace } from '@/lib/workspace-runtime';
 import { useAnnotationStrokes } from '@/hooks/use-annotation-strokes';
 import { usePersistentState } from '@/hooks/use-persistent-state';
+import { createMutationFeedback } from '@/lib/mutation-feedback';
 
 import type { CloseRecord, HistoryEvent, Project, Task } from '@/types/domain';
 
@@ -81,6 +82,8 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const ownerKey = user.id;
   const [mutationError, setMutationError] = useState<string>();
+  const mutationFeedback = useMemo(() => createMutationFeedback(setMutationError), []);
+  const reportMutationError = mutationFeedback.report;
   const [highlightColor, updateHighlightColor, highlightHydrated] =
     usePersistentState<string>(
       'threadline.annotation-highlight-color.v1',
@@ -99,7 +102,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     saveTaskConfirmed,
     conflictedDrafts,
     dismissConflict,
-  } = useCloudTaskUpdates(ownerKey, repository, setMutationError);
+  } = useCloudTaskUpdates(ownerKey, repository, setMutationError, mutationFeedback);
   const confirmedTaskIds = useMemo(
     () => (tasksQuery.data ?? []).map((task) => task.id),
     [tasksQuery.data],
@@ -135,7 +138,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     workstationTaskIds,
     updateWorkstationTaskIds,
     runWorkstationCommand,
-  } = useCloudWorkstation(ownerKey, repository, setMutationError);
+  } = useCloudWorkstation(ownerKey, repository, setMutationError, mutationFeedback);
 
   const taskTimeEntries = useMemo(
     () => taskTimeEntriesQuery.data ?? [],
@@ -160,19 +163,23 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     [closeRecordsQuery.data],
   );
 
-  /** 拒绝离线写并把失败暴露到页面；第一版不建立离线队列。 */
-  const runMutation = useCallback(async (operation: () => Promise<void>) => {
-    if (!navigator.onLine) {
-      setMutationError('当前离线。Threadline 第一版不会排队写入，请联网后重试。');
-      return;
-    }
-    setMutationError(undefined);
-    try {
-      await operation();
-    } catch (error) {
-      setMutationError(error instanceof Error ? error.message : '云端写入失败');
-    }
-  }, []);
+  /** 拒绝离线写；重试保留旧错误至确认成功，失败不建立离线队列。 */
+  const runMutation = useCallback(
+    async (operation: () => Promise<void>) => {
+      const confirmFeedback = mutationFeedback.begin();
+      if (!navigator.onLine) {
+        reportMutationError('当前离线。Threadline 第一版不会排队写入，请联网后重试。');
+        return;
+      }
+      try {
+        await operation();
+        confirmFeedback();
+      } catch (error) {
+        reportMutationError(error instanceof Error ? error.message : '云端写入失败');
+      }
+    },
+    [mutationFeedback, reportMutationError],
+  );
 
   const invalidateWorkspace = useCallback(
     () => queryClient.invalidateQueries({ queryKey: ['workspace', ownerKey] }),
@@ -188,13 +195,16 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
         queryClient.setQueryData(['workspace', ownerKey, 'daily'], bundle),
       )
       .catch((error: unknown) =>
-        setMutationError(error instanceof Error ? error.message : 'Daily 实例化失败'),
+        reportMutationError(
+          error instanceof Error ? error.message : 'Daily 实例化失败',
+        ),
       );
   }, [
     dailyByDate,
     dailyQuery.isSuccess,
     ownerKey,
     queryClient,
+    reportMutationError,
     repository,
     selectedDate,
   ]);
@@ -230,13 +240,14 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       })
       .catch((error) => {
         if (!controller.signal.aborted)
-          setMutationError(`批注核对失败，已保留原笔迹：${String(error)}`);
+          reportMutationError(`批注核对失败，已保留原笔迹：${String(error)}`);
       });
     return () => controller.abort();
   }, [
     annotationHydrated,
     annotationStrokes,
     ownerKey,
+    reportMutationError,
     repository,
     tasksQuery.data,
     tasksQuery.isSuccess,
@@ -443,13 +454,12 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
 
   const updateCloseRecords: Dispatch<SetStateAction<CloseRecord[]>> =
     useCallback(() => {
-      setMutationError('每日收尾必须通过 closeDay 原子命令提交。');
-    }, []);
+      reportMutationError('每日收尾必须通过 closeDay 原子命令提交。');
+    }, [reportMutationError]);
 
-  /** 任务本体确认即结束创建表单，记录同步由独立命令收尾。 */
+  /** 任务本体确认即结束创建表单；命令在确认时清旧错误，再独立报告记录收尾失败。 */
   const createTask = useCallback(
     (task: Task) => {
-      setMutationError(undefined);
       return createCloudTask(
         task,
         projects,
@@ -457,16 +467,17 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
         queryClient,
         ownerKey,
         setMutationError,
+        mutationFeedback,
       );
     },
-    [ownerKey, projects, queryClient, repository],
+    [mutationFeedback, ownerKey, projects, queryClient, repository],
   );
 
+  /** 保留流转失败直到命令确认；关联记录刷新独立收尾，不闪空全局错误区。 */
   const transitionTask = useCallback(
     async (taskId: string, transition: TaskTransition, targetDate?: string) => {
       try {
         if (!navigator.onLine) throw new Error('当前离线，无法提交任务流转。');
-        setMutationError(undefined);
         const task = await commitTask(
           taskId,
           (current) => ({
@@ -515,21 +526,32 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
             queryKey: ['workspace', ownerKey, 'workstation'],
           }),
         ]).catch(() =>
-          setMutationError('任务已更新，但关联记录刷新失败，请重新加载。'),
+          reportMutationError('任务已更新，但关联记录刷新失败，请重新加载。'),
         );
         return task;
       } catch (error) {
-        setMutationError(error instanceof Error ? error.message : '任务流转失败');
+        reportMutationError(error instanceof Error ? error.message : '任务流转失败');
         throw error;
       }
     },
-    [commitTask, ownerKey, queryClient, repository, updateAnnotationStrokes],
+    [
+      commitTask,
+      ownerKey,
+      queryClient,
+      reportMutationError,
+      repository,
+      updateAnnotationStrokes,
+    ],
   );
 
   /** 完成待安排任务时由数据库先补齐本地业务日，再触发完成历史写入。 */
   const completeWaitingTask = useCallback(
     async (taskId: string, completedDate: string) => {
-      if (!navigator.onLine) throw new Error('当前离线，无法完成待安排任务。');
+      if (!navigator.onLine) {
+        const message = '当前离线，无法完成待安排任务。';
+        reportMutationError(message);
+        throw new Error(message);
+      }
       const task = await commitTask(
         taskId,
         (current) => ({
@@ -547,50 +569,54 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
         .invalidateQueries({
           queryKey: ['workspace', ownerKey, 'history'],
         })
-        .catch(() => setMutationError('任务已完成，但历史刷新失败，请重新加载。'));
+        .catch(() => reportMutationError('任务已完成，但历史刷新失败，请重新加载。'));
       return task;
     },
-    [commitTask, ownerKey, queryClient, repository],
+    [commitTask, ownerKey, queryClient, reportMutationError, repository],
   );
 
+  /** 正式记录与历史刷新均确认后才清旧错误，失败保持可恢复的信息。 */
   const recordDaily = useCallback(
     async (
       templateId: string,
       date: string,
       source: 'manual' | 'close_day' = 'manual',
     ) => {
+      const confirmFeedback = mutationFeedback.begin();
       try {
         if (!navigator.onLine) throw new Error('当前离线，无法记录 Daily。');
-        setMutationError(undefined);
         await repository.recordDaily(templateId, date, source);
         await queryClient.invalidateQueries({
           queryKey: ['workspace', ownerKey, 'daily-history'],
         });
+        confirmFeedback();
       } catch (error) {
-        setMutationError(error instanceof Error ? error.message : 'Daily 记录失败');
+        reportMutationError(error instanceof Error ? error.message : 'Daily 记录失败');
         throw error;
       }
     },
-    [ownerKey, queryClient, repository],
+    [mutationFeedback, ownerKey, queryClient, reportMutationError, repository],
   );
 
+  /** 原子收尾并刷新确认集合；重试期间保留旧错误，成功后才清除。 */
   const closeDay = useCallback(
     async (
       date: string,
       actions: CloseAction[],
       projectMinutes: Record<string, number>,
     ) => {
+      const confirmFeedback = mutationFeedback.begin();
       try {
         if (!navigator.onLine) throw new Error('当前离线，无法完成每日收尾。');
-        setMutationError(undefined);
         await repository.closeDay(date, actions, projectMinutes);
         await invalidateWorkspace();
+        confirmFeedback();
       } catch (error) {
-        setMutationError(error instanceof Error ? error.message : '每日收尾失败');
+        reportMutationError(error instanceof Error ? error.message : '每日收尾失败');
         throw error;
       }
     },
-    [invalidateWorkspace, repository],
+    [invalidateWorkspace, mutationFeedback, reportMutationError, repository],
   );
 
   const allLoaded =
@@ -637,24 +663,25 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     [tasks, taskTimeEntries],
   );
 
-  /** 先等待 server-confirmed project，再让调用方使用其 ID 创建或改派任务。 */
+  /** 等待项目确认后清旧错误，再让调用方使用其 ID 创建或改派任务。 */
   const createProject = useCallback(
     async (project: Project) => {
+      const confirmFeedback = mutationFeedback.begin();
       try {
         if (!navigator.onLine) throw new Error('当前离线，无法创建项目。');
-        setMutationError(undefined);
         const saved = await repository.saveProject(project);
         queryClient.setQueryData<Project[]>(
           ['workspace', ownerKey, 'projects'],
           (current = []) => [...current.filter((item) => item.id !== saved.id), saved],
         );
+        confirmFeedback();
         return saved;
       } catch (error) {
-        setMutationError(error instanceof Error ? error.message : '项目创建失败');
+        reportMutationError(error instanceof Error ? error.message : '项目创建失败');
         throw error;
       }
     },
-    [ownerKey, queryClient, repository],
+    [mutationFeedback, ownerKey, queryClient, reportMutationError, repository],
   );
 
   /** 更新项目轻量属性，并用 RPC 返回的 row 替换本地缓存。 */
@@ -688,15 +715,18 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
     [invalidateWorkspace, repository],
   );
 
-  /** 区分 RPC 写入失败与提交后刷新失败，避免诱导用户重复写入已保存的模板。 */
+  /** 保留重试错误到 RPC 确认；其后刷新失败独立报告，避免重复写入已确认模板。 */
   const saveDailyTemplate = useCallback(
     async (daily: Daily) => {
+      const confirmFeedback = mutationFeedback.begin();
       try {
         if (!navigator.onLine) throw new Error('当前离线，无法保存 Daily 模板。');
-        setMutationError(undefined);
         await repository.updateDailyTemplate(daily);
+        confirmFeedback();
       } catch (error) {
-        setMutationError(error instanceof Error ? error.message : 'Daily 模板保存失败');
+        reportMutationError(
+          error instanceof Error ? error.message : 'Daily 模板保存失败',
+        );
         throw error;
       }
 
@@ -711,20 +741,23 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
           queryClient.invalidateQueries({
             queryKey: ['workspace', ownerKey, 'daily'],
           }),
-        setMutationError,
+        reportMutationError,
       );
     },
-    [ownerKey, queryClient, repository],
+    [mutationFeedback, ownerKey, queryClient, reportMutationError, repository],
   );
-  /** 原子创建模板和当前日期 entry，成功后刷新完整 Daily bundle。 */
+  /** 原子创建模板和当前日期 entry，确认后清旧错误并刷新完整 Daily bundle。 */
   const createDailyTemplate = useCallback(
     async (daily: Daily) => {
+      const confirmFeedback = mutationFeedback.begin();
       try {
         if (!navigator.onLine) throw new Error('当前离线，无法创建 Daily 模板。');
-        setMutationError(undefined);
         await repository.createDailyTemplate(daily, selectedDate);
+        confirmFeedback();
       } catch (error) {
-        setMutationError(error instanceof Error ? error.message : 'Daily 模板创建失败');
+        reportMutationError(
+          error instanceof Error ? error.message : 'Daily 模板创建失败',
+        );
         throw error;
       }
       await settleDailyTemplatePostCommitRefresh(
@@ -738,10 +771,17 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
           queryClient.invalidateQueries({
             queryKey: ['workspace', ownerKey, 'daily'],
           }),
-        setMutationError,
+        reportMutationError,
       );
     },
-    [ownerKey, queryClient, repository, selectedDate],
+    [
+      mutationFeedback,
+      ownerKey,
+      queryClient,
+      reportMutationError,
+      repository,
+      selectedDate,
+    ],
   );
   /** 修改 Daily 生命周期只影响未来实例；刷新 bundle 以反映 archive/delete。 */
   const setDailyTemplateStatus = useCallback(

@@ -41,6 +41,7 @@ function getFocusableElements(container: HTMLElement): HTMLElement[] {
 /**
  * 渲染短表单管理 Dialog。
  * 挂载时保存触发控件并把焦点移入 data-management-initial-focus 指定的业务字段；捕获 Escape 与 Tab，使底层页面既不可聚焦也不可误操作。
+ * 保存时仅锁定控件并标记 aria-busy，不插入短暂文案；失败继续原位显示错误与草稿。
  */
 export function ManagementDialog({
   title,
@@ -126,7 +127,6 @@ export function ManagementDialog({
         <fieldset className="manager-dialog-fields" disabled={busy}>
           {children}
         </fieldset>
-        {busy && <p role="status">正在保存…</p>}
         {error && (
           <p className="form-error" role="alert">
             {error}

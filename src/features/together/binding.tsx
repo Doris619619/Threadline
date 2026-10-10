@@ -10,7 +10,7 @@ import { relationshipLabel } from './copy';
 import { spaceTime } from './time';
 import { getAccountTimezone } from '@/lib/account-clock';
 import type { Invite, InvitePreview, Relationship } from './types';
-/** 先保存空间名再提供邀请或接受；预览不是接受，绑定仍由最终明确点击完成。 */
+/** 先保存空间名再提供邀请或接受；忙碌只锁定表单，预览不是接受，绑定仍由最终明确点击完成。 */
 export function BindingPanel() {
   const { client, cache, user } = useTogether();
   const command = useSpaceCommand();
@@ -54,15 +54,15 @@ export function BindingPanel() {
     },
     cache,
   );
-  /** 邀请码预览独立显示 busy；只接受明确的已有账号关系。 */
+  /** 邀请码预览独立锁定输入并标记 busy；重试保留错误到成功，绑定只接受明确的已有账号关系。 */
   const inspect = async () => {
     setChecking(true);
-    command.setError('');
     setPreview(null);
     try {
       const response = await client!.rpc('together_preview_invite', { p_code: code });
       checkSpaceError(response.error);
       setPreview(response.data as InvitePreview);
+      command.setError('');
     } catch (reason) {
       command.setError(
         reason instanceof Error ? reason.message : '无法读取邀请，请重试。',
@@ -72,7 +72,7 @@ export function BindingPanel() {
     }
   };
   return (
-    <section className="together-binding">
+    <section className="together-binding" aria-busy={command.busy || checking}>
       <UsersRound className="together-binding-icon" size={36} aria-hidden="true" />
       <h2>找一个人，见证彼此的小目标。</h2>
       <p>
@@ -208,7 +208,7 @@ export function BindingPanel() {
                     disabled={!code || checking}
                     onClick={() => void inspect()}
                   >
-                    {checking ? '正在查看…' : '查看邀请'}
+                    查看邀请
                   </button>
                 )}
               </>
@@ -216,7 +216,6 @@ export function BindingPanel() {
           </fieldset>
         </>
       )}
-      {command.busy && <p role="status">正在保存…</p>}
       {command.error && (
         <p className="together-error" role="alert">
           {command.error}

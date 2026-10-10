@@ -78,7 +78,7 @@ function CloudConfigurationRequired({ reason }: { reason: string }) {
   );
 }
 
-/** 提供 Email/password 登录门禁，支持 P1（欢迎页）与 P2（登录输入页）双向交互。 */
+/** 提供双向欢迎/登录门禁；等待登录时保持按钮名称，通过禁用和 busy 语义标记请求。 */
 function LoginGate({ client }: { client: SupabaseClient }) {
   const [view, setView] = useState<'welcome' | 'form'>('welcome');
   const [email, setEmail] = useState('');
@@ -87,13 +87,12 @@ function LoginGate({ client }: { client: SupabaseClient }) {
   const [error, setError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
 
-  /** 提交 Supabase password grant；成功后的 session 由 auth state listener 接管。 */
+  /** 提交 password grant，重试保留错误至响应确认；成功会话由 auth listener 接管。 */
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setSubmitting(true);
-    setError(undefined);
     const response = await client.auth.signInWithPassword({ email, password });
-    if (response.error) setError(response.error.message);
+    setError(response.error?.message);
     setSubmitting(false);
   };
 
@@ -188,7 +187,11 @@ function LoginGate({ client }: { client: SupabaseClient }) {
               <p className="auth-subline">请输入账号信息以继续。</p>
             </div>
 
-            <form className="auth-form-card" onSubmit={(event) => void submit(event)}>
+            <form
+              className="auth-form-card"
+              aria-busy={submitting}
+              onSubmit={(event) => void submit(event)}
+            >
               <label className="auth-field-label" htmlFor="auth-email">
                 邮箱
               </label>
@@ -256,7 +259,7 @@ function LoginGate({ client }: { client: SupabaseClient }) {
               )}
 
               <button type="submit" className="auth-primary-btn" disabled={submitting}>
-                {submitting ? '正在登录…' : '登录'}
+                登录
               </button>
             </form>
 

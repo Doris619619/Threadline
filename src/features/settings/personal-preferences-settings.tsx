@@ -1,31 +1,33 @@
 /** @fileoverview 设置中的个人资料与 Windows 自启动，复用引导的账号和本机写入边界。 */
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useAccountPreferences } from '@/features/onboarding/account-preferences-provider';
 import { GenderChoice } from '@/features/onboarding/gender-choice';
 import type { Gender } from '@/features/onboarding/account-preferences';
 import { useAutoStart } from '@/features/onboarding/use-auto-start';
 
-/** 性别编辑以服务端确认为准，保存失败保留输入；外部修改可见且保留本次未保存草稿。 */
+/** 性别编辑以服务端确认为准；请求期间保持保存名称，失败与外部修改均保留草稿。 */
 export function PersonalPreferencesSettings() {
   const account = useAccountPreferences();
   const [draft, setDraft] = useState<Gender | null>(null);
   const [busy, setBusy] = useState(false);
+  const locked = useRef(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string>();
-  /** 成功后清空草稿以重新跟随账号；失败时不切换节律显示。 */
+  /** 重试保留上次结果至真实响应；成功后清空草稿以重新跟随账号。 */
   const save = async () => {
-    if (!account || !draft || busy) return;
+    if (!account || !draft || locked.current) return;
+    locked.current = true;
     setBusy(true);
-    setError(undefined);
-    setMessage('');
     try {
       await account.save(draft);
       setDraft(null);
+      setError(undefined);
       setMessage('性别已保存，所有设备将同步更新。');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '保存失败，请重试。');
     } finally {
+      locked.current = false;
       setBusy(false);
     }
   };
@@ -37,6 +39,7 @@ export function PersonalPreferencesSettings() {
         onChange={(gender) => {
           setDraft(gender);
           setMessage('');
+          setError(undefined);
         }}
         disabled={busy}
       />
@@ -44,9 +47,10 @@ export function PersonalPreferencesSettings() {
         type="button"
         className="tl-button tl-button--primary"
         disabled={!draft || busy}
+        aria-busy={busy}
         onClick={() => void save()}
       >
-        {busy ? '正在保存…' : '保存'}
+        保存
       </button>
       {message && <p role="status">{message}</p>}
       {(error || account.error) && <p role="alert">{error ?? account.error}</p>}

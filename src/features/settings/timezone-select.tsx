@@ -2,15 +2,17 @@
 'use client';
 import { timezoneLabel } from '@/lib/account-clock';
 
-/** 提供清楚的地区名称，值仍使用数据库可校验的 IANA 标识。 */
+/** 提供可校验的 IANA 地区选项；写入期间可冻结选择以保持草稿与提交值一致。 */
 export function TimezoneSelect({
   value,
   onChange,
   autoFocus = false,
+  disabled = false,
 }: {
   value: string;
   onChange: (zone: string) => void;
   autoFocus?: boolean;
+  disabled?: boolean;
 }) {
   const zones = [
     ...new Set([
@@ -31,6 +33,7 @@ export function TimezoneSelect({
         aria-label="账号时区"
         data-management-initial-focus={autoFocus || undefined}
         value={value}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
       >
         {zones.map((zone) => (

@@ -44,20 +44,22 @@ export function useAutoStart() {
       window.removeEventListener('focus', refresh);
     };
   }, [reload]);
-  /** undefined 表示以后再选；失败继续抛给引导，防止误记为完成。 */
+  /** undefined 表示以后再选；重试保留旧错误至真实响应，失败继续抛给引导。 */
   const save = async (enabled?: boolean) => {
     const bridge = getMainDesktopBridge();
     if (!bridge || writing.current) throw new Error('自启动设置尚未就绪。');
     writing.current = true;
     generation.current++;
     setBusy(true);
-    setError(undefined);
     try {
       const next =
         enabled === undefined
           ? await bridge.deferAutoStart()
           : await bridge.setAutoStartEnabled(enabled);
-      if (alive.current) setState(next);
+      if (alive.current) {
+        setState(next);
+        setError(undefined);
+      }
     } catch (cause) {
       if (alive.current)
         setError(cause instanceof Error ? cause.message : '自启动设置失败，请重试。');

@@ -20,7 +20,7 @@ import { AnnotationImportSettings } from './annotation-import-settings';
 import { AccountTimezoneSettings } from './account-timezone-settings';
 import { useAccountTimezone } from './account-timezone-provider';
 import { timezoneLabel } from '@/lib/account-clock';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Surface } from '@/components/ui/surface';
 import { useOptionalCloudRuntime } from '@/features/auth/cloud-runtime-provider';
 import { getUserIdentity } from '@/features/auth/user-identity';
@@ -96,7 +96,7 @@ function SettingsDetail({
   );
 }
 
-/** 渲染设置中心，入口按真实 Cloud 与 Electron capability 过滤。 */
+/** 设置入口按真实能力过滤；退出操作保持名称、同步加锁并保留失败反馈。 */
 export function SettingsPanel({
   tasks,
   onUpdateTask,
@@ -110,19 +110,22 @@ export function SettingsPanel({
   const preferences = useAccountPreferences();
   const [section, setSection] = useState<SettingsSection>('overview');
   const [signingOut, setSigningOut] = useState(false);
+  const signOutLocked = useRef(false);
   const [signOutError, setSignOutError] = useState<string>();
   const identity = cloudRuntime ? getUserIdentity(cloudRuntime.user) : undefined;
-  /** 发起真实 Supabase 注销，并将失败保留在当前隐私页供用户恢复。 */
+  /** 注销前同步防连点；失败留在隐私页，重试直到真实成功才清除错误。 */
   const signOut = async () => {
-    if (!cloudRuntime) return;
+    if (!cloudRuntime || signOutLocked.current) return;
+    signOutLocked.current = true;
     setSigningOut(true);
-    setSignOutError(undefined);
     try {
       await cloudRuntime.signOut();
+      setSignOutError(undefined);
     } catch (cause) {
       setSignOutError(
         cause instanceof Error ? cause.message : '退出登录失败，请重试。',
       );
+      signOutLocked.current = false;
       setSigningOut(false);
     }
   };
@@ -175,10 +178,10 @@ export function SettingsPanel({
               type="button"
               className="tl-button tl-button--secondary"
               disabled={signingOut}
+              aria-busy={signingOut}
               onClick={() => void signOut()}
             >
-              <LogOut size={16} aria-hidden="true" />{' '}
-              {signingOut ? '正在退出…' : '退出登录'}
+              <LogOut size={16} aria-hidden="true" /> 退出登录
             </button>
           )}
           {signOutError && (

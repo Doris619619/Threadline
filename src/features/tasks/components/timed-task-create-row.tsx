@@ -12,7 +12,7 @@ import type { TimedTaskDraft } from '@/features/tasks/task-drafts';
 import { PlannedMinutesField } from './planned-minutes-field';
 import type { Project } from '@/types/domain';
 
-/** 保持日程新增行 DOM、键盘和空标题取消契约；移动端提供符合 iOS 触控规范的四行表单。 */
+/** 保持日程新增行 DOM、键盘和空标题取消契约；请求期间锁定草稿并保持按钮文字和图标稳定。 */
 export function TimedTaskCreateRow({
   open,
   draft,
@@ -264,15 +264,11 @@ export function TimedTaskCreateRow({
           className="tl-inline-confirm-btn timed-create-confirm-btn"
           onClick={confirm}
           title="保存任务"
-          aria-label={saving ? '正在保存任务' : '保存任务'}
+          aria-label="保存任务"
           disabled={saving}
         >
-          <span className="timed-create-btn-text">{saving ? '保存中…' : '保存'}</span>
-          <Check
-            style={{ opacity: saving ? 0.35 : 1 }}
-            size={14}
-            className="timed-create-btn-icon"
-          />
+          <span className="timed-create-btn-text">保存</span>
+          <Check size={14} className="timed-create-btn-icon" />
         </button>
       </div>
     </fieldset>

@@ -19,7 +19,7 @@ function subscribeClock(notify: () => void) {
 function serverClock() {
   return 0;
 }
-/** 时区改变后立即更新显示；客户端暂停后恢复时按当前瞬间重新计算。 */
+/** 首次水合保留空时钟区域和 busy 标记；时区改变、客户端暂停后恢复时按当前瞬间重新计算。 */
 export function SpaceClock() {
   const zone = useSyncExternalStore(
     subscribeAccountClock,
@@ -27,10 +27,10 @@ export function SpaceClock() {
     () => 'UTC',
   );
   const seconds = useSyncExternalStore(subscribeClock, clockSnapshot, serverClock);
-  if (!seconds) return <div className="together-clock">正在读取时间…</div>;
+  if (!seconds) return <div className="together-clock" aria-busy="true" />;
   const now = new Date(seconds * 1000);
   return (
-    <div className="together-clock">
+    <div className="together-clock" aria-busy="false">
       <time dateTime={now.toISOString()}>
         {new Intl.DateTimeFormat('zh-CN', {
           timeZone: zone,

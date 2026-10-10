@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { beginCloudWrite } from '@/lib/cloud-write-guard';
+import type { MutationFeedback } from '@/lib/mutation-feedback';
 import {
   previewWorkstationCommand,
   type WorkstationCommand,
@@ -18,11 +19,12 @@ type Repository = Pick<
   SupabaseWorkspaceRepository,
   'listWorkstationTaskIds' | 'applyWorkstationCommand'
 >;
-/** 点击时记录真实意图和可见集合，异步执行不重新解释成服务器集合替换。 */
+/** 点击时记录真实意图和可见集合；重试保留错误至确认，异步执行不替换为旧集合。 */
 export function useCloudWorkstation(
   ownerKey: string,
   repository: Repository,
   onError: (message: string | undefined) => void,
+  feedback?: MutationFeedback,
 ) {
   const client = useQueryClient();
   const scope = useMemo(
@@ -54,20 +56,22 @@ export function useCloudWorkstation(
     optimistic?.scope === scope && scope.queue.get('active')!.pending.length
       ? optimistic.ids
       : (query.data ?? []);
-  /** 每条命令只更新自己的成员；失败不会发送相反命令伪造回滚。 */
+  /** 每条命令只更新自己的成员；重试确认不清除并发操作的新错误，也不伪造回滚。 */
   const runWorkstationCommand = useCallback(
     (command: WorkstationCommand) => {
+      const confirmFeedback = feedback?.begin() ?? (() => onError(undefined));
+      const reportError = feedback?.report ?? onError;
       const queue = scope.queue.get('active')!;
       if (activeScope.current !== scope) return;
       if (!navigator.onLine) {
-        onError('当前离线，工作站未保存，请联网后重试。');
+        reportError('当前离线，工作站未保存，请联网后重试。');
         return;
       }
       let endWrite: () => void;
       try {
         endWrite = beginCloudWrite();
       } catch (error) {
-        onError(String(error));
+        reportError(String(error));
         return;
       }
       queue.pending.push(command);
@@ -82,17 +86,18 @@ export function useCloudWorkstation(
           });
       };
       publish();
-      onError(undefined);
       void client.cancelQueries({ queryKey: scope.key, exact: true });
+      /** 确认当前命令并保留其后的错误；失败回读只恢复真实数据，不清失败反馈。 */
       const save = async () => {
         try {
           if (activeScope.current !== scope) return;
           let confirmed: string[];
           try {
             confirmed = await repository.applyWorkstationCommand(command);
+            if (activeScope.current === scope) confirmFeedback();
           } catch (error) {
             if (activeScope.current !== scope) return;
-            onError(`工作站保存失败，请重试：${String(error)}`);
+            reportError(`工作站保存失败，请重试：${String(error)}`);
             confirmed = await repository.listWorkstationTaskIds();
           }
           if (activeScope.current !== scope) return;
@@ -100,7 +105,7 @@ export function useCloudWorkstation(
           client.setQueryData(scope.key, confirmed);
         } catch (error) {
           if (activeScope.current === scope)
-            onError(`工作站同步失败，已保留最后确认数据：${String(error)}`);
+            reportError(`工作站同步失败，已保留最后确认数据：${String(error)}`);
         } finally {
           queue.pending.shift();
           publish();
@@ -109,7 +114,7 @@ export function useCloudWorkstation(
       };
       queue.tail = queue.tail.then(save, save);
     },
-    [client, onError, repository, scope],
+    [client, feedback, onError, repository, scope],
   );
   /** 旧 UI setter 仅转换调用时可见成员的增删，不把服务器新增成员解释为待删除。 */
   const updateWorkstationTaskIds = useCallback(

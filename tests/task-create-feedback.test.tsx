@@ -1,4 +1,4 @@
-/** @fileoverview 验证慢保存期间草稿锁定、连续回车防重复和中文输入法确认不会误提交。 */
+/** @fileoverview 验证慢保存保持按钮名称、草稿锁定，连续回车和中文输入法确认不会重复提交。 */
 import {
   act,
   cleanup,
@@ -75,6 +75,12 @@ it.each(['timed', 'waiting'] as const)(
     expect(input).toBeDisabled();
     expect(input).toHaveValue('保留慢请求草稿');
     expect(form).toHaveAttribute('aria-busy', 'true');
+    expect(
+      within(form).getByRole('button', {
+        name: kind === 'timed' ? '保存任务' : '保存待办',
+      }),
+    ).toBeDisabled();
+    expect(within(form).queryByRole('status')).toBeNull();
     expect(order).toEqual([]);
     await act(async () => finish({ task: {} }));
     expect(order).toEqual(['close', 'reset']);

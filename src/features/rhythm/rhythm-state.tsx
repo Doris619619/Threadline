@@ -15,6 +15,7 @@ type RhythmContext = {
   marks: Record<string, boolean>;
   periods: PeriodRecord[];
   loading: boolean;
+  ready: boolean;
   error?: string;
   save: (draft: PeriodDraft) => Promise<void>;
   remove: (id: string) => Promise<void>;
@@ -42,7 +43,7 @@ function CloudRhythmStateProvider({ children }: { children: ReactNode }) {
     },
   });
   const mutation = useMutation({
-    // 离线时立即报告错误并保留表单，不能让 React Query 将操作无限暂停在“保存中”。
+    // 离线时立即报告错误并保留表单，不能让 React Query 无限暂停写入。
     networkMode: 'always',
     mutationFn: async (action: { draft: PeriodDraft } | { id: string }) => {
       if (!visible) throw new Error('当前账号未启用节律。');
@@ -101,6 +102,7 @@ function CloudRhythmStateProvider({ children }: { children: ReactNode }) {
         marks: query.data?.marks ?? {},
         periods: query.data?.periods ?? [],
         loading: query.isPending,
+        ready: Boolean(query.data),
         error: query.error?.message,
         save: async (draft) => {
           await mutation.mutateAsync({ draft });

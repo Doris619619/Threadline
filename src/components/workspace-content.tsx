@@ -5,13 +5,18 @@ import { useWorkspaceView } from './app-shell';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
 import { TaskDashboard } from '@/features/tasks/task-dashboard';
 
+/** 按需模块首次加载保留内容区域和 busy 语义，不插入随后立即消失的打开提示。 */
+function pendingWorkspaceSection(label: string) {
+  return <section className="workspace-content-pending" aria-label={label} aria-busy />;
+}
+
 const HabitsPanel = dynamic(
   () => import('@/features/habits/habits-panel').then((module) => module.HabitsPanel),
-  { ssr: false, loading: () => <p role="status">正在打开习惯…</p> },
+  { ssr: false, loading: () => pendingWorkspaceSection('习惯内容') },
 );
 const TogetherPanel = dynamic(
   () => import('@/features/together/panel').then((module) => module.TogetherPanel),
-  { ssr: false, loading: () => <p role="status">正在打开两人空间…</p> },
+  { ssr: false, loading: () => pendingWorkspaceSection('两人空间内容') },
 );
 /** 独立习惯与两人空间按需加载；工作站仍然只承载个人任务执行。 */
 export function WorkspaceContent() {

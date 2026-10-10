@@ -1,4 +1,4 @@
-/** @fileoverview 用延迟云端响应验证首次勾选、Realtime 旧读、连续操作及失败恢复。 */
+/** @fileoverview 用延迟云端响应验证即时勾选、Realtime 旧读、前置拒绝、连续失败重试与会话反馈隔离。 */
 import {
   act,
   cleanup,
@@ -13,6 +13,8 @@ import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TaskLine } from '@/features/tasks/components/task-line';
 import { useCloudTaskUpdates } from '@/features/workspace/use-cloud-task-updates';
+import { createMutationFeedback } from '@/lib/mutation-feedback';
+import * as cloudWriteGuard from '@/lib/cloud-write-guard';
 import type { Task, TaskTimeEntry } from '@/types/domain';
 
 /** 以显式 resolve/reject 控制真实异步顺序，不依赖固定延时。 */
@@ -189,15 +191,187 @@ describe('cloud task save feedback', () => {
     await act(async () => ctx.writes[0].reject(new Error('network')));
     expect(result.current.tasks.map((row) => row.completed)).toEqual([false, true]);
     expect(ctx.onError).toHaveBeenCalledWith(expect.stringContaining('任务保存失败'));
+    ctx.onError.mockClear();
     act(() =>
       result.current.updateTasks((rows) =>
         rows.map((row) => ({ ...row, completed: true })),
       ),
     );
     await waitFor(() => expect(ctx.writes).toHaveLength(3));
-    await act(async () => ctx.writes[2].resolve({ ...task(), completed: true }));
+    expect(ctx.onError).not.toHaveBeenCalled();
+    await act(async () => ctx.writes[2].reject(new Error('network')));
+    expect(ctx.onError).toHaveBeenLastCalledWith(
+      expect.stringContaining('任务保存失败'),
+    );
+    expect(ctx.onError).not.toHaveBeenCalledWith(undefined);
+    ctx.onError.mockClear();
+    act(() =>
+      result.current.updateTasks((rows) =>
+        rows.map((row) => ({ ...row, completed: true })),
+      ),
+    );
+    await waitFor(() => expect(ctx.writes).toHaveLength(4));
+    expect(ctx.onError).not.toHaveBeenCalled();
+    await act(async () => ctx.writes[3].resolve({ ...task(), completed: true }));
+    expect(ctx.onError).toHaveBeenLastCalledWith(undefined);
     expect(result.current.tasks.every((row) => row.completed)).toBe(true);
   });
+
+  it('cannot clear a newer failure when an earlier unrelated save is confirmed', async () => {
+    const ctx = setup([task(), task('two')]);
+    const { result } = renderHook(
+      () => useCloudTaskUpdates('owner', ctx.repository, ctx.onError),
+      { wrapper: ctx.wrapper },
+    );
+    act(() =>
+      result.current.updateTasks((rows) =>
+        rows.map((row) => ({ ...row, completed: true })),
+      ),
+    );
+    await waitFor(() => expect(ctx.writes).toHaveLength(2));
+    await act(async () => ctx.writes[1].reject(new Error('newer failure')));
+    expect(ctx.onError).toHaveBeenLastCalledWith(
+      expect.stringContaining('newer failure'),
+    );
+    ctx.onError.mockClear();
+    await act(async () => ctx.writes[0].resolve({ ...task(), completed: true }));
+    expect(ctx.onError).not.toHaveBeenCalled();
+    expect(result.current.tasks.map((row) => row.completed)).toEqual([true, false]);
+  });
+
+  it.each(['fields', 'command'] as const)(
+    '%s confirmation cannot remove a newer error from another workspace module',
+    async (kind) => {
+      const ctx = setup();
+      const shared = createMutationFeedback(ctx.onError);
+      const hook = renderHook(
+        () => useCloudTaskUpdates('owner', ctx.repository, ctx.onError, shared),
+        { wrapper: ctx.wrapper },
+      );
+      const request = deferred<Task>();
+      let command: Promise<Task> | undefined;
+      act(() => {
+        if (kind === 'fields')
+          hook.result.current.updateTasks([{ ...task(), completed: true }]);
+        else
+          command = hook.result.current.commitTask(
+            'one',
+            (row) => ({ ...row, completed: true }),
+            () => request.promise,
+          );
+      });
+      if (kind === 'fields') await waitFor(() => expect(ctx.writes).toHaveLength(1));
+      shared.report('项目创建失败');
+      ctx.onError.mockClear();
+      await act(async () => {
+        if (kind === 'fields') ctx.writes[0].resolve({ ...task(), completed: true });
+        else {
+          request.resolve({ ...task(), completed: true });
+          await command;
+        }
+      });
+      expect(ctx.onError).not.toHaveBeenCalled();
+      expect(hook.result.current.tasks[0].completed).toBe(true);
+    },
+  );
+
+  it.each([
+    ['offline', '当前离线，任务未保存。'],
+    ['missing task', '未找到任务，请刷新后重试。'],
+    ['write guard', '正在重启更新，请稍后再保存。'],
+    ['missing baseline', '任务不存在，请重新加载。'],
+  ] as const)(
+    '%s rejection preserves its error when an older command and external operation succeed',
+    async (failure, message) => {
+      const ctx = setup([task(), task('two')]);
+      const shared = createMutationFeedback(ctx.onError);
+      const hook = renderHook(
+        () => useCloudTaskUpdates('owner', ctx.repository, ctx.onError, shared),
+        { wrapper: ctx.wrapper },
+      );
+      const request = deferred<Task>();
+      const operation = vi.fn(() => request.promise);
+      shared.report('之前的保存失败');
+      const confirmExternalOperation = shared.begin();
+      let older!: Promise<Task>;
+      act(() => {
+        older = hook.result.current.commitTask(
+          'one',
+          (row) => ({ ...row, completed: true }),
+          operation,
+        );
+      });
+      try {
+        await waitFor(() => expect(operation).toHaveBeenCalledOnce());
+        expect(cloudWriteGuard.getPendingCloudWrites()).toBe(1);
+        if (failure === 'offline')
+          vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+        if (failure === 'write guard')
+          vi.spyOn(cloudWriteGuard, 'beginCloudWrite').mockImplementationOnce(() => {
+            throw new Error(message);
+          });
+        const newerOperation = vi.fn(async () => task('two'));
+        await act(async () => {
+          const rejection =
+            failure === 'missing baseline'
+              ? hook.result.current.saveTaskConfirmed(task('missing'))
+              : hook.result.current.commitTask(
+                  failure === 'missing task' ? 'missing' : 'two',
+                  (row) => row,
+                  newerOperation,
+                );
+          await expect(rejection).rejects.toThrow(message);
+        });
+        expect(newerOperation).not.toHaveBeenCalled();
+        expect(ctx.onError).toHaveBeenLastCalledWith(message);
+        const callsAtFailure = ctx.onError.mock.calls.length;
+        confirmExternalOperation();
+        await act(async () => {
+          request.resolve({ ...task(), completed: true });
+          await older;
+        });
+        expect(hook.result.current.tasks[0].completed).toBe(true);
+        expect(ctx.onError).toHaveBeenLastCalledWith(message);
+        expect(ctx.onError).toHaveBeenCalledTimes(callsAtFailure);
+        expect(cloudWriteGuard.getPendingCloudWrites()).toBe(0);
+      } finally {
+        request.resolve({ ...task(), completed: true });
+        await older;
+        await waitFor(() => expect(cloudWriteGuard.getPendingCloudWrites()).toBe(0));
+      }
+    },
+  );
+
+  it.each(['commit', 'confirmed save'] as const)(
+    'a previous account %s rejects without reporting into the current account',
+    async (method) => {
+      const ctx = setup();
+      const shared = createMutationFeedback(ctx.onError);
+      ctx.client.setQueryDefaults(['workspace', 'other', 'tasks'], {
+        staleTime: Infinity,
+      });
+      ctx.client.setQueryData(['workspace', 'other', 'tasks'], [task('two')]);
+      const hook = renderHook(
+        ({ owner }) => useCloudTaskUpdates(owner, ctx.repository, ctx.onError, shared),
+        { wrapper: ctx.wrapper, initialProps: { owner: 'owner' } },
+      );
+      const previousAccount = hook.result.current;
+      hook.rerender({ owner: 'other' });
+      shared.report('当前账号的新错误');
+      const callsAtFailure = ctx.onError.mock.calls.length;
+      const operation = vi.fn(async () => task());
+      await expect(
+        method === 'commit'
+          ? previousAccount.commitTask('one', (row) => row, operation)
+          : previousAccount.saveTaskConfirmed(task('missing')),
+      ).rejects.toThrow('账号会话已改变');
+      expect(operation).not.toHaveBeenCalled();
+      expect(ctx.repository.updateTaskFields).not.toHaveBeenCalled();
+      expect(ctx.onError).toHaveBeenCalledTimes(callsAtFailure);
+      expect(ctx.onError).toHaveBeenLastCalledWith('当前账号的新错误');
+      expect(cloudWriteGuard.getPendingCloudWrites()).toBe(0);
+    },
+  );
 
   it('restores the last committed click when a later queued click fails', async () => {
     const ctx = setup();
@@ -317,13 +491,21 @@ it('moves a task before the command resolves, isolates stale reads and rolls bac
   });
   expect(hook.result.current.tasks[0].status).toBe('waiting');
   const confirmed = { ...waiting, status: 'active' as const, date: '2026-09-12' };
-  await act(async () => {
-    await hook.result.current.commitTask(
+  const retry = deferred<Task>();
+  ctx.onError.mockClear();
+  act(() => {
+    result = hook.result.current.commitTask(
       waiting.id,
       () => confirmed,
-      async () => confirmed,
+      () => retry.promise,
     );
   });
+  expect(ctx.onError).not.toHaveBeenCalled();
+  await act(async () => {
+    retry.resolve(confirmed);
+    await result;
+  });
+  expect(ctx.onError).toHaveBeenLastCalledWith(undefined);
   expect(hook.result.current.tasks[0]).toEqual(confirmed);
 });
 

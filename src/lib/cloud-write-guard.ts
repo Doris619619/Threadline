@@ -53,9 +53,9 @@ export function subscribeCloudWrites(listener: () => void) {
 export function getPendingCloudWrites() {
   return pending;
 }
-/** 仅空闲时独占重启；调用者在取消或失败时释放。 */
+/** 仅空闲时独占重启；冲突说明未完成操作，调用者在取消或失败时释放。 */
 export function lockForDesktopUpdate() {
-  if (pending || installing) throw new Error('正在保存，请保存完成后再更新。');
+  if (pending || installing) throw new Error('数据操作尚未完成，请稍后再更新。');
   installing = true;
   return () => {
     installing = false;

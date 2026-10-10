@@ -279,7 +279,7 @@ test('failed completion keeps the original intent and blocks duplicate submissio
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('网络失败'));
   expect(record).toHaveBeenCalledExactlyOnceWith(task, 1, '2026-10-03');
   view.rerender(<Harness current={{ ...task, actualDurationMinutes: 90 }} />);
-  fireEvent.click(screen.getByRole('button', { name: '重试保存' }));
+  fireEvent.click(screen.getByRole('button', { name: '完成并记耗时' }));
   await waitFor(() => expect(remove).toHaveBeenCalledOnce());
   expect(record).toHaveBeenLastCalledWith(task, 1, '2026-10-03');
   expect(record).toHaveBeenCalledTimes(2);

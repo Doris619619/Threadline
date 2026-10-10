@@ -167,7 +167,8 @@ function CloudStagePlans({ children }: { children: ReactNode }) {
   /** 同一阶段同步防重入；完整请求都纳入现有退出/重启写保护。 */
   const run = async <T,>(id: string, operation: () => Promise<T>): Promise<T> => {
     if (!navigator.onLine) throw new Error('当前离线，请联网后重试。');
-    if (pending.current.has(id)) throw new Error('正在保存这个阶段，请稍候。');
+    if (pending.current.has(id))
+      throw new Error('这个阶段的操作尚未完成，请稍后重试。');
     const end = beginCloudWrite();
     pending.current.add(id);
     try {

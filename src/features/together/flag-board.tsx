@@ -61,7 +61,7 @@ export function FlagLanes({
   );
 }
 
-/** 列内独立分页；历史查询也在服务端按执行人过滤，不在客户端截断后分组。 */
+/** 列内独立分页；读取下一页只锁定按钮并标记 busy，保留已有内容和文案；历史在服务端按执行人过滤。 */
 export function FlagList({
   room,
   mode,
@@ -175,10 +175,11 @@ export function FlagList({
       {query.hasNextPage && (
         <button
           className="together-load-more"
+          aria-busy={query.isFetchingNextPage}
           disabled={query.isFetchingNextPage}
           onClick={() => void query.fetchNextPage()}
         >
-          {query.isFetchingNextPage ? '正在读取…' : '再看一些'}
+          再看一些
         </button>
       )}
     </>

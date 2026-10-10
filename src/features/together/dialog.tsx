@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-/** 共用原生模态；可见后聚焦可选的字段引用，关闭后返回打开者，忙碌时阻止误关闭。 */
+/** 共用原生模态；可见后聚焦可选字段，关闭后返回打开者；忙碌时锁定关闭并标记 aria-busy，保持正文稳定。 */
 export function SpaceDialog({
   title,
   children,
@@ -66,7 +66,6 @@ export function SpaceDialog({
         </button>
       </header>
       {children}
-      {busy && <p role="status">正在保存…</p>}
       {error && (
         <p className="together-error" role="alert">
           {error}

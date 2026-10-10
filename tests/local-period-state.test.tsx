@@ -48,9 +48,31 @@ describe('local period persistence', () => {
     });
     const { result } = renderHook(() => useLocalPeriodState());
     await waitFor(() => expect(result.current.error).toContain('读取'));
+    expect(result.current.ready).toBe(false);
     read.mockRestore();
     act(() => result.current.retry());
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).toBeUndefined();
+    expect(result.current.ready).toBe(true);
+  });
+  it('retains loaded records during a failed refresh and never returns to initial loading', async () => {
+    const record = {
+      id: 'known',
+      startDate: '2026-01-02',
+      createdAt: '2026-01-02',
+      updatedAt: '2026-01-02',
+    };
+    localStorage.setItem('threadline.test.periods.v1', JSON.stringify([record]));
+    const { result } = renderHook(() => useLocalPeriodState());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('storage unavailable');
+    });
+    act(() => result.current.retry());
+    expect(result.current.loading).toBe(false);
+    expect(result.current.periods).toEqual([record]);
+    await waitFor(() => expect(result.current.error).toContain('读取'));
+    expect(result.current.ready).toBe(true);
+    expect(result.current.periods).toEqual([record]);
   });
 });

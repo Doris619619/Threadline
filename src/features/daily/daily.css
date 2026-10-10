@@ -133,15 +133,6 @@
   font: inherit;
   cursor: pointer;
 }
-.daily-save-status {
-  display: block;
-  padding-left: 52px;
-  color: var(--text-secondary);
-  font-size: var(--text-caption-size);
-}
-.daily-save-status:empty {
-  display: none;
-}
 .daily-save-error {
   display: flex;
   align-items: center;

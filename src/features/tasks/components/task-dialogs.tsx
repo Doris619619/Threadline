@@ -62,7 +62,7 @@ function CloseTaskRow({ task, tomorrow }: { task: Task; tomorrow: string }) {
   );
 }
 
-/** 收尾对话框固定居中并独立滚动，确认成功后才关闭；取消始终不提交表单。 */
+/** 收尾对话框固定居中并独立滚动，确认成功后才关闭；提交期间操作名称稳定，取消始终不提交表单。 */
 export function CloseDialog({
   dialog,
   tasks,
@@ -92,6 +92,7 @@ export function CloseDialog({
       className="task-dialog close-dialog"
       ref={dialog}
       aria-labelledby={titleId}
+      aria-busy={saving}
       onCancel={(event) => {
         if (saving) event.preventDefault();
       }}
@@ -102,9 +103,9 @@ export function CloseDialog({
           if (savingRef.current) return;
           savingRef.current = true;
           setSaving(true);
-          setError(undefined);
           try {
             await onCloseDay(data);
+            setError(undefined);
             dialog.current?.close();
           } catch (submitError) {
             setError(
@@ -182,7 +183,7 @@ export function CloseDialog({
             稍后处理
           </button>
           <button type="submit" disabled={saving}>
-            {saving ? '保存中…' : '确认结束今天'}
+            确认结束今天
           </button>
         </footer>
       </form>
@@ -190,7 +191,7 @@ export function CloseDialog({
   );
 }
 
-/** 等待改期提交，保留失败输入，并支持今天起的任意日期。 */
+/** 等待改期提交，保持确认名称和失败输入，并支持今天起的任意日期。 */
 export function RescheduleDialog({
   task,
   defaultDate,
@@ -215,6 +216,7 @@ export function RescheduleDialog({
       }}
     >
       <form
+        aria-busy={saving}
         onSubmit={async (event) => {
           event.preventDefault();
           if (savingRef.current) return;
@@ -257,7 +259,7 @@ export function RescheduleDialog({
             取消
           </button>
           <button type="submit" disabled={saving}>
-            {saving ? '保存中…' : '确认改期'}
+            确认改期
           </button>
         </footer>
       </form>
@@ -265,7 +267,7 @@ export function RescheduleDialog({
   );
 }
 
-/** 复用任务字段表单并限制重复提交；持久化失败时保留输入与焦点。 */
+/** 复用任务字段表单并限制重复提交；按钮文字保持稳定，持久化失败时保留输入与焦点。 */
 export function TaskDialog({
   open,
   mode = 'normal',
@@ -317,6 +319,7 @@ export function TaskDialog({
     >
       <form
         className="task-editor-form"
+        aria-busy={saving}
         onSubmit={async (event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
@@ -414,7 +417,7 @@ export function TaskDialog({
             取消
           </button>
           <button type="submit" disabled={saving}>
-            {saving ? '保存中…' : '保存'}
+            保存
           </button>
         </footer>
       </form>

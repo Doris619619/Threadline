@@ -132,6 +132,8 @@
   color: var(--together-tone);
 }
 .together-clock {
+  /* 空水合快照保留两排时钟的高度，真实时间出现时不推动页头。 */
+  min-height: 42px;
   font-size: 12px;
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
@@ -858,6 +860,7 @@
     justify-content: space-between;
   }
   .together-clock {
+    min-height: 20px;
     display: flex;
     text-align: left;
     flex-wrap: wrap;
