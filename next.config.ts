@@ -18,7 +18,14 @@ const nextConfig: NextConfig = {
   pageExtensions: isElectronBuild
     ? ['electron.tsx', 'electron.ts']
     : ['web.tsx', 'web.ts'],
-  ...(isElectronBuild ? { output: 'export', distDir: '.next-electron' } : {}),
+  // 静态桌面包没有 /_next/image 服务，插画必须直接读取打包的原始资源。
+  ...(isElectronBuild
+    ? {
+        output: 'export',
+        distDir: '.next-electron',
+        images: { unoptimized: true },
+      }
+    : {}),
   reactStrictMode: true,
   ...(process.env.THREADLINE_TOGETHER_PREVIEW === 'true' &&
   process.env.NODE_ENV === 'development'
