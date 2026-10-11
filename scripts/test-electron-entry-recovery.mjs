@@ -5,6 +5,7 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { _electron as electron } from 'playwright';
+import { verifyEntryWindowCenter } from './verify-entry-window.mjs';
 
 const userData = await mkdtemp(join(tmpdir(), 'threadline-entry-recovery-'));
 const server = createServer((_request, response) => {
@@ -100,8 +101,41 @@ try {
   main = windows.find((w) => w.role === 'main');
   assert.ok(main.visible && main.width >= 800);
   assert.ok(!windows.some((w) => w.role === 'edge-tab' && w.visible));
+  // 在本机每块真实屏幕上恢复登录，覆盖负坐标和混合 DPI；只覆写测试进程的选屏输入，不移动用户鼠标。
+  const displays = await application.evaluate(({ screen }) => screen.getAllDisplays());
+  for (const [index, display] of displays.entries()) {
+    await application.evaluate(({ screen }, area) => {
+      screen.getCursorScreenPoint = () => ({
+        x: Math.round(area.x + area.width / 2),
+        y: Math.round(area.y + area.height / 2),
+      });
+    }, display.workArea);
+    await page.evaluate(
+      (requestId) =>
+        window.threadlineDesktop.hydrateDesktopState({
+          requestId,
+          mode: 'workstation',
+          presentation: 'expanded',
+          windowStates: {},
+        }),
+      index + 3,
+    );
+    await page.evaluate(() =>
+      window.threadlineDesktop.showEntryWindow('authentication'),
+    );
+    const actualDisplay = await application.evaluate(
+      ({ screen, BrowserWindow }) =>
+        screen.getDisplayMatching(BrowserWindow.getAllWindows()[0].getBounds()).id,
+    );
+    assert.equal(
+      actualDisplay,
+      display.id,
+      'entry must restore on the selected display',
+    );
+    verifyEntryWindowCenter(await application.evaluate(() => process.pid));
+  }
   console.log(
-    'PASS: repeated login entry restores full window; stale startup does not resize workstation; Edge is hidden; invalid purpose rejected.',
+    'PASS: repeated login entry restores full window; stale startup does not resize workstation; Edge is hidden; invalid purpose rejected; entry centered on every attached display.',
   );
 } finally {
   await application?.close();

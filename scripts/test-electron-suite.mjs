@@ -31,6 +31,7 @@ function runNode(script) {
 
 runPnpm(['desktop:compile']);
 runNode('scripts/test-electron-startup-display.mjs');
+runNode('scripts/test-electron-entry-recovery.mjs');
 runPnpm(['desktop:renderer']);
 runPnpm(['build:web']);
 runNode('scripts/test-electron.mjs');

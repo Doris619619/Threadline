@@ -13,6 +13,10 @@ import { chromium } from 'playwright';
 
 import { terminateOwnedProcess } from './desktop-build-runtime.mjs';
 import { verifyWindowsExecutableIcon } from './verify-windows-icon.mjs';
+import {
+  verifyEntryIllustrations,
+  verifyEntryWindowCenter,
+} from './verify-entry-window.mjs';
 
 const repositoryRoot = resolve(import.meta.dirname, '..');
 const defaultExecutable = join(
@@ -169,6 +173,12 @@ async function runPackagedSmoke(executablePath) {
     page.setDefaultTimeout(actionTimeoutMs);
 
     await page.waitForFunction(() => window.threadlineDesktop?.role === 'main');
+    // 真实 EXE 必须能载入更新器及传递依赖，并通过既有 IPC 返回状态。
+    const updateState = await page.evaluate(() =>
+      window.threadlineDesktop.getUpdateState(),
+    );
+    assert.equal(updateState.status, 'unavailable', 'unpacked updates stay disabled');
+    assert.match(updateState.currentVersion, /^\d+\.\d+\.\d+/);
     assert.match(
       page.url(),
       /^threadline:\/\/app\//,
@@ -199,37 +209,12 @@ async function runPackagedSmoke(executablePath) {
     await page.locator('.full-window-chrome, .desktop-entry-chrome').first().waitFor();
     if (await page.locator('.desktop-entry-chrome').count()) {
       // 真实云预览在登录阶段也必须可关闭、居中；不为 smoke 登录或写入云数据。
-      const geometry = await page.evaluate(() => ({
-        x: window.screenX,
-        y: window.screenY,
-        width: window.outerWidth,
-        height: window.outerHeight,
-        area: {
-          x: screen.availLeft,
-          y: screen.availTop,
-          width: screen.availWidth,
-          height: screen.availHeight,
-        },
-      }));
-      assert.ok(
-        Math.abs(
-          geometry.x + geometry.width / 2 - geometry.area.x - geometry.area.width / 2,
-        ) < 4,
-        `Entry window horizontally centered: ${JSON.stringify(geometry)}`,
-      );
-      assert.ok(
-        Math.abs(
-          geometry.y + geometry.height / 2 - geometry.area.y - geometry.area.height / 2,
-        ) < 4,
-        `Entry window vertically centered: ${JSON.stringify(geometry)}`,
-      );
+      verifyEntryWindowCenter(executable.pid);
       await page
         .locator('.desktop-entry-chrome button[aria-label="关闭窗口"]')
         .first()
         .waitFor();
-      await page.locator('.auth-gate').waitFor();
-      if (process.env.THREADLINE_ENTRY_SCREENSHOT)
-        await page.screenshot({ path: process.env.THREADLINE_ENTRY_SCREENSHOT });
+      await verifyEntryIllustrations(page);
     } else {
       // 只有隔离 local adapter 能进入此分支；验证新栏目动态 chunk 和真实静态协议持久化。
       await page

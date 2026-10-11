@@ -20,6 +20,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 
 import { DesktopBuildError } from './desktop-build-runtime.mjs';
+import packagePolicy from './desktop-package-policy.cjs';
 
 const { getCurrentFuseWire } = fuses;
 const REQUIRED_ASAR_ENTRIES = [
@@ -63,7 +64,7 @@ async function collectFileTree(rootPath, ignoredRelativePaths = new Set()) {
   return files;
 }
 
-/** 验证 EXE/ASAR 均由本轮生成，且 ASAR 包含 Main、Preload、Renderer、CSP 与 package metadata。 */
+/** 验证本轮 EXE/ASAR、必需应用入口、完整运行依赖与语言集合；任一边界不符均拒绝产物。 */
 export async function verifyPackagedArtifact({ executablePath, buildStartedAt }) {
   const asarPath = join(dirname(executablePath), 'resources', 'app.asar');
   let executableStat;
@@ -102,6 +103,40 @@ export async function verifyPackagedArtifact({ executablePath, buildStartedAt })
       'DESKTOP_BUILD_ASAR_INVALID',
       'Packaged ASAR is missing production application entries.',
       { missingEntries },
+    );
+  }
+  const expectedDependencies = packagePolicy.collectRuntimeDependencies(
+    resolve(import.meta.dirname, '..'),
+  );
+  const packagedDependencies = new Set();
+  for (const entry of entries) {
+    const normalized = entry.replaceAll('\\', '/');
+    const match = normalized.match(
+      /\/node_modules\/((?:@[^/]+\/)?[^/]+)\/package\.json$/,
+    );
+    if (match) packagedDependencies.add(match[1]);
+  }
+  const missingDependencies = expectedDependencies.filter(
+    (name) => !packagedDependencies.has(name),
+  );
+  const unexpectedDependencies = [...packagedDependencies].filter(
+    (name) => !expectedDependencies.includes(name),
+  );
+  const locales = (await readdir(join(dirname(executablePath), 'locales')))
+    .filter((name) => name.endsWith('.pak'))
+    .sort();
+  const expectedLocales = packagePolicy.electronLanguages
+    .map((name) => `${name}.pak`)
+    .sort();
+  if (
+    missingDependencies.length ||
+    unexpectedDependencies.length ||
+    JSON.stringify(locales) !== JSON.stringify(expectedLocales)
+  ) {
+    throw new DesktopBuildError(
+      'DESKTOP_BUILD_PACKAGE_SCOPE_INVALID',
+      'Packaged dependencies or Electron locales differ from the runtime policy.',
+      { missingDependencies, unexpectedDependencies, locales, expectedLocales },
     );
   }
   return {
