@@ -1,6 +1,12 @@
 /** 文件用途：定义 Threadline Electron Windows x64 unpacked 与 NSIS 打包基础配置。 */
 
 const iconTheme = process.env.THREADLINE_DESKTOP_THEME === 'anya' ? 'anya' : 'blue';
+/* eslint-disable @typescript-eslint/no-require-imports */
+const {
+  collectRuntimeDependencies,
+  dependencyExclusions,
+  electronLanguages,
+} = require('./scripts/desktop-package-policy.cjs');
 
 module.exports = {
   extraMetadata: { threadlineIconTheme: iconTheme },
@@ -21,7 +27,9 @@ module.exports = {
     'electron/assets/**/*',
     'package.json',
     '!.pnpm-store/**/*',
+    ...dependencyExclusions(collectRuntimeDependencies(__dirname)),
   ],
+  electronLanguages,
   asar: true,
   afterPack: './scripts/after-pack.cjs',
   win: {

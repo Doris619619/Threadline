@@ -47,6 +47,12 @@ Preview 是 **production-equivalent unpacked Electron app**：它与正式 packa
 
 Preview 不是 dev server、`file://`、开发模式 Electron，也不是手工复制 `node_modules/electron/dist` 得到的近似包。它能验收 UI、交互、production renderer、窗口行为、IPC、Full、Workstation 和 Edge。它只省略 NSIS，因此不验证安装/卸载流程、安装目录 UI、快捷方式、Start Menu 和其他 installer-specific 行为。
 
+## 依赖和语言边界
+
+`scripts/desktop-package-policy.cjs` 统一 Main bundle 的外部依赖与打包范围。目前根运行依赖是 `electron-updater`，构建时递归解析其实际安装的必需、可选和 peer 依赖，保留完整运行链。electron-builder 会自动收集根 package.json 的生产依赖，因此配置使用动态排除规则移除其余原始 node_modules；Web/前端构建依赖继续保留在项目中，静态 Renderer、主题、字体和原生窗口能力保持原样。
+
+Electron 语言资源固定保留 `zh-CN`、`zh-TW`、`en-US`、`en-GB`。这是 Chromium 原生语言资源的范围，不改变应用文案、账号时区或用户输入内容。每次构建验证 ASAR 中的依赖集合和 locales 目录，漏依赖、多余依赖或语言资源不符合策略时均失败。packaged smoke 额外读取真实更新 IPC 状态，确认更新器在产物中能正常加载；目录包仍不启用安装版更新。
+
 ## 输出、锁与 Manifest
 
 Preview 与正式产物不会写入同一个 `win-unpacked`：

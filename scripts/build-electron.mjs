@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { rm } from 'node:fs/promises';
 import { performance } from 'node:perf_hooks';
 import { build } from 'esbuild';
+import packagePolicy from './desktop-package-policy.cjs';
 
 /** 同步执行必须先于 bundle 完成的 Electron 类型检查。 */
 function typecheckElectron() {
@@ -31,7 +32,7 @@ await build({
   outdir: 'dist-electron',
   outExtension: { '.js': '.cjs' },
   bundle: true,
-  external: ['electron', 'electron-updater'],
+  external: ['electron', ...packagePolicy.runtimeDependencies],
   format: 'cjs',
   platform: 'node',
   target: 'node22',

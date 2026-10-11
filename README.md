@@ -103,6 +103,8 @@ pnpm test
 
 Windows 开发使用 `pnpm desktop:dev`；构建、打包和完整验证命令见 [Windows 构建指南](docs/WINDOWS_BUILD.md) 与 [测试架构](docs/testing-architecture.md)。
 
+Windows 包仅携带桌面运行所需依赖，以及简体中文、繁体中文和英文的 Electron 语言资源；四套主题、两套思源字体和自动更新能力均保留。
+
 ### 架构
 
 前端使用 **Next.js App Router、React、TypeScript**，三种使用方式共享 UI 与业务逻辑。

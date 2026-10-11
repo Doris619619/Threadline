@@ -169,6 +169,12 @@ async function runPackagedSmoke(executablePath) {
     page.setDefaultTimeout(actionTimeoutMs);
 
     await page.waitForFunction(() => window.threadlineDesktop?.role === 'main');
+    // 真实 EXE 必须能载入更新器及传递依赖，并通过既有 IPC 返回状态。
+    const updateState = await page.evaluate(() =>
+      window.threadlineDesktop.getUpdateState(),
+    );
+    assert.equal(updateState.status, 'unavailable', 'unpacked updates stay disabled');
+    assert.match(updateState.currentVersion, /^\d+\.\d+\.\d+/);
     assert.match(
       page.url(),
       /^threadline:\/\/app\//,
