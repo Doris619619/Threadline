@@ -28,6 +28,8 @@ import {
 
 /** 将分钟转为面向工作台的可读文本。 */
 function formatMinutes(minutes: number): string {
+  if (minutes > 0 && minutes < 0.5) return '不足 1 分钟';
+  minutes = Math.round(minutes);
   return minutes < 60
     ? `${minutes} 分钟`
     : `${Math.floor(minutes / 60)} 小时${minutes % 60 ? ` ${minutes % 60} 分钟` : ''}`;
@@ -102,6 +104,10 @@ export function InsightsPanel({
 
   return (
     <div className="insights-panel" data-testid="insights-panel">
+      <p>
+        已保存计时的重叠时段只计一次，项目分布按任务均分。历史、手动补录和 Daily
+        没有时段，保留原值，无法去重。
+      </p>
       <header className="insights-toolbar">
         <div className="insights-filters" aria-label="洞察范围">
           {(['day', 'week', 'month', 'custom'] as const).map((value) => (

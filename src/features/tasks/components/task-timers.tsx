@@ -8,6 +8,7 @@ import { useOptionalCloudRuntime } from '@/features/auth/cloud-runtime-provider'
 import { useWorkspaceData } from '@/features/workspace/workspace-data-context';
 import { useAccountToday } from '@/features/settings/account-timezone-provider';
 import { usePersistentState } from '@/hooks/use-persistent-state';
+import { getAccountTimezone } from '@/lib/account-clock';
 import {
   timerElapsed,
   pauseTimer,
@@ -129,6 +130,8 @@ function TaskTimersSession({
           startedAt: stamp,
           firstStartedAt: stamp,
           entryDate: today,
+          intervals: [],
+          timezone: getAccountTimezone(),
         },
       ];
     });
@@ -171,19 +174,35 @@ function TaskTimersSession({
                   task={tasks.find((task) => task.id === timer.taskId)}
                   now={now}
                   today={today}
-                  onChange={(next) =>
+                  onChange={(next) => {
+                    let accepted = false;
                     setTimers((current) =>
-                      current.map((item) => (item.id === timer.id ? next : item)),
-                    )
-                  }
+                      current.map((item) => {
+                        if (
+                          item.id !== timer.id ||
+                          JSON.stringify(item) !== JSON.stringify(timer)
+                        )
+                          return item;
+                        accepted = true;
+                        return next;
+                      }),
+                    );
+                    return accepted;
+                  }}
                   onExtend={(minutes) => extend(timer.id, minutes)}
                   onRemove={() =>
                     setTimers((current) =>
                       current.filter((item) => item.id !== timer.id),
                     )
                   }
-                  onRecord={(original, minutes, date) =>
-                    recordTaskActual(original, minutes, date ?? timer.entryDate, true)
+                  onRecord={(original, minutes, date, recording) =>
+                    recordTaskActual(
+                      original,
+                      minutes,
+                      date ?? timer.entryDate,
+                      true,
+                      recording,
+                    )
                   }
                 />
               ))}

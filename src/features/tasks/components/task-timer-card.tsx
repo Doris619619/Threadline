@@ -14,7 +14,7 @@ import {
 } from '@/lib/account-clock';
 import { useAccountTimezone } from '@/features/settings/account-timezone-provider';
 import type { Task } from '@/types/domain';
-import type { SaveStageEstimate } from '@/features/stage-plans/task-estimate-editor';
+import type { TimerRecording } from '@/lib/timer-accounting';
 
 /** 同排卡片展示首次开始时间；完成控件在提交与重试期间保持稳定，续时只提交分钟，完成时才记账。 */
 export function TaskTimerCard({
@@ -31,10 +31,15 @@ export function TaskTimerCard({
   task?: Task;
   now: number;
   today: string;
-  onChange: (timer: TaskTimer) => void;
+  onChange: (timer: TaskTimer) => boolean | void;
   onExtend: (minutes: number) => void;
   onRemove: () => void;
-  onRecord: SaveStageEstimate;
+  onRecord: (
+    original: Task,
+    minutes: number,
+    date: string,
+    recording?: TimerRecording,
+  ) => Promise<unknown>;
 }) {
   const { busy, error, run } = useGuardedAction();
   const menu = useTaskMenu();
@@ -68,7 +73,12 @@ export function TaskTimerCard({
       setExtensionOpen(true);
     } else {
       onChange(
-        running ? pauseTimer(timer, Date.now()) : { ...timer, startedAt: Date.now() },
+        running
+          ? pauseTimer(timer, Date.now())
+          : {
+              ...timer,
+              startedAt: Math.max(Date.now(), timer.intervals?.at(-1)?.end ?? 0),
+            },
       );
     }
   };
@@ -91,9 +101,26 @@ export function TaskTimerCard({
         original: task,
         minutes:
           (task.actualDurationMinutes ?? 0) + Math.round(paused.elapsedMs / 60000),
+        ...(paused.intervals && paused.timezone
+          ? {
+              recording: {
+                id: paused.id,
+                intervals: paused.intervals,
+                timezone: paused.timezone,
+              },
+            }
+          : {}),
       };
-      onChange({ ...paused, pending });
-      await onRecord(pending.original, pending.minutes, timer.entryDate);
+      if (onChange({ ...paused, pending }) === false)
+        throw new Error('计时已在其他标签改变，请重试。');
+      if (pending.recording)
+        await onRecord(
+          pending.original,
+          pending.minutes,
+          timer.entryDate,
+          pending.recording,
+        );
+      else await onRecord(pending.original, pending.minutes, timer.entryDate);
       onRemove();
     });
   return (

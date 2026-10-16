@@ -22,6 +22,82 @@ export type StageTimeSector = StageTimeItem & {
   fraction: number;
 };
 
+/** 实际投影按记账时的项目分组，任务后来移到其他项目也不移动历史份额。 */
+function actualTimeBreakdown(
+  tasks: Task[],
+  projects: Project[],
+  entries: TaskTimeEntry[],
+  stageId?: string,
+  date?: string,
+) {
+  const groups = new Map<string, StageTimeGroup>();
+  const byId = new Map(tasks.map((task) => [task.id, task]));
+  /** 同一任务在一个历史项目内聚合，未记录任务仍显示空值。 */
+  const add = (projectId: string, id: string, title: string, minutes?: number) => {
+    let group = groups.get(projectId);
+    if (!group) {
+      const project = projects.find((item) => item.id === projectId);
+      group = {
+        id: projectId,
+        name: project?.name ?? '未知项目',
+        color: project?.isFallback ? '#8792a2' : (project?.color ?? '#8792a2'),
+        total: 0,
+        items: [],
+      };
+      groups.set(projectId, group);
+    }
+    let item = group.items.find((row) => row.id === id);
+    if (!item) {
+      item = { id, title, color: group.color };
+      group.items.push(item);
+    }
+    if (minutes !== undefined) {
+      item.minutes = (item.minutes ?? 0) + minutes;
+      group.total += minutes;
+    }
+  };
+  for (const entry of entries) {
+    const task = entry.taskId ? byId.get(entry.taskId) : undefined;
+    if (
+      stageId &&
+      (!task ||
+        task.stagePlanId !== stageId ||
+        task.deletedAt ||
+        ['trashed', 'abandoned'].includes(task.status))
+    )
+      continue;
+    add(
+      entry.projectId,
+      task?.id ?? 'entry-' + entry.id,
+      task?.title ?? '历史投入（任务已移除）',
+      entry.minutes,
+    );
+  }
+  for (const task of tasks) {
+    if (
+      task.deletedAt ||
+      ['trashed', 'abandoned'].includes(task.status) ||
+      (stageId && task.stagePlanId !== stageId) ||
+      (date && (task.status !== 'active' || task.date !== date)) ||
+      entries.some((entry) => entry.taskId === task.id)
+    )
+      continue;
+    add(task.projectId, task.id, task.title);
+  }
+  const result = [...groups.values()].sort(
+    (a, b) =>
+      projects.findIndex((p) => p.id === a.id) -
+      projects.findIndex((p) => p.id === b.id),
+  );
+  return {
+    groups: result,
+    total: result.reduce((sum, group) => sum + group.total, 0),
+    missing: result
+      .flatMap((group) => group.items)
+      .filter((item) => item.minutes === undefined).length,
+  };
+}
+
 /** 按稳定项目/任务顺序分组；排除删除/放弃项，未填和零时长仍列明但不虚构扇区。 */
 export function stageTimeBreakdown(
   tasks: Task[],
@@ -29,18 +105,20 @@ export function stageTimeBreakdown(
   stageId: string | undefined,
   metric: StageTimeMetric,
   day?: { date: string; entries?: TaskTimeEntry[] },
+  allEntries?: TaskTimeEntry[],
 ) {
-  const dailyEntries = day?.entries?.filter((entry) => entry.date === day.date);
+  const dailyEntries = day
+    ? day.entries?.filter((entry) => entry.date === day.date)
+    : allEntries;
+  if (metric === 'actual' && dailyEntries)
+    return actualTimeBreakdown(tasks, projects, dailyEntries, stageId, day?.date);
   const members = tasks.filter(
     (task) =>
       (stageId === undefined || task.stagePlanId === stageId) &&
-      (day && metric === 'actual' && dailyEntries
-        ? dailyEntries.some((entry) => entry.taskId === task.id) ||
-          (task.status === 'active' && task.date === day.date)
-        : !task.deletedAt &&
-          task.status !== 'trashed' &&
-          task.status !== 'abandoned' &&
-          (!day || (task.status === 'active' && task.date === day.date))) &&
+      !task.deletedAt &&
+      task.status !== 'trashed' &&
+      task.status !== 'abandoned' &&
+      (!day || (task.status === 'active' && task.date === day.date)) &&
       (metric !== 'remaining' || !task.completed),
   );
   const groups: StageTimeGroup[] = [];
@@ -53,13 +131,7 @@ export function stageTimeBreakdown(
       .map((task, index, rows) => {
         const value =
           metric === 'actual'
-            ? dailyEntries
-              ? dailyEntries.some((entry) => entry.taskId === task.id)
-                ? dailyEntries
-                    .filter((entry) => entry.taskId === task.id)
-                    .reduce((sum, entry) => sum + entry.minutes, 0)
-                : undefined
-              : task.actualDurationMinutes
+            ? task.actualDurationMinutes
             : task.plannedDurationMinutes;
         const minutes =
           value !== undefined && Number.isFinite(value) && value >= 0
@@ -82,31 +154,6 @@ export function stageTimeBreakdown(
       total: items.reduce((sum, item) => sum + (item.minutes ?? 0), 0),
     });
   }
-  // 删除后仍留在按日账本的投入保留为只读图表明细，不伪造原 Task。
-  if (metric === 'actual' && dailyEntries)
-    for (const entry of dailyEntries.filter(
-      (entry) => !tasks.some((task) => task.id === entry.taskId),
-    )) {
-      let group = groups.find((group) => group.id === entry.projectId);
-      if (!group) {
-        const project = projects.find((project) => project.id === entry.projectId);
-        group = {
-          id: entry.projectId,
-          name: project?.name ?? '未知项目',
-          color: project?.color ?? '#8792a2',
-          total: 0,
-          items: [],
-        };
-        groups.push(group);
-      }
-      group.items.push({
-        id: 'entry-' + entry.id,
-        title: '历史投入（任务已移除）',
-        minutes: entry.minutes,
-        color: group.color,
-      });
-      group.total += entry.minutes;
-    }
   return {
     groups,
     total: groups.reduce((sum, group) => sum + group.total, 0),

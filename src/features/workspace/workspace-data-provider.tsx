@@ -3,6 +3,7 @@
  */
 
 'use client';
+import type { TimerRecording } from '@/lib/timer-accounting';
 
 import type { DailyBundle } from '@/lib/supabase/workspace-repository';
 
@@ -261,6 +262,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       'tasks',
       'stage_plans',
       'task_time_entries',
+      'task_timer_records',
       'daily_templates',
       'daily_template_items',
       'daily_entries',
@@ -843,6 +845,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
       minutes: number | undefined,
       date: string,
       complete = false,
+      recording?: TimerRecording,
     ) => {
       const saved = await commitTask(
         original.id,
@@ -851,7 +854,7 @@ function CloudWorkspaceDataProvider({ children }: { children: ReactNode }) {
           actualDurationMinutes: minutes,
           ...(complete ? { completed: true } : {}),
         }),
-        () => repository.recordTaskActual(original, minutes, date, complete),
+        () => repository.recordTaskActual(original, minutes, date, complete, recording),
         original,
       );
       void queryClient.invalidateQueries({

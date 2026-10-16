@@ -7,6 +7,7 @@ export type StageTimeView = {
   selected?: string;
   active?: string;
   saving: boolean;
+  allocatedByTask?: Record<string, number>;
   select: (id: string) => void;
   hover: (id: string | undefined) => void;
   saveEstimate: SaveStageEstimate;

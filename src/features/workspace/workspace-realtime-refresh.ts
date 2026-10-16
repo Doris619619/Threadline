@@ -6,6 +6,7 @@ const queriesByTable: Record<string, string[]> = {
   tasks: ['tasks'],
   stage_plans: ['stage-plans'],
   task_time_entries: ['task-time-entries'],
+  task_timer_records: ['task-time-entries'],
   daily_templates: ['daily'],
   daily_template_items: ['daily'],
   daily_entries: ['daily'],

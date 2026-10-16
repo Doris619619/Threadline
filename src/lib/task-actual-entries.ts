@@ -1,5 +1,6 @@
 /** @fileoverview 本地演示按显式日期调整实际账本，与云端增量、固定历史和任务累计字段保持一致。 */
 import type { Task, TaskTimeEntry } from '@/types/domain';
+import type { RecordedTimer } from './timer-accounting';
 import { parseLocalDateKey } from './local-date';
 
 /** 返回新账本而不改输入；减少实际仅能扣减所选日期的投入，不能吞掉其他日期历史。 */
@@ -8,6 +9,7 @@ export function adjustTaskActualEntries(
   minutes: number | undefined,
   date: string,
   entries: TaskTimeEntry[],
+  timers: RecordedTimer[] = [],
 ): TaskTimeEntry[] {
   parseLocalDateKey(date);
   if (
@@ -39,6 +41,14 @@ export function adjustTaskActualEntries(
     throw new Error(
       '该日期的实际投入不足，不能减少其他日期的历史记录。请选择原投入日期。',
     );
+  if (
+    existing &&
+    existing.minutes + delta <
+      timers
+        .filter((timer) => timer.ledgerId === existing.id)
+        .reduce((sum, timer) => sum + timer.rawMinutes, 0)
+  )
+    throw new Error('原始计时记录已保留，只能减少额外手动补录的分钟。');
   return existing
     ? rows.map((entry) =>
         entry.id === existing.id ? { ...entry, minutes: entry.minutes + delta } : entry,

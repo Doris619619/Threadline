@@ -39,6 +39,69 @@ const timer: TaskTimer = {
   entryDate: '2026-10-03',
 };
 const countdownNow = Date.parse('2026-10-03T08:00:00Z');
+
+test('new timer retries reuse frozen intervals and reject stale-tab completion before sending', async () => {
+  const record = vi
+    .fn()
+    .mockRejectedValueOnce(new Error('网络结果未知'))
+    .mockResolvedValueOnce(undefined);
+  const remove = vi.fn();
+  const stamp = Date.parse('2026-10-03T08:00:00Z');
+  vi.spyOn(Date, 'now').mockReturnValue(stamp);
+  /** 模拟真实会话保存 pending，并保留原始时段供重试。 */
+  function RecordingHarness() {
+    const [value, setValue] = useState<TaskTimer>({
+      ...timer,
+      id: 'recording',
+      timezone: 'UTC',
+      intervals: [{ start: stamp - 60000, end: stamp }],
+    });
+    return (
+      <TaskTimerCard
+        task={task}
+        timer={value}
+        now={stamp}
+        today="2026-10-03"
+        onChange={setValue}
+        onExtend={vi.fn()}
+        onRecord={record}
+        onRemove={remove}
+      />
+    );
+  }
+  const view = render(<RecordingHarness />);
+  fireEvent.click(screen.getByRole('button', { name: '完成并记耗时' }));
+  await waitFor(() =>
+    expect(screen.getByRole('alert')).toHaveTextContent('网络结果未知'),
+  );
+  fireEvent.click(screen.getByRole('button', { name: '完成并记耗时' }));
+  await waitFor(() => expect(remove).toHaveBeenCalledOnce());
+  expect(record.mock.calls[0]).toEqual(record.mock.calls[1]);
+  expect(record.mock.calls[0][3]).toEqual({
+    id: 'recording',
+    timezone: 'UTC',
+    intervals: [{ start: stamp - 60000, end: stamp }],
+  });
+  view.unmount();
+  record.mockClear();
+  render(
+    <TaskTimerCard
+      task={task}
+      timer={timer}
+      now={stamp}
+      today="2026-10-03"
+      onChange={() => false}
+      onExtend={vi.fn()}
+      onRecord={record}
+      onRemove={remove}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: '完成并记耗时' }));
+  await waitFor(() =>
+    expect(screen.getByRole('alert')).toHaveTextContent('其他标签改变'),
+  );
+  expect(record).not.toHaveBeenCalled();
+});
 const expiredCountdown: TaskTimer = {
   ...timer,
   mode: 'down',

@@ -4,6 +4,8 @@ import type { ReportData } from './report-builder';
 
 /** 将分钟转为报告中的可读文本。 */
 function formatMinutes(minutes: number): string {
+  if (minutes > 0 && minutes < 0.5) return '不足 1 分钟';
+  minutes = Math.round(minutes);
   return minutes < 60
     ? `${minutes} 分钟`
     : `${Math.floor(minutes / 60)} 小时${minutes % 60 ? ` ${minutes % 60} 分钟` : ''}`;
@@ -48,6 +50,10 @@ export function ReportDocument({ report }: { report: ReportData }) {
           </dd>
         </div>
       </dl>
+      <p>
+        已保存计时的重叠时段只计一次，项目分布按任务均分。历史、手动补录和 Daily
+        没有时段，保留原值，无法去重。
+      </p>
       <p>估时偏差仅比较同时记录预计和实际的普通任务；未填写预计不视为零。</p>
       <section>
         <h2>项目投入</h2>

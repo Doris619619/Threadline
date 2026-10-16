@@ -25,6 +25,8 @@ export default defineConfig({
         'src/features/tasks/hooks/use-task-dashboard-data.ts',
         'src/features/tasks/task-time.ts',
         'src/lib/analytics.ts',
+        'src/lib/timer-accounting.ts',
+        'src/features/tasks/timer-rules.ts',
         'src/lib/task-rules.ts',
         'src/lib/task-factory.ts',
         'src/lib/project-rules.ts',

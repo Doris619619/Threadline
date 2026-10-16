@@ -1,5 +1,10 @@
 /** @fileoverview 多任务计时器的纯时间规则，以绝对时间恢复计时和到时续时，等待续时的空档不计入耗时。 */
 import type { Task } from '@/types/domain';
+import {
+  validTimerIntervals,
+  type TimerInterval,
+  type TimerRecording,
+} from '@/lib/timer-accounting';
 export type TaskTimer = {
   id: string;
   taskId: string;
@@ -13,7 +18,10 @@ export type TaskTimer = {
   /** 首次启动的绝对时刻；暂停、继续和刷新都保留，旧缓存可能缺失。 */
   firstStartedAt?: number;
   entryDate: string;
-  pending?: { original: Task; minutes: number };
+  /** 仅新会话记录完整时段；旧缓存缺失时不推算历史。 */
+  intervals?: TimerInterval[];
+  timezone?: string;
+  pending?: { original: Task; minutes: number; recording?: TimerRecording };
 };
 /** 后台挂起与刷新仍按墙钟累计；倒计时到零停止，系统时钟回拨不产生负耗时。 */
 export function timerElapsed(timer: TaskTimer, now: number) {
@@ -24,7 +32,23 @@ export function timerElapsed(timer: TaskTimer, now: number) {
 }
 /** 暂停保留精确毫秒，继续从新时间锚点计算。 */
 export function pauseTimer(timer: TaskTimer, now: number): TaskTimer {
-  return { ...timer, elapsedMs: timerElapsed(timer, now), startedAt: undefined };
+  const elapsedMs = timerElapsed(timer, now);
+  const length = elapsedMs - timer.elapsedMs;
+  const intervals =
+    timer.intervals === undefined
+      ? undefined
+      : [
+          ...timer.intervals,
+          ...(timer.startedAt !== undefined && length > 0
+            ? [{ start: timer.startedAt, end: timer.startedAt + length }]
+            : []),
+        ];
+  return {
+    ...timer,
+    ...(intervals ? { intervals } : {}),
+    elapsedMs,
+    startedAt: undefined,
+  };
 }
 /**
  * 为已到时且没有待保存账目的倒计时追加 1..1440 整数分钟并立即恢复。
@@ -48,7 +72,7 @@ export function extendCountdown(
   const elapsed = timerElapsed(timer, now);
   if (!Number.isFinite(elapsed) || elapsed < timer.targetMs) return timer;
   return {
-    ...timer,
+    ...pauseTimer(timer, now),
     elapsedMs: elapsed,
     targetMs: elapsed + minutes * 60000,
     startedAt: now,
@@ -89,15 +113,25 @@ export function normalizeTaskTimers(value: TaskTimer[]): TaskTimer[] {
                 timer.firstStartedAt <= 8.64e15)) &&
             /^\d{4}-\d{2}-\d{2}$/.test(timer.entryDate),
         )
-        .map((timer) =>
-          timer.firstStartedAt === undefined &&
-          timer.elapsedMs === 0 &&
-          timer.startedAt !== undefined &&
-          timer.startedAt >= 0 &&
-          timer.startedAt <= 8.64e15
+        .map((timer) => {
+          // 损坏或旧缓存只降级为无时段记录，不能丢弃已经累计的原始分钟。
+          if (
+            timer.intervals !== undefined &&
+            (!validTimerIntervals(timer.intervals) ||
+              !timer.timezone ||
+              timer.intervals.reduce((sum, part) => sum + part.end - part.start, 0) !==
+                timer.elapsedMs)
+          ) {
+            timer = { ...timer, intervals: undefined, timezone: undefined };
+          }
+          return timer.firstStartedAt === undefined &&
+            timer.elapsedMs === 0 &&
+            timer.startedAt !== undefined &&
+            timer.startedAt >= 0 &&
+            timer.startedAt <= 8.64e15
             ? { ...timer, firstStartedAt: timer.startedAt }
-            : timer,
-        )
+            : timer;
+        })
         .slice(0, 3)
     : [];
 }

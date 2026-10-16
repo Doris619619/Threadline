@@ -3,6 +3,7 @@
  */
 
 import type { TaskPatch } from '@/lib/task-patch';
+import type { TimerRecording } from '@/lib/timer-accounting';
 import { TaskConflictError } from '@/lib/task-patch';
 import type { WorkstationCommand } from '@/lib/workstation-command';
 import { readAllRows } from './pagination';
@@ -44,6 +45,8 @@ function assertResponse<T>(
     throw new Error(
       '该日期的实际投入不足，不能减少其他日期的历史记录。请选择原投入日期。',
     );
+  if (response.error?.message.includes('TASK_ACTUAL_BELOW_TIMER_RECORDS'))
+    throw new Error('原始计时记录已保留，只能减少额外手动补录的分钟。');
   if (response.error) throw new Error(`${operation}: ${response.error.message}`);
   if (response.data === null) throw new Error(`${operation}: empty response`);
   return response.data;
@@ -107,6 +110,12 @@ function mapTaskTimeEntry(row: JsonRecord): TaskTimeEntry {
     projectId: String(row.project_id),
     date: String(row.entry_date),
     minutes: Number(row.minutes),
+    ...(row.raw_minutes !== undefined
+      ? {
+          rawMinutes: Number(row.raw_minutes),
+          timing: row.timing as TaskTimeEntry['timing'],
+        }
+      : {}),
   };
 }
 
@@ -271,7 +280,7 @@ export class SupabaseWorkspaceRepository {
 
   /** 查询按业务日固定的实际投入；analytics 不能由可变 scheduled_date 推断。 */
   async listTaskTimeEntries(signal?: AbortSignal): Promise<TaskTimeEntry[]> {
-    const rows = await readAllRows(this.client, 'task_time_entries', {
+    const rows = await readAllRows(this.client, 'task_time_statistics', {
       signal,
       sort: 'entry_date',
     });
@@ -378,24 +387,28 @@ export class SupabaseWorkspaceRepository {
     minutes: number | undefined,
     date: string,
     complete = false,
+    recording?: TimerRecording,
   ): Promise<Task> {
     const expected = taskRow(original) as Record<string, unknown>;
-    const response = await this.client.rpc('record_task_actual', {
-      p_task_id: original.id,
-      p_minutes: minutes ?? null,
-      p_entry_date: date,
-      p_complete: complete,
-      p_expected: Object.fromEntries(
-        [
-          'status',
-          'scheduled_date',
-          'deleted_at',
-          'project_id',
-          'actual_duration_minutes',
-          ...(complete ? ['completed'] : []),
-        ].map((key) => [key, expected[key]]),
-      ),
-    });
+    const response = await this.client.rpc(
+      recording ? 'record_task_timer' : 'record_task_actual',
+      {
+        p_task_id: original.id,
+        p_minutes: minutes ?? null,
+        p_entry_date: date,
+        ...(recording ? { p_recording: recording } : { p_complete: complete }),
+        p_expected: Object.fromEntries(
+          [
+            'status',
+            'scheduled_date',
+            'deleted_at',
+            'project_id',
+            'actual_duration_minutes',
+            ...(complete ? ['completed'] : []),
+          ].map((key) => [key, expected[key]]),
+        ),
+      },
+    );
     return mapTask(assertResponse('record task actual', response) as JsonRecord);
   }
 
@@ -638,6 +651,7 @@ export class SupabaseWorkspaceRepository {
       date: String(row.close_date),
       closedAt: fromDatabaseInstant(String(row.closed_at)) ?? String(row.closed_at),
       projectMinutes: (row.project_minutes as Record<string, number> | null) ?? {},
+      timeAccountingVersion: Number(row.time_accounting_version ?? 0),
     }));
   }
 
@@ -669,6 +683,7 @@ export class SupabaseWorkspaceRepository {
       date: String(row.close_date),
       closedAt: fromDatabaseInstant(String(row.closed_at)) ?? String(row.closed_at),
       projectMinutes: (row.project_minutes as Record<string, number> | null) ?? {},
+      timeAccountingVersion: Number(row.time_accounting_version ?? 0),
     };
   }
 

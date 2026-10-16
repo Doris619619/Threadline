@@ -164,11 +164,19 @@ export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
   const timeEntries = input.taskTimeEntries;
   const authoritativeTaskTime = timeEntries !== undefined;
   const exactMinutesByTask = new Map<string, number>();
+  const rawMinutesByDateProject = new Map<string, number>();
   for (const entry of timeEntries ?? []) {
+    const key = `${entry.date}:${entry.projectId}`;
+    rawMinutesByDateProject.set(
+      key,
+      (rawMinutesByDateProject.get(key) ?? 0) +
+        safeMinutes(entry.rawMinutes ?? entry.minutes),
+    );
     if (!entry.taskId) continue;
     exactMinutesByTask.set(
       entry.taskId,
-      (exactMinutesByTask.get(entry.taskId) ?? 0) + safeMinutes(entry.minutes),
+      (exactMinutesByTask.get(entry.taskId) ?? 0) +
+        safeMinutes(entry.rawMinutes ?? entry.minutes),
     );
   }
   for (const task of input.tasks) {
@@ -206,7 +214,10 @@ export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
   }
 
   for (const entry of timeEntries ?? []) {
-    const actualMinutes = safeMinutes(entry.minutes);
+    const actualMinutes =
+      entry.timing === 'allocated' && Number.isFinite(entry.minutes)
+        ? Math.max(0, entry.minutes)
+        : safeMinutes(entry.minutes);
     if (actualMinutes === 0 || !isInRange(entry.date, input.range)) continue;
     const task = input.tasks.find((item) => item.id === entry.taskId);
     entries.push({
@@ -263,11 +274,15 @@ export function createAnalyticsResult(input: AnalyticsInput): AnalyticsResult {
   }
 
   for (const record of input.closeRecords) {
+    // 新快照保留作历史，不补回后续会话改变的分配差额；旧快照按原始账本核销覆盖量。
+    if (authoritativeTaskTime && record.timeAccountingVersion === 1) continue;
     if (!isInRange(record.date, input.range)) continue;
     for (const [projectId, rawMinutes] of Object.entries(record.projectMinutes)) {
       const closeMinutes = safeMinutes(rawMinutes);
-      const exactMinutes =
-        exactMinutesByDateProject.get(`${record.date}:${projectId}`) ?? 0;
+      const exactMinutes = Math.max(
+        exactMinutesByDateProject.get(`${record.date}:${projectId}`) ?? 0,
+        rawMinutesByDateProject.get(`${record.date}:${projectId}`) ?? 0,
+      );
       const actualMinutes = closeMinutes - exactMinutes;
       // close 小于已有 ledger 时不构造负分钟或篡改精确账本；该 aggregate 不可安全使用。
       if (actualMinutes < 0) {

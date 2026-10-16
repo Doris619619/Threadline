@@ -71,7 +71,9 @@ export function TimeTaskList({
                     (view.metric === 'remaining' && task.completed
                       ? 0
                       : view.metric === 'actual'
-                        ? (task.actualDurationMinutes ?? 0)
+                        ? (view.allocatedByTask?.[task.id] ??
+                          task.actualDurationMinutes ??
+                          0)
                         : (task.plannedDurationMinutes ?? 0)),
                   0,
                 ),
