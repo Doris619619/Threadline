@@ -10,11 +10,11 @@
 
 ## 数据与发布顺序
 
-先部署 `202610160001_timer_overlap_accounting.sql`，再合并发布客户端。迁移新增会话表、账号隔离统计投影与原子 RPC，保护已经保存的原始分钟；Daily 继续独立统计，旧账本和收尾快照不回填。发布前 dry-run 确认关联生产库只缺此项迁移。生产部署结果在本轮完成后补记。
+先部署 `202610160001_timer_overlap_accounting.sql`，再合并发布客户端。迁移新增会话表、账号隔离统计投影与原子 RPC，保护已经保存的原始分钟；Daily 继续独立统计，旧账本和收尾快照不回填。发布前 dry-run 确认关联生产库只缺此项迁移。2026-10-16 已成功应用这一项迁移，随后 dry-run 确认无待迁移；只读核验通过 RLS、security invoker 视图、RPC 权限与 Realtime。没有对真实账号执行业务写入。
 
 ## 验证
 
-本轮检查包含 lint、TypeScript、覆盖率、SQL 静态合同、隔离 PostgreSQL 回归，以及 Electron 原生窗口和计时操作。最终合并要求 #60 同一提交的 Web、Preview、Supabase 和 Windows Electron CI 均通过。
+本地 lint、TypeScript、109 文件 / 589 项单元测试与覆盖率门禁已通过；隔离 PostgreSQL 的计时 23、阶段 51、两人空间 73 项检查和 SQL 静态合同通过。完整 Electron 原生窗口回归、跨 DPI 恢复及 packaged EXE smoke 通过。最终合并要求 #60 同一提交的 Web、Preview、Supabase 和 Windows Electron CI 均通过。
 
 计时站验收覆盖一至三张卡片、200/240/339/340 DIP、横纵切换与尺寸记忆、跨窗口暂停/继续、倒计时续时、完成幂等、返回工作视图、最小化、关闭、重载和显示器恢复。尺寸验收检查真实原生最小限制并模拟拖动事件，不冒充物理鼠标、多屏拔插和 NSIS 升级验收。
 
