@@ -328,6 +328,39 @@ try {
       ),
     )
     .toBe(false);
+  // 计时站能从工作站、贴边收起、full 最小化三个状态恢复原主窗口，且不改动计时缓存。
+  const timersBeforeOpen = await page.evaluate(() =>
+    localStorage.getItem('threadline.task-timers.v1:local'),
+  );
+  for (const state of ['workstation', 'edge-collapsed', 'minimized-full']) {
+    if (state === 'edge-collapsed') {
+      await page.getByRole('button', { name: '工作站', exact: true }).click();
+      await page.getByRole('button', { name: '收起', exact: false }).click();
+    } else if (state === 'minimized-full') {
+      await page.evaluate(() => window.threadlineDesktop.minimizeMainWindow());
+    }
+    await station.getByRole('button', { name: '打开完整工作台', exact: true }).click();
+    await expect(page.locator('.full-window-chrome')).toBeVisible();
+    await expect
+      .poll(() =>
+        application.evaluate(({ BrowserWindow }) => {
+          const main = BrowserWindow.getAllWindows().find((w) =>
+            w.webContents.getURL().includes('role=main'),
+          );
+          return main.isVisible() && !main.isMinimized() && main.isFocused();
+        }),
+      )
+      .toBe(true);
+    await expect(station.locator('.task-timer')).toHaveCount(2);
+    await expectStationSize(380, 390);
+    assert.equal(
+      await page.evaluate(() =>
+        localStorage.getItem('threadline.task-timers.v1:local'),
+      ),
+      timersBeforeOpen,
+    );
+  }
+  await page.getByRole('button', { name: '工作站', exact: true }).click();
   for (let remaining = 2; remaining > 0; remaining--) {
     await station.getByRole('button', { name: '完成并记耗时' }).first().click();
     await expect(station.locator('.task-timer')).toHaveCount(remaining - 1);
@@ -358,7 +391,7 @@ try {
   await expectStationSize(380, 390);
   await verifyLayout(restartedStation);
   console.log(
-    'PASS: native resize enabled, narrow layout, per-layout size memory across pin/count changes and app restart; native portal, both layouts, no overlap, pause/resume sync, start time, pin, minimize/restore, close/reopen, extension, exactly one recording per timer, empty state, workstation coexistence, reload cleanup, denied external popup/invalid configuration',
+    'PASS: station opens full workspace from workstation, collapsed edge and minimized full without changing timers; native resize enabled, narrow layout, per-layout size memory across pin/count changes and app restart; native portal, both layouts, no overlap, pause/resume sync, start time, pin, minimize/restore, close/reopen, extension, exactly one recording per timer, empty state, workstation coexistence, reload cleanup, denied external popup/invalid configuration',
   );
   console.log(`Screenshots: ${output}`);
   if (show) {

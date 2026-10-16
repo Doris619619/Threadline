@@ -1,9 +1,10 @@
-/** @fileoverview 计时站窗口外壳：横纵排列、置顶和窗口控制，卡片由唯一计时会话提供。 */
+/** @fileoverview 计时站窗口外壳：返回完整工作台、横纵排列、置顶和窗口控制，卡片由唯一计时会话提供。 */
 'use client';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { Minus, Pin, X } from 'lucide-react';
+import { PanelsTopLeft, Minus, Pin, X } from 'lucide-react';
 import { getMainDesktopBridge, type TimerStationCommand } from '@/lib/desktop-bridge';
 import { usePersistentState } from '@/hooks/use-persistent-state';
+import { useDesktopWindow } from '@/lib/desktop-window-context';
 
 type Preferences = { layout: 'horizontal' | 'vertical'; pinned: boolean };
 /** 持久化值只允许两种排列，损坏或旧配置回到横向置顶。 */
@@ -14,7 +15,7 @@ function normalize(value: Preferences): Preferences {
   };
 }
 
-/** 只在数量、排列或置顶变化时更新原生窗口，秒级计时刷新不会抢焦点。 */
+/** 共享父窗口桌面上下文以恢复完整工作台；仅配置变化时更新计时站，秒级刷新不抢焦点。 */
 export function TimerStation({
   count,
   children,
@@ -28,6 +29,8 @@ export function TimerStation({
     normalize,
   );
   const [error, setError] = useState('');
+  const [openingWorkspace, setOpeningWorkspace] = useState(false);
+  const { setMode } = useDesktopWindow();
   const { layout, pinned } = preferences;
   useEffect(() => {
     if (!hydrated) return;
@@ -41,6 +44,20 @@ export function TimerStation({
       ?.timerStationControl?.(command)
       .catch(() => setError('窗口操作失败，请重试。'));
   }
+  /** 先通过共享状态切到 full，再恢复并聚焦原主窗口；full 已选中时仍需唤醒最小化窗口。 */
+  async function openWorkspace() {
+    if (openingWorkspace) return;
+    setOpeningWorkspace(true);
+    setError('');
+    try {
+      await setMode('full');
+      await getMainDesktopBridge()?.bringToFront();
+    } catch {
+      setError('打开完整工作台失败，请重试。');
+    } finally {
+      setOpeningWorkspace(false);
+    }
+  }
   return (
     <main
       className="timer-station"
@@ -51,6 +68,15 @@ export function TimerStation({
       <header className="timer-station-header">
         <h1>计时站</h1>
         <div className="timer-station-controls">
+          <button
+            type="button"
+            aria-label="打开完整工作台"
+            title="打开完整工作台"
+            disabled={openingWorkspace}
+            onClick={() => void openWorkspace()}
+          >
+            <PanelsTopLeft size={16} strokeWidth={1.6} aria-hidden="true" />
+          </button>
           <div className="timer-station-layout" role="group" aria-label="卡片排列">
             <button
               type="button"
