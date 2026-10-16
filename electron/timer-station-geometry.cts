@@ -8,16 +8,18 @@ export type StationLayout = 'horizontal' | 'vertical';
 type Size = { width: number; height: number };
 type Sizes = Partial<Record<StationLayout, Size>>;
 export const STATION_MIN_HEIGHT = 112;
+export const STATION_MIN_WIDTH = 200;
 
-/** 与卡片适配基准一致：44 标题栏 + 20 外边距；只收掉空白，不强行撑大用户选定的高度。 */
+/** 与响应式标题栏一致：宽窗 44、窄窗 80，再加 20 外边距；只收空白，不撑大用户高度。 */
 function compactHeight(size: Size, layout: StationLayout, count: number): number {
   if (!count) return size.height;
   const baseWidth = layout === 'horizontal' ? count * 300 + (count - 1) * 10 : 320;
   const baseHeight = layout === 'horizontal' ? 144 : count * 144 + (count - 1) * 10;
   const scale = Math.min(1.25, Math.max(1, size.width - 20) / baseWidth);
+  const headerHeight = size.width < 340 ? 80 : 44;
   return Math.min(
     size.height,
-    Math.max(STATION_MIN_HEIGHT, Math.ceil(64 + baseHeight * scale)),
+    Math.max(STATION_MIN_HEIGHT, Math.ceil(headerHeight + 20 + baseHeight * scale)),
   );
 }
 
@@ -31,7 +33,7 @@ function readSizes(path: string): Sizes {
       if (
         Number.isInteger(size?.width) &&
         Number.isInteger(size?.height) &&
-        size.width >= 340 &&
+        size.width >= STATION_MIN_WIDTH &&
         size.height >= STATION_MIN_HEIGHT &&
         size.width <= 16384 &&
         size.height <= 16384
@@ -97,7 +99,7 @@ export function createStationGeometry(window: BrowserWindow) {
       area.height,
     );
     window.setMinimumSize(
-      Math.min(340, area.width),
+      Math.min(STATION_MIN_WIDTH, area.width),
       Math.min(STATION_MIN_HEIGHT, area.height),
     );
     applyFramelessGeometry(window, {

@@ -88,16 +88,32 @@ async function open(page, count = 3) {
 
 /** 检查真实渲染边界：全部卡片完整可见，读数和按钮同排，缩放后标题和开始时间仍在卡片内。 */
 async function verifyLayout(station) {
-  const headerFits = await station
-    .locator('.timer-station-header')
-    .evaluate((header) => {
-      const title = header.querySelector('h1').getBoundingClientRect();
-      const controls = header
-        .querySelector('.timer-station-controls')
-        .getBoundingClientRect();
-      return title.right + 4 <= controls.left && controls.right <= header.clientWidth;
-    });
-  assert.ok(headerFits, '文字入口和窗口控件应在最窄标题栏中完整显示');
+  await expect
+    .poll(() =>
+      station.locator('.timer-station-header').evaluate((header) => {
+        const bounds = header.getBoundingClientRect();
+        const controls = [...header.querySelectorAll('h1, button')].map((node) =>
+          node.getBoundingClientRect(),
+        );
+        return controls.every(
+          (box, i) =>
+            box.left >= bounds.left &&
+            box.right <= bounds.right + 1 &&
+            box.top >= bounds.top &&
+            box.bottom <= bounds.bottom + 1 &&
+            controls
+              .slice(i + 1)
+              .every(
+                (other) =>
+                  box.right <= other.left + 1 ||
+                  other.right <= box.left + 1 ||
+                  box.bottom <= other.top + 1 ||
+                  other.bottom <= box.top + 1,
+              ),
+        );
+      }),
+    )
+    .toBe(true);
   await expect
     .poll(async () =>
       station.locator('.task-timer').evaluateAll((cards) =>
@@ -176,6 +192,8 @@ async function resizeStation(width, height, fittedHeight = height) {
       /** 在主进程验证原生边框允许调整，不依赖渲染器的 CSS resize。 */
       function assertResizable(target) {
         if (!target.isResizable()) throw new Error('计时站未启用原生调整大小');
+        // setContentSize 可绕过系统最小值，必须另外检查真实拖动受到的限制。
+        if (target.getMinimumSize()[0] > 200) throw new Error('原生最小宽度仍限制缩窄');
       }
       window.emit(
         'will-resize',
@@ -262,6 +280,10 @@ try {
     path: join(output, 'horizontal-smallest.png'),
     scale: 'css',
   });
+  await resizeStation(200, 208, 129);
+  await verifyLayout(station);
+  await resizeStation(320, 208, 147);
+  await verifyLayout(station);
   await resizeStation(940, 300, 208);
   await verifyLayout(station);
   await resizeStation(640, 240, 162);
@@ -296,6 +318,41 @@ try {
   );
   await verifyLayout(station);
   await station.screenshot({ path: join(output, 'vertical.png'), scale: 'css' });
+  // 窄窗口按两行重排标题栏；跨断点缩放后卡片、入口和控件均不能相互覆盖。
+  await resizeStation(240, 500, 411);
+  await verifyLayout(station);
+  await station.screenshot({ path: join(output, 'vertical-narrow.png'), scale: 'css' });
+  await resizeStation(200, 500, 355);
+  await verifyLayout(station);
+  await station.screenshot({
+    path: join(output, 'vertical-minimum.png'),
+    scale: 'css',
+  });
+  await station.getByRole('button', { name: '关闭计时站' }).click();
+  station = await open(page);
+  await expectStationSize(200, 355);
+  await verifyLayout(station);
+  await station.getByRole('button', { name: '取消置顶' }).click();
+  await station.getByRole('button', { name: '置顶窗口' }).click();
+  await station
+    .locator('.task-timer')
+    .first()
+    .getByRole('button', { name: '暂停', exact: true })
+    .click();
+  await station
+    .locator('.task-timer')
+    .first()
+    .getByRole('button', { name: '继续', exact: true })
+    .click();
+  await station.getByRole('button', { name: '打开完整工作台', exact: true }).click();
+  await expectSurfaces(true, false);
+  await page.getByRole('button', { name: '计时站', exact: true }).click();
+  await expectSurfaces(false, true);
+  await expectStationSize(200, 355);
+  await resizeStation(339, 500);
+  await verifyLayout(station);
+  await resizeStation(340, 500);
+  await verifyLayout(station);
   await resizeStation(380, 390);
   await verifyLayout(station);
   await resizeStation(340, 208);
@@ -574,8 +631,8 @@ try {
   );
   console.log(`Screenshots: ${output}`);
   if (show) {
-    await restartedStation.getByRole('button', { name: '横向', exact: true }).click();
-    await resizeStation(940, 208);
+    await restartedStation.getByRole('button', { name: '纵向', exact: true }).click();
+    await resizeStation(240, 500, 411);
     await restartedPage.evaluate(() =>
       window.threadlineDesktop.timerStationControl({ action: 'focus' }),
     );

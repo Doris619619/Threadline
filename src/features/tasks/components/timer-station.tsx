@@ -96,32 +96,34 @@ export function TimerStation({
               横向
             </button>
           </div>
-          <button
-            type="button"
-            className="timer-station-pin"
-            aria-label={pinned ? '取消置顶' : '置顶窗口'}
-            title={pinned ? '取消置顶' : '置顶窗口'}
-            aria-pressed={pinned}
-            onClick={() => setPreferences({ ...preferences, pinned: !pinned })}
-          >
-            <Pin size={16} strokeWidth={1.6} />
-          </button>
-          <button
-            type="button"
-            aria-label="最小化计时站"
-            title="最小化"
-            onClick={() => control({ action: 'minimize' })}
-          >
-            <Minus size={16} strokeWidth={1.6} />
-          </button>
-          <button
-            type="button"
-            aria-label="关闭计时站"
-            title="关闭计时站，保留计时"
-            onClick={() => control({ action: 'close' })}
-          >
-            <X size={16} strokeWidth={1.6} />
-          </button>
+          <div className="timer-station-window-controls">
+            <button
+              type="button"
+              className="timer-station-pin"
+              aria-label={pinned ? '取消置顶' : '置顶窗口'}
+              title={pinned ? '取消置顶' : '置顶窗口'}
+              aria-pressed={pinned}
+              onClick={() => setPreferences({ ...preferences, pinned: !pinned })}
+            >
+              <Pin size={16} strokeWidth={1.6} />
+            </button>
+            <button
+              type="button"
+              aria-label="最小化计时站"
+              title="最小化"
+              onClick={() => control({ action: 'minimize' })}
+            >
+              <Minus size={16} strokeWidth={1.6} />
+            </button>
+            <button
+              type="button"
+              aria-label="关闭计时站"
+              title="关闭计时站，保留计时"
+              onClick={() => control({ action: 'close' })}
+            >
+              <X size={16} strokeWidth={1.6} />
+            </button>
+          </div>
         </div>
       </header>
       <section

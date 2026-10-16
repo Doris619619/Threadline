@@ -4,6 +4,7 @@ import type { IpcMainInvokeEvent } from 'electron';
 import {
   createStationGeometry,
   STATION_MIN_HEIGHT,
+  STATION_MIN_WIDTH,
 } from './timer-station-geometry.cjs';
 
 type Layout = 'horizontal' | 'vertical';
@@ -128,7 +129,7 @@ export function attachTimerStation(
           Math.min(mainBounds.y, area.y + area.height - Math.min(208, area.height)),
         ),
         resizable: true,
-        minWidth: Math.min(340, area.width),
+        minWidth: Math.min(STATION_MIN_WIDTH, area.width),
         minHeight: Math.min(STATION_MIN_HEIGHT, area.height),
         maximizable: false,
         fullscreenable: false,

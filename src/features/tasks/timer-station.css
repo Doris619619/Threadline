@@ -44,11 +44,46 @@ html[data-timer-station='true'],
   font-weight: 400;
   white-space: nowrap;
 }
-.timer-station-controls {
+.timer-station-controls,
+.timer-station-window-controls {
   display: flex;
   align-items: center;
   gap: 3px;
   -webkit-app-region: no-drag;
+}
+/* 窄原生窗口将导航和排列移至第二行，操作控件保留可点击尺寸；与原生高度策略同步。 */
+@media (width < 340px) {
+  .timer-station-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: 30px 30px;
+    flex-basis: 80px;
+    gap: 6px;
+    padding: 6px 8px 7px;
+  }
+  .timer-station-header h1 {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .timer-station-controls {
+    display: contents;
+  }
+  .timer-station-window-controls {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .timer-station-workspace-link {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+    -webkit-app-region: no-drag;
+  }
+  .timer-station-layout {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+    -webkit-app-region: no-drag;
+  }
 }
 .timer-station-controls button {
   display: grid;
