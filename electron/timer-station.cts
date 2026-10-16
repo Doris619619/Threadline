@@ -1,14 +1,14 @@
 /** @fileoverview 独立计时站的原生窗口生命周期；只开放同源展示页与有限窗口控制，不持有计时业务状态。 */
 import { BrowserWindow, ipcMain, screen } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
-import { applyFramelessGeometry } from './window-geometry.cjs';
+import { createStationGeometry } from './timer-station-geometry.cjs';
 
 type Layout = 'horizontal' | 'vertical';
 let station: BrowserWindow | undefined;
 let owner: BrowserWindow | undefined;
 let stationUrl = '';
-let lastLayout: Layout = 'horizontal';
-let lastCount = 0;
+let geometry: ReturnType<typeof createStationGeometry> | undefined;
+let configured = false;
 
 /** 主窗口或计时站的顶层可信 frame 才可控制这个窗口；拒绝子 frame 和其他窗口。 */
 function trusted(event: IpcMainInvokeEvent): boolean {
@@ -21,35 +21,10 @@ function trusted(event: IpcMainInvokeEvent): boolean {
   );
 }
 
-/** 按显示器工作区限制尺寸与位置；横向在小屏上滚动卡片，纵向在高度不足时滚动。 */
-function fitStation(layout: Layout, count: number): void {
-  if (!station || station.isDestroyed()) return;
-  const bounds = station.getBounds();
-  const area = screen.getDisplayMatching(bounds).workArea;
-  const width = Math.min(
-    area.width,
-    layout === 'horizontal'
-      ? Math.max(380, count * 328 + Math.max(0, count - 1) * 12 + 32)
-      : 380,
-  );
-  const height = Math.min(
-    area.height,
-    layout === 'horizontal'
-      ? 280
-      : Math.max(280, count * 184 + Math.max(0, count - 1) * 12 + 96),
-  );
-  applyFramelessGeometry(station, {
-    width,
-    height,
-    x: Math.max(area.x, Math.min(bounds.x, area.x + area.width - width)),
-    y: Math.max(area.y, Math.min(bounds.y, area.y + area.height - height)),
-  });
-}
-
-/** 仅注册一次受限窗口命令；计时、保存和账号状态始终归父 React 会话所有。 */
+/** 仅注册一次受限窗口命令；显示器恢复和尺寸记忆由独立几何模块处理。 */
 export function registerTimerStationIpc(): void {
   /** 拔下外接屏后将计时站移回仍可见的工作区，不影响工作站的独立几何。 */
-  const recoverDisplay = () => fitStation(lastLayout, lastCount);
+  const recoverDisplay = () => geometry?.recover();
   screen.on('display-removed', recoverDisplay);
   screen.on('display-metrics-changed', recoverDisplay);
   ipcMain.handle('desktop:timer-station', (event, command: unknown) => {
@@ -66,11 +41,10 @@ export function registerTimerStationIpc(): void {
         typeof value.pinned !== 'boolean'
       )
         throw new Error('无效计时站配置');
-      lastLayout = value.layout as Layout;
-      lastCount = Number(value.count);
-      fitStation(lastLayout, lastCount);
+      geometry?.configure(value.layout as Layout, Number(value.count));
       station.setAlwaysOnTop(value.pinned);
-      station.show();
+      if (!configured) station.show();
+      configured = true;
     } else if (value.action === 'minimize') station.minimize();
     else if (value.action === 'close') station.close();
     else if (value.action === 'focus') {
@@ -100,7 +74,7 @@ export function attachTimerStation(
       return { action: 'deny' };
     const mainBounds = main.getBounds();
     const area = screen.getDisplayMatching(mainBounds).workArea;
-    const width = Math.min(1040, area.width);
+    const width = Math.min(940, area.width);
     return {
       action: 'allow',
       outlivesOpener: false,
@@ -110,16 +84,18 @@ export function attachTimerStation(
         frame: false,
         show: false,
         width,
-        height: Math.min(280, area.height),
+        height: Math.min(208, area.height),
         x: Math.max(
           area.x,
           Math.min(mainBounds.x + mainBounds.width + 12, area.x + area.width - width),
         ),
         y: Math.max(
           area.y,
-          Math.min(mainBounds.y, area.y + area.height - Math.min(280, area.height)),
+          Math.min(mainBounds.y, area.y + area.height - Math.min(208, area.height)),
         ),
-        resizable: false,
+        resizable: true,
+        minWidth: Math.min(340, area.width),
+        minHeight: Math.min(208, area.height),
         maximizable: false,
         fullscreenable: false,
         backgroundColor: '#faf8f3',
@@ -136,6 +112,8 @@ export function attachTimerStation(
   });
   main.webContents.on('did-create-window', (child) => {
     station = child;
+    geometry = createStationGeometry(child);
+    configured = false;
     // 时钟运行在父会话；父窗口最小化/贴边隐藏时也必须每秒刷新可见计时站。
     const previousThrottling = main.webContents.getBackgroundThrottling();
     main.webContents.setBackgroundThrottling(false);
@@ -149,7 +127,11 @@ export function attachTimerStation(
     child.webContents.on('will-redirect', (event) => event.preventDefault());
     child.webContents.on('render-process-gone', () => child.destroy());
     child.on('closed', () => {
-      if (station === child) station = undefined;
+      if (station === child) {
+        station = undefined;
+        geometry = undefined;
+        configured = false;
+      }
       if (!main.isDestroyed() && !main.webContents.isDestroyed())
         main.webContents.setBackgroundThrottling(previousThrottling);
     });

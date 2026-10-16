@@ -1,6 +1,6 @@
 /** @fileoverview 计时站窗口外壳：横纵排列、置顶和窗口控制，卡片由唯一计时会话提供。 */
 'use client';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { Minus, Pin, X } from 'lucide-react';
 import { getMainDesktopBridge, type TimerStationCommand } from '@/lib/desktop-bridge';
 import { usePersistentState } from '@/hooks/use-persistent-state';
@@ -42,7 +42,12 @@ export function TimerStation({
       .catch(() => setError('窗口操作失败，请重试。'));
   }
   return (
-    <main className="timer-station" data-layout={layout} aria-label="计时站">
+    <main
+      className="timer-station"
+      data-layout={layout}
+      aria-label="计时站"
+      style={{ '--station-count': Math.max(1, count) } as CSSProperties}
+    >
       <header className="timer-station-header">
         <h1>计时站</h1>
         <div className="timer-station-controls">
@@ -70,7 +75,7 @@ export function TimerStation({
             aria-pressed={pinned}
             onClick={() => setPreferences({ ...preferences, pinned: !pinned })}
           >
-            <Pin size={20} strokeWidth={1.6} />
+            <Pin size={16} strokeWidth={1.6} />
           </button>
           <button
             type="button"
@@ -78,7 +83,7 @@ export function TimerStation({
             title="最小化"
             onClick={() => control({ action: 'minimize' })}
           >
-            <Minus size={20} strokeWidth={1.6} />
+            <Minus size={16} strokeWidth={1.6} />
           </button>
           <button
             type="button"
@@ -86,7 +91,7 @@ export function TimerStation({
             title="关闭计时站，保留计时"
             onClick={() => control({ action: 'close' })}
           >
-            <X size={20} strokeWidth={1.6} />
+            <X size={16} strokeWidth={1.6} />
           </button>
         </div>
       </header>

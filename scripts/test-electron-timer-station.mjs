@@ -1,6 +1,6 @@
 /** @fileoverview 用隔离本地适配器与真实 threadline 协议验收计时站；可带 --show 保留演示窗口，不生成安装包。 */
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { _electron as electron, expect } from 'playwright/test';
@@ -11,6 +11,14 @@ await mkdir(output, { recursive: true });
 const show = process.argv.includes('--show');
 let application;
 const errors = [];
+// 不可信旧尺寸不能导致窗口不可见或过大；首次配置必须回退紧凑默认值。
+await writeFile(
+  join(userData, 'timer-station-sizes.json'),
+  JSON.stringify({
+    horizontal: { width: -1, height: 999999 },
+    vertical: null,
+  }),
+);
 
 /** 为隔离测试用户填充三条真实领域任务和可记账计时；不访问使用者账号或资料目录。 */
 async function seed(page) {
@@ -102,6 +110,46 @@ async function verifyLayout(station) {
   );
 }
 
+/** 使用真实 BrowserWindow 调整尺寸并模拟原生拖动起止事件；检验记忆逻辑，不冒充物理鼠标验收。 */
+async function resizeStation(width, height) {
+  await application.evaluate(
+    ({ BrowserWindow }, size) => {
+      const window = BrowserWindow.getAllWindows().find((w) =>
+        w.webContents.getURL().includes('timer-station'),
+      );
+      assertResizable(window);
+      /** 在主进程验证原生边框允许调整，不依赖渲染器的 CSS resize。 */
+      function assertResizable(target) {
+        if (!target.isResizable()) throw new Error('计时站未启用原生调整大小');
+      }
+      window.emit(
+        'will-resize',
+        {},
+        { ...window.getBounds(), ...size },
+        { edge: 'bottom-right' },
+      );
+      window.setContentSize(size.width, size.height);
+      window.emit('resized');
+    },
+    { width, height },
+  );
+  await expectStationSize(width, height);
+}
+
+/** 以内容逻辑像素比较尺寸，容忍 Windows DPI 下的一像素舍入。 */
+async function expectStationSize(width, height) {
+  await expect
+    .poll(async () => {
+      const size = await application.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows()
+          .find((w) => w.webContents.getURL().includes('timer-station'))
+          .getContentSize(),
+      );
+      return Math.abs(size[0] - width) <= 1 && Math.abs(size[1] - height) <= 1;
+    })
+    .toBe(true);
+}
+
 try {
   application = await electron.launch({
     args: ['.', `--user-data-dir=${userData}`],
@@ -112,6 +160,7 @@ try {
   await page.getByRole('button', { name: '计时站', exact: true }).waitFor();
   await seed(page);
   let station = await open(page);
+  await expectStationSize(940, 208);
   assert.equal(
     await application.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()
@@ -121,7 +170,17 @@ try {
     false,
   );
   await verifyLayout(station);
-  await station.screenshot({ path: join(output, 'horizontal.png') });
+  await station.screenshot({ path: join(output, 'horizontal.png'), scale: 'css' });
+  await resizeStation(340, 208);
+  await verifyLayout(station);
+  await resizeStation(940, 300);
+  await verifyLayout(station);
+  await resizeStation(640, 240);
+  await verifyLayout(station);
+  await station.screenshot({
+    path: join(output, 'horizontal-resized.png'),
+    scale: 'css',
+  });
   assert.deepEqual(
     await station.evaluate(() => Object.keys(window.threadlineDesktop).sort()),
     ['environment', 'role'],
@@ -140,13 +199,20 @@ try {
     false,
   );
   await station.getByRole('button', { name: '置顶窗口' }).click();
+  await expectStationSize(640, 240);
   await station.getByRole('button', { name: '纵向', exact: true }).click();
   await expect(station.locator('.timer-station')).toHaveAttribute(
     'data-layout',
     'vertical',
   );
   await verifyLayout(station);
-  await station.screenshot({ path: join(output, 'vertical.png') });
+  await station.screenshot({ path: join(output, 'vertical.png'), scale: 'css' });
+  await resizeStation(380, 390);
+  await verifyLayout(station);
+  await station.getByRole('button', { name: '横向', exact: true }).click();
+  await expectStationSize(640, 240);
+  await station.getByRole('button', { name: '纵向', exact: true }).click();
+  await expectStationSize(380, 390);
   const first = station.locator('.task-timer').first();
   const startLabel = await first.locator('.task-timer-date').textContent();
   await first.getByRole('button', { name: '暂停', exact: true }).click();
@@ -166,6 +232,7 @@ try {
   await station.getByRole('button', { name: '关闭计时站' }).click();
   await expect(page.locator('.task-timer')).toHaveCount(3);
   station = await open(page);
+  await expectStationSize(380, 390);
   await expect(station.locator('.timer-station')).toHaveAttribute(
     'data-layout',
     'vertical',
@@ -198,6 +265,7 @@ try {
     .getByRole('button', { name: '完成并记耗时' })
     .click();
   await expect(station.locator('.task-timer')).toHaveCount(2);
+  await expectStationSize(380, 390);
   await expect(page.locator('.task-timer')).toHaveCount(2);
   const records = await page.evaluate(() =>
     JSON.parse(localStorage.getItem('threadline.task-timer-records.v1')),
@@ -233,6 +301,23 @@ try {
       ),
     )
     .toBe(true);
+  // 后台配置更新不能唤醒已最小化的计时站。
+  await page.evaluate(() =>
+    window.threadlineDesktop.timerStationControl({
+      action: 'configure',
+      layout: 'vertical',
+      count: 2,
+      pinned: false,
+    }),
+  );
+  assert.equal(
+    await application.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()
+        .find((w) => w.webContents.getURL().includes('timer-station'))
+        .isMinimized(),
+    ),
+    true,
+  );
   await page.getByRole('button', { name: '打开计时站', exact: true }).click();
   await expect
     .poll(() =>
@@ -257,17 +342,30 @@ try {
   await page.reload();
   await expect.poll(() => station.isClosed()).toBe(true);
   assert.deepEqual(errors, []);
+  // 用相同隔离目录重启整个 Electron，检验尺寸确实落盘，而非仅留在模块内存。
+  await page.getByRole('button', { name: '打开完整工作台', exact: true }).click();
+  await application.close();
+  application = await electron.launch({
+    args: ['.', `--user-data-dir=${userData}`],
+    env: { ...process.env, THREADLINE_ELECTRON_RENDERER_URL: 'threadline://app/' },
+  });
+  const restartedPage = await application.firstWindow();
+  await restartedPage.getByRole('button', { name: '计时站', exact: true }).waitFor();
+  await seed(restartedPage);
+  const restartedStation = await open(restartedPage);
+  await expectStationSize(640, 240);
+  await restartedStation.getByRole('button', { name: '纵向', exact: true }).click();
+  await expectStationSize(380, 390);
+  await verifyLayout(restartedStation);
   console.log(
-    'PASS: native portal, both layouts, no overlap, pause/resume sync, start time, pin, minimize/restore, close/reopen, extension, exactly one recording per timer, empty state, workstation coexistence, reload cleanup, denied external popup/invalid configuration',
+    'PASS: native resize enabled, narrow layout, per-layout size memory across pin/count changes and app restart; native portal, both layouts, no overlap, pause/resume sync, start time, pin, minimize/restore, close/reopen, extension, exactly one recording per timer, empty state, workstation coexistence, reload cleanup, denied external popup/invalid configuration',
   );
   console.log(`Screenshots: ${output}`);
   if (show) {
-    await page.getByRole('button', { name: '打开完整工作台', exact: true }).click();
-    await seed(page);
-    const demo = await open(page);
-    await demo.getByRole('button', { name: '横向', exact: true }).click();
-    await page.evaluate(() => window.threadlineDesktop.minimizeMainWindow());
-    await page.evaluate(() =>
+    await restartedStation.getByRole('button', { name: '横向', exact: true }).click();
+    await resizeStation(940, 208);
+    await restartedPage.evaluate(() => window.threadlineDesktop.minimizeMainWindow());
+    await restartedPage.evaluate(() =>
       window.threadlineDesktop.timerStationControl({ action: 'focus' }),
     );
     console.log('DEMO_READY: isolated local adapter; close windows to exit.');
