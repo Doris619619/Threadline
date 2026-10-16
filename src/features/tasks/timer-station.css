@@ -1,0 +1,292 @@
+/** @fileoverview 紧凑暖白计时站；卡片整体适配窗口，固定信息层级和按钮位置，不使用裁切滚动或手机换行。 */
+html[data-timer-station='true'],
+html[data-timer-station='true'] body {
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  background: #faf8f3;
+  overflow: hidden;
+  color-scheme: light;
+}
+html[data-timer-station='true'],
+.timer-station {
+  --surface: #fffdf8;
+  --text-primary: #303029;
+  --text-secondary: #716e63;
+  --border: #e7e0d2;
+  --border-subtle: #e7e0d2;
+  --success: #4b6a15;
+  --danger: #b44840;
+}
+.timer-station {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #faf8f3;
+  color: var(--text-primary);
+  font-family: Georgia, 'Noto Serif SC', 'SimSun', serif;
+}
+.timer-station-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex: 0 0 44px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+.timer-station-header h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.timer-station-controls,
+.timer-station-window-controls {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  -webkit-app-region: no-drag;
+}
+/* 窄原生窗口将导航和排列移至第二行，操作控件保留可点击尺寸；与原生高度策略同步。 */
+@media (width < 340px) {
+  .timer-station-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: 30px 30px;
+    flex-basis: 80px;
+    gap: 6px;
+    padding: 6px 8px 7px;
+  }
+  .timer-station-header h1 {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .timer-station-controls {
+    display: contents;
+  }
+  .timer-station-window-controls {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .timer-station-workspace-link {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+    -webkit-app-region: no-drag;
+  }
+  .timer-station-layout {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+    -webkit-app-region: no-drag;
+  }
+}
+.timer-station-controls button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+.timer-station-controls button:hover {
+  background: #eeebe2;
+}
+.timer-station-controls .timer-station-workspace-link {
+  width: auto;
+  padding: 0 2px;
+  white-space: nowrap;
+}
+.timer-station-layout {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.timer-station-layout button {
+  height: 24px;
+  width: 34px;
+  border-radius: 6px;
+}
+.timer-station-controls button[aria-pressed='true'] {
+  color: var(--success);
+  background: #e7eadb;
+}
+.timer-station button:focus-visible,
+.timer-station article:focus-visible {
+  outline: 2px solid #4b6a15;
+  outline-offset: 3px;
+}
+.timer-station ::selection {
+  background: #dee5c8;
+}
+.timer-station-viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: clip;
+}
+.timer-station-cards {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  transform-origin: top left;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(300px, 1fr);
+  grid-auto-rows: minmax(144px, auto);
+  align-items: start;
+  gap: 10px;
+  padding: 0;
+}
+.timer-station[data-layout='vertical'] .timer-station-cards {
+  grid-auto-flow: row;
+  grid-auto-columns: minmax(0, 1fr);
+  align-content: start;
+}
+.timer-station .task-timer-station {
+  --timer-color: #4b6a15;
+  --timer-ink: var(--timer-color);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto 1fr auto;
+  gap: 8px 10px;
+  width: 100%;
+  height: 144px;
+  min-height: 144px;
+  padding: 14px;
+  border: 1px solid #c1c9aa;
+  border-radius: 16px;
+  background: #f2f2e9;
+  font-family: inherit;
+}
+.timer-station .task-timer-station[data-mode='down'] {
+  --timer-color: #b44840;
+  border-color: #e4bdb5;
+  background: #f7f1ed;
+}
+.timer-station .task-timer-body {
+  display: contents;
+}
+.timer-station .task-timer-heading {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  gap: 10px;
+}
+.timer-station .task-timer-heading strong {
+  font: inherit;
+  font-size: 17px;
+  line-height: 1.5;
+}
+.timer-station .task-timer-project {
+  flex: 0 1 auto;
+  max-width: 5em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font:
+    12px/1.5 'Segoe UI',
+    'Microsoft YaHei',
+    sans-serif;
+}
+.timer-station .task-timer-readout {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 36px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+.timer-station .task-timer-readout svg {
+  flex: 0 0 19px;
+}
+.timer-station .task-timer-readout span {
+  font-variant-numeric: tabular-nums;
+}
+.timer-station .task-timer-actions {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: end;
+  align-self: center;
+  gap: 6px;
+}
+.timer-station .task-timer-actions button {
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  min-width: 32px;
+  padding: 5px;
+  background: var(--surface);
+}
+.timer-station .task-timer-actions .task-timer-primary {
+  background: color-mix(in srgb, var(--timer-color) 6%, #f2f2e9);
+  border-color: color-mix(in srgb, var(--timer-color) 46%, #e7e0d2);
+}
+.timer-station .task-timer-actions button:hover {
+  background: color-mix(in srgb, var(--timer-color) 12%, var(--surface));
+}
+.timer-station .task-timer-actions .task-timer-more {
+  display: none;
+}
+.timer-station .task-timer-date {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  color: #716e63;
+  font:
+    12px/1.5 'Segoe UI',
+    'Microsoft YaHei',
+    sans-serif;
+}
+.timer-station .task-timer-ended {
+  font-size: 12px;
+}
+.timer-station .form-error {
+  grid-column: 1 / -1;
+  font:
+    13px/1.4 'Segoe UI',
+    sans-serif;
+  margin: 0;
+}
+.timer-station .task-timer:has(.form-error) {
+  height: auto;
+}
+.timer-station-empty {
+  margin: auto;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+.timer-station[data-empty='true'] .timer-station-cards {
+  display: flex;
+}
+.timer-station .task-timer-extension-trigger {
+  font:
+    11px/1 'Segoe UI',
+    'Microsoft YaHei',
+    sans-serif;
+  padding: 2px;
+}
+/* 续时浮层挂在子窗口 body，窄窗使用两列，避免四个最小点击目标撑出面板。 */
+@media (width < 280px) {
+  html[data-timer-station='true'] .task-timer-extension-presets {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

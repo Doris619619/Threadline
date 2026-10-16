@@ -35,6 +35,7 @@ export function StageTimeChart({
   plan,
   today,
   day,
+  entries,
   compactSummary = false,
   onSaveEstimate,
   onSaveActual,
@@ -48,6 +49,7 @@ export function StageTimeChart({
   plan?: StagePlan;
   today: string;
   day?: { date: string; entries?: TaskTimeEntry[] };
+  entries?: TaskTimeEntry[];
   compactSummary?: boolean;
   onSaveEstimate: SaveStageEstimate;
   onSaveActual: SaveStageEstimate;
@@ -64,7 +66,7 @@ export function StageTimeChart({
   const titleId = useId();
   const summaries = (['planned', 'remaining', 'actual'] as const).map((key) => ({
     key,
-    ...stageTimeBreakdown(tasks, projects, plan?.id, key, day),
+    ...stageTimeBreakdown(tasks, projects, plan?.id, key, day, entries),
   }));
   const { groups, total, missing } = summaries.find(
     (summary) => summary.key === metric,
@@ -163,6 +165,18 @@ export function StageTimeChart({
     selected,
     active,
     saving,
+    allocatedByTask:
+      metric === 'actual'
+        ? groups
+            .flatMap((group) => group.items)
+            .reduce<Record<string, number>>(
+              (totals, item) => ({
+                ...totals,
+                [item.id]: (totals[item.id] ?? 0) + (item.minutes ?? 0),
+              }),
+              {},
+            )
+        : undefined,
     select,
     hover: setHovered,
     saveEstimate,
@@ -236,6 +250,11 @@ export function StageTimeChart({
           )}
         </header>
         {!plan && timeSummary}
+        {metric === 'actual' && (
+          <p className="stage-time-missing">
+            已保存计时：重叠只计一次，按任务均分。旧记录和手动补录无时段，原值计入、无法去重；任务编辑保留原始分钟。
+          </p>
+        )}
         <div
           className={
             'stage-time-body' +

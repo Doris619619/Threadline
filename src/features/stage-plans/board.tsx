@@ -261,7 +261,13 @@ export function HomeStagePlans() {
 /** 经典保留原整页摘要、双环明细与状态清单，新版合并清单；两版操作同一 Task。 */
 export function StageDetail() {
   const stages = useStagePlans();
-  const { tasks, projects, saveTaskConfirmed, recordTaskActual } = useWorkspaceData();
+  const {
+    tasks,
+    projects,
+    taskTimeEntries: workspaceTimeEntries,
+    saveTaskConfirmed,
+    recordTaskActual,
+  } = useWorkspaceData();
   const today = useAccountToday();
   const plan = stages.plans.find((item) => item.id === stages.detailId);
   const [edit, setEdit] = useState(false);
@@ -330,6 +336,7 @@ export function StageDetail() {
       <StageTimeChart
         tasks={tasks}
         projects={projects}
+        entries={workspaceTimeEntries}
         plan={plan}
         today={today}
         layout={layout}

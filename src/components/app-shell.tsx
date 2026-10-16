@@ -18,6 +18,7 @@ import {
   Orbit,
   Settings,
   Spline,
+  Timer,
   UsersRound,
   X,
 } from 'lucide-react';
@@ -41,6 +42,8 @@ import { DesktopUpdateEntry } from '@/features/desktop-update/update-entry';
 import { useRhythmVisible } from '@/features/onboarding/account-preferences-provider';
 import { useOptionalTogether } from '@/features/together/state';
 import { togetherCopy } from '@/features/together/copy';
+import { getMainDesktopBridge } from '@/lib/desktop-bridge';
+import { openTimerStation } from '@/features/tasks/hooks/use-timer-station';
 
 /** Open the native date popup for the full visible control; unsupported/restricted browsers keep their native input behavior. */
 function openWorkspaceDatePicker(input: HTMLInputElement): boolean {
@@ -130,6 +133,16 @@ export function CompactWindowHeader({
       </span>
       <DesktopUpdateEntry />
       <div className="compact-window-actions">
+        {getMainDesktopBridge()?.timerStationControl && (
+          <button
+            type="button"
+            onClick={openTimerStation}
+            aria-label="打开计时站"
+            title="计时站"
+          >
+            <Timer size={13} />
+          </button>
+        )}
         <button type="button" onClick={onClearWorkstation}>
           清空
         </button>
@@ -170,6 +183,11 @@ function FullWindowChrome() {
       <span className="full-window-caption">Threadline</span>
       <div className="full-window-entries">
         <DesktopUpdateEntry />
+        {getMainDesktopBridge()?.timerStationControl && (
+          <button type="button" onClick={openTimerStation}>
+            计时站
+          </button>
+        )}
         <button type="button" onClick={() => void setMode('workstation')}>
           工作站
         </button>

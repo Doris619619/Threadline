@@ -1,6 +1,14 @@
 /** @fileoverview 正/倒计时卡片；到时提供续时浮层，完成统一记账，删除放入上下文菜单。 */
 'use client';
-import { Check, MoreHorizontal, Pause, Play, Trash2 } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  MoreHorizontal,
+  Pause,
+  Play,
+  Trash2,
+} from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useGuardedAction } from '@/hooks/use-guarded-action';
 import { useTaskMenu } from '../hooks/use-task-menu';
@@ -14,7 +22,7 @@ import {
 } from '@/lib/account-clock';
 import { useAccountTimezone } from '@/features/settings/account-timezone-provider';
 import type { Task } from '@/types/domain';
-import type { SaveStageEstimate } from '@/features/stage-plans/task-estimate-editor';
+import type { TimerRecording } from '@/lib/timer-accounting';
 
 /** 同排卡片展示首次开始时间；完成控件在提交与重试期间保持稳定，续时只提交分钟，完成时才记账。 */
 export function TaskTimerCard({
@@ -26,15 +34,24 @@ export function TaskTimerCard({
   onExtend,
   onRemove,
   onRecord,
+  variant = 'default',
+  projectName,
 }: {
+  variant?: 'default' | 'station';
+  projectName?: string;
   timer: TaskTimer;
   task?: Task;
   now: number;
   today: string;
-  onChange: (timer: TaskTimer) => void;
+  onChange: (timer: TaskTimer) => boolean | void;
   onExtend: (minutes: number) => void;
   onRemove: () => void;
-  onRecord: SaveStageEstimate;
+  onRecord: (
+    original: Task,
+    minutes: number,
+    date: string,
+    recording?: TimerRecording,
+  ) => Promise<unknown>;
 }) {
   const { busy, error, run } = useGuardedAction();
   const menu = useTaskMenu();
@@ -68,7 +85,12 @@ export function TaskTimerCard({
       setExtensionOpen(true);
     } else {
       onChange(
-        running ? pauseTimer(timer, Date.now()) : { ...timer, startedAt: Date.now() },
+        running
+          ? pauseTimer(timer, Date.now())
+          : {
+              ...timer,
+              startedAt: Math.max(Date.now(), timer.intervals?.at(-1)?.end ?? 0),
+            },
       );
     }
   };
@@ -91,14 +113,31 @@ export function TaskTimerCard({
         original: task,
         minutes:
           (task.actualDurationMinutes ?? 0) + Math.round(paused.elapsedMs / 60000),
+        ...(paused.intervals && paused.timezone
+          ? {
+              recording: {
+                id: paused.id,
+                intervals: paused.intervals,
+                timezone: paused.timezone,
+              },
+            }
+          : {}),
       };
-      onChange({ ...paused, pending });
-      await onRecord(pending.original, pending.minutes, timer.entryDate);
+      if (onChange({ ...paused, pending }) === false)
+        throw new Error('计时已在其他标签改变，请重试。');
+      if (pending.recording)
+        await onRecord(
+          pending.original,
+          pending.minutes,
+          timer.entryDate,
+          pending.recording,
+        );
+      else await onRecord(pending.original, pending.minutes, timer.entryDate);
       onRemove();
     });
   return (
     <article
-      className="task-timer"
+      className={'task-timer' + (variant === 'station' ? ' task-timer-station' : '')}
       aria-label={'计时 ' + title}
       aria-busy={busy}
       title={(timer.mode === 'up' ? '正计时' : '倒计时') + ' · ' + title}
@@ -111,6 +150,11 @@ export function TaskTimerCard({
     >
       <div className="task-timer-body">
         <div className="task-timer-heading">
+          {variant === 'station' && (
+            <span className="task-timer-project" title={projectName}>
+              {projectName ?? '未分类'}
+            </span>
+          )}
           <strong title={title}>{title}</strong>
           {ended && <span className="task-timer-ended">已到时</span>}
         </div>
@@ -122,7 +166,15 @@ export function TaskTimerCard({
             (ended ? '已到时' : running ? '运行中' : '已暂停')
           }
         >
-          {timerClock(timer.mode === 'up' ? elapsed : timer.targetMs - elapsed)}
+          {variant === 'station' &&
+            (timer.mode === 'up' ? (
+              <ArrowUp size={21} strokeWidth={1.5} aria-hidden="true" />
+            ) : (
+              <ArrowDown size={21} strokeWidth={1.5} aria-hidden="true" />
+            ))}
+          <span>
+            {timerClock(timer.mode === 'up' ? elapsed : timer.targetMs - elapsed)}
+          </span>
         </time>
       </div>
       <div className="task-timer-actions">

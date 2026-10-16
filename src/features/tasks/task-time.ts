@@ -7,6 +7,8 @@ import { calculateDuration } from '@/lib/task-rules';
 /** 将分钟展示为既有的紧凑文本格式。 */
 export function formatMinutes(value?: number) {
   if (value === undefined) return '—';
+  if (value > 0 && value < 0.5) return '<1min';
+  value = Math.round(value);
   return value < 60
     ? `${value}min`
     : `${Math.floor(value / 60)}h${value % 60 ? `${value % 60}min` : ''}`;

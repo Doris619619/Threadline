@@ -10,6 +10,7 @@ import {
   type SetStateAction,
 } from 'react';
 import type { Daily, DailyHistoryEntry } from '@/features/daily/types';
+import type { TimerRecording } from '@/lib/timer-accounting';
 import { StagePlansProvider } from '@/features/stage-plans/state';
 import type {
   AnnotationStroke,
@@ -41,6 +42,7 @@ export type WorkspaceCommands = {
     minutes: number | undefined,
     date: string,
     complete?: boolean,
+    recording?: TimerRecording,
   ) => Promise<Task>;
   createDailyTemplate: (daily: Daily) => Promise<void>;
   saveDailyTemplate: (daily: Daily) => Promise<void>;

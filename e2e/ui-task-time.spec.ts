@@ -6,6 +6,99 @@ import { openWorkspaceSection, openTaskMenu } from './support/workspace';
 const timerStorageKey = 'threadline.preview-demo.v1:threadline.task-timers.v1:local';
 const taskStorageKey = 'threadline.preview-demo.v1:threadline.tasks.v1';
 const entryStorageKey = 'threadline.preview-demo.v1:threadline.task-time-entries.v1';
+const recordingStorageKey =
+  'threadline.preview-demo.v1:threadline.task-timer-records.v1';
+
+test('saved overlapping timers preserve raw minutes and allocate 55/25/10 after reload', async ({
+  page,
+}, testInfo) => {
+  await page.clock.install({ time: new Date('2026-10-15T07:30:00Z') });
+  await page.goto('/');
+  await waitForPreviewWorkspace(page);
+  await page.evaluate(
+    ({ taskStorageKey, timerStorageKey, entryStorageKey, recordingStorageKey }) => {
+      const tasks = JSON.parse(localStorage.getItem(taskStorageKey)!);
+      const selected = [0, 1, 2].map((index) =>
+        tasks.find(
+          (task: { id: string }) => task.id === 'demo-stage-time-task-' + index,
+        ),
+      );
+      for (const task of tasks) {
+        task.actualDurationMinutes = undefined;
+      }
+      for (const task of selected) {
+        task.completed = false;
+        task.status = 'active';
+        task.date = '2026-10-15';
+      }
+      localStorage.setItem(taskStorageKey, JSON.stringify(tasks));
+      localStorage.setItem(entryStorageKey, '[]');
+      localStorage.setItem(recordingStorageKey, '[]');
+      const end = Date.parse('2026-10-15T07:30:00Z');
+      localStorage.setItem(
+        timerStorageKey,
+        JSON.stringify(
+          selected.map((task: { id: string; title: string }, index: number) => ({
+            id: crypto.randomUUID(),
+            taskId: task.id,
+            title: task.title,
+            mode: 'up',
+            targetMs: 120 * 60000,
+            elapsedMs: (90 - index * 30) * 60000,
+            firstStartedAt: end - (90 - index * 30) * 60000,
+            entryDate: '2026-10-15',
+            timezone: 'Asia/Shanghai',
+            intervals: [{ start: end - (90 - index * 30) * 60000, end }],
+          })),
+        ),
+      );
+    },
+    { taskStorageKey, timerStorageKey, entryStorageKey, recordingStorageKey },
+  );
+  await page.reload();
+  await waitForPreviewWorkspace(page);
+  await expect(page.locator('.task-timer')).toHaveCount(3);
+  for (let remaining = 3; remaining > 0; remaining--) {
+    await page.getByRole('button', { name: '完成并记耗时' }).first().click();
+    await expect(page.locator('.task-timer')).toHaveCount(remaining - 1);
+  }
+  await page.reload();
+  await waitForPreviewWorkspace(page);
+  const raw = await page.evaluate(
+    ({ taskStorageKey, recordingStorageKey }) => ({
+      tasks: JSON.parse(localStorage.getItem(taskStorageKey)!)
+        .filter((task: { id: string }) =>
+          [
+            'demo-stage-time-task-0',
+            'demo-stage-time-task-1',
+            'demo-stage-time-task-2',
+          ].includes(task.id),
+        )
+        .map((task: { actualDurationMinutes: number }) => task.actualDurationMinutes),
+      records: JSON.parse(localStorage.getItem(recordingStorageKey)!).length,
+    }),
+    { taskStorageKey, recordingStorageKey },
+  );
+  expect(raw.tasks).toEqual([90, 60, 30]);
+  expect(raw.records).toBe(3);
+  await page
+    .getByRole('combobox', { name: '右栏显示内容' })
+    .selectOption({ label: '今日时间分布' });
+  await page.getByRole('button', { name: '实际投入', exact: true }).click();
+  await expect(page.locator('.stage-time-panel')).toContainText('1h30min');
+  for (const value of ['55min', '25min', '10min'])
+    await expect(page.locator('.stage-time-panel')).toContainText(value);
+  await expect(page.locator('.stage-time-panel')).toContainText('重叠只计一次');
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: testInfo.outputPath('overlap-accounting.png'),
+    fullPage: true,
+  });
+});
 
 /** load 早于工作区水合；只给真实日程面板的启动等待 30s，业务和几何断言仍用默认 5s。 */
 async function waitForPreviewWorkspace(page: Page) {

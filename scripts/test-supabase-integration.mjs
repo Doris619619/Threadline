@@ -2,6 +2,7 @@
 
 import { testIssue49Commands } from './test-issue49-integration.mjs';
 import { testStagePlanCommands } from './test-stage-plans-integration.mjs';
+import { testTimerAccounting } from './test-timer-accounting-integration.mjs';
 import { spawnSync } from 'node:child_process';
 import { createClient } from '@supabase/supabase-js';
 
@@ -865,6 +866,7 @@ try {
     'Fallback project was deletable',
   );
   await testIssue49Commands(ownerA.client, ownerB.client, fallback.id);
+  await testTimerAccounting(ownerA.client, ownerB.client, fallback.id);
   const stageReader = createClient(status.API_URL, status.PUBLISHABLE_KEY, options);
   try {
     const login = await stageReader.auth.signInWithPassword({

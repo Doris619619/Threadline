@@ -11,8 +11,10 @@ export function useTaskMenu() {
   /** 输入控件保留系统菜单，以免打断选择、复制和粘贴。 */
   function onContextMenu(event: MouseEvent<HTMLElement>) {
     if (
-      event.target instanceof Element &&
-      event.target.closest('input, textarea, select, [contenteditable="true"]')
+      (event.target as Element).nodeType === 1 &&
+      (event.target as Element).closest(
+        'input, textarea, select, [contenteditable="true"]',
+      )
     )
       return;
     event.preventDefault();
@@ -26,7 +28,9 @@ export function useTaskMenu() {
     event.preventDefault();
     event.stopPropagation();
     const target =
-      event.target instanceof HTMLElement ? event.target : event.currentTarget;
+      (event.target as HTMLElement).nodeType === 1
+        ? (event.target as HTMLElement)
+        : event.currentTarget;
     const bounds = target.getBoundingClientRect();
     setPoint({ x: bounds.left, y: bounds.bottom });
     setOpen(true);

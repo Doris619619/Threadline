@@ -60,6 +60,9 @@ export type TaskTimeEntry = {
   projectId: Id;
   date: string;
   minutes: number;
+  /** 原账本分钟用于核对任务累计；统计 minutes 可为去重均分后的值。 */
+  rawMinutes?: number;
+  timing?: 'allocated' | 'unlocated';
 };
 export type DailyDefinition = {
   id: Id;
@@ -101,6 +104,8 @@ export type CloseRecord = {
   date: string;
   closedAt: string;
   projectMinutes: Record<Id, number>;
+  /** 新统计快照不作为任务账本的额外补足来源；旧快照继续保留旧残差语义。 */
+  timeAccountingVersion?: number;
 };
 
 export type AnnotationPoint = {

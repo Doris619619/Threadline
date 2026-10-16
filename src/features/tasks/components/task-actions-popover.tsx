@@ -42,9 +42,11 @@ export function TaskActionsPopover({
     const trigger = anchor.current;
     if (!menu || !trigger) return;
     const positionedAt = positionAnchor?.current ?? trigger;
+    const document = trigger.ownerDocument;
+    const view = document.defaultView ?? window;
     const previousFocus =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
+      document.activeElement && 'focus' in document.activeElement
+        ? (document.activeElement as HTMLElement)
         : undefined;
     /** 按卡片或触发器的边界定位；右键坐标仍优先，窗口不足时向上避让。 */
     const position = () => {
@@ -53,12 +55,12 @@ export function TaskActionsPopover({
       const width = menu.getBoundingClientRect().width;
       const bottom = point?.y ?? box.bottom;
       const top =
-        bottom + height + 8 <= innerHeight
+        bottom + height + 8 <= view.innerHeight
           ? bottom + 4
           : Math.max(8, (point?.y ?? box.top) - height - 4);
       menu.style.top = `${top}px`;
       const left = point?.x ?? (align === 'start' ? box.left : box.right - width);
-      menu.style.left = `${Math.max(8, Math.min(left, innerWidth - width - 8))}px`;
+      menu.style.left = `${Math.max(8, Math.min(left, view.innerWidth - width - 8))}px`;
     };
     const toggle = (event: Event) => {
       if ((event as ToggleEvent).newState === 'closed') close.current();
@@ -71,14 +73,14 @@ export function TaskActionsPopover({
         'input:not(:disabled), button:not(:disabled), select:not(:disabled)',
       )
       ?.focus({ preventScroll: true });
-    window.addEventListener('resize', position);
-    window.addEventListener('scroll', position, true);
+    view.addEventListener('resize', position);
+    view.addEventListener('scroll', position, true);
     const observer = new ResizeObserver(position);
     observer.observe(menu);
     return () => {
       menu.removeEventListener('toggle', toggle);
-      window.removeEventListener('resize', position);
-      window.removeEventListener('scroll', position, true);
+      view.removeEventListener('resize', position);
+      view.removeEventListener('scroll', position, true);
       observer.disconnect();
       if (
         menu.contains(document.activeElement) ||
@@ -94,7 +96,7 @@ export function TaskActionsPopover({
                 )
                 ?.querySelector<HTMLElement>('button:not(.task-context-trigger), input')
         )?.focus({ preventScroll: true });
-      menu.hidePopover();
+      if (menu.isConnected && menu.matches(':popover-open')) menu.hidePopover();
     };
   }, [anchor, align, point, positionAnchor]);
   /** 菜单上下键跳过禁用项；Escape 关闭并回到触发器，不把按键传给任务行。 */
@@ -113,7 +115,9 @@ export function TaskActionsPopover({
           'button:not(:disabled)',
         ),
       ];
-      const current = buttons.indexOf(document.activeElement as HTMLButtonElement);
+      const current = buttons.indexOf(
+        event.currentTarget.ownerDocument.activeElement as HTMLButtonElement,
+      );
       const index =
         event.key === 'Home'
           ? 0
@@ -135,6 +139,6 @@ export function TaskActionsPopover({
     >
       {children}
     </div>,
-    document.body,
+    anchor.current?.ownerDocument.body ?? document.body,
   );
 }

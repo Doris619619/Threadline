@@ -40,6 +40,12 @@ import type {
   TaskTimeEntry,
 } from '@/types/domain';
 import { adjustTaskActualEntries } from '@/lib/task-actual-entries';
+import {
+  allocateTimerEntries,
+  validTimerIntervals,
+  type RecordedTimer,
+  type TimerRecording,
+} from '@/lib/timer-accounting';
 import { TaskConflictError, taskFieldChanges } from '@/lib/task-patch';
 
 /** 在测试适配器中模拟服务端 merge：结构同步到模板，当前 entry 保留运行态和并发子项。 */
@@ -110,6 +116,9 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
   const [localTimeEntries, updateTimeEntries, timeHydrated] = usePersistentState<
     TaskTimeEntry[]
   >('threadline.task-time-entries.v1', []);
+  const [timerRecords, updateTimerRecords, timerRecordsHydrated] = usePersistentState<
+    RecordedTimer[]
+  >('threadline.task-timer-records.v1', []);
   /** 普通编辑的实际增减沿用任务日期；显式记录命令独立携带日期，避免重复记入。 */
   const updateTasks = useCallback(
     (action: SetStateAction<Task[]>) =>
@@ -129,13 +138,14 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
                 task.actualDurationMinutes,
                 task.date,
                 rows,
+                timerRecords,
               );
           }
           return rows;
         });
         return next;
       }),
-    [updateTaskRows, updateTimeEntries],
+    [updateTaskRows, updateTimeEntries, timerRecords],
   );
   /** 显式录入保持状态；计时完成沿用原待办完成规则，并保存同一 Task 的账本增量。 */
   const recordTaskActual = useCallback(
@@ -144,26 +154,75 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
       minutes: number | undefined,
       date: string,
       complete = false,
+      recording?: TimerRecording,
     ) => {
+      if (
+        recording &&
+        (!validTimerIntervals(recording.intervals) ||
+          minutes !==
+            (original.actualDurationMinutes ?? 0) +
+              Math.round(
+                recording.intervals.reduce(
+                  (sum, part) => sum + part.end - part.start,
+                  0,
+                ) / 60000,
+              ))
+      )
+        throw new Error('计时时段与原始分钟不一致。');
+      const prior = recording && timerRecords.find((row) => row.id === recording.id);
+      if (prior) {
+        if (
+          prior.taskKey !== original.id ||
+          prior.date !== date ||
+          prior.timezone !== recording!.timezone ||
+          JSON.stringify(prior.intervals) !== JSON.stringify(recording!.intervals)
+        )
+          throw new Error('计时请求编号已用于其他记录。');
+        const task = tasks.find((row) => row.id === original.id);
+        if (!task) throw new Error('任务不存在，请重新加载。');
+        return task;
+      }
       let saved: Task | undefined;
+      let ledgerId: string | undefined;
+      const timerMinutes = recording
+        ? minutes! - (original.actualDurationMinutes ?? 0)
+        : undefined;
       updateTaskRows((rows) => {
         const current = rows.find((task) => task.id === original.id);
-        if (!current || current.status === 'trashed' || current.deletedAt)
+        if (
+          !current ||
+          !['active', 'waiting'].includes(current.status) ||
+          current.deletedAt
+        )
           throw new Error('任务不存在，请重新加载。');
         if (
           current.projectId !== original.projectId ||
-          current.actualDurationMinutes !== original.actualDurationMinutes ||
-          current.status !== original.status ||
-          current.date !== original.date ||
-          (complete && current.completed !== original.completed)
+          (!recording &&
+            (current.actualDurationMinutes !== original.actualDurationMinutes ||
+              current.status !== original.status ||
+              current.date !== original.date ||
+              (complete && current.completed !== original.completed)))
         )
           throw new TaskConflictError();
-        updateTimeEntries((entries) =>
-          adjustTaskActualEntries(current, minutes, date, entries),
-        );
+        const nextMinutes = recording
+          ? (current.actualDurationMinutes ?? 0) + timerMinutes!
+          : minutes;
+        updateTimeEntries((entries) => {
+          const next = adjustTaskActualEntries(
+            current,
+            nextMinutes,
+            date,
+            entries,
+            timerRecords,
+          );
+          ledgerId = next.find(
+            (row) => row.taskId === current.id && row.date === date,
+          )?.id;
+          return next;
+        });
         saved = {
           ...current,
-          actualDurationMinutes: minutes,
+          actualDurationMinutes: nextMinutes,
           updatedAt: new Date().toISOString(),
           ...(complete
             ? {
@@ -183,9 +242,22 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
         };
         return rows.map((task) => (task.id === saved!.id ? saved! : task));
       });
+      if (recording)
+        updateTimerRecords((rows) => [
+          ...rows,
+          {
+            ...recording,
+            taskId: original.id,
+            taskKey: original.id,
+            projectId: original.projectId,
+            date,
+            rawMinutes: timerMinutes!,
+            ledgerId,
+          },
+        ]);
       return saved!;
     },
-    [updateTaskRows, updateTimeEntries],
+    [updateTaskRows, updateTimeEntries, timerRecords, updateTimerRecords, tasks],
   );
   const [projects, updateProjects, projectsHydrated] = usePersistentState(
     'threadline.projects.v1',
@@ -532,6 +604,7 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
           date,
           closedAt: new Date().toISOString(),
           projectMinutes,
+          timeAccountingVersion: 1,
         },
       ]);
     },
@@ -541,6 +614,7 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
   const hydrated =
     tasksHydrated &&
     timeHydrated &&
+    timerRecordsHydrated &&
     projectsHydrated &&
     dailyHydrated &&
     templatesHydrated &&
@@ -553,26 +627,29 @@ export function LocalWorkspaceTestAdapter({ children }: { children: ReactNode })
   const taskState = useMemo(
     () => ({
       tasks,
-      taskTimeEntries: [
-        ...localTimeEntries,
-        ...tasks
-          .filter(
-            (task) =>
-              task.date &&
-              (task.actualDurationMinutes ?? 0) > 0 &&
-              !localTimeEntries.some((entry) => entry.taskId === task.id),
-          )
-          .map((task) => ({
-            id: 'legacy-local-' + task.id,
-            taskId: task.id,
-            projectId: task.projectId,
-            date: task.date!,
-            minutes: task.actualDurationMinutes!,
-          })),
-      ],
-      taskTimeEntriesAuthoritative: isPreviewDemo(),
+      taskTimeEntries: allocateTimerEntries(
+        [
+          ...localTimeEntries,
+          ...tasks
+            .filter(
+              (task) =>
+                task.date &&
+                (task.actualDurationMinutes ?? 0) > 0 &&
+                !localTimeEntries.some((entry) => entry.taskId === task.id),
+            )
+            .map((task) => ({
+              id: 'legacy-local-' + task.id,
+              taskId: task.id,
+              projectId: task.projectId,
+              date: task.date!,
+              minutes: task.actualDurationMinutes!,
+            })),
+        ],
+        timerRecords,
+      ),
+      taskTimeEntriesAuthoritative: isPreviewDemo() || timerRecords.length > 0,
     }),
-    [tasks, localTimeEntries],
+    [tasks, localTimeEntries, timerRecords],
   );
   const taskActions = useMemo(() => ({ updateTasks }), [updateTasks]);
   const projectState = useMemo(() => ({ projects }), [projects]);
