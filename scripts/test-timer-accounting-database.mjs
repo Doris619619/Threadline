@@ -222,7 +222,23 @@ try {
       .rows[0].n === 162,
     'purge retains accounting without double-counting orphan records',
   );
-  // 新关账采用分配值，已有快照不被追加会话改写。
+  // Daily 没有项目归属，正常日常条目不能使项目快照以空 JSON 键写入失败。
+  await asUser(owner, 'select create_daily_template_with_entry($1,$2,$3,$4)', [
+    crypto.randomUUID(),
+    '独立 Daily',
+    '[]',
+    '2026-10-15',
+  ]);
+  check(
+    (
+      await asUser(
+        owner,
+        "select count(*)::int as n from daily_entries where project_id is null and entry_date='2026-10-15'",
+      )
+    ).rows[0].n > 0,
+    'daily fixture has no project, matching production schema',
+  );
+  // 新关账采用分配值，保留 Daily 独立统计，已有快照不被追加会话改写。
   await asUser(
     owner,
     "insert into daily_close_records(close_date,project_minutes) values('2026-10-15','{}')",

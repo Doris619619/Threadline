@@ -143,7 +143,7 @@ union all select * from allocations;
 revoke all on public.task_time_statistics from public, anon, authenticated;
 grant select on public.task_time_statistics to authenticated;
 
--- 新关账使用相同统计口径；已有快照不回填，保留原历史。
+-- 新关账使用相同统计口径；Daily 已独立于项目，不混入项目快照，已有快照不回填。
 alter table public.daily_close_records add column time_accounting_version integer not null default 0;
 create or replace function public.capture_daily_close_project_minutes()
 returns trigger language plpgsql security invoker set search_path = pg_catalog, public as $$
@@ -151,12 +151,9 @@ begin
   new.time_accounting_version := 1;
   select coalesce(jsonb_object_agg(project_id::text, minutes), '{}'::jsonb) into new.project_minutes
   from (
-    select project_id, sum(minutes) as minutes from (
-      select project_id, minutes from public.task_time_statistics where owner_id = new.owner_id and entry_date = new.close_date
-      union all
-      select project_id, public.daily_entry_total_actual(id)::numeric from public.daily_entries
-      where owner_id = new.owner_id and entry_date = new.close_date
-    ) sources group by project_id
+    select project_id, sum(minutes) as minutes from public.task_time_statistics
+    where owner_id = new.owner_id and entry_date = new.close_date
+    group by project_id
   ) totals;
   return new;
 end; $$;
