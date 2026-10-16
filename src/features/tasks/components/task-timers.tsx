@@ -1,6 +1,6 @@
-/** @fileoverview 共享三任务计时会话：账号隔离、首页展示、按最新本机状态续时和异步完成记账。 */
+/** @fileoverview 共享三任务计时会话：首页和独立计时站共用账号状态、续时与异步完成记账。 */
 'use client';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useWorkspaceView } from '@/components/app-shell';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
@@ -19,6 +19,8 @@ import {
 import { TaskTimerContext } from '../task-timer-context';
 import { TaskTimerCard } from './task-timer-card';
 import { TaskTimerDialog } from './task-timer-dialog';
+import { TimerStation } from './timer-station';
+import { useTimerStation } from '../hooks/use-timer-station';
 
 /** 所有任务页面共享一个会话；换账号重置内存并恢复该账号的本机缓存。 */
 export function TaskTimers({ children }: { children: ReactNode }) {
@@ -33,7 +35,7 @@ export function TaskTimers({ children }: { children: ReactNode }) {
   );
 }
 
-/** 墙钟恢复后台耗时并按最新缓存应用续时；首次开始独立于恢复锚点，卡片仅在首页展示。 */
+/** 墙钟恢复后台耗时并按最新缓存应用续时；首页与计时站只创建展示实例，不复制 Provider。 */
 function TaskTimersSession({
   owner,
   children,
@@ -43,7 +45,12 @@ function TaskTimersSession({
 }) {
   const { active } = useWorkspaceView();
   const { isWorkstation } = useDesktopWindow();
-  const { tasks, recordTaskActual, hydrated: workspaceReady } = useWorkspaceData();
+  const {
+    tasks,
+    projects,
+    recordTaskActual,
+    hydrated: workspaceReady,
+  } = useWorkspaceData();
   const today = useAccountToday();
   const [timers, setTimers, hydrated] = usePersistentState<TaskTimer[]>(
     'threadline.task-timers.v1:' + owner,
@@ -54,6 +61,8 @@ function TaskTimersSession({
   const [now, setNow] = useState(() => Date.now());
   const [host, setHost] = useState<HTMLElement | null>(null);
   const [taskId, setTaskId] = useState<string>();
+  const station = useTimerStation(hydrated && workspaceReady);
+  const saves = useRef(new Map<string, Promise<unknown>>());
   useEffect(() => {
     const frame = window.requestAnimationFrame(() =>
       setHost(
@@ -151,6 +160,53 @@ function TaskTimersSession({
     },
     [setTimers],
   );
+  /** 首页和子窗口复用同一组回调；CAS 拒绝旧卡片覆盖，进行中的保存共用 Promise，避免重复记账。 */
+  function renderTimer(timer: TaskTimer, variant: 'default' | 'station' = 'default') {
+    const task = tasks.find((item) => item.id === timer.taskId);
+    return (
+      <TaskTimerCard
+        key={timer.id}
+        timer={timer}
+        task={task}
+        now={now}
+        today={today}
+        variant={variant}
+        projectName={projects.find((project) => project.id === task?.projectId)?.name}
+        onChange={(next) => {
+          let accepted = false;
+          setTimers((current) =>
+            current.map((item) => {
+              if (
+                item.id !== timer.id ||
+                JSON.stringify(item) !== JSON.stringify(timer)
+              )
+                return item;
+              accepted = true;
+              return next;
+            }),
+          );
+          return accepted;
+        }}
+        onExtend={(minutes) => extend(timer.id, minutes)}
+        onRemove={() =>
+          setTimers((current) => current.filter((item) => item.id !== timer.id))
+        }
+        onRecord={(original, minutes, date, recording) => {
+          const existing = saves.current.get(timer.id);
+          if (existing) return existing;
+          const pending = recordTaskActual(
+            original,
+            minutes,
+            date ?? timer.entryDate,
+            true,
+            recording,
+          ).finally(() => saves.current.delete(timer.id));
+          saves.current.set(timer.id, pending);
+          return pending;
+        }}
+      />
+    );
+  }
   return (
     <TaskTimerContext.Provider
       value={{
@@ -167,49 +223,23 @@ function TaskTimersSession({
         createPortal(
           <section className="task-timers" aria-label="任务计时器">
             <div className="task-timer-strip">
-              {timers.map((timer) => (
-                <TaskTimerCard
-                  key={timer.id}
-                  timer={timer}
-                  task={tasks.find((task) => task.id === timer.taskId)}
-                  now={now}
-                  today={today}
-                  onChange={(next) => {
-                    let accepted = false;
-                    setTimers((current) =>
-                      current.map((item) => {
-                        if (
-                          item.id !== timer.id ||
-                          JSON.stringify(item) !== JSON.stringify(timer)
-                        )
-                          return item;
-                        accepted = true;
-                        return next;
-                      }),
-                    );
-                    return accepted;
-                  }}
-                  onExtend={(minutes) => extend(timer.id, minutes)}
-                  onRemove={() =>
-                    setTimers((current) =>
-                      current.filter((item) => item.id !== timer.id),
-                    )
-                  }
-                  onRecord={(original, minutes, date, recording) =>
-                    recordTaskActual(
-                      original,
-                      minutes,
-                      date ?? timer.entryDate,
-                      true,
-                      recording,
-                    )
-                  }
-                />
-              ))}
+              {timers.map((timer) => renderTimer(timer))}
             </div>
           </section>,
           host,
         )}
+      {station.host &&
+        createPortal(
+          <TimerStation count={timers.length}>
+            {timers.map((timer) => renderTimer(timer, 'station'))}
+          </TimerStation>,
+          station.host,
+        )}
+      {station.error && (
+        <p role="alert" className="form-error">
+          {station.error}
+        </p>
+      )}
       {taskId && selected && (
         <TaskTimerDialog
           key={taskId}

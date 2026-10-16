@@ -67,10 +67,20 @@ export type ReportPdfExportResult =
 
 type Unsubscribe = () => void;
 
+export type TimerStationCommand =
+  | {
+      action: 'configure';
+      layout: 'horizontal' | 'vertical';
+      count: number;
+      pinned: boolean;
+    }
+  | { action: 'close' | 'minimize' | 'focus' };
+
 export type ThreadlineDesktopBridge =
   | (DesktopUpdateBridge & {
       environment: 'electron';
       role: 'main';
+      timerStationControl?: (command: TimerStationCommand) => Promise<void>;
       getAutoStartState: () => Promise<AutoStartState>;
       setAutoStartEnabled: (enabled: boolean) => Promise<AutoStartState>;
       deferAutoStart: () => Promise<AutoStartState>;
@@ -106,6 +116,7 @@ export type ThreadlineDesktopBridge =
         listener: (event: PresentationRollback) => void,
       ) => Unsubscribe;
     })
+  | { environment: 'electron'; role: 'timer-station' }
   | {
       environment: 'electron';
       role: 'edge-tab';

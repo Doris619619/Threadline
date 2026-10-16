@@ -1,0 +1,38 @@
+<!-- 文件用途：说明独立计时站的交互、单会话架构、原生安全边界和本地验收方式。 -->
+
+# 独立计时站
+
+Windows 完整工作台标题栏的“计时站”或工作站标题栏的计时图标打开一个独立窗口。重复点击聚焦原窗口，可和工作站并排放在外接显示器。Web/PWA 不增加原生窗口入口。
+
+## 交互与外观
+
+- 暖白背景、衬线字体。项目与任务名称同排，长名称省略并保留完整提示；正计时绿色向上、倒计时红色向下。每张卡片展示账号时区中的“开始于 年/月/日 时:分”；旧计时缺少首次开始时刻时明确显示未记录。
+- 横向最多三张独立卡片；纵向堆叠。原生宽高按卡片数量与方向调整并限制在屏幕工作区，小屏通过滚动浏览。数字与暂停／完成按钮分占网格列，互不覆盖。
+- 默认置顶，可切换；排列和置顶偏好以 `threadline.timer-station.v1` 保存在本机。标题栏可拖动、最小化和关闭。关闭计时站不停止计时，重开恢复当前状态。
+- 暂停、继续、到时续时、完成并记耗时与首页使用相同卡片逻辑；右键或 Shift+F10 提供删除计时器。删除计时器与完成记账是不同操作。
+- 关闭整个应用、主文档重载、退出账号或更换账号会关闭计时站。已持久化的本机计时保留；新账号只读取其自己的计时缓存。
+
+## 架构与安全
+
+沿用唯一的 `TaskTimersSession`，通过 React portal 把卡片挂到同源子窗口。`threadline-role=timer-station` 在 hydration 后只挂载展示容器，不加载认证、工作区或第二份计时 Provider。父窗口继续拥有时钟、账号和所有保存回调；共享保存 Promise 与原有 CAS 校验避免两处控件重复发起同一保存。
+
+`electron/timer-station.cts` 只准许 Main 打开固定 frameName 与精确同源 URL，拒绝其他弹窗、重定向和任意导航；子窗口继承 sandbox、contextIsolation，关闭 nodeIntegration，不暴露业务 IPC 或 Node。有限窗口命令由 Main bridge 调用，校验所属顶层 frame 和命令字段。父窗口结束时原生子窗口一并销毁。
+
+原生窗口单独隔离缩放，显示器移除或工作区变化时恢复到可见范围。计时站打开期间关闭父会话的后台节流，保证工作站隐藏或主窗口最小化后继续刷新；关闭计时站恢复原节流设置。弹出菜单使用触发器的 ownerDocument 定位、渲染、处理焦点，保证续时浮层实际位于计时站中。
+
+选用 Electron 官方支持的[同源父窗口直接渲染子窗口](https://www.electronjs.org/docs/latest/api/window-open)机制；没有新增云表、迁移或计时副本。原始时间与历史沿用[计时统计规则](timer-accounting.md)，统计仍总量去重、分布均分。
+
+## 验证与本地预览
+
+在 PowerShell 中构建显式测试适配器与原生壳，然后运行隔离窗口验收：
+
+```powershell
+$env:NEXT_PUBLIC_THREADLINE_TEST_ADAPTER='true'
+pnpm desktop:renderer
+pnpm desktop:compile
+node scripts/test-electron-timer-station.mjs
+```
+
+脚本用独立临时 userData、真实 `threadline://app/` 静态资源与 CSP 验证三张卡片、横纵排列、无数字遮挡、双向暂停／继续同步、开始时间不变、置顶、关闭重开、子窗口内续时、单次完成记录、工作站共存与父文档重载清理。截图位于 `test-results/timer-station/horizontal.png` 和 `vertical.png`。
+
+追加 `--show` 可保留三条示例任务的本地预览窗口；这些是隔离演示数据，不是实际账号记录。脚本不生成安装包，不访问真实账号。真实账号的网络失败和多屏物理拔插仍需上线前另验。

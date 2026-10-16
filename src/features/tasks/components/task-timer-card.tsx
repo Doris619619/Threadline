@@ -1,6 +1,14 @@
 /** @fileoverview 正/倒计时卡片；到时提供续时浮层，完成统一记账，删除放入上下文菜单。 */
 'use client';
-import { Check, MoreHorizontal, Pause, Play, Trash2 } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  MoreHorizontal,
+  Pause,
+  Play,
+  Trash2,
+} from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useGuardedAction } from '@/hooks/use-guarded-action';
 import { useTaskMenu } from '../hooks/use-task-menu';
@@ -26,7 +34,11 @@ export function TaskTimerCard({
   onExtend,
   onRemove,
   onRecord,
+  variant = 'default',
+  projectName,
 }: {
+  variant?: 'default' | 'station';
+  projectName?: string;
   timer: TaskTimer;
   task?: Task;
   now: number;
@@ -125,7 +137,7 @@ export function TaskTimerCard({
     });
   return (
     <article
-      className="task-timer"
+      className={'task-timer' + (variant === 'station' ? ' task-timer-station' : '')}
       aria-label={'计时 ' + title}
       aria-busy={busy}
       title={(timer.mode === 'up' ? '正计时' : '倒计时') + ' · ' + title}
@@ -138,6 +150,11 @@ export function TaskTimerCard({
     >
       <div className="task-timer-body">
         <div className="task-timer-heading">
+          {variant === 'station' && (
+            <span className="task-timer-project" title={projectName}>
+              {projectName ?? '未分类'}
+            </span>
+          )}
           <strong title={title}>{title}</strong>
           {ended && <span className="task-timer-ended">已到时</span>}
         </div>
@@ -149,7 +166,15 @@ export function TaskTimerCard({
             (ended ? '已到时' : running ? '运行中' : '已暂停')
           }
         >
-          {timerClock(timer.mode === 'up' ? elapsed : timer.targetMs - elapsed)}
+          {variant === 'station' &&
+            (timer.mode === 'up' ? (
+              <ArrowUp size={21} strokeWidth={1.5} aria-hidden="true" />
+            ) : (
+              <ArrowDown size={21} strokeWidth={1.5} aria-hidden="true" />
+            ))}
+          <span>
+            {timerClock(timer.mode === 'up' ? elapsed : timer.targetMs - elapsed)}
+          </span>
         </time>
       </div>
       <div className="task-timer-actions">

@@ -52,3 +52,4 @@ import '../features/stage-plans/stage-classic.css';
 import '../features/projects/project-detail.css';
 
 import '../components/ui/project-picker.css';
+import '../features/tasks/timer-station.css';

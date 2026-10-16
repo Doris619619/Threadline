@@ -1,0 +1,220 @@
+/** @fileoverview 独立计时站的暖白纸感与绿色正计时、红色倒计时；网格隔开读数和按钮，支持横纵滚动。 */
+html[data-timer-station='true'],
+html[data-timer-station='true'] body {
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  background: #faf8f3;
+  overflow: hidden;
+  color-scheme: light;
+}
+html[data-timer-station='true'],
+.timer-station {
+  --surface: #fffdf8;
+  --text-primary: #303029;
+  --text-secondary: #716e63;
+  --border: #e7e0d2;
+  --border-subtle: #e7e0d2;
+  --success: #4b6a15;
+  --danger: #b44840;
+}
+.timer-station {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #faf8f3;
+  color: var(--text-primary);
+  font-family: Georgia, 'Noto Serif SC', 'SimSun', serif;
+}
+.timer-station-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 0 0 64px;
+  padding: 0 16px 0 24px;
+  border-bottom: 1px solid var(--border);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+.timer-station-header h1 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.timer-station-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+.timer-station-controls button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 15px;
+}
+.timer-station-controls button:hover {
+  background: #eeebe2;
+}
+.timer-station-layout {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.timer-station-layout button {
+  height: 30px;
+  width: 42px;
+  border-radius: 8px;
+}
+.timer-station-controls button[aria-pressed='true'] {
+  color: var(--success);
+  background: #e7eadb;
+}
+.timer-station button:focus-visible,
+.timer-station article:focus-visible {
+  outline: 2px solid #4b6a15;
+  outline-offset: 3px;
+}
+.timer-station ::selection {
+  background: #dee5c8;
+}
+.timer-station-cards {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(328px, 1fr);
+  align-items: start;
+  gap: 12px;
+  padding: 16px;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #c1c5ac #faf8f3;
+}
+.timer-station[data-layout='vertical'] .timer-station-cards {
+  grid-auto-flow: row;
+  grid-auto-columns: minmax(0, 1fr);
+  align-content: start;
+}
+.timer-station .task-timer-station {
+  --timer-color: #4b6a15;
+  --timer-ink: var(--timer-color);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px 10px;
+  width: 100%;
+  height: 184px;
+  min-height: 184px;
+  padding: 18px;
+  border: 1px solid #a7b283;
+  border-radius: 22px;
+  background: #f2f2e9;
+  font-family: inherit;
+}
+.timer-station .task-timer-station[data-mode='down'] {
+  --timer-color: #b44840;
+  border-color: #d99e94;
+  background: #f7f1ed;
+}
+.timer-station .task-timer-body {
+  display: contents;
+}
+.timer-station .task-timer-heading {
+  grid-column: 1 / -1;
+  gap: 12px;
+}
+.timer-station .task-timer-heading strong {
+  font: inherit;
+  font-size: 20px;
+  line-height: 1.5;
+}
+.timer-station .task-timer-project {
+  flex: 0 1 auto;
+  max-width: 5em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+.timer-station .task-timer-readout {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 38px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+.timer-station .task-timer-readout svg {
+  flex: 0 0 19px;
+}
+.timer-station .task-timer-readout span {
+  font-variant-numeric: tabular-nums;
+}
+.timer-station .task-timer-actions {
+  gap: 6px;
+}
+.timer-station .task-timer-actions button {
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+  min-width: 38px;
+  padding: 7px;
+  background: var(--surface);
+}
+.timer-station .task-timer-actions .task-timer-primary {
+  background: color-mix(in srgb, var(--timer-color) 6%, #f2f2e9);
+  border-color: color-mix(in srgb, var(--timer-color) 46%, #e7e0d2);
+}
+.timer-station .task-timer-actions button:hover {
+  background: color-mix(in srgb, var(--timer-color) 12%, var(--surface));
+}
+.timer-station .task-timer-actions .task-timer-more {
+  display: none;
+}
+.timer-station .task-timer-date {
+  color: #716e63;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.timer-station .task-timer-ended {
+  font-size: 12px;
+}
+.timer-station .form-error {
+  grid-column: 1 / -1;
+  font:
+    13px/1.4 'Segoe UI',
+    sans-serif;
+  margin: 0;
+}
+.timer-station .task-timer:has(.form-error) {
+  height: auto;
+}
+.timer-station-empty {
+  margin: auto;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+@container (max-width: 299px) {
+  .timer-station .task-timer-readout {
+    font-size: 32px;
+  }
+}

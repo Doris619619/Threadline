@@ -14,6 +14,7 @@ import {
   shell,
   type IpcMainInvokeEvent,
 } from 'electron';
+import { attachTimerStation, registerTimerStationIpc } from './timer-station.cjs';
 import {
   getThemedWindowIcon,
   loadCompactPreferences,
@@ -1106,6 +1107,14 @@ async function createMainWindow(): Promise<void> {
     ...initialBounds,
   });
   mainWindow = window;
+  const timerStationUrl = new URL(getRendererUrl('main'));
+  timerStationUrl.search = '?threadline-role=timer-station';
+  attachTimerStation(
+    window,
+    timerStationUrl.href,
+    join(__dirname, 'preload.cjs'),
+    getWindowIconPath(),
+  );
   if (pendingDisplayReason)
     void reconcileDisplayState(pendingDisplayReason).catch(exitAfterStartupFailure);
   const initialDisplay = screen.getDisplayMatching(window.getBounds());
@@ -1154,6 +1163,7 @@ function bootstrapApplication(): void {
     try {
       registerRendererProtocol();
       registerDesktopIpc();
+      registerTimerStationIpc();
       registerAutoStart((event) => isTrustedSender(event, 'main'));
       registerDesktopUpdates(
         () => mainWindow,

@@ -33,5 +33,6 @@ runPnpm(['desktop:compile']);
 runNode('scripts/test-electron-startup-display.mjs');
 runNode('scripts/test-electron-entry-recovery.mjs');
 runPnpm(['desktop:renderer']);
+runNode('scripts/test-electron-timer-station.mjs');
 runPnpm(['build:web']);
 runNode('scripts/test-electron.mjs');
