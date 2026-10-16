@@ -150,6 +150,25 @@ async function expectStationSize(width, height) {
     .toBe(true);
 }
 
+/** 检查真实原生可见性，而不是隐藏窗口中仍然存在的 DOM。 */
+async function expectSurfaces(mainVisible, stationVisible) {
+  await expect
+    .poll(() =>
+      application.evaluate(({ BrowserWindow }) => {
+        const windows = BrowserWindow.getAllWindows();
+        const main = windows.find((w) => w.webContents.getURL().includes('role=main'));
+        const station = windows.find((w) =>
+          w.webContents.getURL().includes('timer-station'),
+        );
+        return [
+          !!main?.isVisible() && !main.isMinimized(),
+          !!station?.isVisible() && !station.isMinimized(),
+        ];
+      }),
+    )
+    .toEqual([mainVisible, stationVisible]);
+}
+
 try {
   application = await electron.launch({
     args: ['.', `--user-data-dir=${userData}`],
@@ -160,6 +179,7 @@ try {
   await page.getByRole('button', { name: '计时站', exact: true }).waitFor();
   await seed(page);
   let station = await open(page);
+  await expectSurfaces(false, true);
   await expectStationSize(940, 208);
   assert.equal(
     await application.evaluate(({ BrowserWindow }) =>
@@ -216,6 +236,8 @@ try {
   const first = station.locator('.task-timer').first();
   const startLabel = await first.locator('.task-timer-date').textContent();
   await first.getByRole('button', { name: '暂停', exact: true }).click();
+  await station.getByRole('button', { name: '打开完整工作台', exact: true }).click();
+  await expectSurfaces(true, false);
   await expect(
     page
       .locator('.task-timer')
@@ -227,9 +249,12 @@ try {
     .first()
     .getByRole('button', { name: '继续', exact: true })
     .click();
+  await page.getByRole('button', { name: '计时站', exact: true }).click();
+  await expectSurfaces(false, true);
   await expect(first.getByRole('button', { name: '暂停', exact: true })).toBeVisible();
   assert.equal(await first.locator('.task-timer-date').textContent(), startLabel);
   await station.getByRole('button', { name: '关闭计时站' }).click();
+  await expectSurfaces(true, false);
   await expect(page.locator('.task-timer')).toHaveCount(3);
   station = await open(page);
   await expectStationSize(380, 390);
@@ -283,10 +308,13 @@ try {
     /无效计时站配置/,
   );
   // 工作站和计时站必须同时可见；切换不重建计时会话。
+  await station.getByRole('button', { name: '打开完整工作台', exact: true }).click();
+  await expectSurfaces(true, false);
   await page.getByRole('button', { name: '工作站', exact: true }).click();
   await expect(page.locator('.compact-window-header')).toBeVisible();
   await expect(station.locator('.task-timer')).toHaveCount(2);
   await page.getByRole('button', { name: '打开计时站', exact: true }).click();
+  await expectSurfaces(true, true);
   assert.equal(
     application.windows().filter((item) => item.url().includes('timer-station')).length,
     1,
@@ -335,12 +363,17 @@ try {
   for (const state of ['workstation', 'edge-collapsed', 'minimized-full']) {
     if (state === 'edge-collapsed') {
       await page.getByRole('button', { name: '工作站', exact: true }).click();
+      await page.getByRole('button', { name: '打开计时站', exact: true }).click();
       await page.getByRole('button', { name: '收起', exact: false }).click();
     } else if (state === 'minimized-full') {
       await page.evaluate(() => window.threadlineDesktop.minimizeMainWindow());
+      await page.evaluate(() =>
+        window.threadlineDesktop.timerStationControl({ action: 'focus' }),
+      );
     }
     await station.getByRole('button', { name: '打开完整工作台', exact: true }).click();
     await expect(page.locator('.full-window-chrome')).toBeVisible();
+    await expectSurfaces(true, false);
     await expect
       .poll(() =>
         application.evaluate(({ BrowserWindow }) => {
@@ -360,7 +393,18 @@ try {
       timersBeforeOpen,
     );
   }
+  // 原生 show（如系统激活）也不能绕过互斥；重复展开沿用同一个子窗口。
+  await page.getByRole('button', { name: '计时站', exact: true }).click();
+  await expectSurfaces(false, true);
+  await application.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()
+      .find((w) => w.webContents.getURL().includes('role=main'))
+      .show(),
+  );
+  await expectSurfaces(true, false);
   await page.getByRole('button', { name: '工作站', exact: true }).click();
+  await page.getByRole('button', { name: '打开计时站', exact: true }).click();
+  await expectSurfaces(true, true);
   for (let remaining = 2; remaining > 0; remaining--) {
     await station.getByRole('button', { name: '完成并记耗时' }).first().click();
     await expect(station.locator('.task-timer')).toHaveCount(remaining - 1);
@@ -385,19 +429,25 @@ try {
   const restartedPage = await application.firstWindow();
   await restartedPage.getByRole('button', { name: '计时站', exact: true }).waitFor();
   await seed(restartedPage);
-  const restartedStation = await open(restartedPage);
+  let restartedStation = await open(restartedPage);
   await expectStationSize(640, 240);
   await restartedStation.getByRole('button', { name: '纵向', exact: true }).click();
   await expectStationSize(380, 390);
   await verifyLayout(restartedStation);
+  // 隐藏主窗口重载仍须恢复可见入口，不能留下无界面的后台应用。
+  await restartedPage.reload();
+  await expect.poll(() => restartedStation.isClosed()).toBe(true);
+  await expectSurfaces(true, false);
+  restartedStation = await open(restartedPage);
+  await expectSurfaces(false, true);
+  await expectStationSize(380, 390);
   console.log(
-    'PASS: station opens full workspace from workstation, collapsed edge and minimized full without changing timers; native resize enabled, narrow layout, per-layout size memory across pin/count changes and app restart; native portal, both layouts, no overlap, pause/resume sync, start time, pin, minimize/restore, close/reopen, extension, exactly one recording per timer, empty state, workstation coexistence, reload cleanup, denied external popup/invalid configuration',
+    'PASS: full workspace/station mutual visibility, native show, close restores workspace, hidden parent reload recovery; workstation coexistence; station opens full workspace from workstation, collapsed edge and minimized full without changing timers; native resize enabled, narrow layout, per-layout size memory across pin/count changes and app restart; native portal, both layouts, no overlap, pause/resume sync, start time, pin, minimize/restore, close/reopen, extension, exactly one recording per timer, empty state, denied external popup/invalid configuration',
   );
   console.log(`Screenshots: ${output}`);
   if (show) {
     await restartedStation.getByRole('button', { name: '横向', exact: true }).click();
     await resizeStation(940, 208);
-    await restartedPage.evaluate(() => window.threadlineDesktop.minimizeMainWindow());
     await restartedPage.evaluate(() =>
       window.threadlineDesktop.timerStationControl({ action: 'focus' }),
     );

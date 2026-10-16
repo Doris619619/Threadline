@@ -2,7 +2,7 @@
 
 # 桌面交互与窗口形态
 
-Web/PWA 保持完整工作台。Windows Electron 使用同一 Main BrowserWindow 承载完整工作台和工作站；收起时用独立的 Edge BrowserWindow 显示入口。Edge 不挂载业务 Provider，也不访问任务仓储。另可打开独立[计时站](timer-station.md)，由 Main 的 React 会话投射计时卡片，可与工作站同时显示。
+Web/PWA 保持完整工作台。Windows Electron 使用同一 Main BrowserWindow 承载完整工作台和工作站；收起时用独立的 Edge BrowserWindow 显示入口。Edge 不挂载业务 Provider，也不访问任务仓储。[计时站](timer-station.md)与完整工作台互斥显示，切换只隐藏对应窗口，由 Main 的 React 会话持续提供计时；计时站仍可与工作站同时显示。
 
 ## 完整工作台与工作站
 

@@ -14,7 +14,11 @@ import {
   shell,
   type IpcMainInvokeEvent,
 } from 'electron';
-import { attachTimerStation, registerTimerStationIpc } from './timer-station.cjs';
+import {
+  attachTimerStation,
+  hideTimerStationForFullWorkspace,
+  registerTimerStationIpc,
+} from './timer-station.cjs';
 import {
   getThemedWindowIcon,
   loadCompactPreferences,
@@ -459,6 +463,7 @@ function prepareMainReveal(): WindowStateConfig {
 function revealMain(): WindowStateConfig {
   if (!mainWindow || mainWindow.isDestroyed())
     throw new Error('Main window is unavailable');
+  if (latestState.mode === 'full') hideTimerStationForFullWorkspace();
   const previousGeometry = latestState.windowStates[latestState.mode];
   const geometry = prepareMainReveal();
   if (
@@ -1114,6 +1119,12 @@ async function createMainWindow(): Promise<void> {
     timerStationUrl.href,
     join(__dirname, 'preload.cjs'),
     getWindowIconPath(),
+    {
+      isFull: () => latestState.mode === 'full',
+      restore: () => {
+        revealMain();
+      },
+    },
   );
   if (pendingDisplayReason)
     void reconcileDisplayState(pendingDisplayReason).catch(exitAfterStartupFailure);

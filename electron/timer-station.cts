@@ -1,4 +1,4 @@
-/** @fileoverview 独立计时站的原生窗口生命周期；只开放同源展示页与有限窗口控制，不持有计时业务状态。 */
+/** @fileoverview 计时站原生生命周期与完整工作台互斥显示；同源展示共用计时会话，可与工作站并排。 */
 import { BrowserWindow, ipcMain, screen } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import { createStationGeometry } from './timer-station-geometry.cjs';
@@ -9,6 +9,26 @@ let owner: BrowserWindow | undefined;
 let stationUrl = '';
 let geometry: ReturnType<typeof createStationGeometry> | undefined;
 let configured = false;
+let workspace: { isFull: () => boolean; restore: () => void } | undefined;
+let hiddenOwner = false;
+
+/** 完整工作台显示前收起计时站；保留子窗口、尺寸与 portal，切回时无需重建计时。 */
+export function hideTimerStationForFullWorkspace(): void {
+  hiddenOwner = false;
+  if (station && !station.isDestroyed()) station.hide();
+}
+
+/** 展开计时站时只收起完整工作台，工作站继续允许并排；主会话留在隐藏窗口运行。 */
+function revealStation(): void {
+  if (!station || station.isDestroyed()) return;
+  if (owner && !owner.isDestroyed() && workspace?.isFull()) {
+    hiddenOwner = true;
+    owner.hide();
+  }
+  if (station.isMinimized()) station.restore();
+  station.show();
+  station.focus();
+}
 
 /** 主窗口或计时站的顶层可信 frame 才可控制这个窗口；拒绝子 frame 和其他窗口。 */
 function trusted(event: IpcMainInvokeEvent): boolean {
@@ -43,15 +63,12 @@ export function registerTimerStationIpc(): void {
         throw new Error('无效计时站配置');
       geometry?.configure(value.layout as Layout, Number(value.count));
       station.setAlwaysOnTop(value.pinned);
-      if (!configured) station.show();
+      if (!configured) revealStation();
       configured = true;
     } else if (value.action === 'minimize') station.minimize();
     else if (value.action === 'close') station.close();
-    else if (value.action === 'focus') {
-      if (station.isMinimized()) station.restore();
-      station.show();
-      station.focus();
-    } else throw new Error('未知计时站命令');
+    else if (value.action === 'focus') revealStation();
+    else throw new Error('未知计时站命令');
   });
 }
 
@@ -61,9 +78,17 @@ export function attachTimerStation(
   url: string,
   preload: string,
   icon: string,
+  workspaceControl: { isFull: () => boolean; restore: () => void },
 ): void {
   owner = main;
+  workspace = workspaceControl;
   stationUrl = url;
+  /** 任务栏或系统恢复 Main 也遵守互斥，避免绕过应用内按钮后同时显示。 */
+  const onOwnerReveal = () => {
+    if (workspaceControl.isFull()) hideTimerStationForFullWorkspace();
+  };
+  main.on('show', onOwnerReveal);
+  main.on('restore', onOwnerReveal);
   main.webContents.setWindowOpenHandler((details) => {
     if (
       details.url !== url ||
@@ -127,17 +152,22 @@ export function attachTimerStation(
     child.webContents.on('will-redirect', (event) => event.preventDefault());
     child.webContents.on('render-process-gone', () => child.destroy());
     child.on('closed', () => {
+      const shouldRestoreOwner = hiddenOwner;
       if (station === child) {
         station = undefined;
         geometry = undefined;
         configured = false;
+        hiddenOwner = false;
       }
       if (!main.isDestroyed() && !main.webContents.isDestroyed())
         main.webContents.setBackgroundThrottling(previousThrottling);
+      // 直接关闭计时站后恢复工作台，避免只剩隐藏后台进程；主窗口退出/重载走下方清理。
+      if (shouldRestoreOwner && !main.isDestroyed()) workspaceControl.restore();
     });
   });
   /** 文档重载或退出清理子窗口；普通 React 视图切换不会触发此事件。 */
   const close = () => {
+    hiddenOwner = false;
     if (owner === main && station && !station.isDestroyed()) station.destroy();
   };
   main.on('closed', close);
