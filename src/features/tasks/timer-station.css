@@ -31,9 +31,9 @@ html[data-timer-station='true'],
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 6px;
   flex: 0 0 44px;
-  padding: 0 10px 0 16px;
+  padding: 0 10px;
   border-bottom: 1px solid var(--border);
   -webkit-app-region: drag;
   user-select: none;
@@ -47,7 +47,7 @@ html[data-timer-station='true'],
 .timer-station-controls {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   -webkit-app-region: no-drag;
 }
 .timer-station-controls button {
@@ -66,6 +66,11 @@ html[data-timer-station='true'],
 }
 .timer-station-controls button:hover {
   background: #eeebe2;
+}
+.timer-station-controls .timer-station-workspace-link {
+  width: auto;
+  padding: 0 2px;
+  white-space: nowrap;
 }
 .timer-station-layout {
   display: flex;

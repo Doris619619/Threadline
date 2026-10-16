@@ -1,7 +1,7 @@
-/** @fileoverview 计时站窗口外壳：切换工作站或完整工作台、横纵排列、置顶和窗口控制，共用唯一计时会话。 */
+/** @fileoverview 计时站窗口外壳：文字入口返回完整工作台、横纵排列、置顶和窗口控制，共用唯一计时会话。 */
 'use client';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { CalendarDays, PanelsTopLeft, Minus, Pin, X } from 'lucide-react';
+import { Minus, Pin, X } from 'lucide-react';
 import { getMainDesktopBridge, type TimerStationCommand } from '@/lib/desktop-bridge';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
@@ -44,13 +44,13 @@ export function TimerStation({
       ?.timerStationControl?.(command)
       .catch(() => setError('窗口操作失败，请重试。'));
   }
-  /** 切到指定工作视图并聚焦原主窗口；原生层收起计时站，同模式也须恢复隐藏窗口。 */
-  async function openWorkspace(mode: 'full' | 'workstation') {
+  /** 只返回完整工作台并聚焦原主窗口；原生层收起计时站，full 已选中时也须恢复隐藏窗口。 */
+  async function openWorkspace() {
     if (openingWorkspace) return;
     setOpeningWorkspace(true);
     setError('');
     try {
-      await setMode(mode);
+      await setMode('full');
       await getMainDesktopBridge()?.bringToFront();
     } catch {
       setError('切换工作视图失败，请重试。');
@@ -70,21 +70,13 @@ export function TimerStation({
         <div className="timer-station-controls">
           <button
             type="button"
+            className="timer-station-workspace-link"
             aria-label="打开完整工作台"
             title="打开完整工作台"
             disabled={openingWorkspace}
-            onClick={() => void openWorkspace('full')}
+            onClick={() => void openWorkspace()}
           >
-            <PanelsTopLeft size={16} strokeWidth={1.6} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            aria-label="打开工作站"
-            title="打开工作站"
-            disabled={openingWorkspace}
-            onClick={() => void openWorkspace('workstation')}
-          >
-            <CalendarDays size={16} strokeWidth={1.6} aria-hidden="true" />
+            打开完整工作台
           </button>
           <div className="timer-station-layout" role="group" aria-label="卡片排列">
             <button

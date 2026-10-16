@@ -88,6 +88,16 @@ async function open(page, count = 3) {
 
 /** 同时验证时钟与按钮不重叠、卡片内容不溢出，以及标题确实位于同一行。 */
 async function verifyLayout(station) {
+  const headerFits = await station
+    .locator('.timer-station-header')
+    .evaluate((header) => {
+      const title = header.querySelector('h1').getBoundingClientRect();
+      const controls = header
+        .querySelector('.timer-station-controls')
+        .getBoundingClientRect();
+      return title.right + 4 <= controls.left && controls.right <= header.clientWidth;
+    });
+  assert.ok(headerFits, '文字入口和窗口控件应在最窄标题栏中完整显示');
   const boxes = await station.locator('.task-timer').evaluateAll((cards) =>
     cards.map((card) => {
       const clock = card.querySelector('.task-timer-readout');
@@ -183,6 +193,12 @@ try {
   await page.getByRole('button', { name: '计时站', exact: true }).waitFor();
   await seed(page);
   let station = await open(page);
+  await expect(
+    station.getByRole('button', { name: '打开完整工作台', exact: true }),
+  ).toHaveText('打开完整工作台');
+  await expect(
+    station.getByRole('button', { name: '打开工作站', exact: true }),
+  ).toHaveCount(0);
   await expectSurfaces(false, true);
   await expectStationSize(940, 208);
   assert.equal(
@@ -311,8 +327,10 @@ try {
     ),
     /无效计时站配置/,
   );
-  // 从计时站直接切到工作站，两者互斥，切回沿用原窗口和计时。
-  await station.getByRole('button', { name: '打开工作站', exact: true }).click();
+  // 计时站只有返回完整工作台的入口；工作站从完整工作台进入，三者仍互斥。
+  await station.getByRole('button', { name: '打开完整工作台', exact: true }).click();
+  await expectSurfaces(true, false);
+  await page.getByRole('button', { name: '工作站', exact: true }).click();
   await expectSurfaces(true, false);
   await expect(page.locator('.compact-window-header')).toBeVisible();
   await expect(station.locator('.task-timer')).toHaveCount(2);
@@ -471,7 +489,7 @@ try {
   await expectSurfaces(false, true);
   await expectStationSize(380, 390);
   console.log(
-    'PASS: full/workstation/timer station mutually exclusive, direct workstation switch, edge hidden on station activation, native show and display recovery, close restores previous workspace, hidden parent reload recovery; native resize, per-layout size memory, unchanged timers, pause/resume, extension and exactly one recording per timer; denied external popup/invalid configuration',
+    'PASS: text-only full workspace entry, no direct workstation entry, narrow header fits; full/workstation/timer station mutually exclusive, edge hidden on station activation, native show and display recovery, close restores previous workspace, hidden parent reload recovery; native resize, per-layout size memory, unchanged timers, pause/resume, extension and exactly one recording per timer; denied external popup/invalid configuration',
   );
   console.log(`Screenshots: ${output}`);
   if (show) {
