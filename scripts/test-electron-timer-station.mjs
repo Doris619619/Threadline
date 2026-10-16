@@ -403,8 +403,23 @@ try {
     localStorage.setItem(key, JSON.stringify(timers));
     window.dispatchEvent(new StorageEvent('storage', { key }));
   });
+  await resizeStation(200, 390, 355);
   await station.getByRole('button', { name: '延长', exact: true }).click();
-  await expect(station.getByRole('group', { name: '延长倒计时' })).toBeVisible();
+  const extension = station.getByRole('group', { name: '延长倒计时' });
+  await expect(extension).toBeVisible();
+  assert.ok(
+    await extension.evaluate((panel) => {
+      const bounds = panel.getBoundingClientRect();
+      return (
+        panel.scrollWidth <= panel.clientWidth &&
+        [...panel.querySelectorAll('button')].every((button) => {
+          const box = button.getBoundingClientRect();
+          return box.left >= bounds.left && box.right <= bounds.right;
+        })
+      );
+    }),
+    '最窄计时站的全部续时选项必须完整可点击',
+  );
   assert.equal(await page.getByRole('group', { name: '延长倒计时' }).count(), 0);
   await station.getByRole('button', { name: '5分钟', exact: true }).click();
   await expect(
@@ -413,6 +428,7 @@ try {
       .last()
       .getByRole('button', { name: '暂停', exact: true }),
   ).toBeVisible();
+  await resizeStation(380, 390);
   await station
     .locator('.task-timer')
     .first()

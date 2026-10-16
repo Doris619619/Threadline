@@ -284,3 +284,9 @@ html[data-timer-station='true'],
     sans-serif;
   padding: 2px;
 }
+/* 续时浮层挂在子窗口 body，窄窗使用两列，避免四个最小点击目标撑出面板。 */
+@media (width < 280px) {
+  html[data-timer-station='true'] .task-timer-extension-presets {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
