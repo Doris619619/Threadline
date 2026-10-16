@@ -86,7 +86,7 @@ async function open(page, count = 3) {
   return station;
 }
 
-/** 同时验证时钟与按钮不重叠、卡片内容不溢出，以及标题确实位于同一行。 */
+/** 检查真实渲染边界：全部卡片完整可见，读数和按钮同排，缩放后标题和开始时间仍在卡片内。 */
 async function verifyLayout(station) {
   const headerFits = await station
     .locator('.timer-station-header')
@@ -98,26 +98,59 @@ async function verifyLayout(station) {
       return title.right + 4 <= controls.left && controls.right <= header.clientWidth;
     });
   assert.ok(headerFits, '文字入口和窗口控件应在最窄标题栏中完整显示');
-  const boxes = await station.locator('.task-timer').evaluateAll((cards) =>
-    cards.map((card) => {
-      const clock = card.querySelector('.task-timer-readout');
-      const digits = clock.querySelector('span').getBoundingClientRect();
-      const actions = card.querySelector('.task-timer-actions').getBoundingClientRect();
-      const heading = card.querySelector('.task-timer-heading').getBoundingClientRect();
-      const project = card.querySelector('.task-timer-project').getBoundingClientRect();
-      const title = card.querySelector('strong').getBoundingClientRect();
-      return {
-        clear: digits.right + 5 <= actions.left,
-        fits: card.scrollWidth <= card.clientWidth,
-        singleLine: project.top >= heading.top && title.bottom <= heading.bottom,
-        text: clock.textContent,
-      };
-    }),
-  );
-  assert.ok(
-    boxes.every((box) => box.clear && box.fits && box.singleLine),
-    JSON.stringify(boxes),
-  );
+  await expect
+    .poll(async () =>
+      station.locator('.task-timer').evaluateAll((cards) =>
+        cards
+          .map((card) => {
+            const viewport = card
+              .closest('.timer-station-viewport')
+              .getBoundingClientRect();
+            const bounds = card.getBoundingClientRect();
+            const clock = card.querySelector('.task-timer-readout');
+            const readout = clock.getBoundingClientRect();
+            const digits = clock.querySelector('span').getBoundingClientRect();
+            const actions = card
+              .querySelector('.task-timer-actions')
+              .getBoundingClientRect();
+            const heading = card
+              .querySelector('.task-timer-heading')
+              .getBoundingClientRect();
+            const project = card
+              .querySelector('.task-timer-project')
+              .getBoundingClientRect();
+            const title = card.querySelector('strong').getBoundingClientRect();
+            const date = card.querySelector('.task-timer-date').getBoundingClientRect();
+            return {
+              clear: digits.right + 1 <= actions.left,
+              sameRow:
+                Math.abs(
+                  (readout.top + readout.bottom) / 2 -
+                    (actions.top + actions.bottom) / 2,
+                ) < 1,
+              fits: card.scrollWidth <= card.clientWidth,
+              visible:
+                bounds.left >= viewport.left &&
+                bounds.right <= viewport.right + 1 &&
+                bounds.top >= viewport.top &&
+                bounds.bottom <= viewport.bottom + 1,
+              dateFits: date.bottom <= bounds.bottom && date.right <= bounds.right,
+              singleLine: project.top >= heading.top && title.bottom <= heading.bottom,
+              text: clock.textContent,
+            };
+          })
+          .filter(
+            (box) =>
+              !box.clear ||
+              !box.sameRow ||
+              !box.fits ||
+              !box.visible ||
+              !box.dateFits ||
+              !box.singleLine,
+          ),
+      ),
+    )
+    .toEqual([]);
 }
 
 /** 使用真实 BrowserWindow 调整尺寸并模拟原生拖动起止事件；检验记忆逻辑，不冒充物理鼠标验收。 */
@@ -213,6 +246,10 @@ try {
   await station.screenshot({ path: join(output, 'horizontal.png'), scale: 'css' });
   await resizeStation(340, 208);
   await verifyLayout(station);
+  await station.screenshot({
+    path: join(output, 'horizontal-smallest.png'),
+    scale: 'css',
+  });
   await resizeStation(940, 300);
   await verifyLayout(station);
   await resizeStation(640, 240);
@@ -249,6 +286,9 @@ try {
   await station.screenshot({ path: join(output, 'vertical.png'), scale: 'css' });
   await resizeStation(380, 390);
   await verifyLayout(station);
+  await resizeStation(340, 208);
+  await verifyLayout(station);
+  await resizeStation(380, 390);
   await station.getByRole('button', { name: '横向', exact: true }).click();
   await expectStationSize(640, 240);
   await station.getByRole('button', { name: '纵向', exact: true }).click();
@@ -316,6 +356,27 @@ try {
     JSON.parse(localStorage.getItem('threadline.task-timer-records.v1')),
   );
   assert.equal(records.length, 1);
+  // 重现用户的双计时横排窄窗：所有卡片可见、按钮不换行，并实际点击缩放后的控件。
+  await station.getByRole('button', { name: '横向', exact: true }).click();
+  await resizeStation(500, 208);
+  await verifyLayout(station);
+  await station.screenshot({
+    path: join(output, 'two-timers-small.png'),
+    scale: 'css',
+  });
+  await station
+    .locator('.task-timer')
+    .first()
+    .getByRole('button', { name: '继续', exact: true })
+    .click();
+  await station
+    .locator('.task-timer')
+    .first()
+    .getByRole('button', { name: '暂停', exact: true })
+    .click();
+  await resizeStation(640, 240);
+  await station.getByRole('button', { name: '纵向', exact: true }).click();
+  await expectStationSize(380, 390);
   await assert.rejects(
     page.evaluate(() =>
       window.threadlineDesktop.timerStationControl({
@@ -455,6 +516,7 @@ try {
   for (let remaining = 2; remaining > 0; remaining--) {
     await station.getByRole('button', { name: '完成并记耗时' }).first().click();
     await expect(station.locator('.task-timer')).toHaveCount(remaining - 1);
+    if (remaining === 2) await verifyLayout(station);
   }
   await expect(station.getByText('从任务菜单开始计时')).toBeVisible();
   assert.equal(

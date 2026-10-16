@@ -1,4 +1,4 @@
-/** @fileoverview 紧凑暖白计时站；弱化辅助信息，保留大读数，随原生窗口宽高适配并支持横纵滚动。 */
+/** @fileoverview 紧凑暖白计时站；卡片整体适配窗口，固定信息层级和按钮位置，不使用裁切滚动或手机换行。 */
 html[data-timer-station='true'],
 html[data-timer-station='true'] body {
   margin: 0;
@@ -97,18 +97,25 @@ html[data-timer-station='true'],
 .timer-station ::selection {
   background: #dee5c8;
 }
+.timer-station-viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: clip;
+}
 .timer-station-cards {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  transform-origin: top left;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(300px, 1fr);
+  grid-auto-rows: minmax(144px, auto);
   align-items: start;
   gap: 10px;
-  padding: 10px;
-  overflow: auto;
-  flex: 1;
-  min-height: 0;
-  scrollbar-width: thin;
-  scrollbar-color: #c1c5ac #faf8f3;
+  padding: 0;
 }
 .timer-station[data-layout='vertical'] .timer-station-cards {
   grid-auto-flow: row;
@@ -123,7 +130,7 @@ html[data-timer-station='true'],
   grid-template-rows: auto 1fr auto;
   gap: 8px 10px;
   width: 100%;
-  height: clamp(144px, calc(100dvh - 64px), 180px);
+  height: 144px;
   min-height: 144px;
   padding: 14px;
   border: 1px solid #c1c9aa;
@@ -141,6 +148,7 @@ html[data-timer-station='true'],
 }
 .timer-station .task-timer-heading {
   grid-column: 1 / -1;
+  grid-row: 1;
   gap: 10px;
 }
 .timer-station .task-timer-heading strong {
@@ -161,12 +169,14 @@ html[data-timer-station='true'],
     sans-serif;
 }
 .timer-station .task-timer-readout {
+  grid-column: 1;
+  grid-row: 2;
   display: flex;
   align-items: center;
   gap: 5px;
   min-width: 0;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(36px, 11cqw, 44px);
+  font-size: 36px;
   font-weight: 400;
   line-height: 1.2;
   letter-spacing: -0.025em;
@@ -178,6 +188,10 @@ html[data-timer-station='true'],
   font-variant-numeric: tabular-nums;
 }
 .timer-station .task-timer-actions {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: end;
+  align-self: center;
   gap: 6px;
 }
 .timer-station .task-timer-actions button {
@@ -199,6 +213,8 @@ html[data-timer-station='true'],
   display: none;
 }
 .timer-station .task-timer-date {
+  grid-column: 1 / -1;
+  grid-row: 3;
   color: #716e63;
   font:
     12px/1.5 'Segoe UI',
@@ -223,12 +239,8 @@ html[data-timer-station='true'],
   color: var(--text-secondary);
   font-size: 16px;
 }
-.timer-station[data-layout='vertical'] .task-timer-station {
-  height: clamp(
-    144px,
-    calc((100dvh - 64px - (var(--station-count) - 1) * 10px) / var(--station-count)),
-    180px
-  );
+.timer-station[data-empty='true'] .timer-station-cards {
+  display: flex;
 }
 .timer-station .task-timer-extension-trigger {
   font:

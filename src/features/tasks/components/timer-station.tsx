@@ -1,10 +1,11 @@
 /** @fileoverview 计时站窗口外壳：文字入口返回完整工作台、横纵排列、置顶和窗口控制，共用唯一计时会话。 */
 'use client';
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Minus, Pin, X } from 'lucide-react';
 import { getMainDesktopBridge, type TimerStationCommand } from '@/lib/desktop-bridge';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
+import { useTimerStationFit } from '../hooks/use-timer-station-fit';
 
 type Preferences = { layout: 'horizontal' | 'vertical'; pinned: boolean };
 /** 持久化值只允许两种排列，损坏或旧配置回到横向置顶。 */
@@ -32,6 +33,7 @@ export function TimerStation({
   const [openingWorkspace, setOpeningWorkspace] = useState(false);
   const { setMode } = useDesktopWindow();
   const { layout, pinned } = preferences;
+  const { viewportRef, canvasRef } = useTimerStationFit(count, layout);
   useEffect(() => {
     if (!hydrated) return;
     void getMainDesktopBridge()
@@ -63,7 +65,7 @@ export function TimerStation({
       className="timer-station"
       data-layout={layout}
       aria-label="计时站"
-      style={{ '--station-count': Math.max(1, count) } as CSSProperties}
+      data-empty={count === 0}
     >
       <header className="timer-station-header">
         <h1>计时站</h1>
@@ -122,8 +124,14 @@ export function TimerStation({
           </button>
         </div>
       </header>
-      <section className="timer-station-cards task-timers" aria-label="任务计时器">
-        {count ? children : <p className="timer-station-empty">从任务菜单开始计时</p>}
+      <section
+        className="timer-station-viewport"
+        aria-label="任务计时器"
+        ref={viewportRef}
+      >
+        <div className="timer-station-cards task-timers" ref={canvasRef}>
+          {count ? children : <p className="timer-station-empty">从任务菜单开始计时</p>}
+        </div>
       </section>
       {error && (
         <p role="alert" className="form-error">
