@@ -1,7 +1,10 @@
 /** @fileoverview 计时站原生生命周期；与工作站、完整工作台互斥显示，同源展示共用唯一计时会话。 */
 import { BrowserWindow, ipcMain, screen } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
-import { createStationGeometry } from './timer-station-geometry.cjs';
+import {
+  createStationGeometry,
+  STATION_MIN_HEIGHT,
+} from './timer-station-geometry.cjs';
 
 type Layout = 'horizontal' | 'vertical';
 let station: BrowserWindow | undefined;
@@ -126,7 +129,7 @@ export function attachTimerStation(
         ),
         resizable: true,
         minWidth: Math.min(340, area.width),
-        minHeight: Math.min(208, area.height),
+        minHeight: Math.min(STATION_MIN_HEIGHT, area.height),
         maximizable: false,
         fullscreenable: false,
         backgroundColor: '#faf8f3',

@@ -1,4 +1,4 @@
-/** @fileoverview 计时站横纵尺寸记忆与工作区恢复；只持久化用户拖动后的逻辑宽高，不保存任务数据。 */
+/** @fileoverview 计时站贴合卡片高度、横纵尺寸记忆与工作区恢复；只持久化逻辑宽高，不保存任务数据。 */
 import { app, screen, type BrowserWindow } from 'electron';
 import { readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
@@ -7,6 +7,19 @@ import { applyFramelessGeometry, readFramelessGeometry } from './window-geometry
 export type StationLayout = 'horizontal' | 'vertical';
 type Size = { width: number; height: number };
 type Sizes = Partial<Record<StationLayout, Size>>;
+export const STATION_MIN_HEIGHT = 112;
+
+/** 与卡片适配基准一致：44 标题栏 + 20 外边距；只收掉空白，不强行撑大用户选定的高度。 */
+function compactHeight(size: Size, layout: StationLayout, count: number): number {
+  if (!count) return size.height;
+  const baseWidth = layout === 'horizontal' ? count * 300 + (count - 1) * 10 : 320;
+  const baseHeight = layout === 'horizontal' ? 144 : count * 144 + (count - 1) * 10;
+  const scale = Math.min(1.25, Math.max(1, size.width - 20) / baseWidth);
+  return Math.min(
+    size.height,
+    Math.max(STATION_MIN_HEIGHT, Math.ceil(64 + baseHeight * scale)),
+  );
+}
 
 /** 缺失、损坏或异常尺寸配置回退默认值；两种排列独立校验。 */
 function readSizes(path: string): Sizes {
@@ -19,7 +32,7 @@ function readSizes(path: string): Sizes {
         Number.isInteger(size?.width) &&
         Number.isInteger(size?.height) &&
         size.width >= 340 &&
-        size.height >= 208 &&
+        size.height >= STATION_MIN_HEIGHT &&
         size.width <= 16384 &&
         size.height <= 16384
       )
@@ -40,10 +53,19 @@ export function createStationGeometry(window: BrowserWindow) {
   let configured = false;
   let manualResize = false;
 
-  /** 只在用户完成边框拖动时写入逻辑内容尺寸，避免 DPI 外框误差累积。 */
+  /** 拖动结束或任务减少后收掉底部空白；保持窗口位置和宽度，不覆盖其他排列的记忆。 */
+  function compact() {
+    if (window.isDestroyed() || manualResize || window.isMinimized()) return;
+    const bounds = readFramelessGeometry(window);
+    const height = compactHeight(bounds, layout, count);
+    if (bounds.height > height) applyFramelessGeometry(window, { ...bounds, height });
+  }
+
+  /** 用户完成边框拖动后先贴合内容，再保存最终逻辑尺寸，避免 DPI 外框误差累积。 */
   function remember() {
     if (!manualResize || window.isDestroyed()) return;
     manualResize = false;
+    compact();
     const { width, height } = readFramelessGeometry(window);
     sizes[layout] = { width, height };
     try {
@@ -70,8 +92,14 @@ export function createStationGeometry(window: BrowserWindow) {
           : Math.max(208, count * 144 + Math.max(0, count - 1) * 10 + 64),
     };
     const width = Math.min(preferred.width, area.width);
-    const height = Math.min(preferred.height, area.height);
-    window.setMinimumSize(Math.min(340, area.width), Math.min(208, area.height));
+    const height = Math.min(
+      compactHeight({ ...preferred, width }, layout, count),
+      area.height,
+    );
+    window.setMinimumSize(
+      Math.min(340, area.width),
+      Math.min(STATION_MIN_HEIGHT, area.height),
+    );
     applyFramelessGeometry(window, {
       width,
       height,
@@ -88,8 +116,9 @@ export function createStationGeometry(window: BrowserWindow) {
   window.on('close', remember);
 
   return {
-    /** 排列或未自定义时的数量改变才重新布局；置顶切换不影响尺寸和焦点。 */
+    /** 排列恢复独立记忆；数量改变只收掉新增空白，置顶切换不影响尺寸和焦点。 */
     configure(nextLayout: StationLayout, nextCount: number) {
+      const countChanged = count !== nextCount;
       const changed =
         !configured ||
         layout !== nextLayout ||
@@ -99,6 +128,7 @@ export function createStationGeometry(window: BrowserWindow) {
       count = nextCount;
       configured = true;
       if (changed) fit();
+      else if (countChanged) compact();
     },
     recover: fit,
   };

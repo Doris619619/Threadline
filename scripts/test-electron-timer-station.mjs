@@ -151,10 +151,22 @@ async function verifyLayout(station) {
       ),
     )
     .toEqual([]);
+  // 卡片底部只留约 10 DIP 外边距，不允许回归为固定最小高度下的大块空白。
+  await expect
+    .poll(() =>
+      station.locator('.timer-station-viewport').evaluate((viewport) => {
+        const cards = [...viewport.querySelectorAll('.task-timer')];
+        const bottom = Math.max(
+          ...cards.map((card) => card.getBoundingClientRect().bottom),
+        );
+        return Math.abs(viewport.getBoundingClientRect().bottom - bottom - 10) <= 2;
+      }),
+    )
+    .toBe(true);
 }
 
 /** 使用真实 BrowserWindow 调整尺寸并模拟原生拖动起止事件；检验记忆逻辑，不冒充物理鼠标验收。 */
-async function resizeStation(width, height) {
+async function resizeStation(width, height, fittedHeight = height) {
   await application.evaluate(
     ({ BrowserWindow }, size) => {
       const window = BrowserWindow.getAllWindows().find((w) =>
@@ -176,7 +188,7 @@ async function resizeStation(width, height) {
     },
     { width, height },
   );
-  await expectStationSize(width, height);
+  await expectStationSize(width, fittedHeight);
 }
 
 /** 以内容逻辑像素比较尺寸，容忍 Windows DPI 下的一像素舍入。 */
@@ -244,15 +256,15 @@ try {
   );
   await verifyLayout(station);
   await station.screenshot({ path: join(output, 'horizontal.png'), scale: 'css' });
-  await resizeStation(340, 208);
+  await resizeStation(340, 208, 115);
   await verifyLayout(station);
   await station.screenshot({
     path: join(output, 'horizontal-smallest.png'),
     scale: 'css',
   });
-  await resizeStation(940, 300);
+  await resizeStation(940, 300, 208);
   await verifyLayout(station);
-  await resizeStation(640, 240);
+  await resizeStation(640, 240, 162);
   await verifyLayout(station);
   await station.screenshot({
     path: join(output, 'horizontal-resized.png'),
@@ -276,7 +288,7 @@ try {
     false,
   );
   await station.getByRole('button', { name: '置顶窗口' }).click();
-  await expectStationSize(640, 240);
+  await expectStationSize(640, 162);
   await station.getByRole('button', { name: '纵向', exact: true }).click();
   await expect(station.locator('.timer-station')).toHaveAttribute(
     'data-layout',
@@ -290,7 +302,7 @@ try {
   await verifyLayout(station);
   await resizeStation(380, 390);
   await station.getByRole('button', { name: '横向', exact: true }).click();
-  await expectStationSize(640, 240);
+  await expectStationSize(640, 162);
   await station.getByRole('button', { name: '纵向', exact: true }).click();
   await expectStationSize(380, 390);
   const first = station.locator('.task-timer').first();
@@ -358,12 +370,16 @@ try {
   assert.equal(records.length, 1);
   // 重现用户的双计时横排窄窗：所有卡片可见、按钮不换行，并实际点击缩放后的控件。
   await station.getByRole('button', { name: '横向', exact: true }).click();
-  await resizeStation(500, 208);
+  await resizeStation(500, 208, 178);
   await verifyLayout(station);
   await station.screenshot({
     path: join(output, 'two-timers-small.png'),
     scale: 'css',
   });
+  // 低于旧最小高度的紧凑尺寸也必须保存并在重开后恢复。
+  await station.getByRole('button', { name: '关闭计时站' }).click();
+  station = await open(page, 2);
+  await expectStationSize(500, 178);
   await station
     .locator('.task-timer')
     .first()
@@ -374,7 +390,7 @@ try {
     .first()
     .getByRole('button', { name: '暂停', exact: true })
     .click();
-  await resizeStation(640, 240);
+  await resizeStation(640, 240, 211);
   await station.getByRole('button', { name: '纵向', exact: true }).click();
   await expectStationSize(380, 390);
   await assert.rejects(
@@ -516,7 +532,10 @@ try {
   for (let remaining = 2; remaining > 0; remaining--) {
     await station.getByRole('button', { name: '完成并记耗时' }).first().click();
     await expect(station.locator('.task-timer')).toHaveCount(remaining - 1);
-    if (remaining === 2) await verifyLayout(station);
+    if (remaining === 2) {
+      await expectStationSize(380, 226);
+      await verifyLayout(station);
+    }
   }
   await expect(station.getByText('从任务菜单开始计时')).toBeVisible();
   assert.equal(
@@ -539,7 +558,7 @@ try {
   await restartedPage.getByRole('button', { name: '计时站', exact: true }).waitFor();
   await seed(restartedPage);
   let restartedStation = await open(restartedPage);
-  await expectStationSize(640, 240);
+  await expectStationSize(640, 162);
   await restartedStation.getByRole('button', { name: '纵向', exact: true }).click();
   await expectStationSize(380, 390);
   await verifyLayout(restartedStation);
