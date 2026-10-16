@@ -16,7 +16,8 @@ import {
 } from 'electron';
 import {
   attachTimerStation,
-  hideTimerStationForFullWorkspace,
+  hideTimerStationForWorkspace,
+  isTimerStationActive,
   registerTimerStationIpc,
 } from './timer-station.cjs';
 import {
@@ -463,7 +464,7 @@ function prepareMainReveal(): WindowStateConfig {
 function revealMain(): WindowStateConfig {
   if (!mainWindow || mainWindow.isDestroyed())
     throw new Error('Main window is unavailable');
-  if (latestState.mode === 'full') hideTimerStationForFullWorkspace();
+  hideTimerStationForWorkspace();
   const previousGeometry = latestState.windowStates[latestState.mode];
   const geometry = prepareMainReveal();
   if (
@@ -568,6 +569,10 @@ function recoverFromEdgeFailure(reason: string): void {
 
 /** 激活已有实例的当前 surface；只有状态异常时才重建并显示 Main。 */
 async function activateExistingInstance(): Promise<void> {
+  if (isTimerStationActive()) {
+    await ensureVisibleSurface('second-instance-from-timer-station');
+    return;
+  }
   if (edgeWindow && !edgeWindow.isDestroyed() && edgeWindow.isVisible()) {
     await applyDesktopState(
       {
@@ -686,13 +691,15 @@ async function revealEdge(intent: number): Promise<void> {
       y: matchingBounds.y ?? 0,
     }),
   );
+  hideTimerStationForWorkspace();
   edgeWindow.showInactive();
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
 }
 
 /** 合并排队的显示器变化并逐轮读取最新工作区；加载期只校正隐藏窗口，不等待尚未挂载的 Renderer ACK。 */
 async function reconcileDisplayState(reason: string): Promise<void> {
-  if (isQuitting) return;
+  // 计时站独立处理工作区恢复；此时不唤醒隐藏的 Main 或旧贴边入口。
+  if (isQuitting || isTimerStationActive()) return;
   pendingDisplayReason = reason;
   if (reconcilingDisplays || !mainWindow || mainWindow.isDestroyed()) return;
   reconcilingDisplays = true;
@@ -1120,9 +1127,16 @@ async function createMainWindow(): Promise<void> {
     join(__dirname, 'preload.cjs'),
     getWindowIconPath(),
     {
-      isFull: () => latestState.mode === 'full',
+      /** 计时站接管显示时取消迟到切换，隐藏工作站的贴边入口。 */
+      hide: () => {
+        windowIntent++;
+        if (edgeWindow && !edgeWindow.isDestroyed()) edgeWindow.hide();
+      },
+      /** 关闭计时站后恢复原模式，并把可能残留的收起状态同步为 expanded。 */
       restore: () => {
-        revealMain();
+        void ensureVisibleSurface('timer-station-closed').catch(
+          exitAfterStartupFailure,
+        );
       },
     },
   );

@@ -1,4 +1,4 @@
-/** @fileoverview 计时站原生生命周期与完整工作台互斥显示；同源展示共用计时会话，可与工作站并排。 */
+/** @fileoverview 计时站原生生命周期；与工作站、完整工作台互斥显示，同源展示共用唯一计时会话。 */
 import { BrowserWindow, ipcMain, screen } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import { createStationGeometry } from './timer-station-geometry.cjs';
@@ -9,20 +9,26 @@ let owner: BrowserWindow | undefined;
 let stationUrl = '';
 let geometry: ReturnType<typeof createStationGeometry> | undefined;
 let configured = false;
-let workspace: { isFull: () => boolean; restore: () => void } | undefined;
+let workspace: { hide: () => void; restore: () => void } | undefined;
 let hiddenOwner = false;
 
-/** 完整工作台显示前收起计时站；保留子窗口、尺寸与 portal，切回时无需重建计时。 */
-export function hideTimerStationForFullWorkspace(): void {
+/** 工作站、完整工作台或贴边入口显示前收起计时站；保留尺寸与共享计时会话。 */
+export function hideTimerStationForWorkspace(): void {
   hiddenOwner = false;
   if (station && !station.isDestroyed()) station.hide();
 }
 
-/** 展开计时站时只收起完整工作台，工作站继续允许并排；主会话留在隐藏窗口运行。 */
+/** 当前选择是否为计时站，包括其最小化状态；显示器恢复不能擅自切换视图。 */
+export function isTimerStationActive(): boolean {
+  return hiddenOwner && !!station && !station.isDestroyed();
+}
+
+/** 展开计时站先收起 Main 和工作站贴边入口；主会话留在隐藏窗口持续运行。 */
 function revealStation(): void {
   if (!station || station.isDestroyed()) return;
-  if (owner && !owner.isDestroyed() && workspace?.isFull()) {
+  if (owner && !owner.isDestroyed()) {
     hiddenOwner = true;
+    workspace?.hide();
     owner.hide();
   }
   if (station.isMinimized()) station.restore();
@@ -78,14 +84,14 @@ export function attachTimerStation(
   url: string,
   preload: string,
   icon: string,
-  workspaceControl: { isFull: () => boolean; restore: () => void },
+  workspaceControl: { hide: () => void; restore: () => void },
 ): void {
   owner = main;
   workspace = workspaceControl;
   stationUrl = url;
   /** 任务栏或系统恢复 Main 也遵守互斥，避免绕过应用内按钮后同时显示。 */
   const onOwnerReveal = () => {
-    if (workspaceControl.isFull()) hideTimerStationForFullWorkspace();
+    hideTimerStationForWorkspace();
   };
   main.on('show', onOwnerReveal);
   main.on('restore', onOwnerReveal);

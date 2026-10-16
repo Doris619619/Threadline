@@ -1,7 +1,7 @@
-/** @fileoverview 计时站窗口外壳：返回完整工作台、横纵排列、置顶和窗口控制，卡片由唯一计时会话提供。 */
+/** @fileoverview 计时站窗口外壳：切换工作站或完整工作台、横纵排列、置顶和窗口控制，共用唯一计时会话。 */
 'use client';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { PanelsTopLeft, Minus, Pin, X } from 'lucide-react';
+import { CalendarDays, PanelsTopLeft, Minus, Pin, X } from 'lucide-react';
 import { getMainDesktopBridge, type TimerStationCommand } from '@/lib/desktop-bridge';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import { useDesktopWindow } from '@/lib/desktop-window-context';
@@ -44,16 +44,16 @@ export function TimerStation({
       ?.timerStationControl?.(command)
       .catch(() => setError('窗口操作失败，请重试。'));
   }
-  /** 先通过共享状态切到 full，再恢复并聚焦原主窗口；full 已选中时仍需唤醒最小化窗口。 */
-  async function openWorkspace() {
+  /** 切到指定工作视图并聚焦原主窗口；原生层收起计时站，同模式也须恢复隐藏窗口。 */
+  async function openWorkspace(mode: 'full' | 'workstation') {
     if (openingWorkspace) return;
     setOpeningWorkspace(true);
     setError('');
     try {
-      await setMode('full');
+      await setMode(mode);
       await getMainDesktopBridge()?.bringToFront();
     } catch {
-      setError('打开完整工作台失败，请重试。');
+      setError('切换工作视图失败，请重试。');
     } finally {
       setOpeningWorkspace(false);
     }
@@ -73,9 +73,18 @@ export function TimerStation({
             aria-label="打开完整工作台"
             title="打开完整工作台"
             disabled={openingWorkspace}
-            onClick={() => void openWorkspace()}
+            onClick={() => void openWorkspace('full')}
           >
             <PanelsTopLeft size={16} strokeWidth={1.6} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            aria-label="打开工作站"
+            title="打开工作站"
+            disabled={openingWorkspace}
+            onClick={() => void openWorkspace('workstation')}
+          >
+            <CalendarDays size={16} strokeWidth={1.6} aria-hidden="true" />
           </button>
           <div className="timer-station-layout" role="group" aria-label="卡片排列">
             <button
