@@ -133,6 +133,8 @@ Windows 包仅携带桌面运行所需依赖，以及简体中文、繁体中文
 
 遇到问题或有功能建议，欢迎 [提交 Issue](https://github.com/Doris619619/Threadline/issues)。反馈时请附使用平台、版本与复现步骤。
 
+已修复问题的用户体验和解决方式简记在[错误记录](docs/错误记录.md)，后续问题持续追加。
+
 参与开发前，请阅读 [工程协作规范](docs/工程协作规范.md)；提交 Pull Request 时遵守 [PR 撰写规范](docs/PR撰写规范.md)。
 
 [查看版本记录与下载](https://github.com/Doris619619/Threadline/releases)
