@@ -1,4 +1,4 @@
-/** @fileoverview 共享三任务计时会话：首页和独立计时站共用账号状态、续时与异步完成记账。 */
+/** @fileoverview 共享三任务计时会话：首页和计时站即时收起完成卡片，保留后台记账与失败恢复。 */
 'use client';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -63,6 +63,11 @@ function TaskTimersSession({
   const [taskId, setTaskId] = useState<string>();
   const station = useTimerStation(hydrated && workspaceReady);
   const saves = useRef(new Map<string, Promise<unknown>>());
+  const [completions, setCompletions] = useState<
+    Record<string, { saving: boolean; error?: string }>
+  >({});
+  // 只隐藏正在提交的展示；本机 pending 保留到云端确认，重载后仍能核对和重试。
+  const visibleTimers = timers.filter((timer) => !completions[timer.id]?.saving);
   useEffect(() => {
     const frame = window.requestAnimationFrame(() =>
       setHost(
@@ -160,7 +165,16 @@ function TaskTimersSession({
     },
     [setTimers],
   );
-  /** 首页和子窗口复用同一组回调；CAS 拒绝旧卡片覆盖，进行中的保存共用 Promise，避免重复记账。 */
+  /** 确认保存或主动删除后清理本机计时与展示状态；其他卡片的保存和错误不受影响。 */
+  function removeTimer(id: string) {
+    setTimers((current) => current.filter((timer) => timer.id !== id));
+    setCompletions((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
+  }
+  /** 两个视图共享即时收起与失败恢复；CAS 和同一保存 Promise 继续防止重复记账。 */
   function renderTimer(timer: TaskTimer, variant: 'default' | 'station' = 'default') {
     const task = tasks.find((item) => item.id === timer.taskId);
     return (
@@ -171,6 +185,7 @@ function TaskTimersSession({
         now={now}
         today={today}
         variant={variant}
+        completionError={completions[timer.id]?.error}
         projectName={projects.find((project) => project.id === task?.projectId)?.name}
         onChange={(next) => {
           let accepted = false;
@@ -188,19 +203,33 @@ function TaskTimersSession({
           return accepted;
         }}
         onExtend={(minutes) => extend(timer.id, minutes)}
-        onRemove={() =>
-          setTimers((current) => current.filter((item) => item.id !== timer.id))
-        }
+        onRemove={() => removeTimer(timer.id)}
+        // 保存状态属于会话而非卡片；卡片卸载后失败仍能在两种视图中恢复原意图。
         onRecord={(original, minutes, date, recording) => {
           const existing = saves.current.get(timer.id);
           if (existing) return existing;
+          setCompletions((current) => ({
+            ...current,
+            [timer.id]: { saving: true },
+          }));
           const pending = recordTaskActual(
             original,
             minutes,
             date ?? timer.entryDate,
             true,
             recording,
-          ).finally(() => saves.current.delete(timer.id));
+          )
+            .catch((error: unknown) => {
+              setCompletions((current) => ({
+                ...current,
+                [timer.id]: {
+                  saving: false,
+                  error: error instanceof Error ? error.message : '保存失败，请重试。',
+                },
+              }));
+              throw error;
+            })
+            .finally(() => saves.current.delete(timer.id));
           saves.current.set(timer.id, pending);
           return pending;
         }}
@@ -219,19 +248,19 @@ function TaskTimersSession({
       {host &&
         hydrated &&
         workspaceReady &&
-        timers.length > 0 &&
+        visibleTimers.length > 0 &&
         createPortal(
           <section className="task-timers" aria-label="任务计时器">
             <div className="task-timer-strip">
-              {timers.map((timer) => renderTimer(timer))}
+              {visibleTimers.map((timer) => renderTimer(timer))}
             </div>
           </section>,
           host,
         )}
       {station.host &&
         createPortal(
-          <TimerStation count={timers.length}>
-            {timers.map((timer) => renderTimer(timer, 'station'))}
+          <TimerStation count={visibleTimers.length}>
+            {visibleTimers.map((timer) => renderTimer(timer, 'station'))}
           </TimerStation>,
           station.host,
         )}
