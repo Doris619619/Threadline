@@ -1,4 +1,4 @@
-/** @fileoverview 正/倒计时卡片；到时提供续时浮层，完成统一记账，删除放入上下文菜单。 */
+/** @fileoverview 正/倒计时卡片；到时提供续时，完成交给共享会话即时收起，失败恢复后可重试记账。 */
 'use client';
 import {
   ArrowDown,
@@ -24,7 +24,7 @@ import { useAccountTimezone } from '@/features/settings/account-timezone-provide
 import type { Task } from '@/types/domain';
 import type { TimerRecording } from '@/lib/timer-accounting';
 
-/** 同排卡片展示首次开始时间；完成控件在提交与重试期间保持稳定，续时只提交分钟，完成时才记账。 */
+/** 展示首次开始时间和共享保存错误；提交前冻结计时意图，重试沿用原时段，续时不记账。 */
 export function TaskTimerCard({
   timer,
   task,
@@ -36,9 +36,11 @@ export function TaskTimerCard({
   onRecord,
   variant = 'default',
   projectName,
+  completionError,
 }: {
   variant?: 'default' | 'station';
   projectName?: string;
+  completionError?: string;
   timer: TaskTimer;
   task?: Task;
   now: number;
@@ -269,9 +271,9 @@ export function TaskTimerCard({
       >
         {startLabel}
       </time>
-      {error && (
+      {(error || completionError) && (
         <p role="alert" className="form-error">
-          {error}
+          {error || completionError}
         </p>
       )}
     </article>
