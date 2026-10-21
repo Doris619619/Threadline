@@ -9,6 +9,7 @@ const entryStorageKey = 'threadline.preview-demo.v1:threadline.task-time-entries
 const recordingStorageKey =
   'threadline.preview-demo.v1:threadline.task-timer-records.v1';
 
+/** 保存三路重叠计时后以实际数值验收统计；右栏不重复展示内部核算规则。 */
 test('saved overlapping timers preserve raw minutes and allocate 55/25/10 after reload', async ({
   page,
 }, testInfo) => {
@@ -88,7 +89,7 @@ test('saved overlapping timers preserve raw minutes and allocate 55/25/10 after 
   await expect(page.locator('.stage-time-panel')).toContainText('1h30min');
   for (const value of ['55min', '25min', '10min'])
     await expect(page.locator('.stage-time-panel')).toContainText(value);
-  await expect(page.locator('.stage-time-panel')).toContainText('重叠只计一次');
+  await expect(page.locator('.stage-time-panel')).not.toContainText('重叠只计一次');
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
