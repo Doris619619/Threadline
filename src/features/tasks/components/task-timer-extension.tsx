@@ -13,17 +13,19 @@ import { TaskActionsPopover } from './task-actions-popover';
 
 const PRESET_MINUTES = [5, 10, 15, 30] as const;
 
-/** 面板按卡片定位而焦点回到延长按钮；预设直接提交，自定义在同一浮层校验整数。 */
+/** 面板按卡片定位，独占提交期间保留自定义输入并禁用提交；失败后可原地重试。 */
 export function TaskTimerExtension({
   anchor,
   positionAnchor,
   elapsedMs,
+  disabled = false,
   onExtend,
   onClose,
 }: {
   anchor: RefObject<HTMLElement | null>;
   positionAnchor: RefObject<HTMLElement | null>;
   elapsedMs: number;
+  disabled?: boolean;
   onExtend: (minutes: number) => void;
   onClose: () => void;
 }) {
@@ -52,6 +54,7 @@ export function TaskTimerExtension({
   /** 原生表单支持 Enter；只有 1–1440 的整数分钟能进入续时规则。 */
   function confirm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (disabled) return;
     const value = Number(minutes.trim());
     if (!/^\d+$/.test(minutes.trim()) || value < 1 || value > 1440) {
       setError('请输入 1—1440 的整数分钟。');
@@ -95,14 +98,21 @@ export function TaskTimerExtension({
             <button type="button" onClick={onClose}>
               取消
             </button>
-            <button type="submit">确认</button>
+            <button type="submit" disabled={disabled}>
+              确认
+            </button>
           </footer>
         </form>
       ) : (
         <>
           <div className="task-timer-extension-presets">
             {PRESET_MINUTES.map((value) => (
-              <button key={value} type="button" onClick={() => onExtend(value)}>
+              <button
+                key={value}
+                type="button"
+                disabled={disabled}
+                onClick={() => onExtend(value)}
+              >
                 {value}分钟
               </button>
             ))}
@@ -110,6 +120,7 @@ export function TaskTimerExtension({
           <button
             type="button"
             className="task-timer-extension-custom"
+            disabled={disabled}
             onClick={openCustom}
           >
             自定义

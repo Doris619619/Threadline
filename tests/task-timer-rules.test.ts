@@ -1,4 +1,4 @@
-/** @fileoverview 验证计时暂停/刷新恢复、倒计时续时的累计耗时与归属不变，以及非法输入边界。 */
+/** @fileoverview 验证计时暂停/刷新恢复、回拨后的安全续时、累计耗时与归属不变，以及非法输入边界。 */
 import { expect, test } from 'vitest';
 import {
   normalizeTaskTimers,
@@ -9,6 +9,7 @@ import {
   type TaskTimer,
 } from '@/features/tasks/timer-rules';
 import { makeTask } from '@/lib/task-factory';
+import { validTimerIntervals } from '@/lib/timer-accounting';
 const timer: TaskTimer = {
   id: 'a',
   taskId: 't',
@@ -110,6 +111,86 @@ test('retains cumulative used time and original task identity across repeated ex
     extendCountdown({ ...initial, firstStartedAt: undefined }, 1, 900000)
       .firstStartedAt,
   ).toBeUndefined();
+});
+
+const recordedStart = Date.parse('2026-10-21T10:00:00Z');
+const minute = 60000;
+const expiredRecording: TaskTimer = {
+  ...timer,
+  mode: 'down',
+  targetMs: 5 * minute,
+  elapsedMs: 5 * minute,
+  startedAt: undefined,
+  firstStartedAt: recordedStart,
+  intervals: [{ start: recordedStart, end: recordedStart + 5 * minute }],
+  timezone: 'UTC',
+};
+
+/** 回拨到已结束区间之前或内部时，续时必须等到旧终点后才产生新时段。 */
+test.each([-1, 4])(
+  'clock rollback to minute %s keeps an extended countdown saveable before time catches up',
+  (offset) => {
+    const now = recordedStart + offset * minute;
+    const extended = extendCountdown(expiredRecording, 5, now);
+    expect(extended.startedAt).toBe(recordedStart + 5 * minute);
+    expect(extended.targetMs).toBe(10 * minute);
+    expect(extended.intervals).toEqual(expiredRecording.intervals);
+    expect(timerElapsed(extended, now)).toBe(5 * minute);
+    expect(timerElapsed(extended, recordedStart + 5 * minute - 1)).toBe(5 * minute);
+    expect(extendCountdown(extended, 5, now)).toBe(extended);
+
+    const restored = normalizeTaskTimers(JSON.parse(JSON.stringify([extended])))[0];
+    expect(restored).toEqual(extended);
+    const completed = pauseTimer(restored, recordedStart + 5 * minute - 1);
+    expect(completed.startedAt).toBeUndefined();
+    expect(completed.elapsedMs).toBe(5 * minute);
+    expect(completed.intervals).toEqual(expiredRecording.intervals);
+    expect(validTimerIntervals(completed.intervals!)).toBe(true);
+    expect(normalizeTaskTimers(JSON.parse(JSON.stringify([completed])))[0]).toEqual(
+      completed,
+    );
+  },
+);
+
+/** 追上旧终点后只保存新运行段；再次回拨续时仍不得覆盖或重叠历史。 */
+test('rollback extensions retain valid intervals after catch-up, completion and repeated extension', () => {
+  const extended = extendCountdown(expiredRecording, 5, recordedStart + 4 * minute);
+  const completed = pauseTimer(extended, recordedStart + 7 * minute);
+  expect(completed.elapsedMs).toBe(7 * minute);
+  expect(completed.intervals).toEqual([
+    ...expiredRecording.intervals!,
+    { start: recordedStart + 5 * minute, end: recordedStart + 7 * minute },
+  ]);
+  expect(validTimerIntervals(completed.intervals!)).toBe(true);
+  expect(normalizeTaskTimers(JSON.parse(JSON.stringify([completed])))[0]).toEqual(
+    completed,
+  );
+
+  const expiredAgain = pauseTimer(extended, recordedStart + 10 * minute);
+  const repeated = extendCountdown(expiredAgain, 5, recordedStart + 9 * minute);
+  expect(repeated.startedAt).toBe(recordedStart + 10 * minute);
+  expect(repeated.elapsedMs).toBe(10 * minute);
+  expect(repeated.targetMs).toBe(15 * minute);
+  const restored = normalizeTaskTimers(JSON.parse(JSON.stringify([repeated])))[0];
+  expect(restored).toEqual(repeated);
+  const final = pauseTimer(restored, recordedStart + 12 * minute);
+  expect(final.elapsedMs).toBe(12 * minute);
+  expect(final.intervals).toEqual([
+    ...expiredRecording.intervals!,
+    { start: recordedStart + 5 * minute, end: recordedStart + 10 * minute },
+    { start: recordedStart + 10 * minute, end: recordedStart + 12 * minute },
+  ]);
+  expect(validTimerIntervals(final.intervals!)).toBe(true);
+  expect(
+    final.intervals!.reduce((sum, interval) => sum + interval.end - interval.start, 0),
+  ).toBe(final.elapsedMs);
+  expect(normalizeTaskTimers(JSON.parse(JSON.stringify([final])))[0]).toEqual(final);
+  expect(final).toMatchObject({
+    id: expiredRecording.id,
+    taskId: expiredRecording.taskId,
+    firstStartedAt: expiredRecording.firstStartedAt,
+    entryDate: expiredRecording.entryDate,
+  });
 });
 
 test('keeps count-up, unfinished and pending countdown timers unchanged', () => {

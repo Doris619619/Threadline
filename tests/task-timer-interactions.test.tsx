@@ -1,6 +1,7 @@
 /** @fileoverview 验证任务计时入口、到时续时、键盘取消及完成失败重试；续时和删除均不得写任务账本。 */
 import { useState } from 'react';
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -90,7 +91,7 @@ test('new timer retries reuse frozen intervals and reject stale-tab completion b
       timer={timer}
       now={stamp}
       today="2026-10-03"
-      onChange={() => false}
+      onChange={async () => false}
       onExtend={vi.fn()}
       onRecord={record}
       onRemove={remove}
@@ -262,7 +263,7 @@ test('schedule keyboard menu exposes timing, while input right click keeps nativ
   expect(screen.queryByRole('group', { name: task.title + '操作' })).toBeNull();
 });
 
-test('countdown settings validate integer minutes and retain rejected input', () => {
+test('countdown settings validate integer minutes and retain rejected input', async () => {
   const start = vi.fn().mockReturnValue('任务已完成。');
   const close = vi.fn();
   render(<TaskTimerDialog task={task} onStart={start} onClose={close} />);
@@ -277,7 +278,9 @@ test('countdown settings validate integer minutes and retain rejected input', ()
   fireEvent.change(input, { target: { value: '45' } });
   fireEvent.click(screen.getByRole('button', { name: '开始计时' }));
   expect(start).toHaveBeenCalledExactlyOnceWith('down', 45);
-  expect(screen.getByRole('alert')).toHaveTextContent('任务已完成');
+  await waitFor(() =>
+    expect(screen.getByRole('alert')).toHaveTextContent('任务已完成'),
+  );
   expect(input).toHaveValue('45');
   expect(close).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: '取消' }));
@@ -401,7 +404,7 @@ test.each([5, 10, 15, 30])(
   },
 );
 
-test('a second extension keeps accumulated minutes and the original start date', () => {
+test('a second extension keeps accumulated minutes and the original start date', async () => {
   const clock = vi.spyOn(Date, 'now').mockReturnValue(countdownNow);
   const change = vi.fn(),
     record = vi.fn(),
@@ -411,6 +414,9 @@ test('a second extension keeps accumulated minutes and the original start date',
   const footer = screen.getByText(/开始于/).textContent;
   fireEvent.click(screen.getByRole('button', { name: '延长', exact: true }));
   fireEvent.click(screen.getByRole('button', { name: '5分钟', exact: true }));
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: '暂停', exact: true })).toBeEnabled(),
+  );
   const nextNow = countdownNow + 5 * 60000;
   clock.mockReturnValue(nextNow);
   view.rerender(<CountdownHarness {...props} now={nextNow} />);
@@ -496,4 +502,71 @@ test('pending completion locks extension even when it arrives after the panel op
   expect(props.onChange).not.toHaveBeenCalled();
   expect(props.onExtend).not.toHaveBeenCalled();
   expect(props.onRecord).not.toHaveBeenCalled();
+});
+
+/** 续时等待本机确认时保留输入；失败原地重试同值，成功确认前既不收起面板也不写任务账本。 */
+test('custom extension retains input while awaiting local confirmation and retries the same minutes after rejection', async () => {
+  /** 独立控制本机续时确认，区分点击提交、写入失败和确认成功三个阶段。 */
+  function confirmation() {
+    let resolve!: () => void;
+    let reject!: (error: Error) => void;
+    const promise = new Promise<void>((yes, no) => {
+      resolve = yes;
+      reject = no;
+    });
+    return { promise, resolve, reject };
+  }
+  const first = confirmation();
+  const retry = confirmation();
+  const extend = vi
+    .fn()
+    .mockReturnValueOnce(first.promise)
+    .mockReturnValueOnce(retry.promise);
+  const change = vi.fn();
+  const record = vi.fn();
+  const remove = vi.fn();
+  render(
+    <TaskTimerCard
+      task={task}
+      timer={expiredCountdown}
+      now={countdownNow}
+      today="2026-10-03"
+      onChange={change}
+      onExtend={extend}
+      onRecord={record}
+      onRemove={remove}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: '延长', exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: '自定义', exact: true }));
+  const input = screen.getByLabelText('延长分钟');
+  const confirm = screen.getByRole('button', { name: '确认', exact: true });
+  fireEvent.change(input, { target: { value: '12' } });
+  fireEvent.click(confirm);
+  fireEvent.click(confirm);
+  expect(extend).toHaveBeenCalledExactlyOnceWith(12);
+  expect(screen.getByRole('group', { name: '延长倒计时' })).toBeVisible();
+  expect(input).toHaveValue('12');
+  expect(confirm).toBeDisabled();
+  expect(screen.getByLabelText('倒计时已到时')).toHaveTextContent('00:00:00');
+
+  await act(async () => first.reject(new Error('本机存储失败，请重试')));
+  expect(screen.getByRole('alert')).toHaveTextContent('本机存储失败，请重试');
+  expect(screen.getByRole('group', { name: '延长倒计时' })).toBeVisible();
+  expect(input).toHaveValue('12');
+  expect(confirm).toBeEnabled();
+  fireEvent.click(confirm);
+  fireEvent.click(confirm);
+  expect(extend).toHaveBeenCalledTimes(2);
+  expect(extend).toHaveBeenLastCalledWith(12);
+  expect(screen.getByRole('group', { name: '延长倒计时' })).toBeVisible();
+  expect(input).toHaveValue('12');
+  expect(confirm).toBeDisabled();
+
+  await act(async () => retry.resolve());
+  expect(screen.queryByRole('group', { name: '延长倒计时' })).toBeNull();
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(change).not.toHaveBeenCalled();
+  expect(record).not.toHaveBeenCalled();
+  expect(remove).not.toHaveBeenCalled();
 });

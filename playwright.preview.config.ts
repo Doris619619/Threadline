@@ -3,7 +3,11 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: ['**/ui-preview-demo.spec.ts', '**/ui-task-time.spec.ts'],
+  testMatch: [
+    '**/ui-preview-demo.spec.ts',
+    '**/ui-task-time.spec.ts',
+    '**/timer-concurrency.spec.ts',
+  ],
   timeout: 60_000,
   workers: 1,
   use: {

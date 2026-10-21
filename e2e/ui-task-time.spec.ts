@@ -101,11 +101,16 @@ test('saved overlapping timers preserve raw minutes and allocate 55/25/10 after 
   });
 });
 
-/** load 早于工作区水合；只给真实日程面板的启动等待 30s，业务和几何断言仍用默认 5s。 */
+/** 默认日程可能先于本机水合出现；等待面板与演示任务缓存就绪，后续才可安全读取和恢复计时。 */
 async function waitForPreviewWorkspace(page: Page) {
   await expect(page.getByTestId('home-panel').locator('.schedule-panel')).toBeVisible({
     timeout: 30_000,
   });
+  await expect
+    .poll(() =>
+      page.evaluate((key) => localStorage.getItem(key) !== null, taskStorageKey),
+    )
+    .toBe(true);
 }
 
 /** 用三条有效本机计时恢复已到时场景；后续延长全部通过真实卡片操作，不改变任务或账本。 */
@@ -961,6 +966,17 @@ test('runs three independent timers, resumes after reload and records completion
     .first()
     .getByRole('button', { name: '暂停', exact: true })
     .click();
+  // 暂停需先确认本机独占提交，不能把提交前的上一帧读数当成冻结结果。
+  await expect(timers.locator('.task-timer').first()).toHaveAttribute(
+    'data-running',
+    'false',
+  );
+  await expect(
+    timers
+      .locator('.task-timer')
+      .first()
+      .getByRole('button', { name: '继续', exact: true }),
+  ).toBeEnabled();
   const pausedClock = await timers
     .locator('.task-timer')
     .first()
@@ -1077,6 +1093,10 @@ test('runs three independent timers, resumes after reload and records completion
     .first()
     .getByRole('button', { name: '继续', exact: true })
     .click();
+  await expect(timers.locator('.task-timer').first()).toHaveAttribute(
+    'data-running',
+    'true',
+  );
   await page.clock.fastForward(30000);
   await timers
     .locator('.task-timer')
