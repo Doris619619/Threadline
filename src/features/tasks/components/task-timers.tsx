@@ -52,7 +52,7 @@ function TaskTimersSession({
     hydrated: workspaceReady,
   } = useWorkspaceData();
   const today = useAccountToday();
-  const [timers, setTimers, hydrated] = usePersistentState<TaskTimer[]>(
+  const [timers, , hydrated, setTimers] = usePersistentState<TaskTimer[]>(
     'threadline.task-timers.v1:' + owner,
     [],
     normalizeTaskTimers,
@@ -61,6 +61,7 @@ function TaskTimersSession({
   const [now, setNow] = useState(() => Date.now());
   const [host, setHost] = useState<HTMLElement | null>(null);
   const [taskId, setTaskId] = useState<string>();
+  const [timerError, setTimerError] = useState<string>();
   const station = useTimerStation(hydrated && workspaceReady);
   const saves = useRef(new Map<string, Promise<unknown>>());
   const [completions, setCompletions] = useState<
@@ -94,7 +95,7 @@ function TaskTimersSession({
       )
     )
       return;
-    setTimers((current) =>
+    void setTimers((current) =>
       current.map((timer) =>
         timer.startedAt !== undefined &&
         timer.mode === 'down' &&
@@ -102,7 +103,13 @@ function TaskTimersSession({
           ? pauseTimer(timer, now)
           : timer,
       ),
-    );
+    )
+      .then(() => setTimerError(undefined))
+      .catch((error: unknown) =>
+        setTimerError(
+          error instanceof Error ? error.message : '计时状态保存失败，请重试。',
+        ),
+      );
   }, [now, timers, hydrated, setTimers]);
   /** 请求只打开设置；启动时再次核对任务，以应对设置期间的删除、完成或同步变化。 */
   const request = useCallback(
@@ -112,8 +119,8 @@ function TaskTimersSession({
     [hydrated, workspaceReady],
   );
   const selected = tasks.find((task) => task.id === taskId);
-  /** 在最新本机状态上核对重复和容量，避免另一标签删除后仍阻止重新计时。 */
-  const start = (mode: 'up' | 'down', minutes: number) => {
+  /** 在账号独占锁内复核重复和容量；本机写入确认后才关闭设置，三张卡片不能并发越过上限。 */
+  const start = async (mode: 'up' | 'down', minutes: number) => {
     if (
       !selected ||
       selected.deletedAt ||
@@ -123,7 +130,7 @@ function TaskTimersSession({
       return '任务已完成或移除，请选择其他任务。';
     const stamp = Date.now();
     let error: string | undefined;
-    setTimers((current) => {
+    await setTimers((current) => {
       if (current.some((timer) => timer.taskId === selected.id)) {
         error = '这个任务已加入计时。';
         return current;
@@ -150,13 +157,14 @@ function TaskTimersSession({
       ];
     });
     if (error) return error;
+    setTimerError(undefined);
     setNow(stamp);
   };
-  /** 续时只接收分钟意图；在最新缓存上复核到时与保存状态，避免旧面板覆盖另一标签的操作。 */
+  /** 续时只接收分钟意图，在锁内使用最新状态，其他标签的暂停和删除不会被整组写回覆盖。 */
   const extend = useCallback(
-    (id: string, minutes: number) => {
+    async (id: string, minutes: number) => {
       const stamp = Date.now();
-      setTimers((current) =>
+      await setTimers((current) =>
         current.map((timer) =>
           timer.id === id ? extendCountdown(timer, minutes, stamp) : timer,
         ),
@@ -165,16 +173,27 @@ function TaskTimersSession({
     },
     [setTimers],
   );
-  /** 确认保存或主动删除后清理本机计时与展示状态；其他卡片的保存和错误不受影响。 */
-  function removeTimer(id: string) {
-    setTimers((current) => current.filter((timer) => timer.id !== id));
+  /** 独占删除确认后清理展示状态；存储失败保留原记录，不能恢复另一标签已经删除的计时。 */
+  async function removeTimer(id: string) {
+    try {
+      await setTimers((current) => current.filter((timer) => timer.id !== id));
+    } catch (reason) {
+      setCompletions((current) => ({
+        ...current,
+        [id]: {
+          saving: false,
+          error: reason instanceof Error ? reason.message : '计时未能移除，请重试。',
+        },
+      }));
+      throw reason;
+    }
     setCompletions((current) => {
       const next = { ...current };
       delete next[id];
       return next;
     });
   }
-  /** 两个视图共享即时收起与失败恢复；CAS 和同一保存 Promise 继续防止重复记账。 */
+  /** 两个视图共享即时收起与失败恢复；锁内 CAS 和同一保存 Promise 防止旧状态及重复记账。 */
   function renderTimer(timer: TaskTimer, variant: 'default' | 'station' = 'default') {
     const task = tasks.find((item) => item.id === timer.taskId);
     return (
@@ -187,9 +206,9 @@ function TaskTimersSession({
         variant={variant}
         completionError={completions[timer.id]?.error}
         projectName={projects.find((project) => project.id === task?.projectId)?.name}
-        onChange={(next) => {
+        onChange={async (next) => {
           let accepted = false;
-          setTimers((current) =>
+          await setTimers((current) =>
             current.map((item) => {
               if (
                 item.id !== timer.id ||
@@ -264,9 +283,9 @@ function TaskTimersSession({
           </TimerStation>,
           station.host,
         )}
-      {station.error && (
+      {(station.error || timerError) && (
         <p role="alert" className="form-error">
-          {station.error}
+          {station.error || timerError}
         </p>
       )}
       {taskId && selected && (

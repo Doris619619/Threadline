@@ -1,11 +1,12 @@
 /**
- * @fileoverview 提供浏览器状态持久化与可选的同账号跨标签同步，接收变更不回写旧值。
+ * @fileoverview 提供浏览器状态持久化、跨标签订阅和可等待的独占提交，接收变更不回写旧值。
  */
 
 'use client';
 
 import {
   useEffect,
+  useCallback,
   useMemo,
   useRef,
   useState,
@@ -14,6 +15,7 @@ import {
 } from 'react';
 import { createPersistentStateRepository } from '@/lib/repository';
 import { workspaceStorageKey } from '@/lib/workspace-runtime';
+import { commitPersistentState } from '@/lib/persistent-state-transaction';
 
 /** 读取最新本机值，避免旧标签页的后续操作恢复已删除的记录；存储不可用时保留内存值。 */
 function readCurrentValue<T>(
@@ -32,14 +34,20 @@ function readCurrentValue<T>(
 }
 
 /**
- * 读取失败仍完成水合；跨标签同步只由明确启用的调用方使用，外部变更不产生写回。
+ * 读取失败仍完成水合；第四项用于跨标签原子提交，调用方必须等待确认后再执行后续副作用。
+ * 普通偏好仍使用同步 setter；跨标签接收与空值初始化均不回写，避免覆盖另一标签的提交。
  */
 export function usePersistentState<T>(
   key: string,
   initialValue: T | (() => T),
   normalize?: (value: T) => T,
   options: { synchronizeTabs?: boolean } = {},
-): [T, Dispatch<SetStateAction<T>>, boolean] {
+): [
+  T,
+  Dispatch<SetStateAction<T>>,
+  boolean,
+  (next: SetStateAction<T>) => Promise<void>,
+] {
   const [value, setValue] = useState<T>(initialValue);
   const [hydrated, setHydrated] = useState(false);
   const changedBeforeHydration = useRef(false);
@@ -79,6 +87,28 @@ export function usePersistentState<T>(
     setValue(resolved);
   };
 
+  /** 在跨标签锁内提交后才发布本页值；再次读取可吸收锁释放后已经完成的其他提交。 */
+  const commitValue = useCallback(
+    async (next: SetStateAction<T>) => {
+      if (!hydrated) throw new Error('计时尚未恢复，请稍后重试。');
+      const committed = await commitPersistentState(
+        key,
+        initialRef.current,
+        next,
+        normalizeRef.current,
+      );
+      const latest = readCurrentValue(
+        key,
+        committed,
+        initialRef.current,
+        normalizeRef.current,
+      );
+      valueRef.current = latest;
+      setValue(latest);
+    },
+    [hydrated, key],
+  );
+
   useEffect(() => {
     let active = true;
     const timer = window.setTimeout(() => {
@@ -94,12 +124,7 @@ export function usePersistentState<T>(
             setValue(restored);
           }
           // 只在初始化时持久化；收到另一标签的值不能回写，否则旧事件会覆盖新的删除。
-          if (
-            !synchronizeTabs ||
-            stored === undefined ||
-            changedBeforeHydration.current
-          )
-            void repository.write(key, valueRef.current);
+          if (!synchronizeTabs) void repository.write(key, valueRef.current);
           setHydrated(true);
         })
         .catch(() => {
@@ -145,5 +170,5 @@ export function usePersistentState<T>(
     };
   }, [key, synchronizeTabs]);
 
-  return [value, setPersistentValue, hydrated];
+  return [value, setPersistentValue, hydrated, commitValue];
 }

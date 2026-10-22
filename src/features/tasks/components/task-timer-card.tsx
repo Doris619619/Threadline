@@ -45,9 +45,9 @@ export function TaskTimerCard({
   task?: Task;
   now: number;
   today: string;
-  onChange: (timer: TaskTimer) => boolean | void;
-  onExtend: (minutes: number) => void;
-  onRemove: () => void;
+  onChange: (timer: TaskTimer) => boolean | void | Promise<boolean | void>;
+  onExtend: (minutes: number) => void | Promise<void>;
+  onRemove: () => void | Promise<void>;
   onRecord: (
     original: Task,
     minutes: number,
@@ -65,9 +65,10 @@ export function TaskTimerCard({
   const elapsed = timerElapsed(timer, now);
   const ended = timer.mode === 'down' && elapsed >= timer.targetMs;
   const running = timer.startedAt !== undefined && !ended;
-  const canExtend = ended && !busy && !timer.pending;
+  const extensionValid = ended && !timer.pending;
+  const canExtend = extensionValid && !busy;
   // 保存或外部续时使面板失效时清除打开意图，避免下次到时自动重开。
-  if (extensionOpen && !canExtend) setExtensionOpen(false);
+  if (extensionOpen && !extensionValid) setExtensionOpen(false);
   const title = task?.title ?? timer.title;
   const started =
     timer.firstStartedAt === undefined
@@ -79,28 +80,33 @@ export function TaskTimerCard({
   const startDescription = started
     ? `${startLabel}（${timezoneLabel(zone)}）`
     : '旧计时器没有保存首次开始时刻，暂停后不能推算准确开始时间';
-  /** 主操作在到时后打开续时选项；待保存的计时不能继续或延长。 */
+  /** 暂停与继续等待本机独占提交；失败显示原错误，待保存的计时不能继续或延长。 */
   const primaryAction = () => {
     if (busy || timer.pending) return;
     if (ended) {
       menu.close();
       setExtensionOpen(true);
     } else {
-      onChange(
-        running
-          ? pauseTimer(timer, Date.now())
-          : {
-              ...timer,
-              startedAt: Math.max(Date.now(), timer.intervals?.at(-1)?.end ?? 0),
-            },
-      );
+      void run(async () => {
+        const accepted = await onChange(
+          running
+            ? pauseTimer(timer, Date.now())
+            : {
+                ...timer,
+                startedAt: Math.max(Date.now(), timer.intervals?.at(-1)?.end ?? 0),
+              },
+        );
+        if (accepted === false) throw new Error('计时已在其他标签改变，请重试。');
+      });
     }
   };
-  /** 只发送续时分钟；会话在最新计时器上执行规则，防止覆盖跨标签保存意图。 */
+  /** 只发送续时分钟，等待锁内确认后收起面板；失败保留原计时并可重试。 */
   const extend = (minutes: number) => {
     if (!canExtend) return;
-    onExtend(minutes);
-    setExtensionOpen(false);
+    void run(async () => {
+      await onExtend(minutes);
+      setExtensionOpen(false);
+    });
   };
   /** 取消、Escape 与原生轻关闭统一收起面板，焦点由浮层返回主按钮。 */
   const closeExtension = () => setExtensionOpen(false);
@@ -125,7 +131,7 @@ export function TaskTimerCard({
             }
           : {}),
       };
-      if (onChange({ ...paused, pending }) === false)
+      if ((await onChange({ ...paused, pending })) === false)
         throw new Error('计时已在其他标签改变，请重试。');
       if (pending.recording)
         await onRecord(
@@ -135,7 +141,7 @@ export function TaskTimerCard({
           pending.recording,
         );
       else await onRecord(pending.original, pending.minutes, timer.entryDate);
-      onRemove();
+      await onRemove();
     });
   return (
     <article
@@ -226,11 +232,12 @@ export function TaskTimerCard({
           <MoreHorizontal size={18} aria-hidden="true" />
         </button>
       </div>
-      {extensionOpen && canExtend && (
+      {extensionOpen && extensionValid && (
         <TaskTimerExtension
           anchor={extensionAnchor}
           positionAnchor={menuAnchor}
           elapsedMs={elapsed}
+          disabled={busy}
           onExtend={extend}
           onClose={closeExtension}
         />
@@ -251,7 +258,9 @@ export function TaskTimerCard({
             disabled={busy}
             onClick={() => {
               menu.close();
-              onRemove();
+              void run(async () => {
+                await onRemove();
+              });
             }}
           >
             <Trash2 size={16} aria-hidden="true" />

@@ -34,6 +34,7 @@ export default defineConfig({
         'src/lib/account-clock.ts',
         'src/lib/date-range.ts',
         'src/lib/repository.ts',
+        'src/lib/persistent-state-transaction.ts',
         'src/lib/supabase/config.ts',
         'src/lib/supabase/time-mapper.ts',
         'src/lib/supabase/workspace-repository.ts',

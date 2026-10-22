@@ -104,10 +104,6 @@ export function InsightsPanel({
 
   return (
     <div className="insights-panel" data-testid="insights-panel">
-      <p>
-        已保存计时的重叠时段只计一次，项目分布按任务均分。历史、手动补录和 Daily
-        没有时段，保留原值，无法去重。
-      </p>
       <header className="insights-toolbar">
         <div className="insights-filters" aria-label="洞察范围">
           {(['day', 'week', 'month', 'custom'] as const).map((value) => (

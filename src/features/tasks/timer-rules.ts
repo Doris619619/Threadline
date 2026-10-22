@@ -53,6 +53,7 @@ export function pauseTimer(timer: TaskTimer, now: number): TaskTimer {
 /**
  * 为已到时且没有待保存账目的倒计时追加 1..1440 整数分钟并立即恢复。
  * 先按旧目标冻结耗时，排除后台到时后等待续时的空档；身份、首次开始和归属日期保持不变。
+ * 时钟回拨时从已记录区间的终点之后恢复，追上锚点前不累计，避免制造重叠区间。
  * 不符合条件或输入无效时返回原对象，不产生持久化变更。
  */
 export function extendCountdown(
@@ -71,11 +72,12 @@ export function extendCountdown(
     return timer;
   const elapsed = timerElapsed(timer, now);
   if (!Number.isFinite(elapsed) || elapsed < timer.targetMs) return timer;
+  const paused = pauseTimer(timer, now);
   return {
-    ...pauseTimer(timer, now),
+    ...paused,
     elapsedMs: elapsed,
     targetMs: elapsed + minutes * 60000,
-    startedAt: now,
+    startedAt: Math.max(now, paused.intervals?.at(-1)?.end ?? 0),
   };
 }
 /** 统一用时分秒，小时不在一天后归零，避免短计时与跨日计时显示不同格式。 */

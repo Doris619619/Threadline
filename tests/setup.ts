@@ -1,4 +1,4 @@
-/** @fileoverview 初始化 DOM 断言；补齐 JSDOM 未实现的浮层与尺寸观察 API，真实布局由浏览器 E2E 验证。 */
+/** @fileoverview 初始化 DOM 断言与 JSDOM 缺失的浮层、观察器和独占锁；跨标签锁另由真实浏览器 E2E 验证。 */
 import '@testing-library/jest-dom/vitest';
 
 Object.defineProperties(HTMLElement.prototype, {
@@ -23,3 +23,27 @@ class TestResizeObserver {
   disconnect() {}
 }
 globalThis.ResizeObserver = TestResizeObserver;
+
+const lockTails = new Map<string, Promise<unknown>>();
+/** 模拟 Web Locks 按名称排队和失败释放；此处不替代真实多标签浏览器验收。 */
+function requestTestLock<T>(
+  name: string,
+  callback: (lock: Lock) => T | PromiseLike<T>,
+) {
+  const current = (lockTails.get(name) ?? Promise.resolve()).then(() =>
+    callback({ name, mode: 'exclusive' } as Lock),
+  );
+  const tail = current.then(
+    () => undefined,
+    () => undefined,
+  );
+  lockTails.set(name, tail);
+  void tail.then(() => {
+    if (lockTails.get(name) === tail) lockTails.delete(name);
+  });
+  return current;
+}
+Object.defineProperty(navigator, 'locks', {
+  configurable: true,
+  value: { request: requestTestLock },
+});

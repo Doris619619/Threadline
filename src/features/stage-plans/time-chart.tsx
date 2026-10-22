@@ -250,11 +250,6 @@ export function StageTimeChart({
           )}
         </header>
         {!plan && timeSummary}
-        {metric === 'actual' && (
-          <p className="stage-time-missing">
-            已保存计时：重叠只计一次，按任务均分。旧记录和手动补录无时段，原值计入、无法去重；任务编辑保留原始分钟。
-          </p>
-        )}
         <div
           className={
             'stage-time-body' +

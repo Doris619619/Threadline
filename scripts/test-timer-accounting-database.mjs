@@ -27,9 +27,9 @@ async function rejects(action, marker) {
   checks++;
 }
 /** 使用当前任务行构造生产 RPC 的旧字段基准。 */
-async function guard(id) {
+async function guard(id, user = owner) {
   const row = (
-    await asUser(owner, 'select to_jsonb(t) as data from tasks t where id=$1', [id])
+    await asUser(user, 'select to_jsonb(t) as data from tasks t where id=$1', [id])
   ).rows[0].data;
   return Object.fromEntries(
     [
@@ -41,6 +41,51 @@ async function guard(id) {
       'completed',
     ].map((key) => [key, row[key]]),
   );
+}
+/** 每个复杂时段场景建立独立账号，避免其他测试会话参与该账号的全局分摊。 */
+async function timerFixture() {
+  const user = crypto.randomUUID();
+  await db.query('insert into auth.users values($1)', [user]);
+  await asUser(user, 'select initialize_workspace()');
+  const project = (await asUser(user, 'select id from projects where is_fallback'))
+    .rows[0].id;
+  return { user, project };
+}
+/** 创建可经正式 RPC 完成的任务；会话日期与原始分钟仍使用任务启动日。 */
+async function timerTask(fixture, date) {
+  const id = crypto.randomUUID();
+  await asUser(
+    fixture.user,
+    "insert into tasks(id,project_id,title,status,scheduled_date) values($1,$2,'复杂计时','active',$3)",
+    [id, fixture.project, date],
+  );
+  return id;
+}
+/** 按原始运行区间构造真实生产请求并返回它，调用者可复用相同 ID 验证未知结果重试。 */
+async function saveTimer(fixture, task, date, timezone, intervals) {
+  const expected = await guard(task, fixture.user);
+  const raw = Math.round(
+    intervals.reduce((sum, part) => sum + part.end - part.start, 0) / 60000,
+  );
+  const request = [
+    task,
+    (expected.actual_duration_minutes ?? 0) + raw,
+    date,
+    JSON.stringify(expected),
+    JSON.stringify({ id: crypto.randomUUID(), timezone, intervals }),
+  ];
+  await asUser(fixture.user, 'select record_task_timer($1,$2,$3,$4,$5)', request);
+  return request;
+}
+/** 查询真实分配投影，排除仅承载原始核对值的零分钟余额行，以验证自然日和小数分钟。 */
+async function allocatedDays(fixture, task) {
+  return (
+    await asUser(
+      fixture.user,
+      "select entry_date::text as date, sum(minutes)::float as minutes from task_time_statistics where task_id=$1 and timing='allocated' group by entry_date order by entry_date",
+      [task],
+    )
+  ).rows;
 }
 try {
   await db.exec(`create schema auth; create schema private; create schema extensions;
@@ -305,6 +350,188 @@ try {
   await rejects(
     () => asUser(other, 'select record_task_timer($1,$2,$3,$4,$5)', badOwner),
     'TASK_NOT_FOUND',
+  );
+
+  const calendarCases = [
+    {
+      name: 'Havana first repeated midnight retains all 30 minutes',
+      timezone: 'America/Havana',
+      date: '2025-11-02',
+      start: '2025-11-02T04:15Z',
+      end: '2025-11-02T04:45Z',
+      expected: [{ date: '2025-11-02', minutes: 30 }],
+    },
+    {
+      name: 'Havana repeated midnight belongs to the new local date from its first occurrence',
+      timezone: 'America/Havana',
+      date: '2025-11-01',
+      start: '2025-11-02T03:30Z',
+      end: '2025-11-02T05:30Z',
+      expected: [
+        { date: '2025-11-01', minutes: 30 },
+        { date: '2025-11-02', minutes: 90 },
+      ],
+    },
+    {
+      name: 'Havana both repeated midnight hours count once each',
+      timezone: 'America/Havana',
+      date: '2025-11-02',
+      start: '2025-11-02T04:00Z',
+      end: '2025-11-02T06:00Z',
+      expected: [{ date: '2025-11-02', minutes: 120 }],
+    },
+    {
+      name: 'ordinary New York midnight preserves a 30/30 split',
+      timezone: 'America/New_York',
+      date: '2026-10-13',
+      start: '2026-10-14T03:30Z',
+      end: '2026-10-14T04:30Z',
+      expected: [
+        { date: '2026-10-13', minutes: 30 },
+        { date: '2026-10-14', minutes: 30 },
+      ],
+    },
+    {
+      name: 'New York spring day contains 23 real hours',
+      timezone: 'America/New_York',
+      date: '2025-03-09',
+      start: '2025-03-09T05:00Z',
+      end: '2025-03-10T04:00Z',
+      expected: [{ date: '2025-03-09', minutes: 23 * 60 }],
+    },
+    {
+      name: 'New York autumn day contains 25 real hours',
+      timezone: 'America/New_York',
+      date: '2025-11-02',
+      start: '2025-11-02T04:00Z',
+      end: '2025-11-03T05:00Z',
+      expected: [{ date: '2025-11-02', minutes: 25 * 60 }],
+    },
+    {
+      name: 'Santiago skipped midnight starts at its first valid local instant',
+      timezone: 'America/Santiago',
+      date: '2025-09-06',
+      start: '2025-09-07T03:30Z',
+      end: '2025-09-07T04:30Z',
+      expected: [
+        { date: '2025-09-06', minutes: 30 },
+        { date: '2025-09-07', minutes: 30 },
+      ],
+    },
+    {
+      name: 'Apia skipped calendar date creates no phantom day or lost minutes',
+      timezone: 'Pacific/Apia',
+      date: '2011-12-29',
+      start: '2011-12-30T09:30Z',
+      end: '2011-12-30T10:30Z',
+      expected: [
+        { date: '2011-12-29', minutes: 30 },
+        { date: '2011-12-31', minutes: 30 },
+      ],
+    },
+  ];
+  for (const scenario of calendarCases) {
+    const fixture = await timerFixture();
+    const task = await timerTask(fixture, scenario.date);
+    await saveTimer(fixture, task, scenario.date, scenario.timezone, [
+      { start: Date.parse(scenario.start), end: Date.parse(scenario.end) },
+    ]);
+    check(
+      JSON.stringify(await allocatedDays(fixture, task)) ===
+        JSON.stringify(scenario.expected),
+      scenario.name,
+    );
+    check(
+      (await guard(task, fixture.user)).actual_duration_minutes ===
+        scenario.expected.reduce((sum, day) => sum + day.minutes, 0),
+      scenario.name + ': raw cumulative minutes remain intact',
+    );
+  }
+
+  // 三任务交错暂停与等待续时，六种保存顺序都必须得到同一份 42.5/27.5/20 分钟投影。
+  for (const order of [
+    [0, 1, 2],
+    [0, 2, 1],
+    [1, 0, 2],
+    [1, 2, 0],
+    [2, 0, 1],
+    [2, 1, 0],
+  ]) {
+    const fixture = await timerFixture();
+    const taskIds = [];
+    for (let i = 0; i < 3; i++) taskIds.push(await timerTask(fixture, '2026-10-15'));
+    const spans = [
+      [
+        [0, 30],
+        [45, 90],
+      ],
+      [[0, 60]],
+      [
+        [15, 45],
+        [75, 90],
+      ],
+    ];
+    const savedRequests = [];
+    for (const i of order)
+      savedRequests.push(
+        await saveTimer(
+          fixture,
+          taskIds[i],
+          '2026-10-15',
+          'UTC',
+          spans[i].map(([from, to]) => ({
+            start: start + from * 60000,
+            end: start + to * 60000,
+          })),
+        ),
+      );
+    const projection = (
+      await asUser(
+        fixture.user,
+        'select task_id, sum(minutes)::float as minutes from task_time_statistics group by task_id',
+      )
+    ).rows;
+    check(
+      taskIds
+        .map((id) => projection.find((row) => row.task_id === id).minutes)
+        .join(',') === '42.5,27.5,20',
+      'interleaved pauses allocate the same shares for save order ' + order.join(''),
+    );
+    check(
+      projection.reduce((sum, row) => sum + row.minutes, 0) === 90,
+      'pauses and countdown waiting gaps do not inflate the 90-minute union',
+    );
+    const raw = (
+      await asUser(fixture.user, 'select id, actual_duration_minutes from tasks')
+    ).rows;
+    check(
+      taskIds
+        .map((id) => raw.find((row) => row.id === id).actual_duration_minutes)
+        .join(',') === '75,60,45',
+      'per-task raw minutes retain their own running intervals',
+    );
+    await asUser(
+      fixture.user,
+      'select record_task_timer($1,$2,$3,$4,$5)',
+      savedRequests[0],
+    );
+    check(
+      (await asUser(fixture.user, 'select count(*)::int as n from task_timer_records'))
+        .rows[0].n === 3,
+      'retry after the other two saves does not duplicate the first session',
+    );
+  }
+  check(
+    (
+      await db.query(
+        "select reloptions from pg_class where oid='public.task_time_statistics'::regclass",
+      )
+    ).rows[0].reloptions.includes('security_invoker=true'),
+    'replacement statistics view retains security-invoker RLS',
+  );
+  check(
+    (await asUser(other, 'select * from task_time_statistics')).rows.length === 0,
+    'replacement view keeps every complex fixture isolated from another account',
   );
   console.log(`Timer accounting PostgreSQL: ${checks} checks passed.`);
 } catch (error) {
