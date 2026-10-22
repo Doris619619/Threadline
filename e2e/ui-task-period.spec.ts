@@ -318,6 +318,7 @@ test('independent estimates persist through schedule and waiting; compact pages 
   }
 });
 
+/** 完整表单流程在真实深色过渡结束后检查可读性，避免 Axe 将主题切换中的插值色误作最终外观。 */
 test('period start, end, backfill, edit, delete and offline retry use real form state', async ({
   page,
   context,
@@ -356,6 +357,32 @@ test('period start, end, backfill, edit, delete and offline retry use real form 
   expect(dateTarget!.height).toBeGreaterThanOrEqual(44);
   await page.screenshot({ path: info.outputPath('rhythm.png'), fullPage: true });
   await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'dark');
+  // 与本文件字体回归一致，等待实际 CSS 过渡完成；不关闭动画、不豁免对比度。
+  await page.evaluate(async () => {
+    void document.documentElement.offsetWidth;
+    await Promise.allSettled(
+      document.getAnimations().map((animation) => animation.finished),
+    );
+  });
+  // 保存浏览器实际计算的外月数字和起止文字颜色，便于区分稳定主题与过渡中间帧。
+  const darkColors = await page
+    .locator(
+      '.rhythm-grid button.is-outside, .rhythm-grid button.is-start, .rhythm-grid button.is-end',
+    )
+    .evaluateAll((buttons) =>
+      buttons.map((button) => ({
+        label: button.getAttribute('aria-label'),
+        background: getComputedStyle(button).backgroundColor,
+        surface: getComputedStyle(button.closest('.tl-surface')!).backgroundColor,
+        number: getComputedStyle(button.querySelector('span')!).color,
+        caption: getComputedStyle(button.querySelector('small')!).color,
+      })),
+    );
+  await info.attach('rhythm-dark-computed-colors', {
+    body: JSON.stringify(darkColors, null, 2),
+    contentType: 'application/json',
+  });
   expect(
     (await new AxeBuilder({ page }).include('.rhythm-panel').analyze()).violations,
   ).toEqual([]);
