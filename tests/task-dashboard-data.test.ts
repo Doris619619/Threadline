@@ -1,4 +1,4 @@
-/** @fileoverview 验证工作台以显式能力区分云端 ledger 真源与测试 aggregate fallback。 */
+/** @fileoverview 验证首页预计仅含日程、Daily 实际独立保留，以及云端 ledger 与测试 fallback 的边界。 */
 
 import { describe, expect, it } from 'vitest';
 import { useTaskDashboardData } from '@/features/tasks/hooks/use-task-dashboard-data';
@@ -40,7 +40,7 @@ const sharedInput = {
 };
 
 describe('task dashboard time source capability', () => {
-  it('sums unfinished task and Daily child estimates without subtracting actual, reporting unknown estimates', () => {
+  it('sums only schedule estimates without subtracting actual and keeps Daily actual separate', () => {
     const result = useTaskDashboardData({
       ...sharedInput,
       taskTimeEntriesAuthoritative: false,
@@ -76,13 +76,13 @@ describe('task dashboard time source capability', () => {
         ],
       },
     });
-    expect(result.remainingPlannedMinutes).toBe(80);
+    expect(result.remainingPlannedMinutes).toBe(60);
     expect(result.remainingMissingCount).toBe(1);
-    expect(result.totalPlannedMinutes).toBe(209);
+    expect(result.totalPlannedMinutes).toBe(159);
     expect(result.totalMissingCount).toBe(1);
     expect(result.dailyActual).toBe(30);
   });
-  it('keeps zero estimates known, includes completed childless Daily as unknown total, and excludes other dates and inactive tasks', () => {
+  it('keeps zero estimates known and excludes Daily missing estimates, other dates and inactive tasks', () => {
     const result = useTaskDashboardData({
       ...sharedInput,
       taskTimeEntriesAuthoritative: true,
@@ -138,8 +138,8 @@ describe('task dashboard time source capability', () => {
     });
     expect(result.totalPlannedMinutes).toBe(20);
     expect(result.remainingPlannedMinutes).toBe(0);
-    expect(result.totalMissingCount).toBe(2);
-    expect(result.remainingMissingCount).toBe(1);
+    expect(result.totalMissingCount).toBe(0);
+    expect(result.remainingMissingCount).toBe(0);
   });
   it('treats an empty cloud ledger as authoritative', () => {
     const result = useTaskDashboardData({

@@ -1,4 +1,4 @@
-/** @fileoverview 独立 Preview 验证时间图、首页布局、三并行计时和不会写账本的到时续时流程。 */
+/** @fileoverview 独立 Preview 验证时间图、首页 Daily 统计范围、布局、三并行计时和到时续时流程。 */
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import {
@@ -12,6 +12,89 @@ const taskStorageKey = 'threadline.preview-demo.v1:threadline.tasks.v1';
 const entryStorageKey = 'threadline.preview-demo.v1:threadline.task-time-entries.v1';
 const recordingStorageKey =
   'threadline.preview-demo.v1:threadline.task-timer-records.v1';
+
+/** Daily 预计不增加顶部日程预计，但其实际仍计入；圆环无核算说明，完全空白时全部归零。 */
+test('distinguishes Daily estimates from an empty schedule and an entirely empty day', async ({
+  page,
+}, testInfo) => {
+  await page.clock.install({ time: new Date('2026-11-19T04:00:00Z') });
+  await page.goto('/');
+  await waitForPreviewWorkspace(page);
+  await page.evaluate(
+    ({ taskStorageKey, entryStorageKey }) => {
+      localStorage.setItem(taskStorageKey, '[]');
+      localStorage.setItem(entryStorageKey, '[]');
+    },
+    { taskStorageKey, entryStorageKey },
+  );
+  await page.reload();
+  await waitForPreviewWorkspace(page);
+  const stats = page.locator('.metric-strip');
+  await expect(
+    stats.getByText('剩余 / 当日预计（日程）', { exact: true }),
+  ).toBeVisible();
+  await expect(stats.locator('[data-day-remaining]')).toHaveText('0min');
+  await expect(stats.locator('[data-day-total]')).toHaveText('0min');
+  await expect(stats.locator('.tl-stat').last()).toHaveText(
+    '今日实际投入（含 Daily）0min',
+  );
+  await expect(page.locator('.schedule-panel .timeline-row')).toHaveCount(0);
+  await expect(
+    page.getByRole('region', { name: 'Daily 算法训练', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: 'Daily 算法训练', exact: true }),
+  ).toContainText('预计 50 分钟');
+  await page.getByRole('combobox', { name: '右栏显示内容' }).selectOption('time');
+  const chart = page.getByRole('region', { name: '日程时间分布', exact: true });
+  await expect(chart).toContainText('0min');
+  await chart.getByRole('button', { name: '实际投入', exact: true }).click();
+  await expect(chart).toContainText('0min');
+  await expect(chart).not.toContainText('已保存计时');
+  await expect(chart).not.toContainText('无法去重');
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+  ).toBe(true);
+  await page.locator('.dashboard-overview').scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: testInfo.outputPath('home-daily-estimates.png'),
+    fullPage: true,
+  });
+
+  await page.getByRole('combobox', { name: '右栏显示内容' }).selectOption('tasks');
+  const actualInput = page.getByLabel('算法训练 完成一道动态规划题并整理思路实际耗时');
+  await actualInput.fill('12');
+  await actualInput.press('Tab');
+  await expect(stats.locator('.tl-stat').last()).toHaveText(
+    '今日实际投入（含 Daily）12min',
+  );
+  await expect(stats.locator('[data-day-remaining]')).toHaveText('0min');
+  await expect(stats.locator('[data-day-total]')).toHaveText('0min');
+  await page.getByRole('combobox', { name: '右栏显示内容' }).selectOption('time');
+  await expect(chart).toContainText('0min');
+
+  await page.evaluate(() => {
+    localStorage.setItem(
+      'threadline.preview-demo.v1:threadline.daily-by-date.v1',
+      JSON.stringify({ '2026-11-19': [] }),
+    );
+    localStorage.setItem(
+      'threadline.preview-demo.v1:threadline.daily-templates.v1',
+      '[]',
+    );
+  });
+  await page.reload();
+  await waitForPreviewWorkspace(page);
+  await expect(stats.locator('[data-day-remaining]')).toHaveText('0min');
+  await expect(stats.locator('[data-day-total]')).toHaveText('0min');
+  await expect(stats.locator('.tl-stat').last()).toHaveText(
+    '今日实际投入（含 Daily）0min',
+  );
+  await expect(chart).toContainText('0min');
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+  ).toBe(true);
+});
 
 /** 保存三路重叠计时后以实际数值验收统计；右栏不重复展示内部核算规则。 */
 test('saved overlapping timers preserve raw minutes and allocate 55/25/10 after reload', async ({
@@ -1329,8 +1412,8 @@ test('keeps the home layout while switching the right column and using wide scre
   await expect(chart.locator('.stage-time-metrics')).toHaveCount(0);
   await expect(chart.locator('.stage-time-description')).toHaveCount(0);
   await expect(chart.locator('.stage-time-switcher button')).toHaveCount(3);
-  await expect(page.locator('[data-day-remaining]')).toHaveText('1h30min');
-  await expect(page.locator('[data-day-total]')).toHaveText('3h');
+  await expect(page.locator('[data-day-remaining]')).toHaveText('40min');
+  await expect(page.locator('[data-day-total]')).toHaveText('2h10min');
   await page.locator('.dashboard-overview').scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath('home-header.png') });
   await expect
