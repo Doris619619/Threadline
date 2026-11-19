@@ -33,7 +33,7 @@
 1. 经授权后，在目标数据库应用 `supabase/migrations/202611190001_account_ai_credentials.sql`，只新增独立密文表及访问限制，不改变任务 schema。
 2. 在 Edge secrets 中配置 `AI_CREDENTIALS_ENCRYPTION_KEY`，使用密码学安全随机生成的 **32 字节标准 base64** 主密钥。此值是服务端加密密钥，必须安全备份；现有密文依赖它解密，不可随意替换或删除。账号密钥优先，无账号密钥时可选使用服务端 `DEEPSEEK_API_KEY` 兜底。
 3. 可选设置 `DEEPSEEK_MODEL`；默认 `deepseek-flash`，关闭 thinking 并使用 `response_format: { type: 'json_object' }`。
-4. 保持 `smart-task-import` 和 `ai-api-settings` 的 `verify_jwt = true`，函数内部另用 `auth.getUser` 验证身份。函数使用平台内置 `SUPABASE_URL`、`SUPABASE_PUBLISHABLE_KEY`（兼容 `SUPABASE_ANON_KEY`）及仅用于私密凭据存储的 `SUPABASE_SERVICE_ROLE_KEY`，这些服务端值不得进入客户端。
+4. 保持 `smart-task-import` 和 `ai-api-settings` 的 `verify_jwt = true`，函数内部另用 `auth.getUser` 验证身份。函数使用平台内置 `SUPABASE_URL`，公开 key 优先读取 `SUPABASE_PUBLISHABLE_KEYS` JSON 字典的 `default`，再回退单数 `SUPABASE_PUBLISHABLE_KEY`、legacy `SUPABASE_ANON_KEY`；凭据管理 key 优先读取 `SUPABASE_SECRET_KEYS.default`，再回退 `SUPABASE_SECRET_KEY`、legacy `SUPABASE_SERVICE_ROLE_KEY`。字典缺失、畸形或无有效 `default` 时只尝试这些明确的回退，不任取其他具名 key；publishable 与 secret 分开选择，不能互作回退。管理 key 仅用于私密凭据存储，这些服务端值不得进入客户端。
 5. 经授权后才部署两个 Edge Function。普通前端只需原有 Supabase URL 与 publishable key，CSP 沿用 Supabase 连接目标。不要把 DeepSeek Key、加密主密钥或 service-role 放入 `NEXT_PUBLIC_*`、Web 公开配置、Electron Main/Preload/安装包或仓库。
 
 本地 Edge 调试可将 secrets 放在仓库外的 env 文件，运行 `pnpm exec supabase functions serve smart-task-import --env-file <本地文件>`，用本地 Supabase 登录用户 JWT 请求函数。不要使用生产账号执行自动化写入测试。
