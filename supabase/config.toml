@@ -1,4 +1,4 @@
-# 文件用途：为 Threadline 本地 Supabase CLI、数据库测试与 Realtime 验证定义隔离端口。
+# 文件用途：定义 Threadline 本地 Supabase 隔离端口与 AI Edge Function 用户认证配置。
 
 project_id = "threadline"
 
@@ -34,3 +34,11 @@ enable_signup = false
 
 [analytics]
 enabled = false
+
+# 智能导入仅解析；网关及函数内部都验证用户 JWT，不允许匿名调用 DeepSeek。
+[functions.smart-task-import]
+verify_jwt = true
+
+# 账号 API Key 只由此函数加密保存，不向客户端返回密钥。
+[functions.ai-api-settings]
+verify_jwt = true

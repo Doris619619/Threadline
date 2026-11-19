@@ -1,4 +1,4 @@
-/** @fileoverview 创建任务确认后立即返回；历史与耗时刷新独立收尾，不把已成功创建误报为失败。 */
+/** @fileoverview 创建任务确认后立即返回；按稳定编号补查响应丢失，历史与耗时刷新独立收尾。 */
 import type { QueryClient } from '@tanstack/react-query';
 import { beginCloudWrite } from '@/lib/cloud-write-guard';
 import type { SupabaseWorkspaceRepository } from '@/lib/supabase/workspace-repository';
@@ -7,10 +7,10 @@ import type { MutationFeedback } from '@/lib/mutation-feedback';
 
 type Repository = Pick<
   SupabaseWorkspaceRepository,
-  'saveProject' | 'createTask' | 'appendHistory'
+  'saveProject' | 'createTask' | 'appendHistory' | 'findTasksByIds'
 >;
 
-/** 只等待项目前置条件和任务确认；确认才清旧错误，随后记录写入独立报告失败并受重启保护。 */
+/** 仅等待项目和任务确认；失败按 owner 和稳定编号补查，创建历史用同一编号幂等补齐。 */
 export async function createCloudTask(
   task: Task,
   projects: Project[],
@@ -34,7 +34,18 @@ export async function createCloudTask(
         rows.map((item) => (item.id === saved.id ? saved : item)),
       );
     }
-    const saved = await repository.createTask(task);
+    let saved: Task;
+    try {
+      saved = await repository.createTask(task);
+    } catch (insertError) {
+      // 写入可能已提交但回包丢失；补查失败或确实缺失时仍保留原始失败供安全重试。
+      const existing = await repository
+        .findTasksByIds([task.id], owner)
+        .catch(() => []);
+      const confirmed = existing.find((item) => item.id === task.id);
+      if (!confirmed) throw insertError;
+      saved = confirmed;
+    }
     await client.cancelQueries({
       queryKey: ['workspace', owner, 'tasks'],
       exact: true,
@@ -44,15 +55,15 @@ export async function createCloudTask(
       saved,
     ]);
     confirmFeedback();
-    /** 历史写失败只提示记录问题，不让用户再次创建已存在的任务。 */
+    /** 创建历史采用任务编号作为事件编号；首次响应丢失仍可补齐，重复确认不会增加事件或覆写历史。 */
     void (async () => {
       try {
         await repository.appendHistory(
           {
-            id: crypto.randomUUID(),
+            id: saved.id,
             taskId: saved.id,
             type: 'created',
-            occurredAt: new Date().toISOString(),
+            occurredAt: saved.createdAt,
             payload: { title: saved.title },
           },
           saved,

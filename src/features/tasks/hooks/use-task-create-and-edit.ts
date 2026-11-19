@@ -6,6 +6,7 @@ import { taskFormSchema } from '@/lib/schemas';
 import { getLocalDateKey } from '@/lib/local-date';
 import { resolveActiveProject } from '@/lib/project-rules';
 import { makeTask } from '@/lib/task-factory';
+import { buildTimedTask } from '@/features/tasks/task-create';
 import type { QuickTaskDraft, TimedTaskDraft } from '@/features/tasks/task-drafts';
 import {
   normalizeTime,
@@ -46,42 +47,17 @@ export function useTaskCreateAndEdit({
     return createProject(newProject);
   };
 
-  /** 从日程行草稿创建任务，不改变既有的同日时间范围限制。 */
+  /** 共享日程草稿验证后创建；保留空标题取消和未指定项目时的既有默认项目行为。 */
   const createTimedTask = async (draft: TimedTaskDraft) => {
     if (!draft.title.trim()) return { cancelled: true };
     const projectId = resolveActiveProject(projects, draft.projectId)?.id;
     if (!projectId) return { error: '请先创建一个可用项目' };
-    const start = normalizeTime(draft.startTime);
-    const end = normalizeTime(draft.endTime);
-    if (draft.startTime.trim() && !start) return { error: '开始时间格式应为 08:30' };
-    if (draft.endTime.trim() && (!start || !end || end <= start)) {
-      return { error: '结束时间需晚于有效的开始时间' };
-    }
-    let planned: number | undefined;
-    let actual: number | undefined;
+    let task: Task;
     try {
-      planned = parseEstimateMinutes(draft.planned);
-      actual = parseDurationInput(draft.actual);
+      task = buildTimedTask({ ...draft, projectId }, projects, selectedDate);
     } catch (error) {
       return { error: (error as Error).message };
     }
-    const task: Task = {
-      id: crypto.randomUUID(),
-      projectId,
-      title: draft.title.trim(),
-      date: selectedDate,
-      plannedStartTime: start,
-      schedulePendingTime: !start,
-      plannedEndTime: end,
-      plannedDurationMinutes: planned,
-      actualDurationMinutes: actual,
-      completed: draft.completed,
-      completedAt: draft.completed ? new Date().toISOString() : undefined,
-      status: 'active',
-      importance: 'normal',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
     return { task: await createTask(task) };
   };
 

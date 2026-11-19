@@ -1,0 +1,501 @@
+/* 文件用途：实现五列确认表格与真实导入进度，复用内部焦点反馈并在手机和触屏上保留真实命中区域。 */
+
+.manager-dialog.smart-import-dialog {
+  width: min(100%, 780px);
+  max-height: calc(100dvh - 40px);
+  gap: 12px;
+  padding: 24px;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Threadline Source Han Sans', var(--font-default);
+}
+
+.manager-dialog.smart-import-dialog.is-review {
+  --import-field-columns: 112px minmax(260px, 1fr) 92px 92px 92px;
+
+  width: min(100%, 1120px);
+  gap: 20px;
+  border-radius: 22px;
+}
+
+.manager-dialog.smart-import-dialog.is-review > header {
+  grid-template-columns: 28px minmax(0, 1fr) 28px;
+  gap: 12px;
+}
+
+.smart-import-dialog.is-review .manager-dialog-header-icon {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border-radius: 0;
+}
+
+.manager-dialog.smart-import-dialog.is-input {
+  width: min(100%, 640px);
+  gap: 24px;
+}
+
+.manager-dialog.smart-import-dialog > header {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 14px;
+}
+
+.smart-import-dialog .manager-dialog-header-icon {
+  display: grid;
+  width: 50px;
+  height: 50px;
+  place-items: center;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  border-radius: 14px;
+}
+
+.manager-dialog.smart-import-dialog > header h2 {
+  color: var(--text-primary);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+
+.manager-dialog.smart-import-dialog > header h2::before {
+  content: none;
+}
+
+.smart-import-dialog .manager-dialog-heading p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.manager-dialog.smart-import-dialog > header > button {
+  align-self: start;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  margin: -4px -4px 0 0;
+  font-family: var(--font-default);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.smart-import-dialog > .manager-dialog-fields {
+  gap: 14px;
+}
+
+.import-privacy {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+  line-height: 1.5;
+}
+
+.import-source-label,
+.import-field-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.smart-import-dialog .import-source {
+  width: 100%;
+  min-height: 234px;
+  max-height: 45dvh;
+  padding: 14px 16px;
+  resize: vertical;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  color: var(--text-primary);
+  background: var(--surface);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.smart-import-dialog :is(input, textarea, select) {
+  caret-color: var(--accent);
+}
+
+.smart-import-dialog :is(input, textarea, select)::selection {
+  color: var(--text-primary);
+  background: var(--accent-soft);
+}
+
+.smart-import-dialog :is(input, textarea)::placeholder {
+  color: var(--text-secondary);
+}
+
+/* 业务字段优先级高于共享输入规则，因此显式接入同一边框和内部底线；强制色仍由共享系统覆盖。 */
+.manager-dialog.smart-import-dialog :is(input, textarea, select):focus {
+  border-color: var(--interaction-focus-ink);
+  outline: none;
+  box-shadow: inset 0 -2px 0 var(--interaction-focus-ink);
+}
+
+.import-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.import-table-scroll {
+  min-width: 0;
+  max-height: min(54dvh, 520px, calc(100dvh - 260px));
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y;
+  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-width: thin;
+  border-radius: 8px;
+}
+
+.import-table {
+  min-width: 816px;
+}
+
+.import-table-heading {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface);
+}
+
+.import-column-labels {
+  display: grid;
+  grid-template-columns: var(--import-field-columns);
+  align-items: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.import-column-labels > span {
+  padding-inline: 9px 0;
+}
+
+.import-column-labels small {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.import-task-list {
+  min-width: 0;
+}
+
+.import-task {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.import-task:last-child {
+  border-bottom: 0;
+}
+
+.import-task-selection {
+  display: grid;
+  min-height: 38px;
+  padding: 0;
+  place-items: center;
+}
+
+.import-task-selection input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.import-task-fields {
+  display: grid;
+  grid-template-columns: var(--import-field-columns);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.manager-dialog.smart-import-dialog .import-task-fields label {
+  display: block;
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-label-size);
+  line-height: 1.5;
+}
+
+.smart-import-dialog .import-task-fields :is(input, select, textarea) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  margin: 0;
+  padding: 8px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  background: var(--surface);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+.import-task-fields textarea {
+  overflow: hidden;
+  resize: none;
+  overflow-wrap: anywhere;
+}
+
+.import-task-action {
+  display: grid;
+  min-height: 38px;
+  padding: 0;
+  place-items: center;
+  color: var(--success);
+}
+
+.import-task-action button,
+.smart-import-toast button {
+  display: grid;
+  width: 28px;
+  height: 32px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .import-task-action button:hover,
+  .smart-import-toast button:hover {
+    color: var(--text-primary);
+    background: var(--surface-secondary);
+  }
+}
+
+.import-task.is-excluded .import-task-fields {
+  opacity: 0.6;
+}
+
+.import-task-fields:disabled :is(input, select, textarea) {
+  background: var(--surface-secondary);
+  -webkit-text-fill-color: var(--text-primary);
+  opacity: 1;
+}
+
+.import-task-error {
+  grid-column: 2 / 3;
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--text-secondary-size);
+}
+
+.import-progress {
+  display: grid;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: var(--text-secondary-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.import-progress progress {
+  width: 100%;
+  height: 6px;
+  accent-color: var(--accent);
+}
+
+.import-partial {
+  margin: 0;
+  color: var(--warning);
+  font-size: var(--text-body-size);
+  line-height: 1.5;
+}
+
+.smart-import-dialog footer {
+  position: static;
+  margin: 6px 0 0;
+  padding: 0;
+  background: var(--surface);
+  border: 0;
+}
+
+.smart-import-dialog.is-input footer {
+  position: static;
+  margin: 6px 0 0;
+  padding: 0;
+}
+
+.smart-import-dialog footer .tl-button {
+  min-width: 94px;
+  min-height: 42px;
+  padding: 0 20px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.smart-import-dialog.is-review footer .tl-button {
+  min-width: 104px;
+  min-height: 40px;
+  font-size: 14px;
+}
+
+.smart-import-dialog footer .tl-button--secondary {
+  font-weight: 500;
+}
+
+.smart-import-toast {
+  position: fixed;
+  z-index: 60;
+  top: max(20px, env(safe-area-inset-top));
+  left: 50%;
+  display: flex;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 10px 16px;
+  transform: translateX(-50%);
+  border: 1px solid color-mix(in srgb, var(--success) 25%, var(--border));
+  border-radius: 12px;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--success) 8%, var(--surface));
+  box-shadow: var(--shadow-popover);
+  font-size: var(--text-body-size);
+}
+
+.smart-import-toast > svg {
+  flex-shrink: 0;
+  color: var(--success);
+}
+
+@media (max-width: 600px) {
+  .manager-dialog-backdrop:has(.smart-import-dialog) {
+    padding: max(8px, env(safe-area-inset-top)) 8px
+      max(8px, env(safe-area-inset-bottom));
+  }
+
+  .manager-dialog.smart-import-dialog {
+    max-height: calc(
+      100dvh - max(16px, env(safe-area-inset-top)) - env(safe-area-inset-bottom)
+    );
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .manager-dialog.smart-import-dialog.is-input {
+    gap: 20px;
+    padding: 22px 20px;
+  }
+
+  .manager-dialog.smart-import-dialog > header {
+    grid-template-columns: 44px minmax(0, 1fr) 28px;
+    gap: 10px;
+  }
+
+  .smart-import-dialog .manager-dialog-header-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  .manager-dialog.smart-import-dialog > header h2 {
+    font-size: 20px;
+  }
+
+  .smart-import-dialog .manager-dialog-heading p {
+    font-size: 13px;
+  }
+
+  .manager-dialog.smart-import-dialog.is-review {
+    --import-field-columns: 100px minmax(260px, 1fr) 92px 92px 92px;
+
+    gap: 16px;
+  }
+
+  .import-table {
+    min-width: 824px;
+  }
+
+  .smart-import-dialog footer .tl-button,
+  .smart-import-dialog.is-review footer .tl-button {
+    flex: 1;
+  }
+
+  .schedule-panel-header:has(.smart-import-trigger) {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+}
+
+/* 760px 边界与大屏触控使用真实尺寸，不靠溢出伪元素扩大点击区。 */
+@media (max-width: 760px), (pointer: coarse) {
+  .manager-dialog.smart-import-dialog > header {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+  }
+
+  .manager-dialog.smart-import-dialog > header > button,
+  .import-task-action button,
+  .smart-import-toast button {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .import-table-heading,
+  .import-task {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+  }
+
+  .import-table-heading,
+  .import-task-selection,
+  .import-task-action {
+    min-height: 44px;
+  }
+
+  .import-task-selection input {
+    width: 22px;
+    height: 22px;
+  }
+
+  .smart-import-dialog .import-task-fields :is(input, select, textarea) {
+    min-height: 44px;
+    font-size: var(--mobile-form-control-font-size);
+  }
+
+  .smart-import-dialog footer .tl-button,
+  .smart-import-dialog.is-review footer .tl-button {
+    min-height: 44px;
+  }
+}

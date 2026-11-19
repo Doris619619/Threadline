@@ -1,4 +1,4 @@
-/** @fileoverview 批注荧光笔五色选择复用互斥菜单、顶层定位与键盘归焦，绘制模式仍独立控制。 */
+/** @fileoverview 荧光笔开关与当前色点保持独立，五色选择复用顶层菜单、键盘导航和关闭归焦。 */
 
 'use client';
 
@@ -25,22 +25,41 @@ type AnnotationColorPickerProps = {
   active: boolean;
   color: string;
   onActivate: () => void;
+  onDeactivate?: () => void;
   onColorChange: (color: string) => void;
 };
 
 /**
- * 绘制启用用pressed状态表达，颜色菜单用expanded表达；Esc只关闭浮层，避免误退出荧光笔。
+ * 荧光笔按钮可显式退出，未传退出回调时保持旧激活行为；选颜色始终启用绘制。
+ * 绘制用 pressed、菜单用 expanded 表达；共享菜单先处理 Escape，关闭后归焦且不退出绘制。
  */
 export function AnnotationColorPicker({
   active,
   color,
   onActivate,
+  onDeactivate,
   onColorChange,
 }: AnnotationColorPickerProps) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const id = useId();
   const selected = HIGHLIGHT_COLOR_PRESETS.find((preset) => preset.value === color);
+  // 色点使用不透明 RGB 呈现当前色，笔迹仍保留传入颜色原有的透明度。
+  const solidColor = color.replace(/^rgba\((.*),\s*[\d.]+\)$/, 'rgb($1)');
+
+  /** 主按钮仅控制绘制开关；旧调用缺少退出能力时仍执行原来的激活动作。 */
+  const toggleHighlighter = () => {
+    setOpen(false);
+    if (active && onDeactivate) onDeactivate();
+    else onActivate();
+  };
+
+  /** 选色后总是启用荧光笔，避免活动状态下选色被当成再次点击开关而退出。 */
+  const selectColor = (nextColor: string) => {
+    onColorChange(nextColor);
+    onActivate();
+    setOpen(false);
+  };
 
   return (
     <div className="annotation-highlighter-control">
@@ -54,19 +73,20 @@ export function AnnotationColorPicker({
         aria-label="荧光笔"
         aria-pressed={active}
         title="荧光笔（Esc 退出）"
-        onClick={onActivate}
+        onClick={toggleHighlighter}
       >
-        <Highlighter size={15} />
-        <span
-          className="annotation-current-color"
-          aria-hidden="true"
-          style={{ '--annotation-color': color } as CSSProperties}
-        />
+        <span className="annotation-highlighter-icon" aria-hidden="true">
+          <Highlighter size={15} />
+          <span
+            className="annotation-current-color annotation-highlighter-underline"
+            style={{ '--annotation-color': color } as CSSProperties}
+          />
+        </span>
       </button>
       <button
         ref={trigger}
         type="button"
-        className="annotation-color-menu-trigger"
+        className="annotation-color-menu-trigger annotation-color-button"
         aria-label={`选择颜色，当前${selected?.label ?? '黄色'}`}
         aria-expanded={open}
         aria-haspopup="menu"
@@ -80,6 +100,11 @@ export function AnnotationColorPicker({
           }
         }}
       >
+        <span
+          className="annotation-color-current-swatch"
+          aria-hidden="true"
+          style={{ '--annotation-color': solidColor } as CSSProperties}
+        />
         <ChevronDown size={13} aria-hidden="true" />
       </button>
       {open && (
@@ -101,11 +126,7 @@ export function AnnotationColorPicker({
                 role="menuitemradio"
                 aria-label={preset.label}
                 aria-checked={isSelected}
-                onClick={() => {
-                  onColorChange(preset.value);
-                  onActivate();
-                  setOpen(false);
-                }}
+                onClick={() => selectColor(preset.value)}
               >
                 <span
                   className="annotation-color-option-swatch"

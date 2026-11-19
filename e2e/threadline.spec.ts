@@ -55,6 +55,8 @@ async function drawHighlighterStrokeInScheduleBody(page: Page) {
 }
 
 test.beforeEach(async ({ page }, testInfo) => {
+  // 普通工作流不调用付费模型；智能导入专用用例通过自己的固定响应验证解析。
+  await page.route('**/api/local-smart-import', (route) => route.abort());
   await bootstrapLocalAdapterWorkspace(
     page,
     `threadline.e2e.seeded.${testInfo.testId}`,
@@ -222,15 +224,14 @@ test.describe('desktop task drag scheduling', () => {
     const dragHandle = scheduledTask.getByRole('button', { name: '拖动邮件处理' });
     await expect(dragHandle).toBeEnabled();
     const tools = page.getByRole('group', { name: '批注工具', exact: true });
-    const selection = tools.getByRole('button', { name: '选择模式', exact: true });
     const highlighter = tools.getByRole('button', { name: '荧光笔', exact: true });
     const eraser = tools.getByRole('button', { name: '橡皮擦', exact: true });
-    await expect(selection).toHaveAttribute('aria-pressed', 'true');
+    await expect(tools.locator('[aria-pressed="true"]')).toHaveCount(0);
 
     await highlighter.click();
     await expect(dragHandle).toBeDisabled();
     await expect(highlighter).toHaveAttribute('aria-pressed', 'true');
-    await expect(selection).toHaveAttribute('aria-pressed', 'false');
+    await expect(eraser).toHaveAttribute('aria-pressed', 'false');
     await highlighter.blur();
     await page.mouse.move(0, 0);
     await waitForFiniteAnimations(page);
@@ -245,10 +246,19 @@ test.describe('desktop task drag scheduling', () => {
     await expect(highlighter).toHaveAttribute('aria-pressed', 'false');
     await expect(dragHandle).toBeDisabled();
     await eraser.click();
-    await expect(selection).toHaveAttribute('aria-pressed', 'true');
+    await expect(tools.locator('[aria-pressed="true"]')).toHaveCount(0);
     await expect(dragHandle).toBeEnabled();
 
-    await selection.click();
+    await highlighter.click();
+    await expect(highlighter).toHaveAttribute('aria-pressed', 'true');
+    await expect(dragHandle).toBeDisabled();
+    await highlighter.click();
+    await expect(tools.locator('[aria-pressed="true"]')).toHaveCount(0);
+    await expect(dragHandle).toBeEnabled();
+    await highlighter.click();
+    await expect(dragHandle).toBeDisabled();
+    await page.keyboard.press('Escape');
+    await expect(tools.locator('[aria-pressed="true"]')).toHaveCount(0);
     await expect(dragHandle).toBeEnabled();
   });
 });
@@ -401,7 +411,7 @@ test('keeps drawn date annotations on their original day after navigation and re
     return Boolean(stored && JSON.parse(stored).strokes.length);
   });
 
-  await page.getByRole('button', { name: '选择模式' }).click();
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: '后一天' }).click();
   await expect(persistedStrokes).toHaveCount(0);
   await page.getByRole('button', { name: '前一天' }).click();

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "description": "Companion to root DESIGN.md: source-grounded metadata, preview-only tonal ramps, elevation, motion, responsive boundaries, and scoped interactive component snippets for Threadline.",
-  "generatedAt": "2026-11-19T08:00:46.180523+00:00",
+  "generatedAt": "2026-11-19T10:17:24.105451+00:00",
   "title": "Design System: Threadline",
   "extensions": {
     "sourceOfTruth": [
@@ -22,7 +22,12 @@
       "src/features/tasks/components/schedule-panel.tsx",
       "src/components/annotation-color-picker.tsx",
       "src/features/tasks/task-timers.css",
-      "src/features/settings/settings.css"
+      "src/features/settings/settings.css",
+      "src/features/tasks/smart-import/smart-import.css",
+      "src/features/settings/ai-api-settings.css",
+      "src/features/tasks/schedule-toolbar.css",
+      "src/features/tasks/task-dashboard.tsx",
+      "docs/ai-task-import.md"
     ],
     "colorMeta": {
       "blue-light-accent": {
@@ -2452,8 +2457,11 @@
       "Timer station fixed-font details and business-specific diagram/artwork values are not promoted into reusable system tokens; no unrelated drift is repaired.",
       "Appearance theme/font option descriptions, font labels and numeric samples, plus settings action-row small descriptions, inherit the owning control ink (color: inherit). Existing type size, weight and spacing carry hierarchy so selected/focus/pressed backgrounds retain readable descendant text. Settings rows retain caption size; this scoped descendant treatment does not replace semantic secondary text across all pages.",
       "Sidebar current pages use aria-current=page. Sidebar-only is-active also covers the mobile More aggregate selection; this selected background remains stable under hover. Focus-visible and active still follow the shared later state priority. Do not generalize is-active to time-ring previews.",
-      "Annotation selection mode, highlighter and eraser expose actual aria-pressed tool state. Color-menu disclosure remains aria-expanded and mutually exclusive colors remain aria-checked; these are independent semantics.",
-      "Expired task-timer extension-trigger small text uses text-primary at rest, while the existing primary background stays a 14% timer-color/surface mix. Clock and icon timer-ink remain accent-derived. This is a scoped foreground fix in task-timers.css, not a new or changed global color token."
+      "Annotation exposes only highlighter and eraser tool buttons with actual aria-pressed state. Both false means normal selection/drag without a separate selection-mode button. Repeating an active tool or Escape returns to none; an open palette consumes the first Escape to close and restore focus. Color disclosure remains aria-expanded, five mutually exclusive colors remain aria-checked, choosing a color always activates highlighter, and the separate solid current-color swatch preserves the translucent drawing values. Shared TaskActionsPopover top-layer positioning, keyboard behavior and focus return remain in use.",
+      "Expired task-timer extension-trigger small text uses text-primary at rest, while the existing primary background stays a 14% timer-color/surface mix. Clock and icon timer-ink remain accent-derived. This is a scoped foreground fix in task-timers.css, not a new or changed global color token.",
+      "Smart Import intentionally keeps its user-selected local sans-serif stack (-apple-system, BlinkMacSystemFont, 'Threadline Source Han Sans', var(--font-default)) for input and review surfaces, as recorded in docs/ai-task-import.md. This scoped font exception does not alter independent global font preferences or add a typography token.",
+      "Smart Import source/review fields and the API settings input use interaction-focus-ink border plus inset 0 -2px underline on focus, with no normal external outline/glow. Shared forced-colors rules keep the necessary 2px Highlight outline at -2px offset. This is local field integration, not a change to the shared input primitive.",
+      "At max-width 760px or coarse pointer, Smart Import close/delete/toast-close and selection targets are 44px, review fields and footer actions have at least 44px height, and editable text uses mobile-form-control-font-size. The table scrolls locally; desktop compact sizing remains. Schedule import/add and visible annotation controls share real minimum 44px target rules; mobile annotation visibility remains owned by the toolbar layout."
     ]
   },
   "components": [
@@ -2555,7 +2563,7 @@
       },
       {
         "name": "The Independent Font Rule",
-        "body": "新界面继承 `font-sans`，不通过主题选择覆盖用户字体；手机可编辑控件遵循 `mobile-form-control-font-size: max(1rem, var(--text-body-size))`，不降回桌面紧凑标签字号。",
+        "body": "普通新界面继承 `font-sans`，不通过主题选择覆盖用户字体；手机可编辑控件遵循 `mobile-form-control-font-size: max(1rem, var(--text-body-size))`，不降回桌面紧凑标签字号。智能导入弹窗保留用户已选定的局部无衬线字体例外，不改写全局字体偏好。",
         "section": "typography"
       },
       {

@@ -1,0 +1,38 @@
+/** @fileoverview 为 DeepSeek 个人密钥设置提供主题化表单、内部焦点反馈和可触控尺寸。 */
+
+.ai-api-settings {
+  max-width: 560px;
+}
+.ai-api-settings form,
+.ai-api-key-field {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.ai-api-key-field input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 16px;
+}
+.ai-api-key-field input:focus {
+  border-color: var(--interaction-focus-ink);
+  outline: none;
+  box-shadow: inset 0 -2px 0 var(--interaction-focus-ink);
+}
+.ai-api-settings .ai-api-status {
+  color: var(--text-primary);
+}
+.ai-api-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ai-api-settings button {
+  min-height: 44px;
+}

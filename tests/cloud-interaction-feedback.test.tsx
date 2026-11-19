@@ -131,6 +131,7 @@ it('returns a saved task before history finishes and never labels a history fail
     saveProject: vi.fn(),
     createTask: vi.fn(async () => task),
     appendHistory: vi.fn(() => history.promise),
+    findTasksByIds: vi.fn(),
   };
   client.setQueryData(['workspace', 'owner', 'tasks'], [task]); // Realtime 已先送达同一行。
   const saved = await createCloudTask(
@@ -189,6 +190,7 @@ it('another creation confirmation cannot clear a newer postcommit history warnin
   ];
   const repository = {
     saveProject: vi.fn(),
+    findTasksByIds: vi.fn(),
     /** 创建独立挂起，允许第一条的记录警告先于第二条主体确认到达。 */
     createTask: vi.fn(async (task: Task) => {
       await (task.id === 'first' ? firstWrite : secondWrite).promise;
@@ -257,3 +259,117 @@ it('another creation confirmation cannot clear a newer postcommit history warnin
     client.clear();
   }
 });
+
+/** 构造已持久化项目与稳定任务身份，复现响应丢失后安全确认和重试的边界。 */
+function createRecoveryScenario() {
+  const task: Task = {
+    id: 'stable-import-id',
+    projectId: 'p',
+    title: '只导入一次',
+    date: '2026-11-19',
+    actualDurationMinutes: 20,
+    status: 'active',
+    importance: 'normal',
+    completed: false,
+    createdAt: '2026-11-19T10:00:00Z',
+    updatedAt: '2026-11-19T10:00:00Z',
+  };
+  const projects = [
+    {
+      id: 'p',
+      name: '项目',
+      color: '#fff',
+      status: 'active' as const,
+      createdAt: '2026-11-19',
+      updatedAt: 'confirmed',
+    },
+  ];
+  const client = new QueryClient();
+  const insertError = new Error('response lost');
+  const repository = {
+    saveProject: vi.fn(),
+    createTask: vi.fn<(task: Task) => Promise<Task>>(async () => {
+      throw insertError;
+    }),
+    findTasksByIds: vi.fn<(ids: string[], owner: string) => Promise<Task[]>>(
+      async () => [],
+    ),
+    appendHistory: vi.fn(),
+  };
+  const onError = vi.fn();
+  return { task, projects, client, insertError, repository, onError };
+}
+
+it('confirms a committed task after response loss without overwriting it and repairs created history with a stable event identity', async () => {
+  const c = createRecoveryScenario();
+  const serverTask = { ...c.task, title: '另一端已编辑', actualDurationMinutes: 25 };
+  c.repository.findTasksByIds.mockResolvedValueOnce([serverTask]);
+  const saved = await createCloudTask(
+    c.task,
+    c.projects,
+    c.repository,
+    c.client,
+    'owner',
+    c.onError,
+  );
+  expect(saved).toEqual(serverTask);
+  expect(c.repository.findTasksByIds).toHaveBeenCalledWith([c.task.id], 'owner');
+  expect(c.repository.createTask).toHaveBeenCalledTimes(1);
+  expect(c.repository.appendHistory).toHaveBeenCalledExactlyOnceWith(
+    {
+      id: serverTask.id,
+      taskId: serverTask.id,
+      type: 'created',
+      occurredAt: serverTask.createdAt,
+      payload: { title: serverTask.title },
+    },
+    serverTask,
+  );
+  expect(c.client.getQueryData(['workspace', 'owner', 'tasks'])).toEqual([serverTask]);
+  expect(c.onError).toHaveBeenLastCalledWith(undefined);
+  await waitFor(() => expect(getPendingCloudWrites()).toBe(0));
+  c.repository.findTasksByIds.mockResolvedValueOnce([serverTask]);
+  await createCloudTask(c.task, c.projects, c.repository, c.client, 'owner', c.onError);
+  expect(c.repository.appendHistory.mock.calls.map(([event]) => event.id)).toEqual([
+    serverTask.id,
+    serverTask.id,
+  ]);
+  await waitFor(() => expect(getPendingCloudWrites()).toBe(0));
+  c.client.clear();
+});
+
+it.each(['missing', 'lookup-failed'] as const)(
+  'retains the original failure when recovery is %s and safely reuses the same task on retry',
+  async (recovery) => {
+    const c = createRecoveryScenario();
+    if (recovery === 'lookup-failed')
+      c.repository.findTasksByIds.mockRejectedValueOnce(
+        new Error('lookup unavailable'),
+      );
+    await expect(
+      createCloudTask(c.task, c.projects, c.repository, c.client, 'owner', c.onError),
+    ).rejects.toBe(c.insertError);
+    expect(c.repository.appendHistory).not.toHaveBeenCalled();
+    expect(c.client.getQueryData(['workspace', 'owner', 'tasks'])).toBeUndefined();
+    expect(getPendingCloudWrites()).toBe(0);
+
+    c.repository.createTask.mockResolvedValueOnce(c.task);
+    expect(
+      await createCloudTask(
+        c.task,
+        c.projects,
+        c.repository,
+        c.client,
+        'owner',
+        c.onError,
+      ),
+    ).toEqual(c.task);
+    expect(c.repository.createTask.mock.calls.map(([task]) => task.id)).toEqual([
+      c.task.id,
+      c.task.id,
+    ]);
+    expect(c.repository.appendHistory).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(getPendingCloudWrites()).toBe(0));
+    c.client.clear();
+  },
+);

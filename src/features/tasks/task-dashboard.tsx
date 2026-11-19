@@ -47,9 +47,10 @@ import { HomeStagePlans } from '@/features/stage-plans/board';
 import { DayTimeChart } from './components/day-time-chart';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import { useAccountToday } from '@/features/settings/account-timezone-provider';
+import { SmartImportAction } from './smart-import/action';
 
 /**
- * 按当前工作台视图渲染首页、功能页或 Electron 紧凑窗口；顶部收尾沿用 Daily 保存屏障且等待时保持入口文字稳定。
+ * 按当前视图渲染工作台；首页批量导入沿用当前日期与创建入口，顶部收尾等待 Daily 保存屏障。
  */
 export function TaskDashboard() {
   const { active, selectedDate } = useWorkspaceView();
@@ -360,6 +361,13 @@ export function TaskDashboard() {
         onPointerUp={handlePointerDragEnd}
       >
         <SchedulePanel
+          importAction={
+            <SmartImportAction
+              projects={workspaceProjects}
+              selectedDate={selectedDate}
+              createTask={createTask}
+            />
+          }
           annotationTool={annotationTool}
           highlightColor={highlightColor}
           isDropTarget={dropTarget === 'schedule'}

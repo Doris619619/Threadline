@@ -113,7 +113,9 @@ Daily 使用独立的 `daily-accent`，状态仍遵循共享系统。它是既�
 
 共享按钮使用 label 字号，但实际字重为 600、行高为 1。计时和统计数字使用等宽数字；不对所有正文强制等宽。经典主题将 page 提到 `1.75rem` / 800、section 提到 `1.125rem` / 700，body 为 `1rem`，secondary 和 label 为 `0.875rem`，caption 为 `0.8125rem`；实际经典页面标题选择器仍可使用 700。手机经典正文同样为 `1.0625rem`。
 
-**The Independent Font Rule.** 新界面继承 `font-sans`，不通过主题选择覆盖用户字体；手机可编辑控件遵循 `mobile-form-control-font-size: max(1rem, var(--text-body-size))`，不降回桌面紧凑标签字号。
+**The Independent Font Rule.** 普通新界面继承 `font-sans`，不通过主题选择覆盖用户字体；手机可编辑控件遵循 `mobile-form-control-font-size: max(1rem, var(--text-body-size))`，不降回桌面紧凑标签字号。智能导入弹窗保留用户已选定的局部无衬线字体例外，不改写全局字体偏好。
+
+智能导入的输入与确认界面局部采用 `-apple-system, BlinkMacSystemFont, 'Threadline Source Han Sans', var(--font-default)` 字体栈，以已内置思源黑体承接该表单的明确选择；这是 [ai-task-import.md](docs/ai-task-import.md) 和 [smart-import.css](src/features/tasks/smart-import/smart-import.css) 共同确认的局部决定，不提升为新的全局字体令牌或其它弹窗的默认字体。
 
 外观主题 / 字体选项中的说明、字体标签与数字样例，以及设置操作行内的 small 说明，继承所属控件的可读墨色（`color: inherit`），选中、焦点和按下底色改变时仍保留对比；辅助层级由原有字号、字重与间距表达，不在这些后代元素中锁定 text-secondary。设置行保留 caption 字号，来源为 [settings.css](src/features/settings/settings.css)；此规则限定于这些会随操作状态改变底色的控件后代，不改写所有页面辅助文字的语义颜色。
 
@@ -124,6 +126,8 @@ Daily 使用独立的 `daily-accent`，状态仍遵循共享系统。它是既�
 桌面侧栏令牌 `sidebar-width` 为 188px，主内容留白为 `24px 28px 32px`。≤760px 时侧栏成为五列底部导航，`bottom-nav-height` 为 64px，叠加安全区；内容留白为 `16px 16px calc(64px + 20px + env(safe-area-inset-bottom))`。日期栏与工具栏在窄屏换行，文本可换行而不是挤占相邻操作。来源：[app-shell.css](src/components/app-shell.css)。
 
 普通控件最小高度 `control-height` 为 36px，紧凑档为 32px，`touch-target` 为 44px。菜单项在 ≤760px 或 coarse pointer 下升为 44px；日期导航、认证图标、任务项目入口等扩大真实元素，而非用溢出的伪元素覆盖邻近点击区。并非所有桌面按钮都强制 44px。极小 Electron 计时站使用原尺寸卡片和滚动，保留可达的 36px 操作，不以继续压缩整个界面换取装入窗口；其特例由 [timer-station.css](src/features/tasks/timer-station.css) 管理。
+
+智能导入在 ≤760px 或 coarse pointer 下保留真实 44px 关闭、删除、通知关闭、勾选与页脚操作目标，确认表格的编辑控件最小高度为 44px，并使用 mobile-form-control-font-size。表格保持局部横向滚动，桌面继续保留紧凑尺寸；日程工具栏的导入、添加及可见的批注控件在同一触屏条件下设置至少 44px 的真实目标，手机批注工具仍沿用所属布局的显隐规则。相关来源为智能导入样式与 [schedule-toolbar.css](src/features/tasks/schedule-toolbar.css)。
 
 ## Elevation & Depth
 
@@ -242,7 +246,7 @@ components:
 
 状态由 `interactions.css` 最后统一：仅 hover 设备显示 hover；中性按下使用 interaction-pressed，填色按钮 hover / pressed 为自身填色与 black 的 92% / 82% 混合。保持填色前景；普通按钮在状态中使用 text-primary。expanded 使用 9% accent-text 背景，selected 使用 13%，两者持续含义分别绑定 `aria-expanded` 与真实选择属性。`:active` 位于优先级末端，按住时短暂覆盖，释放后恢复持续状态；无缩放和几何跳动。
 
-日程批注的选择模式、荧光笔和橡皮擦均用真实 `aria-pressed` 表达工具是否启用；颜色菜单的展开仍由 `aria-expanded` 表达，互斥颜色仍用 `aria-checked`，不能将工具启用与浮层展开混成一个状态。来源：[schedule-panel.tsx](src/features/tasks/components/schedule-panel.tsx)、[annotation-color-picker.tsx](src/components/annotation-color-picker.tsx)。
+日程批注只有荧光笔与橡皮擦两个工具按钮，各用真实 `aria-pressed` 表达是否启用；二者均为 false 时即为普通选择 / 拖拽状态，不另设选择模式按钮。再次点击已启用的工具或按 Escape 回到普通状态；颜色菜单打开时，第一次 Escape 仅关闭菜单并归焦，后续 Escape 才退出绘制。颜色披露使用 `aria-expanded`，五色互斥选择使用 `aria-checked`，选择颜色总是启用荧光笔并关闭菜单。独立当前色点使用不透明 RGB 显示，笔迹仍保留原有透明度；颜色菜单继续复用共享顶层定位、方向键、关闭与归焦行为。来源：[schedule-panel.tsx](src/features/tasks/components/schedule-panel.tsx)、[annotation-color-picker.tsx](src/components/annotation-color-picker.tsx)、[task-dashboard.tsx](src/features/tasks/task-dashboard.tsx)。
 
 任务计时卡到时后的“延长”是小字号文字操作，常态明确使用 text-primary；保留原有 14% timer-color 与 surface 混合背景。时钟与图标仍可使用所属计时器的 timer-ink，不能把这种强调墨色直接套到浅色底上的小字操作。这是 [task-timers.css](src/features/tasks/task-timers.css) 中续时触发器的局部前景修正，没有新增或改写全局颜色令牌。
 
@@ -261,6 +265,8 @@ components:
 ### Inputs / Fields
 
 共享输入宽度 100%，36px 最小高度、水平 12px 内边距、surface 背景、text-primary 文字、1px border 边界。placeholder 使用 text-tertiary，错误边界使用 danger。编辑焦点改变边界为 interaction-focus-ink，不加发光环；无边框编辑区保留所属组件的内部底线。隐形日期和复选框把键盘反馈传到可见标签；搜索区域可使用 focus-within 背景及内底线。手机文字、日期、下拉与可编辑区域的实际字号由最终响应式覆盖保护。来源：[responsive-overrides-late.css](src/styles/responsive-overrides-late.css)。
+
+智能导入的原文与确认字段，以及 API 设置输入，显式将编辑焦点接入 interaction-focus-ink 边界和 `inset 0 -2px 0` 内部底线，不使用普通外围轮廓或外部光晕。强制色下仍由共享系统提供必要的 `2px solid Highlight` 轮廓与内部偏移；这是表单字段的局部接入，不改写共享输入原语。来源为智能导入样式及 [ai-api-settings.css](src/features/settings/ai-api-settings.css)。
 
 ### Navigation
 

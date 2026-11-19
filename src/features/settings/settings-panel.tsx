@@ -9,6 +9,7 @@ import {
   Globe,
   Database,
   Info,
+  KeyRound,
   LogOut,
   MonitorCog,
   Palette,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 import { AnnotationImportSettings } from './annotation-import-settings';
 import { AccountTimezoneSettings } from './account-timezone-settings';
+import { AiApiSettings } from './ai-api-settings';
 import { useAccountTimezone } from './account-timezone-provider';
 import { timezoneLabel } from '@/lib/account-clock';
 import { useRef, useState } from 'react';
@@ -39,6 +41,7 @@ import {
 type SettingsSection =
   | 'personal'
   | 'timezone'
+  | 'ai-api'
   | 'overview'
   | 'appearance'
   | 'sync'
@@ -139,6 +142,12 @@ export function SettingsPanel({
     return (
       <SettingsDetail title="日期与时区" onBack={() => setSection('overview')}>
         <AccountTimezoneSettings />
+      </SettingsDetail>
+    );
+  if (section === 'ai-api')
+    return (
+      <SettingsDetail title="AI / API 接入" onBack={() => setSection('overview')}>
+        <AiApiSettings />
       </SettingsDetail>
     );
   if (section === 'appearance')
@@ -310,6 +319,12 @@ export function SettingsPanel({
             title="数据与同步"
             description="了解 Cloud 工作区与本地存储"
             onClick={() => setSection('sync')}
+          />
+          <SettingsRow
+            icon={KeyRound}
+            title="AI / API 接入"
+            description="管理智能导入使用的 DeepSeek API Key"
+            onClick={() => setSection('ai-api')}
           />
         </Surface>
       </section>

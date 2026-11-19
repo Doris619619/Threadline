@@ -1,13 +1,13 @@
-/** @fileoverview 验证 Supabase 任务读写 mapper 和原子状态流转 RPC 的业务边界。 */
+/** @fileoverview 验证 Supabase 任务读写、原子流转以及创建历史在安全重试中的传输契约。 */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readSupabasePublicConfig } from '@/lib/supabase/config';
 import {
   mapTask,
   SupabaseWorkspaceRepository,
 } from '@/lib/supabase/workspace-repository';
-import type { Task } from '@/types/domain';
+import type { HistoryEvent, Task } from '@/types/domain';
 
 /** 构造数据库 task row，覆盖 date、墙钟、datetime-local 与审计 instant 的不同映射语义。 */
 function databaseTaskRow(overrides: Record<string, unknown> = {}) {
@@ -160,5 +160,105 @@ describe('Supabase public runtime configuration', () => {
         publishableKey: 'sb_publishable_local_test',
       },
     });
+  });
+});
+
+/** 使用真实 Supabase/PostgREST 请求构造器和受控 HTTP 响应，验证冲突忽略而非模拟去重实现。 */
+function historyTransport() {
+  const request = vi.fn<typeof fetch>();
+  const client = createClient('https://threadline.test', 'publishable-test-key', {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: request },
+  });
+  const event: HistoryEvent = {
+    id: '00000000-0000-4000-8000-000000000001',
+    taskId: '00000000-0000-4000-8000-000000000001',
+    type: 'created',
+    occurredAt: '2026-11-19T10:00:00.000Z',
+    payload: { title: '补齐创建历史' },
+  };
+  return { request, event, repository: new SupabaseWorkspaceRepository(client) };
+}
+
+describe('Supabase created-history retry boundary', () => {
+  it('uses insert-ignore on the stable event id and accepts an empty duplicate response without overwriting history', async () => {
+    const c = historyTransport();
+    c.request
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify([{ id: c.event.id }]), {
+          status: 201,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response('[]', {
+          status: 201,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+    await c.repository.appendHistory(c.event, taskFixture());
+    await expect(
+      c.repository.appendHistory(c.event, taskFixture()),
+    ).resolves.toBeUndefined();
+    expect(c.request).toHaveBeenCalledTimes(2);
+    for (const [input, options] of c.request.mock.calls) {
+      const url = new URL(input instanceof Request ? input.url : String(input));
+      expect(url.pathname).toBe('/rest/v1/history_events');
+      expect(url.searchParams.get('on_conflict')).toBe('id');
+      expect(options?.method).toBe('POST');
+      const headers = new Headers(options?.headers);
+      expect(headers.get('Prefer')).toContain('resolution=ignore-duplicates');
+      expect(headers.get('Prefer')).not.toContain('resolution=merge-duplicates');
+      expect(JSON.parse(String(options?.body))).toMatchObject({
+        id: c.event.taskId,
+        task_id: c.event.taskId,
+        event_type: 'created',
+        task_title_snapshot: '评审 PR',
+        project_id_snapshot: 'project-1',
+        task_date_snapshot: '2026-08-21',
+      });
+    }
+  });
+
+  it('keeps ordinary history strict and propagates duplicate insert failures', async () => {
+    const c = historyTransport();
+    c.request.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          code: '23505',
+          message: 'duplicate event',
+          details: null,
+          hint: null,
+        }),
+        { status: 409, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+    await expect(
+      c.repository.appendHistory({ ...c.event, type: 'renamed' }),
+    ).rejects.toThrow('append history: duplicate event');
+    const [input, options] = c.request.mock.calls[0];
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    expect(url.searchParams.has('on_conflict')).toBe(false);
+    expect(new Headers(options?.headers).get('Prefer')).not.toContain(
+      'resolution=ignore-duplicates',
+    );
+  });
+
+  it('reports a created-history authorization failure instead of treating it as a duplicate', async () => {
+    const c = historyTransport();
+    c.request.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          code: '42501',
+          message: 'permission denied',
+          details: null,
+          hint: null,
+        }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+    await expect(c.repository.appendHistory(c.event)).rejects.toThrow(
+      'append history: permission denied',
+    );
   });
 });

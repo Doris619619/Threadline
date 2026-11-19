@@ -1,4 +1,4 @@
-/** @fileoverview 以真实输入验证全模块方案 A 状态、非环形焦点、菜单与环图输入等价及认证忙碌边界。 */
+/** @fileoverview 以真实输入验证全模块方案 A 状态、非环形焦点、菜单与环图输入等价；批注以两个开关表达绘制或普通交互。 */
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { openWorkspaceSection } from './support/workspace';
@@ -337,7 +337,8 @@ for (const theme of themes)
             await expect(page.locator('.annotation-tools')).toBeHidden();
           } else {
             const tools = page.getByRole('group', { name: '批注工具', exact: true });
-            for (const label of ['选择模式', '荧光笔', '橡皮擦']) {
+            await expect(tools.locator('[aria-pressed="true"]')).toHaveCount(0);
+            for (const label of ['荧光笔', '橡皮擦']) {
               const mode = tools.getByRole('button', { name: label, exact: true });
               await mode.click();
               await expect(mode).toHaveAttribute('aria-pressed', 'true');
@@ -347,8 +348,12 @@ for (const theme of themes)
                 mode,
                 `${theme}/${scheme}/annotation ${label}`,
               );
+              await mode.click();
+              await expect(tools.locator('[aria-pressed="true"]')).toHaveCount(0);
             }
-            await tools.getByRole('button', { name: '选择模式', exact: true }).click();
+            await tools.getByRole('button', { name: '荧光笔', exact: true }).click();
+            await page.keyboard.press('Escape');
+            await expect(tools.locator('[aria-pressed="true"]')).toHaveCount(0);
           }
         }
         if (section === '设置') {

@@ -26,6 +26,7 @@
 ## 能做什么
 
 - **安排今天**：在首页管理今日日程与待安排，填写预计时长、勾选完成，在日历中查看安排和调整日期。顶部剩余与当日预计只统计当天日程任务，日程为空时预计为零；Daily 预计保留在 Daily 清单中，实际投入仍包含已记录的 Daily 分钟。右栏「日程时间分布」只统计日程任务。
+- **智能批量导入**：在今日日程点击「智能导入」，粘贴杂乱文本，由 AI 提炼任务、匹配已有项目；在紧凑表格中检查项目、任务、预计时长、开始时间和结束时间后再保存。在设置「AI / API 接入」管理个人 DeepSeek API Key，密钥由服务端加密保存。服务配置见[智能导入说明](docs/ai-task-import.md)。
 - **推进长期计划**：把目标拆成阶段清单，按项目组织任务；点击「→ 今天」即可安排执行，阶段、项目与日程共享同一条任务。
 - **看见真实投入**：同时使用最多三个正计时或倒计时器，独立暂停、继续和到时续时，同账号跨标签操作串行保存。点击完成后，本机保存待提交记录并立即收起卡片，后台保存耗时，失败时恢复卡片供重试。新计时保存后，重叠时段在总量中只算一次，时间分布按任务均分。原始分钟和历史记录保留，详见[计时统计规则](docs/timer-accounting.md)。
 - **照顾日常节奏**：用 Daily 管理重复清单，用习惯页记录起床、睡觉和效率，查看周/月趋势；节律页另行记录生理期。
@@ -95,6 +96,8 @@ pnpm dev
 
 打开 <http://localhost:3000>。环境变量、账号创建与迁移步骤见 [开发指南](docs/development.md) 和 [部署指南](docs/supabase-deployment.md)。
 
+localhost 的显式本地开发适配器可通过临时内存服务试用真实 AI 解析；API Key 只经服务进程标准输入传入，停止后需重新提供。启用方式见[智能导入本地预览](docs/ai-task-import.md#localhost-临时解析预览)。
+
 常用检查：
 
 ```powershell
@@ -102,11 +105,14 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm test:hig
+pnpm test:smart-import:ui
 ```
 
 交互回归使用隔离 Preview 与本机模拟认证，不连接真实账号。本机未安装 Chrome 时，可设置 `$env:THREADLINE_HIG_BROWSER_CHANNEL='msedge'` 使用已安装的 Edge；默认使用 Playwright Chromium，覆盖七个宽度与 iPhone WebKit。验收范围与前后材料见[统一交互系统](docs/apple-interactions.md)。
 
 完整 HIG 矩阵包含 112 项。共享状态按四个主题分别运行，每例仍验证深浅两色的全部状态，并保持 180 秒上限；引导及其它行为断言不变。
+
+智能导入另有8项真实开发页面/组件回归，覆盖字段内部焦点、强制色系统焦点、760px边界与较宽触屏的44px目标。`test:smart-import:ui`自启并关闭独占回环服务，解析只用固定响应，不连接模型或真实账号；未安装Playwright Chromium时可设置`THREADLINE_SMART_IMPORT_BROWSER_CHANNEL=msedge`。
 
 `test:preview` 与 `test:hig` 默认监听 `127.0.0.1:3103`；已有任务占用时，可先设置 `$env:THREADLINE_PREVIEW_PORT='32103'` 再执行同一命令。`test:e2e` 默认端口为 `3100`，通过 `THREADLINE_E2E_PORT` 覆写。两类 runner 都会在构建前和启动前检查端口，已占用即明确失败，不复用或终止其它服务；端口必须是 1–65535 的整数。
 
