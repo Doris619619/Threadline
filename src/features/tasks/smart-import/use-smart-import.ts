@@ -7,6 +7,7 @@ import type { TimedTaskDraft } from '../task-drafts';
 import { buildTimedTask } from '../task-create';
 import { estimateFromTimeRange } from '../task-time';
 import { parseImportTasks } from './client';
+import { canUseLocalAiPreview, parseLocalImportTasks } from './local-client';
 
 export type ImportRow = {
   id: string;
@@ -53,7 +54,7 @@ export function useSmartImport({
     };
   }, []);
 
-  /** 解析只生成可编辑草稿；不识别的项目落到真实的“其他”项目。 */
+  /** 解析仅生成可编辑草稿；无云会话的 localhost 开发预览可用同源临时代理，其他运行时仍走云函数。 */
   const parse = async () => {
     if (lock.current) return;
     lock.current = true;
@@ -62,7 +63,10 @@ export function useSmartImport({
     const controller = new AbortController();
     request.current = controller;
     try {
-      const parsed = await parseImportTasks(client, text, controller.signal);
+      const parsed =
+        !client && canUseLocalAiPreview()
+          ? await parseLocalImportTasks(text, projects, controller.signal)
+          : await parseImportTasks(client, text, controller.signal);
       if (!mounted.current) return;
       const active = projects.filter(
         (project) => project.status === 'active' && !project.deletedAt,

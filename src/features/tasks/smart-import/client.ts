@@ -24,6 +24,13 @@ const parsedTask = z
 const responseSchema = z.object({ tasks: z.array(parsedTask).max(100) }).strict();
 export type ParsedImportTask = z.infer<typeof parsedTask>;
 
+/** 云解析与 localhost 开发代理共享同一六字段响应校验，拒绝畸形或扩展参数。 */
+export function readParsedImportTasks(data: unknown): ParsedImportTask[] {
+  const result = responseSchema.safeParse(data);
+  if (!result.success) throw new Error('解析结果不完整，请重新解析。');
+  return result.data.tasks;
+}
+
 /** 只发送用户文本；项目由服务端按当前身份读取，取消或超时不会触发任何任务写入。 */
 export async function parseImportTasks(
   client: SupabaseClient | undefined,
@@ -69,9 +76,7 @@ export async function parseImportTasks(
       }
       throw new Error('暂时无法解析，请检查网络及智能导入服务配置后重试。');
     }
-    const result = responseSchema.safeParse(data);
-    if (!result.success) throw new Error('解析结果不完整，请重新解析。');
-    return result.data.tasks;
+    return readParsedImportTasks(data);
   } finally {
     clearTimeout(timeout);
     signal.removeEventListener('abort', cancel);

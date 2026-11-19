@@ -24,7 +24,7 @@
 
 ## 服务端配置（本次开发不执行部署）
 
-需要由有权限的维护者在目标 Supabase 项目配置并部署函数。没有函数或密钥时，解析显示配置/服务错误，现有手动创建不受影响。演示与显式本地适配器没有云登录，入口会说明需登录云工作区。设置页保存只确认密钥已存储，不声称 API 已验证连通；解析时才调用 DeepSeek。输入只存在当前表单内存和保存请求，保存成功后清空，不写本地存储、查询缓存或安装包，不回显已保存密钥或片段。
+需要由有权限的维护者在目标 Supabase 项目配置并部署函数。没有函数或密钥时，解析显示配置/服务错误，现有手动创建不受影响。公开演示与 production 本地适配器没有云登录，入口会说明需登录云工作区；localhost 显式开发适配器可按下节临时联调。设置页保存只确认密钥已存储，不声称 API 已验证连通；解析时才调用 DeepSeek。输入只存在当前表单内存和保存请求，保存成功后清空，不写本地存储、查询缓存或安装包，不回显已保存密钥或片段。
 
 1. 经授权后，在目标数据库应用 `supabase/migrations/202611190001_account_ai_credentials.sql`，只新增独立密文表及访问限制，不改变任务 schema。
 2. 在 Edge secrets 中配置 `AI_CREDENTIALS_ENCRYPTION_KEY`，使用密码学安全随机生成的 **32 字节标准 base64** 主密钥。此值是服务端加密密钥，必须安全备份；现有密文依赖它解密，不可随意替换或删除。账号密钥优先，无账号密钥时可选使用服务端 `DEEPSEEK_API_KEY` 兜底。
@@ -34,9 +34,21 @@
 
 本地 Edge 调试可将 secrets 放在仓库外的 env 文件，运行 `pnpm exec supabase functions serve smart-task-import --env-file <本地文件>`，用本地 Supabase 登录用户 JWT 请求函数。不要使用生产账号执行自动化写入测试。
 
+## localhost 临时解析预览
+
+不部署 Edge Function 也能在本机弹窗试用真实解析，仅用于 `NODE_ENV=development`、`NEXT_PUBLIC_THREADLINE_TEST_ADAPTER=true` 的 localhost/loopback Web 页面。生产构建、公开演示、Electron 与普通云会话继续使用原来的 Edge Function，不启用这条本地链路。
+
+1. 用显式本地开发适配器启动 `pnpm dev --hostname 127.0.0.1 --port 3000`。
+2. 编译临时服务：`pnpm exec esbuild scripts/local-ai-preview.ts --bundle --platform=node --format=esm --outfile=.tmp/local-ai-preview.mjs`。
+3. 启动 `.tmp/local-ai-preview.mjs`，通过进程标准输入提供一行 `{ "apiKey": "临时密钥" }` JSON。启动器应直接写入子进程 stdin，不把密钥放在命令行参数、源码、文件、环境变量或浏览器中。
+
+服务仅监听 `127.0.0.1:8871`，密钥只保留于进程内存，停止服务后需重新提供。浏览器 POST 同源 `/api/local-smart-import`，Next 开发路由固定转发至本机服务；两端拒绝外站 Origin 和不合法输入，不允许客户端指定上游 URL。项目只采用当前本地工作区的活跃项目，复用正式解析处理器、提示词和六字段校验，不自动创建项目。
+
+临时服务仅解析；弹窗确认导入沿用当前本地适配器，保存到本地演示工作区，不访问 Supabase 数据库。Key 不会写入账号设置或自动带到其他设备。未启动临时服务时会提示服务不可用；此链路不能替代云端函数部署和真实账号验收。
+
 ## 验证
 
-`pnpm test` 覆盖模型输出与 HTTP/认证边界、六字段确认、真实进度、部分失败和固定 UUID 重试，以及个人 Key 设置、加密隔离与密文表权限。`pnpm typecheck`、`pnpm lint`、Web/PWA 构建与 Electron renderer 静态导出验证共享代码边界。真实 DeepSeek 语义提取质量、已部署函数、真实 Supabase 保存及 iPhone 真机体验需要配置服务后单独验收；mock 测试不代表这些外部环节已通过。
+`pnpm test` 覆盖模型输出与 HTTP/认证边界、六字段确认、真实进度、部分失败和固定 UUID 重试，以及个人 Key 设置、加密隔离与密文表权限。`pnpm typecheck`、`pnpm lint`、Web/PWA 构建与 Electron renderer 静态导出验证共享代码边界。localhost 已用一段真实计划验证 DeepSeek 解析与弹窗联通；更广泛的语义提取质量、已部署函数、真实 Supabase 保存及 iPhone 真机体验仍需单独验收，mock 测试不代表这些外部环节已通过。
 
 接口参考：[DeepSeek JSON 模式](https://api-docs.deepseek.com/guides/json_mode/)、[DeepSeek thinking 模式](https://api-docs.deepseek.com/guides/thinking_mode/)、[Supabase 函数认证请求头](https://supabase.com/docs/guides/functions/auth-headers)。
 
@@ -48,4 +60,6 @@
 - `e2e/smart-import.spec.ts` 在桌面和手机共 6 项通过。本机未安装项目指定的 Chrome channel，临时测试配置改用已安装的 Microsoft Edge Chromium，未改变仓库浏览器配置。
 - 使用真实 React 组件和构建 CSS、本地 HTTP mock，检查 6 组导入视口/主题、3 组 API 设置视口/主题、axe、长标题缩窄、手机输入字号、逐条进度、部分失败固定 ID 重试和密钥保存清空。此项不代表真实模型或数据库联调。
 - Electron Main/Preload 编译、真实静态协议下的导入与 API 设置入口检查、计时站回归通过。完整 `pnpm test:electron` 在既有双屏入口窗口居中断言失败（第二显示器 x 位置偏差），本次未改该原生窗口代码；不能据此称完整套件通过。
-- 未运行生产迁移、未部署函数、未使用真实 DeepSeek 密钥；真实 API 解析质量、云端保存和 iPhone 真机验收待服务配置后进行。
+- 首轮功能验证未运行生产迁移、未部署函数、未使用真实 DeepSeek 密钥；云端保存和 iPhone 真机验收待服务配置后进行。
+- 后续 localhost 临时联调：解析客户端、六字段交互、本机服务与开发代理共 77 项测试通过；类型检查、变更文件 ESLint 和 Prettier 通过。Host/Origin、生产/Electron 禁用、输入边界和异常脱敏均有覆盖。
+- 真实 localhost 弹窗通过内存代理调用 DeepSeek：课程、报销、大纲和简历的混合计划识别为 9 条任务，预计时长合计 310 分钟，简历去重，六字段可编辑；浏览器请求不含密钥，解析前后本地任务存储一致，未点击确认导入。此验证没有生产数据库写入或部署。

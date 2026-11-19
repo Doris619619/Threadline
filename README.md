@@ -95,6 +95,8 @@ pnpm dev
 
 打开 <http://localhost:3000>。环境变量、账号创建与迁移步骤见 [开发指南](docs/development.md) 和 [部署指南](docs/supabase-deployment.md)。
 
+localhost 的显式本地开发适配器可通过临时内存服务试用真实 AI 解析；API Key 只经服务进程标准输入传入，停止后需重新提供。启用方式见[智能导入本地预览](docs/ai-task-import.md#localhost-临时解析预览)。
+
 常用检查：
 
 ```powershell
