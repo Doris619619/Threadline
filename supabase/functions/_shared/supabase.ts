@@ -1,13 +1,53 @@
-/** @fileoverview 建立请求独立的 Supabase 用户/管理客户端，项目查询始终使用用户 RLS。 */
+/** @fileoverview 兼容平台新旧密钥环境并建立独立用户/管理客户端，项目查询始终使用用户 RLS。 */
 
 import { createClient } from 'npm:@supabase/supabase-js@2.112.3';
 import type { AiCredentialStore, EncryptedAiCredential } from './ai-credentials.ts';
 
-/** 每次请求建立独立用户作用域客户端，不跨请求共享 JWT。 */
+/**
+ * 优先读取平台复数 JSON 的 default，再尝试单数与 legacy；无效字典不猜测其他具名 key。
+ * 用户与管理密钥分开选择，错误配置不能把另一种新 API key 用作当前权限；不记录密钥或解析异常。
+ */
+function platformApiKey(kind: 'publishable' | 'secret'): string | undefined {
+  const prefix = `sb_${kind}_`;
+  const dictionaryName =
+    kind === 'publishable' ? 'SUPABASE_PUBLISHABLE_KEYS' : 'SUPABASE_SECRET_KEYS';
+  const raw = Deno.env.get(dictionaryName);
+  if (raw) {
+    try {
+      const dictionary: unknown = JSON.parse(raw);
+      if (
+        dictionary &&
+        typeof dictionary === 'object' &&
+        !Array.isArray(dictionary) &&
+        Object.hasOwn(dictionary, 'default')
+      ) {
+        const value = (dictionary as Record<string, unknown>).default;
+        if (
+          typeof value === 'string' &&
+          value.trim().startsWith(prefix) &&
+          value.trim().length > prefix.length
+        )
+          return value.trim();
+      }
+    } catch {
+      // 平台字典缺失或格式无效时仅尝试明确的兼容变量，不披露环境值。
+    }
+  }
+  const names =
+    kind === 'publishable'
+      ? ['SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_ANON_KEY']
+      : ['SUPABASE_SECRET_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];
+  const oppositePrefix = kind === 'publishable' ? 'sb_secret_' : 'sb_publishable_';
+  for (const name of names) {
+    const value = Deno.env.get(name)?.trim();
+    if (value && !value.startsWith(oppositePrefix)) return value;
+  }
+}
+
+/** 每次请求建立独立用户作用域客户端，兼容平台新旧公开 key 且不跨请求共享 JWT。 */
 export function userClient(authorization: string, signal: AbortSignal) {
   const url = Deno.env.get('SUPABASE_URL');
-  const key =
-    Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY');
+  const key = platformApiKey('publishable');
   if (!url || !key) throw new Error('missing_supabase_configuration');
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -30,11 +70,10 @@ export async function authenticateAiUser(
   return error ? null : (data.user?.id ?? null);
 }
 
-/** 仅为私密凭据表建立管理客户端；绝不将它用于任务或项目查询。 */
+/** 仅用平台 secret 或 legacy 管理 key 访问私密凭据表，绝不接收用户 JWT 或查询项目。 */
 function credentialClient(signal: AbortSignal) {
   const url = Deno.env.get('SUPABASE_URL');
-  const key =
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SECRET_KEY');
+  const key = platformApiKey('secret');
   if (!url || !key) throw new Error('missing_credential_storage');
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -45,13 +84,9 @@ function credentialClient(signal: AbortSignal) {
   });
 }
 
-/** 只在服务端管理环境存在时提供存储；每次操作显式限定经过认证的 owner。 */
+/** 只在兼容的新旧服务端管理环境存在时提供存储，每次操作显式限定已认证 owner。 */
 export function createAiCredentialStore(): AiCredentialStore | undefined {
-  if (
-    !Deno.env.get('SUPABASE_URL') ||
-    !(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SECRET_KEY'))
-  )
-    return undefined;
+  if (!Deno.env.get('SUPABASE_URL') || !platformApiKey('secret')) return undefined;
   return {
     /** 密文读取仅用于状态判断与服务端解密，不传回客户端。 */
     async read(owner, signal) {

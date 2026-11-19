@@ -1,0 +1,24 @@
+{
+  "description": "Unedited original Windows production packaged UI screenshot of a synthetic personal-key setting; no real credential or account.",
+  "file": "windows-key-saved.png",
+  "sourceCommit": "4dfd7a14db0691763c364cd58fb14519ccf69851",
+  "runtime": "Windows production Electron 44.0.0 unpacked executable; threadline:// protocol",
+  "version": "0.1.16",
+  "pixelWidth": 2760,
+  "pixelHeight": 1560,
+  "sha256": "fdd3e17efe149c4b568c2ff012e1cc324361de2c9f23e2a6efd9dd3f1b3ad024",
+  "pngModifiedAfterCapture": false,
+  "account": "Dedicated temporary acceptance account; removed after verification",
+  "key": "Synthetic dummy key; screenshot shows configured status and empty password input",
+  "onboarding": "Completed through actual UI; no website or RPC preseeding",
+  "modelCalls": 0,
+  "existingUserWrites": 0,
+  "checksPassed": 14,
+  "cleanup": {
+    "processStopped": true,
+    "accountDeleted": true,
+    "profileDeleted": true
+  },
+  "scope": "Does not validate NSIS installation, installed auto-start, upgrade or real model connectivity",
+  "verifiedAt": "2026-11-19T12:57:54.637Z"
+}

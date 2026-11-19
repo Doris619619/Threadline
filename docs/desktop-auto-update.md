@@ -2,6 +2,14 @@
 
 # Windows 自动更新
 
+## 0.1.16 发布前验收快照
+
+0.1.16 汇集 #61/#62 的计时完成反馈与跨午夜/DST 统计视图、#63 的日程预计统计、#64 的统一交互与 Windows 入口居中修复，以及 #65 的智能批量导入和个人 DeepSeek Key 接入。Windows 安装版可直接在设置 → AI / API 接入填写 Key，与 Web/PWA 共用同一 Cloud 账号的配置，无需先在网站设置。详细内容及仍暂缓的计时并发问题见 [版本说明](release-0.1.16.md)。
+
+2026-11-19，生产迁移与两个 AI 云函数已部署，临时账号 SDK 验收 25 项通过。正式生产配置的 `Threadline_0.1.16_x64-setup.exe`、blockmap 与 `latest.yml` 已在本地生成，构建 manifest 记录 clean commit `4dfd7a1`；真实 packaged EXE 的 CSP、protocol、Preload 与窗口 smoke 已通过。这些结果不代表安装升级已通过。
+
+安装包沿用原应用 ID、数据目录和公开更新源。0.1.15 安装版在新版正式公开后，可在设置 → 关于 Threadline 检查、下载并确认重启升级；目录 Preview 不启用此链路。本快照尚未执行真实用户 0.1.15 → 0.1.16 安装升级，未推送版本 tag、公开 Release 或发布网站 0.1.16。公开情况以 [Release Actions](https://github.com/Doris619619/Threadline/actions/workflows/release.yml) 和 [v0.1.16 稳定 tag 页](https://github.com/Doris619619/Threadline/releases/tag/v0.1.16) 的实际结果为准。
+
 ## 0.1.5 版本说明
 
 0.1.5 将已上线的「习惯」带入 Windows 完整工作台，包含作息与工作效率记录、独立时区与分档设置、历史修改和周月趋势；同时修复跨范围同步缓存、失败草稿恢复和暗色图表提示文字。详细内容见 [版本说明](release-0.1.5.md)。

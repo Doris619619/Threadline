@@ -2,6 +2,18 @@
 
 # Supabase、Vercel 与跨端验收
 
+## 2026-11-19 · 0.1.16 发布前生产快照
+
+生产项目 `yhhxsqozbildrnfhtgps` 已应用 `202610210001_timer_midnight_dst.sql` 与 `202611190001_account_ai_credentials.sql`。前者修正跨午夜/DST 的统计日界，后者新增账号 AI 凭据密文表；迁移 dry-run 已返回 `upToDate` 和空迁移清单。
+
+AI 凭据表 RLS 开启，anon/authenticated 无直接表权限，service_role 具有 CRUD 权限，凭据表未加入 Realtime。32 字节加密主密钥已配置，并在本机以 Windows DPAPI 保护备份。`ai-api-settings` 与 `smart-task-import` 均为 ACTIVE v1，`verify_jwt=true`；运行时 key 兼容修复为 `58b397e`。
+
+生产 SDK 使用两个临时账号完成 25 项凭据管理与解析边界检查，覆盖保存、重读、删除、跨账号隔离、客户端直读拒绝、空解析 400 与缺 Key 503；验收账号已全部清理。此次验收为 0 次模型调用、0 次既有账号任务写入。有效个人 Key 的模型调用与真实导入仍未验收，不能把这些边界检查称为完整模型联调通过。
+
+0.1.16 production Windows packaged 程序的直接设置流程另有 14 项真实 UI 检查通过：从应用登录及首次引导进入设置，保存合成 Key、重开验证、移除并再次重开；输入保存后清空，未先在网站配置。临时账号、程序和独立资料目录已清理，无模型调用。此测试不覆盖 NSIS 安装或安装版自启动；[截图与来源](ai-task-import.md#2026-11-19-生产服务验收快照) 单独保留。
+
+正式生产配置的 0.1.16 NSIS 已在本地构建，manifest 对应 clean commit `4dfd7a1`，真实 packaged EXE 的 CSP、protocol、Preload 与窗口 smoke 通过；尚未执行真实用户安装升级，也未发布网站 0.1.16、tag 或 Release。详细产物与公开状态边界见 [0.1.16 发布前快照](release-0.1.16.md)。
+
 ## 阶段计划迁移
 
 在现有 main 迁移之后应用 `202610010001_stage_plans.sql`，再发布新客户端。迁移新增账号隔离的阶段表、Task 同账号关联、事务 RPC 与阶段 Realtime；原项目、Daily 和任务流转接口保持兼容。阶段关联的回收站任务不再参与 30 天物理清理。阶段删除会在同一事务清除任务关联而保留任务；清除关联后的普通回收站任务恢复原清理规则。
@@ -24,7 +36,7 @@
 
 新客户端需要先应用 `202610160001_timer_overlap_accounting.sql`：新增原始会话、账号隔离统计投影与原子记账 RPC，不回填或删除旧数据。2026-10-16，数据库门禁通过后已应用该项迁移；随后 dry-run 返回 `upToDate: true` 和空迁移清单。只读核验确认原始表及会话表 RLS 开启、统计视图使用 `security_invoker=true`、会话表仅允许 authenticated 读取、写入只经 RPC，anon 不可调用；Realtime 已包含会话表。未对真实账号执行业务写入。验证和语义见[并行计时统计](timer-accounting.md)。
 
-## 需要在 Supabase 完成的操作
+## 新环境的 Supabase 配置步骤
 
 1. 创建 **Production Supabase** 项目；Vercel Preview 默认可使用无数据库演示，仅在需要验证真实云同步时创建独立 staging/test 项目。记录云项目各自的 Project URL 和 `sb_publishable_...` key，绝不复制 `service_role`、`sb_secret_` 或数据库密码到前端环境变量。
 2. 在 Authentication 中启用 Email/password。Threadline 客户端提供 iOS 风格欢迎页与登录输入表单，没有公开注册表单；测试/正式账号由项目管理员创建。配置 Production 的 Site URL 和允许的 Vercel Production HTTPS redirect URL。
@@ -121,18 +133,24 @@ Preview 有两种允许状态：
 
 Electron Renderer 只接收同一组三个公开变量。`desktop:preview`、`desktop:build:dir`、`desktop:build` 与 `desktop:release` 会在构建期要求 `cloud environment=production`；静态 CSP 只允许精确的 Supabase HTTPS 与 WSS origin。Main/Preload 不接收 secret。
 
+Windows 安装版与 Web/PWA 共用 Cloud 账号的个人 DeepSeek Key。用户可直接在 Windows 的设置 → AI / API 接入填写、替换或移除，无需先在网站设置；浏览器联调仅是可选验收方式。保存状态不代表模型 API 连通性已经通过。
+
 ## 验收状态必须分开记录
 
-| 验收项                              | 本仓库实现后的默认状态       | 完成证据                                                  |
-| ----------------------------------- | ---------------------------- | --------------------------------------------------------- |
-| Local Supabase schema/integration   | Passed                       | db lint、51 pgTAP、双账号 REST/RLS/Realtime integration   |
-| Supabase backend configured         | Pending manual configuration | 远端 migration、RLS/cross-account、Realtime、Cron history |
-| Electron production configured      | Pending production env       | production package 构建与登录/同步 smoke                  |
-| Web/PWA production build configured | Configured in code           | `pnpm build` 与 nonce CSP verifier                        |
-| Web/PWA HTTPS deployment available  | Pending Vercel deployment    | 可访问的 Production HTTPS URL                             |
-| Physical phone acceptance completed | Pending HTTPS deployment     | 同账号 PC + 真机 iPhone PWA 双向同步记录                  |
+以下为 0.1.16 发布前快照，不把已完成的云端部署留作默认待配置状态：
 
-没有可访问的 HTTPS Production URL 时，不能把 hosted PC + phone acceptance 写成通过。Supabase 数据同步通过也不能替代 PWA 安装、Service Worker、移动布局和真机 Realtime 验收。
+| 验收项                          | 当前状态              | 证据与边界                                                           |
+| ------------------------------- | --------------------- | -------------------------------------------------------------------- |
+| Production schema/migrations    | 已部署                | 两项迁移已应用，dry-run 为 `upToDate` 与空清单                       |
+| AI 凭据权限与认证端点           | 已验收                | 两个临时账号 25 项通过，账号已清理；无模型调用或既有账号任务写入     |
+| Production Cron 与真机同步      | 本轮未复验            | 仍需相应 Cron history、跨端业务与真机记录，不能由 AI 端点检查代替    |
+| Electron production package     | 本地构建与 smoke 通过 | clean `4dfd7a1` 的 NSIS 与真实 packaged EXE 检查；不等同用户安装升级 |
+| 有效 Key 模型解析与真实导入     | 未验收                | 需有效个人 Key 的生产调用和明确确认保存                              |
+| Web/PWA 0.1.16 线上版本         | 尚未发布              | 需 Production HTTPS 部署和版本核验                                   |
+| 0.1.16 tag / Release / 安装升级 | 尚未发布或执行        | 公开资产、更新源与真实 0.1.15 → 0.1.16 升级分别记录                  |
+| Physical iPhone PWA acceptance  | 尚未完成              | 需 0.1.16 线上版本、PWA 安装与双向同步记录                           |
+
+未核验 0.1.16 的线上 HTTPS 版本时，不能把该版本的 hosted PC + phone acceptance 写成通过。Supabase 数据同步通过也不能替代 PWA 安装、Service Worker、移动布局和真机 Realtime 验收。
 
 ## Issue 49 接口部署顺序
 
