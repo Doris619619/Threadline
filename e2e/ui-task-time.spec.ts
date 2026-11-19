@@ -9,7 +9,7 @@ const entryStorageKey = 'threadline.preview-demo.v1:threadline.task-time-entries
 const recordingStorageKey =
   'threadline.preview-demo.v1:threadline.task-timer-records.v1';
 
-/** 复现空日程与 Daily 50 分钟并存；顶部明示范围，圆环无核算说明，完全空白时全部归零。 */
+/** Daily 预计不增加顶部日程预计，但其实际仍计入；圆环无核算说明，完全空白时全部归零。 */
 test('distinguishes Daily estimates from an empty schedule and an entirely empty day', async ({
   page,
 }, testInfo) => {
@@ -27,10 +27,10 @@ test('distinguishes Daily estimates from an empty schedule and an entirely empty
   await waitForPreviewWorkspace(page);
   const stats = page.locator('.metric-strip');
   await expect(
-    stats.getByText('剩余 / 当日预计（含 Daily）', { exact: true }),
+    stats.getByText('剩余 / 当日预计（日程）', { exact: true }),
   ).toBeVisible();
-  await expect(stats.locator('[data-day-remaining]')).toHaveText('50min');
-  await expect(stats.locator('[data-day-total]')).toHaveText('50min');
+  await expect(stats.locator('[data-day-remaining]')).toHaveText('0min');
+  await expect(stats.locator('[data-day-total]')).toHaveText('0min');
   await expect(stats.locator('.tl-stat').last()).toHaveText(
     '今日实际投入（含 Daily）0min',
   );
@@ -38,6 +38,9 @@ test('distinguishes Daily estimates from an empty schedule and an entirely empty
   await expect(
     page.getByRole('region', { name: 'Daily 算法训练', exact: true }),
   ).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: 'Daily 算法训练', exact: true }),
+  ).toContainText('预计 50 分钟');
   await page.getByRole('combobox', { name: '右栏显示内容' }).selectOption('time');
   const chart = page.getByRole('region', { name: '日程时间分布', exact: true });
   await expect(chart).toContainText('0min');
@@ -53,6 +56,18 @@ test('distinguishes Daily estimates from an empty schedule and an entirely empty
     path: testInfo.outputPath('home-daily-estimates.png'),
     fullPage: true,
   });
+
+  await page.getByRole('combobox', { name: '右栏显示内容' }).selectOption('tasks');
+  const actualInput = page.getByLabel('算法训练 完成一道动态规划题并整理思路实际耗时');
+  await actualInput.fill('12');
+  await actualInput.press('Tab');
+  await expect(stats.locator('.tl-stat').last()).toHaveText(
+    '今日实际投入（含 Daily）12min',
+  );
+  await expect(stats.locator('[data-day-remaining]')).toHaveText('0min');
+  await expect(stats.locator('[data-day-total]')).toHaveText('0min');
+  await page.getByRole('combobox', { name: '右栏显示内容' }).selectOption('time');
+  await expect(chart).toContainText('0min');
 
   await page.evaluate(() => {
     localStorage.setItem(
@@ -1397,8 +1412,8 @@ test('keeps the home layout while switching the right column and using wide scre
   await expect(chart.locator('.stage-time-metrics')).toHaveCount(0);
   await expect(chart.locator('.stage-time-description')).toHaveCount(0);
   await expect(chart.locator('.stage-time-switcher button')).toHaveCount(3);
-  await expect(page.locator('[data-day-remaining]')).toHaveText('1h30min');
-  await expect(page.locator('[data-day-total]')).toHaveText('3h');
+  await expect(page.locator('[data-day-remaining]')).toHaveText('40min');
+  await expect(page.locator('[data-day-total]')).toHaveText('2h10min');
   await page.locator('.dashboard-overview').scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath('home-header.png') });
   await expect
