@@ -15,6 +15,8 @@ import { cn } from '@/lib/cn';
 
 type ManagementDialogProps = {
   title: string;
+  headerIcon?: ReactNode;
+  description?: string;
   children: ReactNode;
   onClose: () => void;
   initialFocusSelector?: string;
@@ -39,12 +41,14 @@ function getFocusableElements(container: HTMLElement): HTMLElement[] {
 }
 
 /**
- * 渲染短表单管理 Dialog。
+ * 渲染短表单管理 Dialog，可选标题图标与说明共用同一标题行；未提供时保留原有结构。
  * 挂载时保存触发控件并把焦点移入 data-management-initial-focus 指定的业务字段；捕获 Escape 与 Tab，使底层页面既不可聚焦也不可误操作。
  * 保存时仅锁定控件并标记 aria-busy，不插入短暂文案；失败继续原位显示错误与草稿。
  */
 export function ManagementDialog({
   title,
+  headerIcon,
+  description,
   children,
   onClose,
   initialFocusSelector = '[data-management-initial-focus]',
@@ -57,6 +61,7 @@ export function ManagementDialog({
   const closeRef = useRef(onClose);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
+  const descriptionId = useId();
 
   useLayoutEffect(() => {
     closeRef.current = () => {
@@ -111,6 +116,7 @@ export function ManagementDialog({
     <div className="manager-dialog-backdrop" style={backdropStyle}>
       <section
         aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
         aria-modal="true"
         aria-busy={busy}
         className={cn('manager-dialog', className)}
@@ -119,7 +125,19 @@ export function ManagementDialog({
         tabIndex={-1}
       >
         <header>
-          <h2 id={titleId}>{title}</h2>
+          {headerIcon && (
+            <span className="manager-dialog-header-icon" aria-hidden="true">
+              {headerIcon}
+            </span>
+          )}
+          {description ? (
+            <div className="manager-dialog-heading">
+              <h2 id={titleId}>{title}</h2>
+              <p id={descriptionId}>{description}</p>
+            </div>
+          ) : (
+            <h2 id={titleId}>{title}</h2>
+          )}
           <button aria-label="关闭" disabled={busy} onClick={onClose} type="button">
             ×
           </button>

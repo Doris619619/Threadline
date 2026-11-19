@@ -10,7 +10,7 @@ import { IMPORT_TEXT_LIMIT } from './client';
 import { ImportTaskRow } from './task-row';
 import { useSmartImport } from './use-smart-import';
 
-/** 仅用户确认后写入；返回修改保留原文，部分失败保留成功项和失败项原内容。 */
+/** 用图标标题和单行说明呈现精简输入界面；仅确认后写入，部分失败保留安全重试所需草稿。 */
 export function SmartImportDialog({
   client,
   projects,
@@ -45,20 +45,16 @@ export function SmartImportDialog({
   return (
     <ManagementDialog
       title={state.review ? '确认导入任务' : '智能导入任务'}
-      className="smart-import-dialog"
+      headerIcon={<Sparkles size={26} aria-hidden="true" />}
+      description={
+        state.review
+          ? undefined
+          : '粘贴 Markdown、纯文本或自然语言内容，AI 将自动解析并生成任务。'
+      }
+      className={`smart-import-dialog ${state.review ? 'is-review' : 'is-input'}`}
       onClose={onClose}
       busy={state.importing}
     >
-      <div className="import-intro">
-        <span className="import-symbol">
-          <Sparkles size={23} aria-hidden="true" />
-        </span>
-        <p>
-          {state.review
-            ? '检查任务后导入，未勾选的任务不会保存。'
-            : '粘贴 Markdown、纯文本或自然语言，AI 将提炼需要执行的任务。'}
-        </p>
-      </div>
       {!state.review ? (
         <>
           <label className="import-source-label" htmlFor="smart-import-source">
@@ -71,14 +67,9 @@ export function SmartImportDialog({
             value={state.text}
             disabled={state.parsing}
             maxLength={IMPORT_TEXT_LIMIT}
-            placeholder={
-              '把想做的事粘贴在这里…\n\n比如：我明天要把 ECE4016 作业交了，还得看完 Lecture 6。对了，作业大概需要 90 分钟。'
-            }
+            placeholder="粘贴或输入任务内容…"
             onChange={(event) => state.setText(event.target.value)}
           />
-          <p className="import-privacy">
-            内容将发送至 DeepSeek 解析，确认导入前不会保存任务。
-          </p>
           {state.parsing && (
             <div className="import-progress" role="status">
               <span>正在理解内容并提取任务…</span>
