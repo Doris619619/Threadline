@@ -90,7 +90,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   );
 }
 
-/** 分步保存保持当前操作名称：主题本机预览，性别由账号确认，最后提交才记录完成。 */
+/** 步数与主标题定位当前步骤；主题本机预览，性别由账号确认，最后提交才记录完成。 */
 function OnboardingSteps({
   autoStart,
 }: {
@@ -138,9 +138,6 @@ function OnboardingSteps({
   };
   return (
     <>
-      <p className="onboarding-eyebrow">
-        {deviceOnly ? '这台电脑的设置' : '让 Threadline 更适合你'}
-      </p>
       <p className="onboarding-progress" aria-label="设置进度">
         第 {deviceOnly ? 1 : step + 1} 步，共 {total} 步
       </p>

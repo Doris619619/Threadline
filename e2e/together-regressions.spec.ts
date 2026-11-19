@@ -1,7 +1,8 @@
 /** @fileoverview 用真实页面与本地 RPC 复现跨查询旧缓存、离线草稿重试和异常日期隔离。 */
 import { test, expect, type APIRequestContext } from '@playwright/test';
 import type { CommandResult, Flag, Room } from '../src/features/together/types';
-const api = 'http://127.0.0.1:3102/rest/v1';
+const previewPort = Number(process.env.THREADLINE_TOGETHER_PREVIEW_PORT ?? 3102);
+const api = `http://127.0.0.1:${previewPort}/rest/v1`;
 const owner = '22222222-2222-4222-8222-222222222222';
 const reviewer = '11111111-1111-4111-8111-111111111111';
 

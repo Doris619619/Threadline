@@ -1,13 +1,100 @@
-/** @fileoverview 独立 Preview 验证时间图、首页布局、三并行计时和不会写账本的到时续时流程。 */
+/** @fileoverview 独立 Preview 验证时间图、首页 Daily 统计范围、布局、三并行计时和到时续时流程。 */
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { openWorkspaceSection, openTaskMenu } from './support/workspace';
+import {
+  chooseHomeSideView,
+  openWorkspaceSection,
+  openTaskMenu,
+} from './support/workspace';
 
 const timerStorageKey = 'threadline.preview-demo.v1:threadline.task-timers.v1:local';
 const taskStorageKey = 'threadline.preview-demo.v1:threadline.tasks.v1';
 const entryStorageKey = 'threadline.preview-demo.v1:threadline.task-time-entries.v1';
 const recordingStorageKey =
   'threadline.preview-demo.v1:threadline.task-timer-records.v1';
+
+/** Daily 预计不增加顶部日程预计，但其实际仍计入；圆环无核算说明，完全空白时全部归零。 */
+test('distinguishes Daily estimates from an empty schedule and an entirely empty day', async ({
+  page,
+}, testInfo) => {
+  await page.clock.install({ time: new Date('2026-11-19T04:00:00Z') });
+  await page.goto('/');
+  await waitForPreviewWorkspace(page);
+  await page.evaluate(
+    ({ taskStorageKey, entryStorageKey }) => {
+      localStorage.setItem(taskStorageKey, '[]');
+      localStorage.setItem(entryStorageKey, '[]');
+    },
+    { taskStorageKey, entryStorageKey },
+  );
+  await page.reload();
+  await waitForPreviewWorkspace(page);
+  const stats = page.locator('.metric-strip');
+  await expect(
+    stats.getByText('剩余 / 当日预计（日程）', { exact: true }),
+  ).toBeVisible();
+  await expect(stats.locator('[data-day-remaining]')).toHaveText('0min');
+  await expect(stats.locator('[data-day-total]')).toHaveText('0min');
+  await expect(stats.locator('.tl-stat').last()).toHaveText(
+    '今日实际投入（含 Daily）0min',
+  );
+  await expect(page.locator('.schedule-panel .timeline-row')).toHaveCount(0);
+  await expect(
+    page.getByRole('region', { name: 'Daily 算法训练', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: 'Daily 算法训练', exact: true }),
+  ).toContainText('预计 50 分钟');
+  await page.getByRole('combobox', { name: '右栏显示内容' }).selectOption('time');
+  const chart = page.getByRole('region', { name: '日程时间分布', exact: true });
+  await expect(chart).toContainText('0min');
+  await chart.getByRole('button', { name: '实际投入', exact: true }).click();
+  await expect(chart).toContainText('0min');
+  await expect(chart).not.toContainText('已保存计时');
+  await expect(chart).not.toContainText('无法去重');
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+  ).toBe(true);
+  await page.locator('.dashboard-overview').scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: testInfo.outputPath('home-daily-estimates.png'),
+    fullPage: true,
+  });
+
+  await page.getByRole('combobox', { name: '右栏显示内容' }).selectOption('tasks');
+  const actualInput = page.getByLabel('算法训练 完成一道动态规划题并整理思路实际耗时');
+  await actualInput.fill('12');
+  await actualInput.press('Tab');
+  await expect(stats.locator('.tl-stat').last()).toHaveText(
+    '今日实际投入（含 Daily）12min',
+  );
+  await expect(stats.locator('[data-day-remaining]')).toHaveText('0min');
+  await expect(stats.locator('[data-day-total]')).toHaveText('0min');
+  await page.getByRole('combobox', { name: '右栏显示内容' }).selectOption('time');
+  await expect(chart).toContainText('0min');
+
+  await page.evaluate(() => {
+    localStorage.setItem(
+      'threadline.preview-demo.v1:threadline.daily-by-date.v1',
+      JSON.stringify({ '2026-11-19': [] }),
+    );
+    localStorage.setItem(
+      'threadline.preview-demo.v1:threadline.daily-templates.v1',
+      '[]',
+    );
+  });
+  await page.reload();
+  await waitForPreviewWorkspace(page);
+  await expect(stats.locator('[data-day-remaining]')).toHaveText('0min');
+  await expect(stats.locator('[data-day-total]')).toHaveText('0min');
+  await expect(stats.locator('.tl-stat').last()).toHaveText(
+    '今日实际投入（含 Daily）0min',
+  );
+  await expect(chart).toContainText('0min');
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+  ).toBe(true);
+});
 
 /** 保存三路重叠计时后以实际数值验收统计；右栏不重复展示内部核算规则。 */
 test('saved overlapping timers preserve raw minutes and allocate 55/25/10 after reload', async ({
@@ -82,9 +169,7 @@ test('saved overlapping timers preserve raw minutes and allocate 55/25/10 after 
   );
   expect(raw.tasks).toEqual([90, 60, 30]);
   expect(raw.records).toBe(3);
-  await page
-    .getByRole('combobox', { name: '右栏显示内容' })
-    .selectOption({ label: '今日时间分布' });
+  await chooseHomeSideView(page, 'time');
   await page.getByRole('button', { name: '实际投入', exact: true }).click();
   await expect(page.locator('.stage-time-panel')).toContainText('1h30min');
   for (const value of ['55min', '25min', '10min'])
@@ -398,9 +483,7 @@ test('keeps empty ring text clear of the ring and separates callout time from ta
 }, info) => {
   await page.goto('/');
   await waitForPreviewWorkspace(page);
-  await page
-    .getByRole('combobox', { name: '右栏显示内容', exact: true })
-    .selectOption('time');
+  await chooseHomeSideView(page, 'time');
   const chart = page.locator('#home-side-column .stage-time-panel');
   const callout = chart.locator('.stage-time-callout').first();
   await expect(callout).toBeVisible();
@@ -827,7 +910,7 @@ test('fits long center totals to the inner ring after resizing and text zoom', a
   await openTaskMenu(
     task.getByRole('button', { name: /更多操作/, includeHidden: true }),
   );
-  await page.getByRole('menuitem', { name: '编辑', exact: true }).click();
+  await page.getByRole('menuitem', { name: '编辑任务…', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
   await chart.screenshot({ path: info.outputPath('long-ring-center.png') });
@@ -1155,7 +1238,7 @@ test('adds timers from schedule and waiting menus and removes only the timer', a
         includeHidden: true,
       }),
     );
-  await page.getByRole('button', { name: '加入计时', exact: true }).click();
+  await page.getByRole('menuitem', { name: '加入计时', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '加入计时', exact: true });
   await dialog.getByLabel('计时方式').selectOption('down');
   await dialog.getByLabel('倒计时分钟').fill('15');
@@ -1188,9 +1271,9 @@ test('adds timers from schedule and waiting menus and removes only the timer', a
     }),
   );
   await expect(
-    page.getByRole('button', { name: '加入计时', exact: true }),
+    page.getByRole('menuitem', { name: '加入计时', exact: true }),
   ).toBeEnabled();
-  await page.getByRole('button', { name: '加入计时', exact: true }).click();
+  await page.getByRole('menuitem', { name: '加入计时', exact: true }).click();
   await dialog.getByRole('button', { name: '开始计时', exact: true }).click();
   await expect(card).toHaveCount(1);
   if (info.project.name === 'preview-desktop') await card.click({ button: 'right' });
@@ -1242,7 +1325,7 @@ test('re-adds the same task after timer removal across open tabs', async ({
     includeHidden: true,
   });
   await openTaskMenu(more);
-  await page.getByRole('button', { name: '加入计时', exact: true }).click();
+  await page.getByRole('menuitem', { name: '加入计时', exact: true }).click();
   await page
     .getByRole('dialog', { name: '加入计时', exact: true })
     .getByRole('button', { name: '开始计时', exact: true })
@@ -1262,7 +1345,7 @@ test('re-adds the same task after timer removal across open tabs', async ({
   await expect(page.locator('.task-timer')).toHaveCount(0);
   await openTaskMenu(more);
   await expect(
-    page.getByRole('button', { name: '加入计时', exact: true }),
+    page.getByRole('menuitem', { name: '加入计时', exact: true }),
   ).toBeEnabled();
   await page.keyboard.press('Escape');
   await expect(other.locator('.task-timer')).toHaveCount(0);
@@ -1274,9 +1357,9 @@ test('re-adds the same task after timer removal across open tabs', async ({
     }),
   );
   await expect(
-    other.getByRole('button', { name: '加入计时', exact: true }),
+    other.getByRole('menuitem', { name: '加入计时', exact: true }),
   ).toBeEnabled();
-  await other.getByRole('button', { name: '加入计时', exact: true }).click();
+  await other.getByRole('menuitem', { name: '加入计时', exact: true }).click();
   await other
     .getByRole('dialog', { name: '加入计时', exact: true })
     .getByRole('button', { name: '开始计时', exact: true })
@@ -1305,12 +1388,12 @@ test('keeps the home layout while switching the right column and using wide scre
   await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
   const schedule = page.locator('.schedule-panel');
   const side = page.locator('#home-side-column');
-  const choice = page.getByRole('combobox', { name: '右栏显示内容', exact: true });
-  await expect(choice).toHaveValue('tasks');
+  const choice = page.getByRole('button', { name: /^右栏显示内容：/ });
+  await expect(choice).toHaveText('任务列表');
   await expect(schedule.locator('.stage-time-panel')).toHaveCount(0);
   await expect(page.locator('#home-side-tasks')).toBeVisible();
   const initialSchedule = (await schedule.boundingBox())!;
-  await choice.selectOption('time');
+  await chooseHomeSideView(page, 'time');
   await expect(
     side.getByRole('region', { name: '日程时间分布', exact: true }),
   ).toBeVisible();
@@ -1329,8 +1412,8 @@ test('keeps the home layout while switching the right column and using wide scre
   await expect(chart.locator('.stage-time-metrics')).toHaveCount(0);
   await expect(chart.locator('.stage-time-description')).toHaveCount(0);
   await expect(chart.locator('.stage-time-switcher button')).toHaveCount(3);
-  await expect(page.locator('[data-day-remaining]')).toHaveText('1h30min');
-  await expect(page.locator('[data-day-total]')).toHaveText('3h');
+  await expect(page.locator('[data-day-remaining]')).toHaveText('40min');
+  await expect(page.locator('[data-day-total]')).toHaveText('2h10min');
   await page.locator('.dashboard-overview').scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath('home-header.png') });
   await expect
@@ -1359,16 +1442,16 @@ test('keeps the home layout while switching the right column and using wide scre
     (await new AxeBuilder({ page }).include('#home-side-column').analyze()).violations,
   ).toEqual([]);
   await page.screenshot({ path: info.outputPath('home-right-ring.png') });
-  await choice.selectOption('tasks');
+  await chooseHomeSideView(page, 'tasks');
   await expect(page.locator('#home-side-time')).not.toBeVisible();
-  await choice.selectOption('time');
+  await chooseHomeSideView(page, 'time');
   await expect(
     chart.getByRole('button', { name: '实际投入', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
   await page.reload();
   // WebKit 冷启动加载真实业务模块；先等工作台，避免把 5s 控件等待当成偏好丢失。
   await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
-  await expect(choice).toHaveValue('time');
+  await expect(choice).toHaveText('今日时间分布');
   await expect(chart).toBeVisible();
   const before = (await page.locator('.schedule-panel').boundingBox())!.width;
   await page.getByRole('button', { name: '收起右栏', exact: true }).click();
@@ -1381,8 +1464,8 @@ test('keeps the home layout while switching the right column and using wide scre
   await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
   await expect(page.locator('#home-side-column')).not.toBeVisible();
   await page.getByRole('button', { name: '展开右栏', exact: true }).click();
-  await expect(choice).toHaveValue('time');
-  await choice.selectOption('tasks');
+  await expect(choice).toHaveText('今日时间分布');
+  await chooseHomeSideView(page, 'tasks');
   if (info.project.name === 'preview-desktop') {
     await page.setViewportSize({ width: 2560, height: 1440 });
     await expect

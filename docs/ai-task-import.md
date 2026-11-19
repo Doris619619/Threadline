@@ -10,6 +10,8 @@
 
 输入弹窗按参考图使用左侧图标、加粗标题和标题下的一句说明，正文只保留输入框与取消/开始解析按钮；不显示长示例、底部辅助小字或按钮区分隔横线。弹窗局部使用已内置的思源黑体，保持清晰的无衬线文字与原有主题颜色，不改变其他页面字体。
 
+导入与 API 设置字段沿用统一交互系统：输入焦点使用边框和内部底线，普通模式没有外围轮廓或发光环；强制色模式保留系统焦点标识。760px 及以下和 coarse pointer 设备的关闭、勾选、删除、编辑、确认目标至少为 44×44 CSS px；触屏字号至少 16px，表格按需要局部横向滚动。荧光笔再次点击可退出绘制，五色菜单继续使用共享顶层定位、互斥选择、方向键、Escape 和关闭归焦。
+
 只匹配当前账号的活跃项目，不创建项目。无法确定的任务归入现有 `isFallback` 项目（“其他”）。任务内部日期取打开弹窗时首页选中的日期；默认未完成，其他系统字段沿用日程创建规则。明确起止时间可通过现有规则计算预计分钟，仍能手动改写或清空；只有结束时间时保留识别值，确认时提示补充有效开始时间，不推断钟点。跨午夜或无效时间沿用现有校验。
 
 ## 架构与保存边界
@@ -52,9 +54,13 @@
 
 `pnpm test` 覆盖模型输出与 HTTP/认证边界、五列确认、真实进度、部分失败和固定 UUID 重试，以及个人 Key 设置、加密隔离与密文表权限。`pnpm typecheck`、`pnpm lint`、Web/PWA 构建与 Electron renderer 静态导出验证共享代码边界。localhost 已用一段真实计划验证 DeepSeek 解析与弹窗联通；更广泛的语义提取质量、已部署函数、真实 Supabase 保存及 iPhone 真机体验仍需单独验收，mock 测试不代表这些外部环节已通过。
 
+`pnpm test:smart-import:ui` 在独占回环端口启动显式本地开发适配器并在结束后关闭该服务；可用 `THREADLINE_SMART_IMPORT_PORT` 覆盖默认 32221。矩阵包含桌面焦点、760px 和 1024px coarse pointer，共 8 项浏览器回归。导入通过真实 Next 页面与固定解析响应进入确认，个人 Key 表单由真实 `AiApiSettings` 组件和应用 CSS 构成的浏览器夹具验证，仅将账号上下文和配置状态替换为内存数据；这些夹具不改变生产或演示门禁，也不调用模型、真实账号或数据库。CI 的 Web 作业执行此命令。本机浏览器版本缺失时可显式设置 `THREADLINE_SMART_IMPORT_BROWSER_CHANNEL=msedge`，默认仍使用 CI 安装的 Chromium。
+
 接口参考：[DeepSeek JSON 模式](https://api-docs.deepseek.com/guides/json_mode/)、[DeepSeek thinking 模式](https://api-docs.deepseek.com/guides/thinking_mode/)、[Supabase 函数认证请求头](https://supabase.com/docs/guides/functions/auth-headers)。
 
 ### 2026-11-19 本地验证记录
+
+- 合并交互系统时，先用未改 CSS 的真实页面复现：导入字段和 API 设置输入存在外围焦点线，原文输入有外部光晕；760px 与 1024px coarse pointer 的关闭仅 28×28、删除 28×32、确认按钮高 40px。修复后同一矩阵 8 项通过；荧光笔/共享菜单、导入队列、API 设置和全 CSS 交互合同共 5 个测试文件、41 项通过。既有桌面批注开关与拖动锁定、选色绘制与刷新偏好两项业务 E2E 通过。此记录只覆盖本次集成，不能替代云端或真机验收。
 
 - `pnpm test --maxWorkers=4`：118 个文件、731 项通过。
 - TypeScript、ESLint、变更文件 Prettier、`pnpm test:sql:static` 与两个 Edge 入口的 Deno 类型检查通过。PGlite 实际执行新增凭据表迁移，验证客户端无读写权限、服务端角色可访问及 RLS 已开启。

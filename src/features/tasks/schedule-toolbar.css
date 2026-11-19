@@ -1,4 +1,4 @@
-/* 文件用途：按 B 方案分开日程标记工具与创建入口，并将调宽手柄移到面板边缘。 */
+/* 文件用途：分开日程标记与创建入口，面板边缘承载调宽手柄；状态和触屏尺寸遵循统一交互系统。 */
 
 .schedule-panel {
   position: relative;
@@ -43,7 +43,7 @@
   color: var(--text-secondary);
 }
 
-.schedule-panel .annotation-tool-btn:is(:hover, .is-active) {
+.schedule-panel .annotation-tool-btn.is-active {
   color: var(--accent-text);
   background: var(--accent-soft);
 }
@@ -94,11 +94,6 @@
   font-weight: 500;
 }
 
-.schedule-panel-actions .smart-import-trigger:hover {
-  color: var(--text-primary);
-  background: var(--surface-secondary);
-}
-
 .schedule-add-button {
   display: inline-flex;
   min-height: 36px;
@@ -114,10 +109,6 @@
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-}
-
-.schedule-add-button:hover {
-  background: var(--accent-hover);
 }
 
 .schedule-panel > .schedule-resize-handle {
@@ -144,9 +135,28 @@
   content: '';
 }
 
-.schedule-panel
-  > .schedule-resize-handle:is(:hover, :focus-visible, .is-resizing)::before {
+.schedule-panel > .schedule-resize-handle:is(:focus-visible, .is-resizing)::before {
   background: var(--accent);
+}
+
+@media (hover: hover) {
+  .schedule-panel .annotation-tool-btn:hover {
+    color: var(--accent-text);
+    background: var(--accent-soft);
+  }
+
+  .schedule-panel-actions .smart-import-trigger:hover {
+    color: var(--text-primary);
+    background: var(--surface-secondary);
+  }
+
+  .schedule-add-button:hover {
+    background: var(--accent-hover);
+  }
+
+  .schedule-panel > .schedule-resize-handle:hover::before {
+    background: var(--accent);
+  }
 }
 
 @media (max-width: 1050px) {
@@ -179,5 +189,15 @@
     min-height: 44px;
     padding: 0 10px;
     font-size: 14px;
+  }
+}
+
+@media (max-width: 760px), (pointer: coarse) {
+  .schedule-panel-actions .smart-import-trigger,
+  .schedule-add-button,
+  .schedule-panel .annotation-tool-btn,
+  .schedule-panel .annotation-color-menu-trigger {
+    min-width: 44px;
+    min-height: 44px;
   }
 }

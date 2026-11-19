@@ -4,7 +4,7 @@
 
 import { expect, type Locator, type Page } from '@playwright/test';
 
-/** 沿用可见的触屏更多入口；桌面隐藏按钮后通过所属任务行右键打开同一菜单。 */
+/** 使用可发现的更多入口；保留右键回退以覆盖旧的紧凑或隐藏场景。 */
 export async function openTaskMenu(trigger: Locator) {
   if (await trigger.isVisible()) await trigger.click();
   else
@@ -13,6 +13,16 @@ export async function openTaskMenu(trigger: Locator) {
         'xpath=ancestor::*[contains(@class, "stage-task-row") or contains(@class, "waiting-task-row") or contains(@class, "timeline-row") or contains(@class, "quick-task-row")][1]',
       )
       .click({ button: 'right' });
+}
+
+/** 通过首页互斥菜单切换右栏，等待 Daily 保存屏障和菜单关闭后再继续业务断言。 */
+export async function chooseHomeSideView(page: Page, view: 'tasks' | 'time') {
+  const label = view === 'tasks' ? '任务列表' : '今日时间分布';
+  const trigger = page.getByRole('button', { name: /^右栏显示内容：/ });
+  await trigger.click();
+  await page.getByRole('menuitemradio', { name: label, exact: true }).click();
+  await expect(trigger).toHaveText(label);
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
 }
 
 /** 固定本地时钟，使日期、seed 与页面文案在所有布局项目中可重复。 */
@@ -128,6 +138,6 @@ export async function openSeededTaskEditor(page: Page) {
   await openTaskMenu(
     task.getByRole('button', { name: '邮件处理更多操作', includeHidden: true }),
   );
-  await page.getByRole('button', { name: '详细编辑', exact: true }).click();
+  await page.getByRole('menuitem', { name: '编辑任务…', exact: true }).click();
   await expect(page.getByRole('dialog', { name: '编辑任务' })).toBeVisible();
 }

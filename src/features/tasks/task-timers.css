@@ -133,6 +133,8 @@
   min-width: 40px;
   padding: 4px 6px;
   border-radius: var(--radius-control);
+  /* 到时后此处是小号文字，使用正文墨色，避免强调色与浅危险底色仅有临界对比。 */
+  color: var(--text-primary);
 }
 .task-timers button:disabled {
   opacity: 0.6;
@@ -264,10 +266,6 @@
     min-height: 44px;
   }
 }
-.task-timer:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
 /* 原生顶层浮层独立于计时卡，切换自定义输入不挤动卡片与日程。 */
 .task-timer-extension {
   position: fixed;
@@ -317,14 +315,13 @@
   padding-inline: 2px;
   white-space: nowrap;
 }
-.task-timer-extension button:hover,
 .task-timer-extension button:active {
   background: var(--accent-soft);
 }
-.task-timer-extension button:focus-visible,
-.task-timer-extension input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+@media (hover: hover) {
+  .task-timer-extension button:hover {
+    background: var(--accent-soft);
+  }
 }
 .task-timer-extension-custom {
   width: 100%;

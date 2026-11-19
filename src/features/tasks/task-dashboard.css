@@ -41,7 +41,7 @@
 .overview-close-action .home-side-controls {
   flex: 1 1 auto;
 }
-.overview-close-action .home-side-controls select {
+.overview-close-action .home-side-controls :is(select, .home-side-menu-trigger) {
   flex: 0 1 auto;
   width: auto;
   max-width: 100%;
@@ -56,7 +56,7 @@
   .overview-close-action .home-side-controls {
     flex-basis: 100%;
   }
-  .overview-close-action .home-side-controls select {
+  .overview-close-action .home-side-controls :is(select, .home-side-menu-trigger) {
     flex: 1 1 auto;
     width: 0;
     /* 保持手机选择器的实际字号，避免桌面紧凑样式覆盖全局表单保护。 */
@@ -336,8 +336,10 @@
   transition: color var(--motion-fast) ease;
 }
 
-.add-link:hover {
-  color: var(--accent);
+@media (hover: hover) {
+  .add-link:hover {
+    color: var(--accent);
+  }
 }
 
 .quick-tasks {
@@ -376,12 +378,13 @@
   background: color-mix(in srgb, var(--accent) 4%, var(--surface));
   border-radius: var(--radius-sm);
   animation: tl-fade-in 180ms ease;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
   padding: 4px 6px;
 }
 
-.quick-task-row:hover {
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .quick-task-row:hover {
+    background: var(--surface-secondary);
+  }
 }
 
 .task-check-wrap,
@@ -420,8 +423,10 @@
   transition: color var(--motion-fast) ease;
 }
 
-.task-title:hover {
-  color: var(--accent);
+@media (hover: hover) {
+  .task-title:hover {
+    color: var(--accent);
+  }
 }
 
 .tl-clickable-cell {
@@ -432,9 +437,11 @@
     color 120ms ease;
 }
 
-.tl-clickable-cell:hover {
-  background: color-mix(in srgb, var(--accent) 8%, var(--surface-secondary));
-  color: var(--accent);
+@media (hover: hover) {
+  .tl-clickable-cell:hover {
+    background: color-mix(in srgb, var(--accent) 8%, var(--surface-secondary));
+    color: var(--accent);
+  }
 }
 
 .tl-inline-input {
@@ -457,7 +464,7 @@
 
 .tl-inline-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-soft);
+  box-shadow: none;
 }
 
 .tl-inline-input.timeline-time-input {
@@ -493,7 +500,7 @@
 
 .tl-inline-select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-soft);
+  box-shadow: none;
 }
 
 .completed .task-title {
@@ -510,14 +517,7 @@
   opacity: 0.55;
 }
 
-/* 桌面布局通过行右键操作；手机布局即使报告精细指针也保留可点按入口。 */
-@media (min-width: 761px) and (hover: hover) and (pointer: fine) {
-  .stage-task-row .stage-task-actions > button.task-context-trigger,
-  .waiting-task-row .waiting-task-actions > button.task-context-trigger,
-  .task-actions-cell .task-actions > button.task-context-trigger {
-    display: none;
-  }
-}
+/* 更多入口在鼠标与触摸下均可发现；右键和菜单键继续提供同一组操作。 */
 .task-actions {
   position: relative;
   opacity: 1;
@@ -535,10 +535,6 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .task-actions {
-    opacity: 0;
-  }
-
   .timeline-row:hover .task-actions,
   .quick-task-row:hover .task-actions,
   .task-actions:focus-within,
@@ -559,9 +555,11 @@
   cursor: pointer;
 }
 
-.task-actions > button:hover {
-  background: var(--surface-secondary);
-  color: var(--text-secondary);
+@media (hover: hover) {
+  .task-actions > button:hover {
+    background: var(--surface-secondary);
+    color: var(--text-secondary);
+  }
 }
 
 .task-actions > .task-workstation-action.is-active {
@@ -605,9 +603,11 @@
   min-height: 36px;
 }
 
-.task-actions-menu button:hover {
-  color: var(--text-primary);
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .task-actions-menu button:hover {
+    color: var(--text-primary);
+    background: var(--surface-secondary);
+  }
 }
 
 .dashboard-columns {
@@ -742,9 +742,11 @@
   border-bottom: 0;
 }
 
-.timeline-row:hover {
-  background: var(--surface-secondary);
-  border-radius: var(--radius-sm);
+@media (hover: hover) {
+  .timeline-row:hover {
+    background: var(--surface-secondary);
+    border-radius: var(--radius-sm);
+  }
 }
 
 .timeline-row-adding {
@@ -756,7 +758,6 @@
   background: color-mix(in srgb, var(--accent) 3%, var(--surface));
   border-radius: var(--radius-sm);
   animation: tl-fade-in 180ms ease;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .timeline-row-adding .tl-inline-input,
@@ -903,8 +904,10 @@
   transition: all 120ms ease;
 }
 
-.tl-inline-confirm-btn:hover {
-  background: color-mix(in srgb, var(--accent) 85%, #000);
+@media (hover: hover) {
+  .tl-inline-confirm-btn:hover {
+    background: color-mix(in srgb, var(--accent) 85%, #000);
+  }
 }
 
 .tl-inline-cancel-btn {
@@ -920,9 +923,11 @@
   transition: all 120ms ease;
 }
 
-.tl-inline-cancel-btn:hover {
-  background: var(--surface-secondary);
-  color: var(--text-secondary);
+@media (hover: hover) {
+  .tl-inline-cancel-btn:hover {
+    background: var(--surface-secondary);
+    color: var(--text-secondary);
+  }
 }
 
 .tl-inline-actions-cell {
@@ -1008,9 +1013,14 @@
   transition: background-color 100ms ease;
 }
 
-.project-picker-item:hover,
 .project-picker-item.is-selected {
   background: var(--surface-secondary);
+}
+
+@media (hover: hover) {
+  .project-picker-item:hover {
+    background: var(--surface-secondary);
+  }
 }
 
 .project-picker-divider {
@@ -1036,8 +1046,10 @@
   transition: background-color 100ms ease;
 }
 
-.project-picker-new-btn:hover {
-  background: var(--accent-muted);
+@media (hover: hover) {
+  .project-picker-new-btn:hover {
+    background: var(--accent-muted);
+  }
 }
 
 .project-picker-new-form {
@@ -1093,10 +1105,16 @@
   transition: all 120ms ease;
 }
 
-.schedule-resize-handle:hover,
 .schedule-resize-handle.is-resizing {
   background: var(--accent-muted);
   color: var(--accent);
+}
+
+@media (hover: hover) {
+  .schedule-resize-handle:hover {
+    background: var(--accent-muted);
+    color: var(--accent);
+  }
 }
 
 @media (max-width: 1050px) {
@@ -1404,7 +1422,6 @@
   .timed-create-time-field input:focus,
   .timed-create-actual-cell input:focus {
     border-color: var(--accent);
-    outline: none;
   }
 
   .timed-create-time {
@@ -1639,7 +1656,6 @@
   .quick-create-title:focus,
   .quick-create-project .project-inline-select:focus {
     border-color: var(--accent);
-    outline: none;
   }
 
   .quick-create-actions {
@@ -1729,17 +1745,15 @@
   flex-shrink: 0;
   color: var(--text-secondary);
 }
-.finish-day:hover:not(:disabled) {
-  background: var(--surface-secondary);
-  border-color: var(--border-strong);
+@media (hover: hover) {
+  .finish-day:hover:not(:disabled) {
+    background: var(--surface-secondary);
+    border-color: var(--border-strong);
+  }
 }
 .finish-day:disabled {
   color: var(--text-secondary);
   cursor: default;
-}
-.finish-day:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 .task-time-details {
   display: contents;
@@ -1879,8 +1893,6 @@ button.task-duration-actual {
   color: var(--accent-text);
 }
 button.task-duration-actual:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
 
@@ -2041,7 +2053,7 @@ button.task-duration-actual:focus-visible {
   flex-wrap: wrap;
   gap: 8px;
 }
-.home-side-controls select {
+.home-side-controls :is(select, .home-side-menu-trigger) {
   min-width: 0;
   flex: 1;
   min-height: 44px;

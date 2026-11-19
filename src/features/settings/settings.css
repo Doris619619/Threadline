@@ -107,12 +107,15 @@
 }
 
 .settings-row small {
-  color: var(--text-secondary);
+  /* 行操作背景会随focus/pressed变化，说明跟随控件墨色保持小号文字对比。 */
+  color: inherit;
   font-size: var(--text-caption-size);
 }
 
-.settings-row:hover {
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .settings-row:hover {
+    background: var(--surface-secondary);
+  }
 }
 .settings-back {
   display: inline-flex;

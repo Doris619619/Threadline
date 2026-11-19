@@ -13,19 +13,29 @@ const identities = [
   ['33333333-3333-4333-8333-333333333333', '未绑定账号 C · 东京', 'Asia/Tokyo'],
   ['44444444-4444-4444-8444-444444444444', '未绑定账号 D · 伦敦', 'Europe/London'],
 ];
+/** 静态读取公开预览地址供 Next 内联；仅允许 loopback HTTP，始终使用固定假 key。 */
+function createPreviewClient(user: string) {
+  const url = new URL(
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'http://127.0.0.1:3102',
+  );
+  if (
+    url.protocol !== 'http:' ||
+    !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) ||
+    url.username ||
+    url.password
+  )
+    throw new Error('Together preview requires a loopback HTTP bridge');
+  return createClient(url.origin, 'sb_publishable_local_together_preview', {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { 'x-preview-user': user } },
+  });
+}
 /** 预览切换销毁缓存，只有显式 dev 路由可以挂载此组件。 */
 export function TogetherPreview() {
   const [index, setIndex] = useState(0);
   const appearance = useAppearance();
   const [user, , zone] = identities[index];
-  const client = useMemo(
-    () =>
-      createClient('http://127.0.0.1:3102', 'sb_publishable_local_together_preview', {
-        auth: { persistSession: false, autoRefreshToken: false },
-        global: { headers: { 'x-preview-user': user } },
-      }),
-    [user],
-  );
+  const client = useMemo(() => createPreviewClient(user), [user]);
   useEffect(() => {
     setAccountTimezone(zone);
     return () => setAccountTimezone(undefined);

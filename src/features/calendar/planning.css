@@ -13,17 +13,14 @@
   color: inherit;
   background: transparent;
 }
-.planning-panel button:hover {
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .planning-panel button:hover {
+    background: var(--surface-secondary);
+  }
 }
 .planning-panel button:disabled {
   opacity: 0.5;
   cursor: default;
-}
-.planning-panel button:focus-visible,
-.planning-panel summary:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
 }
 .planning-heading {
   display: flex;
@@ -58,8 +55,10 @@
   background: var(--accent);
   white-space: nowrap;
 }
-.planning-panel .planning-add:hover {
-  background: var(--accent-hover);
+@media (hover: hover) {
+  .planning-panel .planning-add:hover {
+    background: var(--accent-hover);
+  }
 }
 .planning-month {
   background: var(--surface);
@@ -122,9 +121,11 @@
 .planning-legend [data-heat='4'] {
   --planning-cell: var(--planning-heat-4);
 }
-.planning-panel .planning-date:hover {
-  background: var(--planning-cell, var(--surface-secondary));
-  box-shadow: inset 0 0 0 1px var(--planning-accent);
+@media (hover: hover) {
+  .planning-panel .planning-date:hover {
+    background: var(--planning-cell, var(--surface-secondary));
+    box-shadow: inset 0 0 0 1px var(--planning-accent);
+  }
 }
 .planning-weekdays {
   padding-bottom: 12px;

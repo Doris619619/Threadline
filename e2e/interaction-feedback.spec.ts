@@ -56,15 +56,15 @@ test('menus and project picker escape a one-row list without changing its width'
   });
   if (await more.isVisible()) await more.hover();
   else await row.hover();
-  await expect(page.getByRole('button', { name: '详细编辑', exact: true })).toHaveCount(
-    0,
-  );
+  await expect(
+    page.getByRole('menuitem', { name: '编辑任务…', exact: true }),
+  ).toHaveCount(0);
   await openTaskMenu(
     row.getByRole('button', { name: '邮件处理更多操作', includeHidden: true }),
   );
-  const menu = page.getByRole('group', { name: '邮件处理操作' });
+  const menu = page.getByRole('menu', { name: '邮件处理操作' });
   await expect(menu).toBeVisible();
-  const button = menu.getByRole('button', { name: '删除', exact: true });
+  const button = menu.getByRole('menuitem', { name: '删除任务', exact: true });
   expect(
     await button.evaluate((el) => {
       const r = el.getBoundingClientRect();
@@ -234,7 +234,7 @@ test('waiting menu remains clickable outside a clipped panel and schedules exact
     row.getByRole('button', { name: /更多操作/, includeHidden: true }),
   );
   const menu = page.getByRole('menu', { name: `${title}待安排操作` });
-  const remove = menu.getByRole('menuitem', { name: '删除', exact: true });
+  const remove = menu.getByRole('menuitem', { name: '删除任务', exact: true });
   expect(
     await remove.evaluate((el) => {
       const r = el.getBoundingClientRect();

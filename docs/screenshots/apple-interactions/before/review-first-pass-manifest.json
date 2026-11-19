@@ -1,0 +1,199 @@
+{
+  "source": "本PR首轮工作树审查截图，不是main或整改前基线",
+  "originalBatchStartedAt": "2026-11-19T05:55:52.842Z",
+  "fixedTime": "2026-11-19T04:00:00Z",
+  "records": [
+    {
+      "file": "review-project-command-modal-desktop.png",
+      "observation": "纯项目命令使用modal",
+      "source": ".impeccable/review/project-management-desktop-viewport-blue-light.png",
+      "sourceModifiedAt": "2026-11-19T06:00:42.157Z",
+      "sha256": "a64e22f81b1246c84307f620aef5bfc5aa1a95709d2274e7b4a4aaff1fb92042",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "project-management-desktop-viewport-blue-light.png",
+        "fixture": "production-preview",
+        "module": "project-management",
+        "scope": "viewport",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "image": {
+          "width": 1280,
+          "height": 900
+        },
+        "note": "优先用于modal视觉验收；fullPage长图的fixed遮罩不能表示同一屏幕布局。"
+      }
+    },
+    {
+      "file": "review-auth-duplicate-eye-desktop.png",
+      "observation": "Edge原生与自定义密码显示图标并存",
+      "source": ".impeccable/review/auth-form-desktop-blue-light.png",
+      "sourceModifiedAt": "2026-11-19T05:56:22.625Z",
+      "sha256": "8696510c5d3da6d811c497877a07543c89942272a6d6e5dbd9805ba01f73b8f5",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "auth-form-desktop-blue-light.png",
+        "fixture": "auth-dev-with-intercepted-loopback-api",
+        "module": "auth-form",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32120/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "",
+        "image": {
+          "width": 1280,
+          "height": 900
+        }
+      }
+    },
+    {
+      "file": "review-onboarding-eyebrow-desktop.png",
+      "observation": "步骤标题上方重复眉题",
+      "source": ".impeccable/review/onboarding-desktop-blue-light.png",
+      "sourceModifiedAt": "2026-11-19T05:56:02.054Z",
+      "sha256": "4f4b00fe323490b48225a5f6adf94e9874fade315a3d8d73e6a2991b3f1ad343",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "onboarding-desktop-blue-light.png",
+        "fixture": "production-preview",
+        "module": "onboarding",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "继续",
+        "image": {
+          "width": 1280,
+          "height": 900
+        }
+      }
+    },
+    {
+      "file": "review-project-command-modal-mobile.png",
+      "observation": "纯项目命令使用modal",
+      "source": ".impeccable/review/project-management-mobile-viewport-blue-light.png",
+      "sourceModifiedAt": "2026-11-19T06:00:43.468Z",
+      "sha256": "48037918ef0c95ab01df62a5b14fc5bcbe91d7b93a36666fa27193ef08880587",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": {
+        "file": "project-management-mobile-viewport-blue-light.png",
+        "fixture": "production-preview",
+        "module": "project-management",
+        "scope": "viewport",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "image": {
+          "width": 390,
+          "height": 844
+        },
+        "note": "优先用于modal视觉验收；fullPage长图的fixed遮罩不能表示同一屏幕布局。"
+      }
+    },
+    {
+      "file": "review-auth-duplicate-eye-mobile.png",
+      "observation": "Edge原生与自定义密码显示图标并存",
+      "source": ".impeccable/review/auth-form-mobile-blue-light.png",
+      "sourceModifiedAt": "2026-11-19T05:56:24.445Z",
+      "sha256": "c174677cdcde1507986821df193d9eb8106abe0be6a1600f4fd03dd2de81b9be",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": {
+        "file": "auth-form-mobile-blue-light.png",
+        "fixture": "auth-dev-with-intercepted-loopback-api",
+        "module": "auth-form",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32120/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "",
+        "image": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    },
+    {
+      "file": "review-onboarding-eyebrow-mobile.png",
+      "observation": "步骤标题上方重复眉题",
+      "source": ".impeccable/review/onboarding-mobile-blue-light.png",
+      "sourceModifiedAt": "2026-11-19T05:56:10.203Z",
+      "sha256": "e759a7e3fa05f43256fb1f1ab916782937e7151921090fe614af5418e819f6fa",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": {
+        "file": "onboarding-mobile-blue-light.png",
+        "fixture": "production-preview",
+        "module": "onboarding",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "继续",
+        "image": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    }
+  ]
+}

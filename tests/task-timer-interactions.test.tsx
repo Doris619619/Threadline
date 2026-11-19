@@ -255,12 +255,12 @@ test('schedule keyboard menu exposes timing, while input right click keeps nativ
   );
   const more = screen.getByRole('button', { name: task.title + '更多操作' });
   fireEvent.keyDown(more, { key: 'F10', shiftKey: true });
-  fireEvent.click(screen.getByRole('button', { name: '加入计时' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: '加入计时' }));
   expect(request).toHaveBeenCalledExactlyOnceWith(task.id);
   fireEvent.click(container.querySelector('.task-title')!);
   const input = screen.getByDisplayValue(task.title);
   fireEvent.contextMenu(input);
-  expect(screen.queryByRole('group', { name: task.title + '操作' })).toBeNull();
+  expect(screen.queryByRole('menu', { name: task.title + '操作' })).toBeNull();
 });
 
 test('countdown settings validate integer minutes and retain rejected input', async () => {

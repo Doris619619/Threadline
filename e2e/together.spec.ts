@@ -68,10 +68,16 @@ test('创建表单的焦点留在字段内，不遮挡标签或改变布局', as
       await page.keyboard.press('Tab');
       await expect(editor.locator('summary')).toBeFocused();
       await page.keyboard.press('Enter');
-      await page.keyboard.press('Tab');
       const notes = editor.getByLabel('怎样算完成（选填）');
+      const unfocusedBorder = await notes.evaluate(
+        (node) => getComputedStyle(node).borderColor,
+      );
+      await page.keyboard.press('Tab');
       await expect(notes).toBeFocused();
-      await expect(notes).toHaveCSS('outline-offset', '-2px');
+      await expect(notes).toHaveCSS('outline-style', 'none');
+      expect(
+        await notes.evaluate((node) => getComputedStyle(node).borderColor),
+      ).not.toBe(unfocusedBorder);
       expect(
         await editor.evaluate((node) => node.scrollWidth <= node.clientWidth),
       ).toBe(true);

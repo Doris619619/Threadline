@@ -28,7 +28,7 @@ function dateLabel(date: string, today: string) {
   );
 }
 
-/** 经典保留双环和简明图例，下方另放状态清单；新版合并右侧操作，保存中锁定切换。 */
+/** 经典保留双环和简明图例；预览高亮与持久选择独立传递，保存中锁定切换。 */
 export function StageTimeChart({
   tasks,
   projects,
@@ -273,6 +273,7 @@ export function StageTimeChart({
                 sectors={sectors}
                 total={total}
                 active={active}
+                selected={selected}
                 centerTitle={metricLabels[metric]}
                 onSelect={select}
                 onHover={setHovered}

@@ -1,11 +1,21 @@
-/** @fileoverview 渲染紧凑项目卡片，沿用原创建、编辑与生命周期管理；Daily 独立维护。 */
+/** @fileoverview 项目卡片与详情共用附近操作菜单；编辑和删除确认保留表单 Dialog 与原异步命令。 */
 
 'use client';
 
 import { ChevronRight, FolderKanban, MoreHorizontal } from 'lucide-react';
 import { CottageNavIcon } from '@/features/appearance/cottage-sprite';
 import { PlanObjectIcon } from '@/features/stage-plans/object-icon';
-import { forwardRef, useImperativeHandle, useState, type CSSProperties } from 'react';
+import {
+  forwardRef,
+  useId,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+} from 'react';
 import { Button } from '@/components/ui/button';
 import { useGuardedAction } from '@/hooks/use-guarded-action';
 import { Input } from '@/components/ui/input';
@@ -13,11 +23,13 @@ import { ManagementDialog } from '@/components/ui/management-dialog';
 import { getLocalDateKey } from '@/lib/local-date';
 import type { Project, Task } from '@/types/domain';
 import { ProjectDetail } from './project-detail';
+import { TaskActionsPopover } from '@/features/tasks/components/task-actions-popover';
+import { useTaskMenu } from '@/features/tasks/hooks/use-task-menu';
 
 type ProjectDialog =
   | { mode: 'create' }
   | { mode: 'edit'; project: Project }
-  | { mode: 'manage'; project: Project }
+  | { mode: 'delete'; project: Project }
   | undefined;
 type ProjectPanelProps = {
   items: Project[];
@@ -35,7 +47,7 @@ type ProjectPanelProps = {
 /** 保留受限创建 handle，供其他组合视图复用现有项目表单。 */
 export type ProjectPanelHandle = { openCreate: () => void };
 
-/** 项目卡片进入原 Task 总览；独立管理入口保持名称、颜色和生命周期命令。 */
+/** 项目入口只展开命令菜单；进入表单前聚焦真实触发器，保证 Safari 关闭表单后可正确归焦。 */
 export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
   function ProjectPanel(
     {
@@ -55,15 +67,36 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
     const [dialog, setDialog] = useState<ProjectDialog>();
     const [dialogName, setDialogName] = useState('');
     const [dialogColor, setDialogColor] = useState('#3979e8');
+    const menu = useTaskMenu();
+    const menuId = useId();
+    const [management, setManagement] = useState<{
+      project: Project;
+      anchor: HTMLButtonElement;
+      source: 'card' | 'manage' | 'detail';
+    }>();
+    const menuAnchor = useMemo(
+      () => ({ current: management?.anchor ?? null }),
+      [management],
+    );
     const { busy, error, setError, run } = useGuardedAction();
+    const completedActionFocus = useRef<HTMLButtonElement | null>(null);
+    /** 原命令结束且触发器重新启用后归焦，避免菜单卸载早于 disabled 更新而把焦点留在 body。 */
+    useLayoutEffect(() => {
+      if (busy || !completedActionFocus.current) return;
+      const trigger = completedActionFocus.current;
+      completedActionFocus.current = null;
+      if (trigger.isConnected) trigger.focus({ preventScroll: true });
+    }, [busy]);
     /** 关闭项目 Dialog 并清理草稿；共享 Dialog 会把焦点还给触发按钮。 */
     const closeDialog = () => {
       setDialog(undefined);
       setDialogName('');
       setDialogColor('#3979e8');
     };
-    /** 打开新建项目 Dialog，并以稳定的蓝色作为未选择颜色时的默认值。 */
-    const openCreate = () => {
+    /** 点击时先记住真实触发器；外部 handle 调用保留当前焦点，创建草稿仍使用原默认蓝色。 */
+    const openCreate = (event?: MouseEvent<HTMLButtonElement>) => {
+      event?.currentTarget.focus({ preventScroll: true });
+      menu.close();
       setError(undefined);
       setDialog({ mode: 'create' });
       setDialogName('');
@@ -83,12 +116,37 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
         });
         closeDialog();
       });
-    /** 打开项目修改对话框并复制当前元数据到草稿。 */
+    /** 保存实际按钮作为菜单锚点；同入口再次点击收起，切换入口重新定位但不叠加浮层。 */
+    const openManagement = (
+      event: MouseEvent<HTMLButtonElement>,
+      project: Project,
+      source: 'card' | 'manage' | 'detail' = 'manage',
+    ) => {
+      if (busy) return;
+      const sameAnchor = management?.anchor === event.currentTarget;
+      event.currentTarget.focus({ preventScroll: true });
+      setError(undefined);
+      setManagement({ project, anchor: event.currentTarget, source });
+      if (!menu.open || sameAnchor) menu.toggle();
+    };
+    /** 先归焦持久存在的触发器再卸载菜单，表单保存的返回目标不会成为已移除的 menuitem。 */
+    const leaveMenuForDialog = () => {
+      menuAnchor.current?.focus({ preventScroll: true });
+      menu.close();
+    };
+    /** 打开项目修改对话框并复制元数据；切换表面前保留真实管理按钮焦点。 */
     const openEdit = (project: Project) => {
+      leaveMenuForDialog();
       setError(undefined);
       setDialog({ mode: 'edit', project });
       setDialogName(project.name);
       setDialogColor(project.color);
+    };
+    /** 删除菜单项仅请求确认，不执行删除；原回调只由确认按钮触发。 */
+    const openDelete = (project: Project) => {
+      leaveMenuForDialog();
+      setError(undefined);
+      setDialog({ mode: 'delete', project });
     };
     /** 保存项目名称和颜色，两个字段一起提交。 */
     const saveProject = () =>
@@ -98,10 +156,12 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
         await onUpdateProject(dialog.project.id, dialogName.trim(), dialogColor);
         closeDialog();
       });
-    /** 执行项目生命周期操作后关闭管理 sheet；失败时保留错误而不丢失上下文。 */
+    /** 生命周期命令成功才关闭当前菜单或确认框；失败保留原上下文和错误，guard 同步拦截重复请求。 */
     const runManagementAction = (action: () => Promise<void>) =>
       void run(async () => {
         await action();
+        completedActionFocus.current = menuAnchor.current;
+        menu.close();
         closeDialog();
       });
 
@@ -118,10 +178,10 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
             key={detailProject.id}
             project={detailProject}
             onBack={() => onBackProject?.()}
-            onManage={() => {
-              setError(undefined);
-              setDialog({ mode: 'manage', project: detailProject });
-            }}
+            onManage={(event) => openManagement(event, detailProject, 'detail')}
+            managementOpen={menu.open && management?.source === 'detail'}
+            managementMenuId={menuId}
+            managementBusy={busy}
           />
         ) : (
           <>
@@ -135,7 +195,12 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
                 </h2>
                 <p>管理长期目标与任务，专注于持续推进的方向。</p>
               </div>
-              <button type="button" className="plan-create-link" onClick={openCreate}>
+              <button
+                type="button"
+                className="plan-create-link"
+                disabled={busy}
+                onClick={openCreate}
+              >
                 + 新建项目
               </button>
             </div>
@@ -166,9 +231,26 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
                         type="button"
                         data-project-card-id={project.id}
                         aria-label={`查看项目 ${project.name}`}
-                        onClick={() => {
+                        disabled={busy}
+                        aria-haspopup={!onOpenProject ? 'menu' : undefined}
+                        aria-expanded={
+                          !onOpenProject
+                            ? menu.open &&
+                              management?.project.id === project.id &&
+                              management.source === 'card'
+                            : undefined
+                        }
+                        aria-controls={
+                          !onOpenProject &&
+                          menu.open &&
+                          management?.project.id === project.id &&
+                          management.source === 'card'
+                            ? menuId
+                            : undefined
+                        }
+                        onClick={(event) => {
                           if (onOpenProject) onOpenProject(project.id);
-                          else setDialog({ mode: 'manage', project });
+                          else openManagement(event, project, 'card');
                         }}
                       >
                         <PlanObjectIcon name={project.name} kind="project" />
@@ -189,10 +271,21 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
                       <button
                         className="project-card-manage"
                         aria-label={`管理项目 ${project.name}`}
-                        onClick={() => {
-                          setError(undefined);
-                          setDialog({ mode: 'manage', project });
-                        }}
+                        aria-haspopup="menu"
+                        aria-expanded={
+                          menu.open &&
+                          management?.project.id === project.id &&
+                          management.source === 'manage'
+                        }
+                        aria-controls={
+                          menu.open &&
+                          management?.project.id === project.id &&
+                          management.source === 'manage'
+                            ? menuId
+                            : undefined
+                        }
+                        disabled={busy}
+                        onClick={(event) => openManagement(event, project)}
                         type="button"
                       >
                         <MoreHorizontal size={18} aria-hidden="true" />
@@ -202,6 +295,60 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
               </div>
             </div>
           </>
+        )}
+        {menu.open && management && (
+          <TaskActionsPopover
+            anchor={menuAnchor}
+            id={menuId}
+            label={`${management.project.name}项目操作`}
+            role="menu"
+            onClose={menu.close}
+          >
+            <div role="group" aria-label="项目命令" aria-busy={busy}>
+              <button
+                type="button"
+                role="menuitem"
+                disabled={busy}
+                onClick={() => openEdit(management.project)}
+              >
+                修改项目…
+              </button>
+              {!management.project.isFallback && (
+                <>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={busy}
+                    onClick={() =>
+                      runManagementAction(() =>
+                        onSetProjectArchived(
+                          management.project.id,
+                          management.project.status === 'active',
+                        ),
+                      )
+                    }
+                  >
+                    {management.project.status === 'active' ? '归档项目' : '恢复项目'}
+                  </button>
+                  <hr role="separator" />
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="is-danger"
+                    disabled={busy}
+                    onClick={() => openDelete(management.project)}
+                  >
+                    删除项目…
+                  </button>
+                </>
+              )}
+              {error && (
+                <p className="form-error" role="alert">
+                  {error}
+                </p>
+              )}
+            </div>
+          </TaskActionsPopover>
         )}
         {dialog && (
           <ManagementDialog
@@ -214,44 +361,30 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
                 ? '新建项目'
                 : dialog.mode === 'edit'
                   ? '修改项目'
-                  : dialog.project.name
+                  : '删除项目'
             }
           >
-            {dialog.mode === 'manage' ? (
-              <div className="manager-action-list">
-                <Button
-                  data-management-initial-focus
-                  variant="quiet"
-                  onClick={() => openEdit(dialog.project)}
-                >
-                  修改项目
-                </Button>
-                {!dialog.project.isFallback && (
-                  <>
-                    <Button
-                      variant="quiet"
-                      onClick={() =>
-                        runManagementAction(() =>
-                          onSetProjectArchived(
-                            dialog.project.id,
-                            dialog.project.status === 'active',
-                          ),
-                        )
-                      }
-                    >
-                      {dialog.project.status === 'active' ? '归档项目' : '恢复项目'}
-                    </Button>
-                    <Button
-                      variant="danger"
-                      onClick={() =>
-                        runManagementAction(() => onDeleteProject(dialog.project.id))
-                      }
-                    >
-                      删除项目
-                    </Button>
-                  </>
-                )}
-              </div>
+            {dialog.mode === 'delete' ? (
+              <>
+                <p>删除“{dialog.project.name}”后，项目中的任务会保留并移到默认项目。</p>
+                <footer>
+                  <Button
+                    variant="quiet"
+                    data-management-initial-focus
+                    onClick={closeDialog}
+                  >
+                    取消
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={() =>
+                      runManagementAction(() => onDeleteProject(dialog.project.id))
+                    }
+                  >
+                    删除项目
+                  </Button>
+                </footer>
+              </>
             ) : (
               <>
                 <Input
@@ -284,7 +417,7 @@ export const ProjectPanel = forwardRef<ProjectPanelHandle, ProjectPanelProps>(
             )}
           </ManagementDialog>
         )}
-        {error && !dialog && (
+        {error && !dialog && !menu.open && (
           <p className="workspace-sync-error" role="alert">
             {error}
           </p>

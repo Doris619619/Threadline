@@ -41,8 +41,10 @@
   border-radius: var(--radius-control);
   cursor: pointer;
 }
-.project-card-manage:hover {
-  background: var(--accent-soft);
+@media (hover: hover) {
+  .project-card-manage:hover {
+    background: var(--accent-soft);
+  }
 }
 .project-detail {
   display: grid;

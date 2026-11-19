@@ -1,6 +1,8 @@
 /** @fileoverview Verifies device themes, real Chinese fonts, layout corrections and reload/cross-tab behavior. */
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { waitForFiniteAnimations } from './support/animations';
+import { expectNavigationSelection } from './support/navigation-state';
 import {
   bootstrapLocalAdapterWorkspace,
   openWorkspaceSection,
@@ -205,16 +207,8 @@ test('keeps the appearance chooser accessible in both Anya light and dark modes'
       'data-color-scheme',
       colorScheme,
     );
-    await expect(page.locator('.tl-sidebar-item.is-active:visible').first()).toHaveCSS(
-      'background-color',
-      colorScheme === 'dark' ? 'rgb(88, 54, 70)' : 'rgb(249, 220, 230)',
-    );
-    await page.evaluate(async () => {
-      void document.documentElement.offsetWidth;
-      await Promise.allSettled(
-        document.getAnimations().map((animation) => animation.finished),
-      );
-    });
+    await expectNavigationSelection(page);
+    await waitForFiniteAnimations(page);
     const report = await new AxeBuilder({ page }).analyze();
     expect(
       report.violations.filter(
@@ -257,16 +251,8 @@ test('keeps all pink calendar heat levels readable and enlarged task titles wide
       'data-color-scheme',
       colorScheme,
     );
-    await expect(page.locator('.tl-sidebar-item.is-active:visible').first()).toHaveCSS(
-      'background-color',
-      colorScheme === 'dark' ? 'rgb(88, 54, 70)' : 'rgb(249, 220, 230)',
-    );
-    await page.evaluate(async () => {
-      void document.documentElement.offsetWidth;
-      await Promise.allSettled(
-        document.getAnimations().map((animation) => animation.finished),
-      );
-    });
+    await expectNavigationSelection(page);
+    await waitForFiniteAnimations(page);
     const report = await new AxeBuilder({ page }).analyze();
     expect(
       report.violations.filter(

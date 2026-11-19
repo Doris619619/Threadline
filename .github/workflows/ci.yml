@@ -51,6 +51,8 @@ jobs:
       - run: pnpm test:coverage
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium webkit
+      - name: Verify smart import focus and touch targets
+        run: pnpm test:smart-import:ui
       - name: Verify WebKit project reload
         run: pnpm test:e2e e2e/interaction-feedback.spec.ts --project=planning-webkit --grep 'menus and project picker' --repeat-each=3
       - run: pnpm test:e2e
@@ -77,6 +79,8 @@ jobs:
       - name: Verify WebKit ring resizing
         run: pnpm test:preview e2e/ui-task-time.spec.ts --project=preview-iphone-webkit --grep 'fits long center totals' --repeat-each=3
       - run: pnpm test:preview
+      - name: Verify shared HIG interaction states
+        run: pnpm test:hig
       - run: pnpm test:together:e2e
       - uses: actions/upload-artifact@v4
         if: always()

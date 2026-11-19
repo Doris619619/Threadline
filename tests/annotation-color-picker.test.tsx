@@ -1,4 +1,4 @@
-/** @fileoverview 验证荧光笔启停、兼容旧调用、选色激活与浮层 Escape 隔离，不断言展示样式。 */
+/** @fileoverview 验证荧光笔启停、兼容旧调用、互斥菜单选色与 Escape 隔离，不断言展示样式。 */
 
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -36,14 +36,12 @@ describe('AnnotationColorPicker', () => {
     view.rerender(<AnnotationColorPicker active color={yellow.value} {...callbacks} />);
     expect(pen).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(screen.getByRole('button', { name: '选择颜色，当前黄色' }));
-    expect(screen.getByRole('dialog', { name: '荧光笔颜色' })).toBeInTheDocument();
+    expect(screen.getByRole('menu', { name: '荧光笔颜色' })).toBeInTheDocument();
     fireEvent.click(pen);
     expect(callbacks.onDeactivate).toHaveBeenCalledTimes(1);
     expect(callbacks.onActivate).toHaveBeenCalledTimes(1);
     expect(callbacks.onColorChange).not.toHaveBeenCalled();
-    expect(
-      screen.queryByRole('dialog', { name: '荧光笔颜色' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('menu', { name: '荧光笔颜色' })).not.toBeInTheDocument();
   });
 
   it('preserves activation behavior for an older caller without onDeactivate', () => {
@@ -69,22 +67,25 @@ describe('AnnotationColorPicker', () => {
         <AnnotationColorPicker active={active} color={yellow.value} {...callbacks} />,
       );
       fireEvent.click(screen.getByRole('button', { name: '选择颜色，当前黄色' }));
-      const palette = screen.getByRole('dialog', { name: '荧光笔颜色' });
-      expect(within(palette).getAllByRole('radio')).toHaveLength(5);
-      expect(within(palette).getByRole('radio', { name: /^黄色/ })).toHaveAttribute(
-        'aria-checked',
-        'true',
-      );
+      const palette = screen.getByRole('menu', { name: '荧光笔颜色' });
+      expect(within(palette).getAllByRole('menuitemradio')).toHaveLength(5);
+      const selected = within(palette).getByRole('menuitemradio', { name: /^黄色/ });
+      expect(selected).toHaveFocus();
+      expect(selected).toHaveAttribute('aria-checked', 'true');
       expect(callbacks.onActivate).not.toHaveBeenCalled();
       expect(callbacks.onDeactivate).not.toHaveBeenCalled();
       expect(callbacks.onColorChange).not.toHaveBeenCalled();
 
-      fireEvent.click(within(palette).getByRole('radio', { name: '蓝色' }));
+      fireEvent.keyDown(selected, { key: 'ArrowDown' });
+      expect(
+        within(palette).getByRole('menuitemradio', { name: '粉色' }),
+      ).toHaveFocus();
+      fireEvent.click(within(palette).getByRole('menuitemradio', { name: '蓝色' }));
       expect(callbacks.onColorChange).toHaveBeenCalledExactlyOnceWith(blue.value);
       expect(callbacks.onActivate).toHaveBeenCalledTimes(1);
       expect(callbacks.onDeactivate).not.toHaveBeenCalled();
       expect(
-        screen.queryByRole('dialog', { name: '荧光笔颜色' }),
+        screen.queryByRole('menu', { name: '荧光笔颜色' }),
       ).not.toBeInTheDocument();
     },
   );
@@ -93,7 +94,7 @@ describe('AnnotationColorPicker', () => {
     const callbacks = pickerCallbacks();
     render(<AnnotationColorPicker active color={yellow.value} {...callbacks} />);
     fireEvent.click(screen.getByRole('button', { name: '选择颜色，当前黄色' }));
-    fireEvent.click(screen.getByRole('radio', { name: /^黄色/ }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /^黄色/ }));
     expect(callbacks.onColorChange).toHaveBeenCalledExactlyOnceWith(yellow.value);
     expect(callbacks.onActivate).toHaveBeenCalledTimes(1);
     expect(callbacks.onDeactivate).not.toHaveBeenCalled();
@@ -106,11 +107,11 @@ describe('AnnotationColorPicker', () => {
     window.addEventListener('keydown', pageEscape);
     try {
       fireEvent.click(screen.getByRole('button', { name: '选择颜色，当前黄色' }));
-      fireEvent.keyDown(screen.getByRole('radio', { name: /^黄色/ }), {
+      fireEvent.keyDown(screen.getByRole('menuitemradio', { name: /^黄色/ }), {
         key: 'Escape',
       });
       expect(
-        screen.queryByRole('dialog', { name: '荧光笔颜色' }),
+        screen.queryByRole('menu', { name: '荧光笔颜色' }),
       ).not.toBeInTheDocument();
       expect(pageEscape).not.toHaveBeenCalled();
       expect(callbacks.onDeactivate).not.toHaveBeenCalled();

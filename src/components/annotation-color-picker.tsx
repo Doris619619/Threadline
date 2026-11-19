@@ -1,10 +1,11 @@
-/** @fileoverview 渲染独立荧光笔开关、当前颜色选择按钮及可访问的五色浮层。 */
+/** @fileoverview 荧光笔开关与当前色点保持独立，五色选择复用顶层菜单、键盘导航和关闭归焦。 */
 
 'use client';
 
 import { cn } from '@/lib/cn';
 import { Check, ChevronDown, Highlighter } from 'lucide-react';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useId, useRef, useState, type CSSProperties } from 'react';
+import { TaskActionsPopover } from '@/features/tasks/components/task-actions-popover';
 
 export type HighlightColorPreset = {
   id: 'yellow' | 'pink' | 'blue' | 'green' | 'purple';
@@ -29,7 +30,8 @@ type AnnotationColorPickerProps = {
 };
 
 /**
- * 荧光笔按钮可显式退出，未传退出回调时保持旧激活行为；选颜色始终启用绘制，Esc 优先关闭浮层。
+ * 荧光笔按钮可显式退出，未传退出回调时保持旧激活行为；选颜色始终启用绘制。
+ * 绘制用 pressed、菜单用 expanded 表达；共享菜单先处理 Escape，关闭后归焦且不退出绘制。
  */
 export function AnnotationColorPicker({
   active,
@@ -39,7 +41,8 @@ export function AnnotationColorPicker({
   onColorChange,
 }: AnnotationColorPickerProps) {
   const [open, setOpen] = useState(false);
-  const controlRef = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const id = useId();
   const selected = HIGHLIGHT_COLOR_PRESETS.find((preset) => preset.value === color);
   // 色点使用不透明 RGB 呈现当前色，笔迹仍保留传入颜色原有的透明度。
   const solidColor = color.replace(/^rgba\((.*),\s*[\d.]+\)$/, 'rgb($1)');
@@ -58,29 +61,8 @@ export function AnnotationColorPicker({
     setOpen(false);
   };
 
-  useEffect(() => {
-    if (!open) return;
-    /** 点到控件以外仅收起颜色浮层，不改变当前批注工具。 */
-    const onPointerDown = (event: PointerEvent) => {
-      if (!controlRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    /** 捕获第一下 Escape 关闭浮层，避免页面同时退出荧光笔。 */
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      setOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('keydown', onKeyDown, true);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      window.removeEventListener('keydown', onKeyDown, true);
-    };
-  }, [open]);
-
   return (
-    <div className="annotation-highlighter-control" ref={controlRef}>
+    <div className="annotation-highlighter-control">
       <button
         type="button"
         className={cn(
@@ -102,13 +84,21 @@ export function AnnotationColorPicker({
         </span>
       </button>
       <button
+        ref={trigger}
         type="button"
         className="annotation-color-menu-trigger annotation-color-button"
         aria-label={`选择颜色，当前${selected?.label ?? '黄色'}`}
         aria-expanded={open}
-        aria-haspopup="dialog"
+        aria-haspopup="menu"
+        aria-controls={open ? id : undefined}
         title="选择荧光笔颜色"
         onClick={() => setOpen((current) => !current)}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            setOpen(true);
+          }
+        }}
       >
         <span
           className="annotation-color-current-swatch"
@@ -118,37 +108,42 @@ export function AnnotationColorPicker({
         <ChevronDown size={13} aria-hidden="true" />
       </button>
       {open && (
-        <div className="annotation-color-menu" role="dialog" aria-label="荧光笔颜色">
-          <span className="annotation-color-menu-title">荧光笔颜色</span>
-          <div role="radiogroup" aria-label="选择荧光笔颜色">
-            {HIGHLIGHT_COLOR_PRESETS.map((preset) => {
-              const isSelected = color === preset.value;
-              return (
-                <button
-                  key={preset.id}
-                  type="button"
-                  className={cn('annotation-color-option', isSelected && 'is-selected')}
-                  role="radio"
-                  aria-checked={isSelected}
-                  onClick={() => selectColor(preset.value)}
+        <TaskActionsPopover
+          anchor={trigger}
+          id={id}
+          className="annotation-color-menu"
+          role="menu"
+          label="荧光笔颜色"
+          onClose={() => setOpen(false)}
+        >
+          {HIGHLIGHT_COLOR_PRESETS.map((preset) => {
+            const isSelected = color === preset.value;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                className={cn('annotation-color-option', isSelected && 'is-selected')}
+                role="menuitemradio"
+                aria-label={preset.label}
+                aria-checked={isSelected}
+                onClick={() => selectColor(preset.value)}
+              >
+                <span
+                  className="annotation-color-option-swatch"
+                  aria-hidden="true"
+                  style={{ '--annotation-color': preset.value } as CSSProperties}
+                />
+                <span className="annotation-color-option-label">{preset.label}</span>
+                <span
+                  className="annotation-color-option-check"
+                  aria-hidden={!isSelected}
                 >
-                  <span
-                    className="annotation-color-option-swatch"
-                    aria-hidden="true"
-                    style={{ '--annotation-color': preset.value } as CSSProperties}
-                  />
-                  <span className="annotation-color-option-label">{preset.label}</span>
-                  <span
-                    className="annotation-color-option-check"
-                    aria-hidden={!isSelected}
-                  >
-                    {isSelected && <Check size={14} aria-label="当前颜色" />}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                  {isSelected && <Check size={14} aria-hidden="true" />}
+                </span>
+              </button>
+            );
+          })}
+        </TaskActionsPopover>
       )}
     </div>
   );

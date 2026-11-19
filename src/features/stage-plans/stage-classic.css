@@ -85,9 +85,11 @@
   color: var(--text-secondary);
   text-decoration: none;
 }
-.stage-time-classic-legend .stage-estimate-trigger:hover {
-  color: var(--accent-text);
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .stage-time-classic-legend .stage-estimate-trigger:hover {
+    color: var(--accent-text);
+    background: var(--surface-secondary);
+  }
 }
 .stage-time-missing {
   margin: var(--space-2) 0 0;

@@ -275,7 +275,12 @@
   color: var(--text-secondary);
   font-size: max(13px, var(--text-caption-size));
 }
-.stage-time-summary button:is(:hover, [aria-pressed='true']) span {
+@media (hover: hover) {
+  .stage-time-summary button:hover span {
+    color: var(--accent-text);
+  }
+}
+.stage-time-summary button[aria-pressed='true'] span {
   color: var(--accent-text);
 }
 .stage-time-summary strong {
@@ -421,11 +426,15 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
-.stage-time-callout:hover,
 .stage-time-callout[aria-pressed='true'],
-.stage-time-task:hover,
 .stage-time-task[aria-pressed='true'] {
   background: var(--surface-secondary);
+}
+@media (hover: hover) {
+  .stage-time-callout:hover,
+  .stage-time-task:hover {
+    background: var(--surface-secondary);
+  }
 }
 .stage-time-selection {
   padding: var(--space-2);
@@ -464,6 +473,45 @@
   overflow-wrap: anywhere;
 }
 .stage-time-legend summary strong {
+  font-variant-numeric: tabular-nums;
+}
+/* 项目选择与原生折叠并排，避免 summary 内嵌按钮造成辅助技术的交互嵌套。 */
+.stage-time-classic-group {
+  position: relative;
+  min-width: 0;
+}
+.stage-time-classic-group > details > summary {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  justify-content: center;
+  width: var(--touch-target);
+  min-height: var(--touch-target);
+  border-radius: var(--radius-control);
+}
+.stage-time-project-select {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: calc(100% - var(--touch-target) - var(--space-2));
+  min-width: 0;
+  min-height: var(--touch-target);
+  padding: 4px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.stage-time-project-select > span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.stage-time-project-select strong {
   font-variant-numeric: tabular-nums;
 }
 .stage-time-legend summary small {

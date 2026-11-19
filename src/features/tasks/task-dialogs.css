@@ -353,8 +353,10 @@
   background: var(--accent);
   color: var(--text-on-accent);
 }
-.manager-dialog .task-editor-form > footer button[type='button']:hover {
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .manager-dialog .task-editor-form > footer button[type='button']:hover {
+    background: var(--surface-secondary);
+  }
 }
 
 .task-workstation-detail {

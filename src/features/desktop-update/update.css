@@ -18,17 +18,15 @@
   cursor: pointer;
   -webkit-app-region: no-drag;
 }
-.full-window-entries .desktop-update-trigger:hover,
-.compact-window-header .desktop-update-trigger:hover {
-  background: var(--accent-soft);
+@media (hover: hover) {
+  .full-window-entries .desktop-update-trigger:hover,
+  .compact-window-header .desktop-update-trigger:hover {
+    background: var(--accent-soft);
+  }
 }
 .compact-window-header > .desktop-update-trigger {
   margin-left: auto;
   margin-right: 4px;
-}
-.desktop-update-trigger:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
 }
 .desktop-update-popover {
   position: fixed;
@@ -61,8 +59,10 @@
   color: var(--text-secondary);
   cursor: pointer;
 }
-.desktop-update-popover-heading button:hover {
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .desktop-update-popover-heading button:hover {
+    background: var(--surface-secondary);
+  }
 }
 .desktop-update-confirmation .manager-dialog-backdrop {
   z-index: 110;

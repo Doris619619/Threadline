@@ -1,4 +1,4 @@
-/* 文件用途：实现 A 方案的五列轻边框确认表格，兼容横向滚动、长名称、主题与真实导入进度。 */
+/* 文件用途：实现五列确认表格与真实导入进度，复用内部焦点反馈并在手机和触屏上保留真实命中区域。 */
 
 .manager-dialog.smart-import-dialog {
   width: min(100%, 780px);
@@ -133,15 +133,11 @@
   color: var(--text-secondary);
 }
 
-.smart-import-dialog :is(input, textarea, select, button):focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.smart-import-dialog .import-source:focus-visible {
-  border-color: var(--accent);
+/* 业务字段优先级高于共享输入规则，因此显式接入同一边框和内部底线；强制色仍由共享系统覆盖。 */
+.manager-dialog.smart-import-dialog :is(input, textarea, select):focus {
+  border-color: var(--interaction-focus-ink);
   outline: none;
-  box-shadow: 0 1px 5px var(--accent-soft);
+  box-shadow: inset 0 -2px 0 var(--interaction-focus-ink);
 }
 
 .import-notice {
@@ -166,11 +162,6 @@
   scrollbar-color: var(--border-strong) transparent;
   scrollbar-width: thin;
   border-radius: 8px;
-}
-
-.import-table-scroll:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 .import-table {
@@ -305,10 +296,12 @@
   cursor: pointer;
 }
 
-.import-task-action button:hover,
-.smart-import-toast button:hover {
-  color: var(--text-primary);
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .import-task-action button:hover,
+  .smart-import-toast button:hover {
+    color: var(--text-primary);
+    background: var(--surface-secondary);
+  }
 }
 
 .import-task.is-excluded .import-task-fields {
@@ -445,16 +438,6 @@
     font-size: 13px;
   }
 
-  .manager-dialog.smart-import-dialog > header > button {
-    position: relative;
-  }
-
-  .manager-dialog.smart-import-dialog > header > button::after {
-    position: absolute;
-    inset: -8px;
-    content: '';
-  }
-
   .manager-dialog.smart-import-dialog.is-review {
     --import-field-columns: 100px minmax(260px, 1fr) 92px 92px 92px;
 
@@ -465,11 +448,37 @@
     min-width: 824px;
   }
 
+  .smart-import-dialog footer .tl-button,
+  .smart-import-dialog.is-review footer .tl-button {
+    flex: 1;
+  }
+
+  .schedule-panel-header:has(.smart-import-trigger) {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+}
+
+/* 760px 边界与大屏触控使用真实尺寸，不靠溢出伪元素扩大点击区。 */
+@media (max-width: 760px), (pointer: coarse) {
+  .manager-dialog.smart-import-dialog > header {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+  }
+
+  .manager-dialog.smart-import-dialog > header > button,
+  .import-task-action button,
+  .smart-import-toast button {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+
   .import-table-heading,
   .import-task {
     grid-template-columns: 44px minmax(0, 1fr) 44px;
   }
 
+  .import-table-heading,
   .import-task-selection,
   .import-task-action {
     min-height: 44px;
@@ -478,32 +487,15 @@
   .import-task-selection input {
     width: 22px;
     height: 22px;
-    outline-offset: 4px;
-  }
-
-  .import-task-action button,
-  .smart-import-toast button {
-    width: 44px;
-    height: 44px;
   }
 
   .smart-import-dialog .import-task-fields :is(input, select, textarea) {
     min-height: 44px;
-    font-size: 1rem;
+    font-size: var(--mobile-form-control-font-size);
   }
 
   .smart-import-dialog footer .tl-button,
   .smart-import-dialog.is-review footer .tl-button {
-    min-height: 44px;
-    flex: 1;
-  }
-
-  .schedule-panel-header:has(.smart-import-trigger) {
-    flex-wrap: wrap;
-    row-gap: 4px;
-  }
-
-  .smart-import-trigger {
     min-height: 44px;
   }
 }
