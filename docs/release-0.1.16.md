@@ -18,7 +18,7 @@
 
 正式生产配置的 NSIS 已在本地构建，manifest 记录 clean commit `4dfd7a1`，生成 `release/Threadline_0.1.16_x64-setup.exe`、同名 blockmap 与 `release/latest.yml`。真实 packaged EXE smoke 已通过 CSP、受限 protocol、Preload 与窗口检查；未据此标记安装、卸载或升级成功。
 
-同一 production Windows 程序另完成 14 项真实 UI 检查：临时账号实际登录和首次引导后，直接在应用设置保存合成 Key，确认输入清空、重开状态持久化，再移除并重开确认未设置。未用网站预配置或 RPC 预置，未调用模型；账号、进程和独立资料目录全部清理。此项证明 Windows 应用可直接配置 Key，不等同 NSIS 安装或真实有效 Key 的模型调用。[原始截图及来源](ai-task-import.md#2026-11-19-生产验收快照)。
+同一 production Windows 程序另完成 14 项真实 UI 检查：临时账号实际登录和首次引导后，直接在应用设置保存合成 Key，确认输入清空、重开状态持久化，再移除并重开确认未设置。未用网站预配置或 RPC 预置，未调用模型；账号、进程和独立资料目录全部清理。此项证明 Windows 应用可直接配置 Key，不等同 NSIS 安装或真实有效 Key 的模型调用。[原始截图及来源](ai-task-import.md#2026-11-19-生产服务验收快照)。
 
 仍未完成的发布与使用验收：
 
