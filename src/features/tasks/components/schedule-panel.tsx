@@ -12,7 +12,7 @@ import type { AnnotationTool } from '@/components/annotation-layer';
 type SchedulePanelChildren =
   ReactNode | ((controls: { isAdding: boolean; closeAdd: () => void }) => ReactNode);
 
-/** 保持日程 drop 契约、批注工具和 resize 控制；新增行开关由跨页面草稿控制器提供。 */
+/** 保持日程 drop 契约、批注与 resize 控制；可附加首页导入入口，新增草稿由上层持有。 */
 export function SchedulePanel({
   children,
   annotationTool,
@@ -31,8 +31,10 @@ export function SchedulePanel({
   onSelectAnnotationTool,
   onToggleEraser,
   onSetHighlightColor,
+  importAction,
 }: {
   children: SchedulePanelChildren;
+  importAction?: ReactNode;
   annotationTool: AnnotationTool;
   highlightColor: string;
   isDropTarget: boolean;
@@ -61,6 +63,7 @@ export function SchedulePanel({
       <header className="schedule-panel-header">
         <h2>今日日程</h2>
         <div className="schedule-panel-actions">
+          {importAction}
           <div className="annotation-tools" role="group" aria-label="批注工具">
             <button
               type="button"

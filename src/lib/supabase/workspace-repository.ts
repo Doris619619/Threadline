@@ -617,26 +617,32 @@ export class SupabaseWorkspaceRepository {
     }));
   }
 
-  /** 普通 append-only event insert；复合状态流转不得调用此方法。 */
+  /**
+   * 追加历史快照；created 事件以调用方稳定编号执行冲突忽略，补查恢复可补齐记录且不会改写已有事件。
+   * 其他事件保持严格 insert 契约；复合状态流转不得调用此方法。
+   */
   async appendHistory(event: HistoryEvent, task?: Task): Promise<void> {
-    assertResponse(
-      'append history',
-      await this.client
-        .from('history_events')
-        .insert({
-          id: event.id,
-          task_id: event.taskId ?? null,
-          daily_entry_id: event.dailyInstanceId ?? null,
-          event_type: event.type,
-          occurred_at: event.occurredAt,
-          payload: event.payload ?? {},
-          task_title_snapshot: task?.title ?? null,
-          project_id_snapshot: task?.projectId ?? null,
-          task_date_snapshot: task?.date ?? null,
-        })
-        .select()
-        .single(),
-    );
+    const row = {
+      id: event.id,
+      task_id: event.taskId ?? null,
+      daily_entry_id: event.dailyInstanceId ?? null,
+      event_type: event.type,
+      occurred_at: event.occurredAt,
+      payload: event.payload ?? {},
+      task_title_snapshot: task?.title ?? null,
+      project_id_snapshot: task?.projectId ?? null,
+      task_date_snapshot: task?.date ?? null,
+    };
+    const table = this.client.from('history_events');
+    if (event.type === 'created') {
+      // ON CONFLICT DO NOTHING 返回空数组也是成功，不能用 single() 把安全重试误报为失败。
+      assertResponse(
+        'append history',
+        await table.upsert(row, { onConflict: 'id', ignoreDuplicates: true }).select(),
+      );
+      return;
+    }
+    assertResponse('append history', await table.insert(row).select().single());
   }
 
   /** 查询每日收尾记录。 */
