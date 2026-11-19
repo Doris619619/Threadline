@@ -106,6 +106,8 @@ pnpm test:hig
 
 交互回归使用隔离 Preview 与本机模拟认证，不连接真实账号。本机未安装 Chrome 时，可设置 `$env:THREADLINE_HIG_BROWSER_CHANNEL='msedge'` 使用已安装的 Edge；默认使用 Playwright Chromium，覆盖七个宽度与 iPhone WebKit。验收范围与前后材料见[统一交互系统](docs/apple-interactions.md)。
 
+完整 HIG 矩阵包含 112 项。共享状态按四个主题分别运行，每例仍验证深浅两色的全部状态，并保持 180 秒上限；引导及其它行为断言不变。
+
 `test:preview` 与 `test:hig` 默认监听 `127.0.0.1:3103`；已有任务占用时，可先设置 `$env:THREADLINE_PREVIEW_PORT='32103'` 再执行同一命令。`test:e2e` 默认端口为 `3100`，通过 `THREADLINE_E2E_PORT` 覆写。两类 runner 都会在构建前和启动前检查端口，已占用即明确失败，不复用或终止其它服务；端口必须是 1–65535 的整数。
 
 Windows 开发使用 `pnpm desktop:dev`；构建、打包和完整验证命令见 [Windows 构建指南](docs/WINDOWS_BUILD.md) 与 [测试架构](docs/testing-architecture.md)。

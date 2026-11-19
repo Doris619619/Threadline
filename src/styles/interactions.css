@@ -129,7 +129,9 @@ html
     :not(:disabled)
   ),
 html :where(button, [role='menuitemradio'])[aria-checked='true']:where(:not(:disabled)),
-html :where(button, a[href])[aria-current='page']:where(:not(:disabled)) {
+html :where(button, a[href])[aria-current='page']:where(:not(:disabled)),
+/* 只限定导航，包括“更多”的聚合选中；不把环图的预览 is-active 当作选择。 */
+html :where(.tl-sidebar-item).is-active:where(:not(:disabled)) {
   background-color: var(--control-selected-bg, var(--interaction-selected)) !important;
   color: var(--control-state-ink, var(--text-primary)) !important;
 }

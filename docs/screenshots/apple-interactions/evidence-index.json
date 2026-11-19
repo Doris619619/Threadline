@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-19T06:30:12.979Z",
+  "generatedAt": "2026-11-19T08:01:53.222Z",
   "files": [
     {
       "file": "before/review-project-command-modal-desktop.png",
@@ -271,15 +271,15 @@
     {
       "file": "after/home-desktop.png",
       "label": "首页桌面",
-      "source": ".impeccable/review/desktop.png",
-      "sha256": "330de37770ec11d873fdd8060a9e46db9ff982c223ff3ea4e7876e87cf86b05e",
+      "source": ".impeccable/review/functional-update/desktop.png",
+      "sha256": "81112d031e8b98701a91d41edbd9283a3b5da2a9914c61bc5daf1077c257fc83",
       "image": {
         "width": 1280,
         "height": 2185
       },
       "capture": {
         "file": "desktop.png",
-        "fixture": "production-preview",
+        "fixture": "production-preview-functional-update",
         "module": "home",
         "scope": "page",
         "captureMethod": "Playwright.screenshot",
@@ -297,21 +297,51 @@
           "width": 1280,
           "height": 2185
         },
-        "copiedFrom": "home-desktop-blue-light.png"
+        "copiedFrom": "home-desktop-blue-light.png",
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z",
+      "previousEvidence": {
+        "source": ".impeccable/review/desktop.png",
+        "sha256": "330de37770ec11d873fdd8060a9e46db9ff982c223ff3ea4e7876e87cf86b05e",
+        "capture": {
+          "file": "desktop.png",
+          "fixture": "production-preview",
+          "module": "home",
+          "scope": "page",
+          "captureMethod": "Playwright.screenshot",
+          "fixedTime": "2026-11-19T04:00:00Z",
+          "url": "http://127.0.0.1:32103/",
+          "viewport": {
+            "width": 1280,
+            "height": 900,
+            "deviceScaleFactor": 1
+          },
+          "theme": "blue",
+          "colorScheme": "light",
+          "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅2026-11-19　周",
+          "image": {
+            "width": 1280,
+            "height": 2185
+          },
+          "copiedFrom": "home-desktop-blue-light.png"
+        },
+        "captureBatchStartedAt": "2026-11-19T06:27:03.603Z",
+        "note": "原始PNG仍保留在首批.impeccable/review目录；84项原manifest未改写。"
       }
     },
     {
       "file": "after/home-mobile.png",
       "label": "首页手机",
-      "source": ".impeccable/review/mobile.png",
-      "sha256": "4af094d6c984833f30b788e7f8eaba1ecebf8789e5e05b7459510642afe53b2c",
+      "source": ".impeccable/review/functional-update/mobile.png",
+      "sha256": "3c5c922e0d76ced445d2adb9fc845e0aecf595d1ad666b954be3299f08bfe10e",
       "image": {
         "width": 390,
         "height": 3800
       },
       "capture": {
         "file": "mobile.png",
-        "fixture": "production-preview",
+        "fixture": "production-preview-functional-update",
         "module": "home",
         "scope": "page",
         "captureMethod": "Playwright.screenshot",
@@ -329,21 +359,51 @@
           "width": 390,
           "height": 3800
         },
-        "copiedFrom": "home-mobile-blue-light.png"
+        "copiedFrom": "home-mobile-blue-light.png",
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z",
+      "previousEvidence": {
+        "source": ".impeccable/review/mobile.png",
+        "sha256": "4af094d6c984833f30b788e7f8eaba1ecebf8789e5e05b7459510642afe53b2c",
+        "capture": {
+          "file": "mobile.png",
+          "fixture": "production-preview",
+          "module": "home",
+          "scope": "page",
+          "captureMethod": "Playwright.screenshot",
+          "fixedTime": "2026-11-19T04:00:00Z",
+          "url": "http://127.0.0.1:32103/",
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "deviceScaleFactor": 1
+          },
+          "theme": "blue",
+          "colorScheme": "light",
+          "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅2026-11-19　周",
+          "image": {
+            "width": 390,
+            "height": 3800
+          },
+          "copiedFrom": "home-mobile-blue-light.png"
+        },
+        "captureBatchStartedAt": "2026-11-19T06:27:03.603Z",
+        "note": "原始PNG仍保留在首批.impeccable/review目录；84项原manifest未改写。"
       }
     },
     {
       "file": "after/keyboard-focus-desktop.png",
       "label": "首页键盘焦点",
-      "source": ".impeccable/review/home-keyboard-focus-desktop-blue-light.png",
-      "sha256": "7434f2dc066a5298f736aece0edf48a53009e29c8cf1e9f17a6b4d42f69c0a5d",
+      "source": ".impeccable/review/functional-update/home-keyboard-focus-desktop-blue-light.png",
+      "sha256": "d1cb173725ea20e668de2279c66a18c4c5149939ecfa901bf53d6a3399676047",
       "image": {
         "width": 1280,
         "height": 2185
       },
       "capture": {
         "file": "home-keyboard-focus-desktop-blue-light.png",
-        "fixture": "production-preview",
+        "fixture": "production-preview-functional-update",
         "module": "home-keyboard-focus",
         "scope": "page",
         "captureMethod": "Playwright.screenshot",
@@ -360,21 +420,50 @@
         "image": {
           "width": 1280,
           "height": 2185
-        }
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z",
+      "previousEvidence": {
+        "source": ".impeccable/review/home-keyboard-focus-desktop-blue-light.png",
+        "sha256": "7434f2dc066a5298f736aece0edf48a53009e29c8cf1e9f17a6b4d42f69c0a5d",
+        "capture": {
+          "file": "home-keyboard-focus-desktop-blue-light.png",
+          "fixture": "production-preview",
+          "module": "home-keyboard-focus",
+          "scope": "page",
+          "captureMethod": "Playwright.screenshot",
+          "fixedTime": "2026-11-19T04:00:00Z",
+          "url": "http://127.0.0.1:32103/",
+          "viewport": {
+            "width": 1280,
+            "height": 900,
+            "deviceScaleFactor": 1
+          },
+          "theme": "blue",
+          "colorScheme": "light",
+          "focus": "结束今天",
+          "image": {
+            "width": 1280,
+            "height": 2185
+          }
+        },
+        "captureBatchStartedAt": "2026-11-19T06:27:03.603Z",
+        "note": "原始PNG仍保留在首批.impeccable/review目录；84项原manifest未改写。"
       }
     },
     {
       "file": "after/keyboard-focus-mobile.png",
       "label": "手机键盘焦点",
-      "source": ".impeccable/review/home-keyboard-focus-mobile-blue-light.png",
-      "sha256": "2973fc1a363a414a033997985aaf9462d71ceebb0197eb7c5578db20afe6911e",
+      "source": ".impeccable/review/functional-update/home-keyboard-focus-mobile-blue-light.png",
+      "sha256": "406f81f83745c6df8ee69368bad090203169297d94d0228188f0a52b4a943001",
       "image": {
         "width": 390,
         "height": 3800
       },
       "capture": {
         "file": "home-keyboard-focus-mobile-blue-light.png",
-        "fixture": "production-preview",
+        "fixture": "production-preview-functional-update",
         "module": "home-keyboard-focus",
         "scope": "page",
         "captureMethod": "Playwright.screenshot",
@@ -391,7 +480,36 @@
         "image": {
           "width": 390,
           "height": 3800
-        }
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z",
+      "previousEvidence": {
+        "source": ".impeccable/review/home-keyboard-focus-mobile-blue-light.png",
+        "sha256": "2973fc1a363a414a033997985aaf9462d71ceebb0197eb7c5578db20afe6911e",
+        "capture": {
+          "file": "home-keyboard-focus-mobile-blue-light.png",
+          "fixture": "production-preview",
+          "module": "home-keyboard-focus",
+          "scope": "page",
+          "captureMethod": "Playwright.screenshot",
+          "fixedTime": "2026-11-19T04:00:00Z",
+          "url": "http://127.0.0.1:32103/",
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "deviceScaleFactor": 1
+          },
+          "theme": "blue",
+          "colorScheme": "light",
+          "focus": "结束今天",
+          "image": {
+            "width": 390,
+            "height": 3800
+          }
+        },
+        "captureBatchStartedAt": "2026-11-19T06:27:03.603Z",
+        "note": "原始PNG仍保留在首批.impeccable/review目录；84项原manifest未改写。"
       }
     },
     {
@@ -893,15 +1011,15 @@
     {
       "file": "after/settings-mobile.png",
       "label": "设置",
-      "source": ".impeccable/review/settings-mobile-blue-light.png",
-      "sha256": "30d215b134603e8a1cb8ea70d270ddde586f8d99b0e914e5cd3c51c876f3eba2",
+      "source": ".impeccable/review/functional-update/settings-mobile-blue-light.png",
+      "sha256": "dcc0339b1c0fa3197565b8931f92290f4047781e8beb744c0adf4fdf21a53eb9",
       "image": {
         "width": 390,
         "height": 844
       },
       "capture": {
         "file": "settings-mobile-blue-light.png",
-        "fixture": "production-preview",
+        "fixture": "production-preview-settings-row-fix",
         "module": "settings",
         "scope": "page",
         "captureMethod": "Playwright.screenshot",
@@ -918,7 +1036,36 @@
         "image": {
           "width": 390,
           "height": 844
-        }
+        },
+        "captureBatchStartedAt": "2026-11-19T08:01:32.399Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T08:01:32.399Z",
+      "previousEvidence": {
+        "source": ".impeccable/review/settings-mobile-blue-light.png",
+        "sha256": "30d215b134603e8a1cb8ea70d270ddde586f8d99b0e914e5cd3c51c876f3eba2",
+        "capture": {
+          "file": "settings-mobile-blue-light.png",
+          "fixture": "production-preview",
+          "module": "settings",
+          "scope": "page",
+          "captureMethod": "Playwright.screenshot",
+          "fixedTime": "2026-11-19T04:00:00Z",
+          "url": "http://127.0.0.1:32103/",
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "deviceScaleFactor": 1
+          },
+          "theme": "blue",
+          "colorScheme": "light",
+          "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多设置通用个人资料女生外观日期与时",
+          "image": {
+            "width": 390,
+            "height": 844
+          }
+        },
+        "captureBatchStartedAt": "2026-11-19T06:27:03.603Z",
+        "note": "原始PNG仍保留在首批.impeccable/review目录；84项原manifest未改写。"
       }
     },
     {
@@ -986,15 +1133,15 @@
     {
       "file": "after/timers-mobile.png",
       "label": "三条暂停计时",
-      "source": ".impeccable/review/timers-mobile-blue-light.png",
-      "sha256": "b0ac07c285a1f0ee7f6a0b14befd1a56989b58e54691b824fcdc1be2d155ae06",
+      "source": ".impeccable/review/functional-update/timers-mobile-blue-light.png",
+      "sha256": "d4cce4cb627b40e3c6ab135654c1fe929d8e08c47f155995a43120a69abf9631",
       "image": {
         "width": 390,
         "height": 4085
       },
       "capture": {
         "file": "timers-mobile-blue-light.png",
-        "fixture": "production-preview",
+        "fixture": "production-preview-functional-update",
         "module": "task-timers",
         "scope": "page",
         "captureMethod": "Playwright.screenshot",
@@ -1011,7 +1158,36 @@
         "image": {
           "width": 390,
           "height": 4085
-        }
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z",
+      "previousEvidence": {
+        "source": ".impeccable/review/timers-mobile-blue-light.png",
+        "sha256": "b0ac07c285a1f0ee7f6a0b14befd1a56989b58e54691b824fcdc1be2d155ae06",
+        "capture": {
+          "file": "timers-mobile-blue-light.png",
+          "fixture": "production-preview",
+          "module": "task-timers",
+          "scope": "page",
+          "captureMethod": "Playwright.screenshot",
+          "fixedTime": "2026-11-19T04:00:00Z",
+          "url": "http://127.0.0.1:32103/",
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "deviceScaleFactor": 1
+          },
+          "theme": "blue",
+          "colorScheme": "light",
+          "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅整理这段时间的课程资料与",
+          "image": {
+            "width": 390,
+            "height": 4085
+          }
+        },
+        "captureBatchStartedAt": "2026-11-19T06:27:03.603Z",
+        "note": "原始PNG仍保留在首批.impeccable/review目录；84项原manifest未改写。"
       }
     },
     {
@@ -1203,8 +1379,8 @@
     {
       "file": "after/onboarding-cottage-dark-desktop.png",
       "label": "引导深绿操作键盘焦点",
-      "source": ".impeccable/review/onboarding-desktop-cottage-dark.png",
-      "sha256": "da39f3a5e47e41619b8faba09e576288a631767306bd05103d9d282871fcd081",
+      "source": ".impeccable/review/functional-update/onboarding-desktop-cottage-dark.png",
+      "sha256": "cfe0858d4afbbb85b16b672841d6191709ff67df2238a6efef3d077fa63397eb",
       "image": {
         "width": 1280,
         "height": 900
@@ -1228,14 +1404,43 @@
         "image": {
           "width": 1280,
           "height": 900
-        }
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z",
+      "previousEvidence": {
+        "source": ".impeccable/review/onboarding-desktop-cottage-dark.png",
+        "sha256": "da39f3a5e47e41619b8faba09e576288a631767306bd05103d9d282871fcd081",
+        "capture": {
+          "file": "onboarding-desktop-cottage-dark.png",
+          "fixture": "production-preview",
+          "module": "onboarding",
+          "scope": "page",
+          "captureMethod": "Playwright.screenshot",
+          "fixedTime": "2026-11-19T04:00:00Z",
+          "url": "http://127.0.0.1:32103/",
+          "viewport": {
+            "width": 1280,
+            "height": 900,
+            "deviceScaleFactor": 1
+          },
+          "theme": "cottage",
+          "colorScheme": "dark",
+          "focus": "继续",
+          "image": {
+            "width": 1280,
+            "height": 900
+          }
+        },
+        "captureBatchStartedAt": "2026-11-19T06:27:03.603Z",
+        "note": "原始PNG仍保留在首批.impeccable/review目录；84项原manifest未改写。"
       }
     },
     {
       "file": "after/onboarding-blue-light-desktop.png",
       "label": "无重复眉题的引导桌面",
-      "source": ".impeccable/review/onboarding-desktop-blue-light.png",
-      "sha256": "7aa80f9cb7c6bd685aa0267376eef0a9792fecb82fb552c7682530992bcaef5f",
+      "source": ".impeccable/review/functional-update/onboarding-desktop-blue-light.png",
+      "sha256": "cc2fec1b2d54f6d03191f578c216de2f70024b12cd12b9daac42f4529e62fac6",
       "image": {
         "width": 1280,
         "height": 900
@@ -1259,14 +1464,43 @@
         "image": {
           "width": 1280,
           "height": 900
-        }
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z",
+      "previousEvidence": {
+        "source": ".impeccable/review/onboarding-desktop-blue-light.png",
+        "sha256": "7aa80f9cb7c6bd685aa0267376eef0a9792fecb82fb552c7682530992bcaef5f",
+        "capture": {
+          "file": "onboarding-desktop-blue-light.png",
+          "fixture": "production-preview",
+          "module": "onboarding",
+          "scope": "page",
+          "captureMethod": "Playwright.screenshot",
+          "fixedTime": "2026-11-19T04:00:00Z",
+          "url": "http://127.0.0.1:32103/",
+          "viewport": {
+            "width": 1280,
+            "height": 900,
+            "deviceScaleFactor": 1
+          },
+          "theme": "blue",
+          "colorScheme": "light",
+          "focus": "继续",
+          "image": {
+            "width": 1280,
+            "height": 900
+          }
+        },
+        "captureBatchStartedAt": "2026-11-19T06:27:03.603Z",
+        "note": "原始PNG仍保留在首批.impeccable/review目录；84项原manifest未改写。"
       }
     },
     {
       "file": "after/onboarding-blue-light-mobile.png",
       "label": "无重复眉题的引导手机",
-      "source": ".impeccable/review/onboarding-mobile-blue-light.png",
-      "sha256": "78ed229eccb106eaf5d85b5282b3dcf5159bbee5cfe0a58cf95561b195831484",
+      "source": ".impeccable/review/functional-update/onboarding-mobile-blue-light.png",
+      "sha256": "4029b068cb8d730a05005ca6e13f26e0e1f8392190c8ad3a80f5562ce77471e2",
       "image": {
         "width": 390,
         "height": 844
@@ -1290,21 +1524,50 @@
         "image": {
           "width": 390,
           "height": 844
-        }
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z",
+      "previousEvidence": {
+        "source": ".impeccable/review/onboarding-mobile-blue-light.png",
+        "sha256": "78ed229eccb106eaf5d85b5282b3dcf5159bbee5cfe0a58cf95561b195831484",
+        "capture": {
+          "file": "onboarding-mobile-blue-light.png",
+          "fixture": "production-preview",
+          "module": "onboarding",
+          "scope": "page",
+          "captureMethod": "Playwright.screenshot",
+          "fixedTime": "2026-11-19T04:00:00Z",
+          "url": "http://127.0.0.1:32103/",
+          "viewport": {
+            "width": 390,
+            "height": 844,
+            "deviceScaleFactor": 1
+          },
+          "theme": "blue",
+          "colorScheme": "light",
+          "focus": "继续",
+          "image": {
+            "width": 390,
+            "height": 844
+          }
+        },
+        "captureBatchStartedAt": "2026-11-19T06:27:03.603Z",
+        "note": "原始PNG仍保留在首批.impeccable/review目录；84项原manifest未改写。"
       }
     },
     {
       "file": "themes/theme-desktop-blue-light.png",
       "label": "blue/light",
-      "source": ".impeccable/review/theme-desktop-blue-light.png",
-      "sha256": "1ba959b036f6052f598d26dc84089a20280532a4ef05754ee09ef55646ac7f1b",
+      "source": ".impeccable/review/functional-update/theme-desktop-blue-light.png",
+      "sha256": "81112d031e8b98701a91d41edbd9283a3b5da2a9914c61bc5daf1077c257fc83",
       "image": {
         "width": 1280,
         "height": 2185
       },
       "capture": {
         "file": "theme-desktop-blue-light.png",
-        "fixture": "production-preview",
+        "fixture": "production-preview-functional-update",
         "module": "theme-representative",
         "scope": "page",
         "captureMethod": "Playwright.screenshot",
@@ -1317,25 +1580,54 @@
         },
         "theme": "blue",
         "colorScheme": "light",
-        "focus": "首页",
+        "focus": "选择模式",
         "image": {
           "width": 1280,
           "height": 2185
-        }
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z",
+      "previousEvidence": {
+        "source": ".impeccable/review/theme-desktop-blue-light.png",
+        "sha256": "1ba959b036f6052f598d26dc84089a20280532a4ef05754ee09ef55646ac7f1b",
+        "capture": {
+          "file": "theme-desktop-blue-light.png",
+          "fixture": "production-preview",
+          "module": "theme-representative",
+          "scope": "page",
+          "captureMethod": "Playwright.screenshot",
+          "fixedTime": "2026-11-19T04:00:00Z",
+          "url": "http://127.0.0.1:32103/",
+          "viewport": {
+            "width": 1280,
+            "height": 900,
+            "deviceScaleFactor": 1
+          },
+          "theme": "blue",
+          "colorScheme": "light",
+          "focus": "首页",
+          "image": {
+            "width": 1280,
+            "height": 2185
+          }
+        },
+        "captureBatchStartedAt": "2026-11-19T06:27:03.603Z",
+        "note": "原始PNG仍保留在首批.impeccable/review目录；84项原manifest未改写。"
       }
     },
     {
       "file": "themes/theme-desktop-blue-dark.png",
       "label": "blue/dark",
-      "source": ".impeccable/review/theme-desktop-blue-dark.png",
-      "sha256": "1daad13c5c4dc5af41efcd5b29c3edbfe23832b1c2bd0d0ae26b68c4945de89c",
+      "source": ".impeccable/review/functional-update/theme-desktop-blue-dark.png",
+      "sha256": "0bc75e4df417c50bc26acc90bf2f82eee0b1403b4759b295713804bb0529a0dd",
       "image": {
         "width": 1280,
         "height": 2185
       },
       "capture": {
         "file": "theme-desktop-blue-dark.png",
-        "fixture": "production-preview",
+        "fixture": "production-preview-functional-update",
         "module": "theme-representative",
         "scope": "page",
         "captureMethod": "Playwright.screenshot",
@@ -1348,25 +1640,54 @@
         },
         "theme": "blue",
         "colorScheme": "dark",
-        "focus": "首页",
+        "focus": "选择模式",
         "image": {
           "width": 1280,
           "height": 2185
-        }
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z",
+      "previousEvidence": {
+        "source": ".impeccable/review/theme-desktop-blue-dark.png",
+        "sha256": "1daad13c5c4dc5af41efcd5b29c3edbfe23832b1c2bd0d0ae26b68c4945de89c",
+        "capture": {
+          "file": "theme-desktop-blue-dark.png",
+          "fixture": "production-preview",
+          "module": "theme-representative",
+          "scope": "page",
+          "captureMethod": "Playwright.screenshot",
+          "fixedTime": "2026-11-19T04:00:00Z",
+          "url": "http://127.0.0.1:32103/",
+          "viewport": {
+            "width": 1280,
+            "height": 900,
+            "deviceScaleFactor": 1
+          },
+          "theme": "blue",
+          "colorScheme": "dark",
+          "focus": "首页",
+          "image": {
+            "width": 1280,
+            "height": 2185
+          }
+        },
+        "captureBatchStartedAt": "2026-11-19T06:27:03.603Z",
+        "note": "原始PNG仍保留在首批.impeccable/review目录；84项原manifest未改写。"
       }
     },
     {
       "file": "themes/theme-desktop-anya-light.png",
       "label": "anya/light",
-      "source": ".impeccable/review/theme-desktop-anya-light.png",
-      "sha256": "77dd42dbf29a820a6f21c5bb14bc9b37301f0eec3de92b70870dbaa4b512c8ab",
+      "source": ".impeccable/review/functional-update/theme-desktop-anya-light.png",
+      "sha256": "4cfc1dc8fca62d3d2070983615aeadbb08fe11653378767feffa9cd3ff29342a",
       "image": {
         "width": 1280,
         "height": 2202
       },
       "capture": {
         "file": "theme-desktop-anya-light.png",
-        "fixture": "production-preview",
+        "fixture": "production-preview-functional-update",
         "module": "theme-representative",
         "scope": "page",
         "captureMethod": "Playwright.screenshot",
@@ -1379,25 +1700,54 @@
         },
         "theme": "anya",
         "colorScheme": "light",
-        "focus": "首页",
+        "focus": "选择模式",
         "image": {
           "width": 1280,
           "height": 2202
-        }
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z",
+      "previousEvidence": {
+        "source": ".impeccable/review/theme-desktop-anya-light.png",
+        "sha256": "77dd42dbf29a820a6f21c5bb14bc9b37301f0eec3de92b70870dbaa4b512c8ab",
+        "capture": {
+          "file": "theme-desktop-anya-light.png",
+          "fixture": "production-preview",
+          "module": "theme-representative",
+          "scope": "page",
+          "captureMethod": "Playwright.screenshot",
+          "fixedTime": "2026-11-19T04:00:00Z",
+          "url": "http://127.0.0.1:32103/",
+          "viewport": {
+            "width": 1280,
+            "height": 900,
+            "deviceScaleFactor": 1
+          },
+          "theme": "anya",
+          "colorScheme": "light",
+          "focus": "首页",
+          "image": {
+            "width": 1280,
+            "height": 2202
+          }
+        },
+        "captureBatchStartedAt": "2026-11-19T06:27:03.603Z",
+        "note": "原始PNG仍保留在首批.impeccable/review目录；84项原manifest未改写。"
       }
     },
     {
       "file": "themes/theme-desktop-anya-dark.png",
       "label": "anya/dark",
-      "source": ".impeccable/review/theme-desktop-anya-dark.png",
-      "sha256": "398544a223e38140fc8007d9ea23fbb93d2004effe2ea429e29960ba5eb9addd",
+      "source": ".impeccable/review/functional-update/theme-desktop-anya-dark.png",
+      "sha256": "7bf3d0ddbd896e11ba7aa9e57655ce4414446eac72d466faa820cc05a8ec0fbf",
       "image": {
         "width": 1280,
         "height": 2202
       },
       "capture": {
         "file": "theme-desktop-anya-dark.png",
-        "fixture": "production-preview",
+        "fixture": "production-preview-functional-update",
         "module": "theme-representative",
         "scope": "page",
         "captureMethod": "Playwright.screenshot",
@@ -1410,25 +1760,54 @@
         },
         "theme": "anya",
         "colorScheme": "dark",
-        "focus": "首页",
+        "focus": "选择模式",
         "image": {
           "width": 1280,
           "height": 2202
-        }
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z",
+      "previousEvidence": {
+        "source": ".impeccable/review/theme-desktop-anya-dark.png",
+        "sha256": "398544a223e38140fc8007d9ea23fbb93d2004effe2ea429e29960ba5eb9addd",
+        "capture": {
+          "file": "theme-desktop-anya-dark.png",
+          "fixture": "production-preview",
+          "module": "theme-representative",
+          "scope": "page",
+          "captureMethod": "Playwright.screenshot",
+          "fixedTime": "2026-11-19T04:00:00Z",
+          "url": "http://127.0.0.1:32103/",
+          "viewport": {
+            "width": 1280,
+            "height": 900,
+            "deviceScaleFactor": 1
+          },
+          "theme": "anya",
+          "colorScheme": "dark",
+          "focus": "首页",
+          "image": {
+            "width": 1280,
+            "height": 2202
+          }
+        },
+        "captureBatchStartedAt": "2026-11-19T06:27:03.603Z",
+        "note": "原始PNG仍保留在首批.impeccable/review目录；84项原manifest未改写。"
       }
     },
     {
       "file": "themes/theme-desktop-cottage-light.png",
       "label": "cottage/light",
-      "source": ".impeccable/review/theme-desktop-cottage-light.png",
-      "sha256": "724ea102f4012e57793a4f0024954e777dd7a27ef1af59095563e7ed1aa053ef",
+      "source": ".impeccable/review/functional-update/theme-desktop-cottage-light.png",
+      "sha256": "6d6e8145d8dc3eb20c9db85e87850b6f2f38ab74c321e9378c805be2ff4e074a",
       "image": {
         "width": 1280,
         "height": 2187
       },
       "capture": {
         "file": "theme-desktop-cottage-light.png",
-        "fixture": "production-preview",
+        "fixture": "production-preview-functional-update",
         "module": "theme-representative",
         "scope": "page",
         "captureMethod": "Playwright.screenshot",
@@ -1441,25 +1820,54 @@
         },
         "theme": "cottage",
         "colorScheme": "light",
-        "focus": "首页",
+        "focus": "选择模式",
         "image": {
           "width": 1280,
           "height": 2187
-        }
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z",
+      "previousEvidence": {
+        "source": ".impeccable/review/theme-desktop-cottage-light.png",
+        "sha256": "724ea102f4012e57793a4f0024954e777dd7a27ef1af59095563e7ed1aa053ef",
+        "capture": {
+          "file": "theme-desktop-cottage-light.png",
+          "fixture": "production-preview",
+          "module": "theme-representative",
+          "scope": "page",
+          "captureMethod": "Playwright.screenshot",
+          "fixedTime": "2026-11-19T04:00:00Z",
+          "url": "http://127.0.0.1:32103/",
+          "viewport": {
+            "width": 1280,
+            "height": 900,
+            "deviceScaleFactor": 1
+          },
+          "theme": "cottage",
+          "colorScheme": "light",
+          "focus": "首页",
+          "image": {
+            "width": 1280,
+            "height": 2187
+          }
+        },
+        "captureBatchStartedAt": "2026-11-19T06:27:03.603Z",
+        "note": "原始PNG仍保留在首批.impeccable/review目录；84项原manifest未改写。"
       }
     },
     {
       "file": "themes/theme-desktop-cottage-dark.png",
       "label": "cottage/dark",
-      "source": ".impeccable/review/theme-desktop-cottage-dark.png",
-      "sha256": "03c78d44a6d4a1a4d95214b904c9fc283004328708130efa18879dd160b2fcfe",
+      "source": ".impeccable/review/functional-update/theme-desktop-cottage-dark.png",
+      "sha256": "9e0cc2b9a3ce3f6bc3605ba57d9e988cab76f53bae9c7642395e372db991dc61",
       "image": {
         "width": 1280,
         "height": 2187
       },
       "capture": {
         "file": "theme-desktop-cottage-dark.png",
-        "fixture": "production-preview",
+        "fixture": "production-preview-functional-update",
         "module": "theme-representative",
         "scope": "page",
         "captureMethod": "Playwright.screenshot",
@@ -1472,25 +1880,54 @@
         },
         "theme": "cottage",
         "colorScheme": "dark",
-        "focus": "首页",
+        "focus": "选择模式",
         "image": {
           "width": 1280,
           "height": 2187
-        }
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z",
+      "previousEvidence": {
+        "source": ".impeccable/review/theme-desktop-cottage-dark.png",
+        "sha256": "03c78d44a6d4a1a4d95214b904c9fc283004328708130efa18879dd160b2fcfe",
+        "capture": {
+          "file": "theme-desktop-cottage-dark.png",
+          "fixture": "production-preview",
+          "module": "theme-representative",
+          "scope": "page",
+          "captureMethod": "Playwright.screenshot",
+          "fixedTime": "2026-11-19T04:00:00Z",
+          "url": "http://127.0.0.1:32103/",
+          "viewport": {
+            "width": 1280,
+            "height": 900,
+            "deviceScaleFactor": 1
+          },
+          "theme": "cottage",
+          "colorScheme": "dark",
+          "focus": "首页",
+          "image": {
+            "width": 1280,
+            "height": 2187
+          }
+        },
+        "captureBatchStartedAt": "2026-11-19T06:27:03.603Z",
+        "note": "原始PNG仍保留在首批.impeccable/review目录；84项原manifest未改写。"
       }
     },
     {
       "file": "themes/theme-desktop-classic-light.png",
       "label": "classic/light",
-      "source": ".impeccable/review/theme-desktop-classic-light.png",
-      "sha256": "5bbbdd7ec4059826b0be4aceaae1def0550c87db604ce4a4e24689e1267eb3a9",
+      "source": ".impeccable/review/functional-update/theme-desktop-classic-light.png",
+      "sha256": "9f0092d94e41cc1eb8f1308b3ae4b6bbd81899582ce5996a9d2d3715147b45fd",
       "image": {
         "width": 1280,
         "height": 2306
       },
       "capture": {
         "file": "theme-desktop-classic-light.png",
-        "fixture": "production-preview",
+        "fixture": "production-preview-functional-update",
         "module": "theme-representative",
         "scope": "page",
         "captureMethod": "Playwright.screenshot",
@@ -1503,25 +1940,54 @@
         },
         "theme": "classic",
         "colorScheme": "light",
-        "focus": "首页",
+        "focus": "选择模式",
         "image": {
           "width": 1280,
           "height": 2306
-        }
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z",
+      "previousEvidence": {
+        "source": ".impeccable/review/theme-desktop-classic-light.png",
+        "sha256": "5bbbdd7ec4059826b0be4aceaae1def0550c87db604ce4a4e24689e1267eb3a9",
+        "capture": {
+          "file": "theme-desktop-classic-light.png",
+          "fixture": "production-preview",
+          "module": "theme-representative",
+          "scope": "page",
+          "captureMethod": "Playwright.screenshot",
+          "fixedTime": "2026-11-19T04:00:00Z",
+          "url": "http://127.0.0.1:32103/",
+          "viewport": {
+            "width": 1280,
+            "height": 900,
+            "deviceScaleFactor": 1
+          },
+          "theme": "classic",
+          "colorScheme": "light",
+          "focus": "首页",
+          "image": {
+            "width": 1280,
+            "height": 2306
+          }
+        },
+        "captureBatchStartedAt": "2026-11-19T06:27:03.603Z",
+        "note": "原始PNG仍保留在首批.impeccable/review目录；84项原manifest未改写。"
       }
     },
     {
       "file": "themes/theme-desktop-classic-dark.png",
       "label": "classic/dark",
-      "source": ".impeccable/review/theme-desktop-classic-dark.png",
-      "sha256": "98ca6ae8658a24e9983aa171e05b404d79095f46bf7625810eab776fabd1554d",
+      "source": ".impeccable/review/functional-update/theme-desktop-classic-dark.png",
+      "sha256": "3b95f58f1650842d6713458c16a9b7dfaa9a25cb85d59fe65c9a4e9629deb23d",
       "image": {
         "width": 1280,
         "height": 2306
       },
       "capture": {
         "file": "theme-desktop-classic-dark.png",
-        "fixture": "production-preview",
+        "fixture": "production-preview-functional-update",
         "module": "theme-representative",
         "scope": "page",
         "captureMethod": "Playwright.screenshot",
@@ -1534,11 +2000,40 @@
         },
         "theme": "classic",
         "colorScheme": "dark",
-        "focus": "首页",
+        "focus": "选择模式",
         "image": {
           "width": 1280,
           "height": 2306
-        }
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z",
+      "previousEvidence": {
+        "source": ".impeccable/review/theme-desktop-classic-dark.png",
+        "sha256": "98ca6ae8658a24e9983aa171e05b404d79095f46bf7625810eab776fabd1554d",
+        "capture": {
+          "file": "theme-desktop-classic-dark.png",
+          "fixture": "production-preview",
+          "module": "theme-representative",
+          "scope": "page",
+          "captureMethod": "Playwright.screenshot",
+          "fixedTime": "2026-11-19T04:00:00Z",
+          "url": "http://127.0.0.1:32103/",
+          "viewport": {
+            "width": 1280,
+            "height": 900,
+            "deviceScaleFactor": 1
+          },
+          "theme": "classic",
+          "colorScheme": "dark",
+          "focus": "首页",
+          "image": {
+            "width": 1280,
+            "height": 2306
+          }
+        },
+        "captureBatchStartedAt": "2026-11-19T06:27:03.603Z",
+        "note": "原始PNG仍保留在首批.impeccable/review目录；84项原manifest未改写。"
       }
     },
     {
@@ -2205,7 +2700,459 @@
         "width": 2500,
         "height": 1500
       }
+    },
+    {
+      "file": "after/home-current-navigation-hover-desktop-blue-light.png",
+      "label": "已知功能回归修复：current-navigation-hover",
+      "source": ".impeccable/review/functional-update/home-current-navigation-hover-desktop-blue-light.png",
+      "sha256": "9db5c1f57d1a1ccad8591bc7c0204263199dce354813f3d5f729ae42ad7f2bfd",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "home-current-navigation-hover-desktop-blue-light.png",
+        "fixture": "production-preview-functional-update",
+        "module": "current-navigation-hover",
+        "scope": "viewport",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅2026-11-19　周",
+        "image": {
+          "width": 1280,
+          "height": 900
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "after/home-current-navigation-focus-desktop-blue-light.png",
+      "label": "已知功能回归修复：current-navigation-focus",
+      "source": ".impeccable/review/functional-update/home-current-navigation-focus-desktop-blue-light.png",
+      "sha256": "0c9ec9ac1244ea81458a04b8cf05a1d547641455d497bbf0bdaad526564d6488",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "home-current-navigation-focus-desktop-blue-light.png",
+        "fixture": "production-preview-functional-update",
+        "module": "current-navigation-focus",
+        "scope": "viewport",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "首页",
+        "image": {
+          "width": 1280,
+          "height": 900
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "after/home-annotation-selected-desktop-blue-light.png",
+      "label": "已知功能回归修复：annotation-selected",
+      "source": ".impeccable/review/functional-update/home-annotation-selected-desktop-blue-light.png",
+      "sha256": "6806bf3a9ad999d56474bc1cba6614327ad3a3bed65776c0b679bee676619e8f",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "home-annotation-selected-desktop-blue-light.png",
+        "fixture": "production-preview-functional-update",
+        "module": "annotation-selected",
+        "scope": "viewport",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "荧光笔",
+        "image": {
+          "width": 1280,
+          "height": 900
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "after/settings-theme-selected-desktop-blue-light.png",
+      "label": "已知功能回归修复：appearance-theme-selected",
+      "source": ".impeccable/review/functional-update/settings-theme-selected-desktop-blue-light.png",
+      "sha256": "8078f05b0402fcea50df9d704c4791666e5d31b547a2447745f21f78baaf8096",
+      "image": {
+        "width": 1280,
+        "height": 1315
+      },
+      "capture": {
+        "file": "settings-theme-selected-desktop-blue-light.png",
+        "fixture": "production-preview-functional-update",
+        "module": "appearance-theme-selected",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多 设置外观让工作台更像你。主题与",
+        "image": {
+          "width": 1280,
+          "height": 1315
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "after/settings-font-focus-desktop-blue-light.png",
+      "label": "已知功能回归修复：appearance-font-focus",
+      "source": ".impeccable/review/functional-update/settings-font-focus-desktop-blue-light.png",
+      "sha256": "6d28d66655d85ad37f56682f7bf174c5ded508605e50528efa7d12273318ec58",
+      "image": {
+        "width": 1280,
+        "height": 1315
+      },
+      "capture": {
+        "file": "settings-font-focus-desktop-blue-light.png",
+        "fixture": "production-preview-functional-update",
+        "module": "appearance-font-focus",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "默认字体把时间留给重要的事Threadline · 09:30 · 2026",
+        "image": {
+          "width": 1280,
+          "height": 1315
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "after/timers-expired-desktop-blue-light.png",
+      "label": "已知功能回归修复：expired-countdown-extension",
+      "source": ".impeccable/review/functional-update/timers-expired-desktop-blue-light.png",
+      "sha256": "da8f48f35be6ae370472fe19e4625bc3d9bdf2bf72fc2547b40a29e66562eb9b",
+      "image": {
+        "width": 1280,
+        "height": 2227
+      },
+      "capture": {
+        "file": "timers-expired-desktop-blue-light.png",
+        "fixture": "production-preview-functional-update",
+        "module": "expired-countdown-extension",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅整理这段时间的课程资料与",
+        "image": {
+          "width": 1280,
+          "height": 2227
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "after/home-current-navigation-hover-mobile-blue-light.png",
+      "label": "已知功能回归修复：current-navigation-hover",
+      "source": ".impeccable/review/functional-update/home-current-navigation-hover-mobile-blue-light.png",
+      "sha256": "2c84f264f7cc69a681f58815a8608cafd6febe0add5e358e82d5481b3d53a2e9",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": {
+        "file": "home-current-navigation-hover-mobile-blue-light.png",
+        "fixture": "production-preview-functional-update",
+        "module": "current-navigation-hover",
+        "scope": "viewport",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅2026-11-19　周",
+        "image": {
+          "width": 390,
+          "height": 844
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "after/home-current-navigation-focus-mobile-blue-light.png",
+      "label": "已知功能回归修复：current-navigation-focus",
+      "source": ".impeccable/review/functional-update/home-current-navigation-focus-mobile-blue-light.png",
+      "sha256": "5ef7baccd5e03d7baa811abb9dfd6cef813401cb2bbc2912aacf3c6015d184cb",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": {
+        "file": "home-current-navigation-focus-mobile-blue-light.png",
+        "fixture": "production-preview-functional-update",
+        "module": "current-navigation-focus",
+        "scope": "viewport",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "首页",
+        "image": {
+          "width": 390,
+          "height": 844
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "after/settings-theme-selected-mobile-blue-light.png",
+      "label": "已知功能回归修复：appearance-theme-selected",
+      "source": ".impeccable/review/functional-update/settings-theme-selected-mobile-blue-light.png",
+      "sha256": "5e72250063bd9dfe2abc03258f0be6c8598d34e1d805df8c3480fa0bd46792fa",
+      "image": {
+        "width": 390,
+        "height": 1430
+      },
+      "capture": {
+        "file": "settings-theme-selected-mobile-blue-light.png",
+        "fixture": "production-preview-functional-update",
+        "module": "appearance-theme-selected",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多 设置外观让工作台更像你。主题与",
+        "image": {
+          "width": 390,
+          "height": 1430
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "after/settings-font-focus-mobile-blue-light.png",
+      "label": "已知功能回归修复：appearance-font-focus",
+      "source": ".impeccable/review/functional-update/settings-font-focus-mobile-blue-light.png",
+      "sha256": "834f5da7151d96e69113d26d3c886f71260305ab1ea787c78393d3256c86c581",
+      "image": {
+        "width": 390,
+        "height": 1430
+      },
+      "capture": {
+        "file": "settings-font-focus-mobile-blue-light.png",
+        "fixture": "production-preview-functional-update",
+        "module": "appearance-font-focus",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "默认字体把时间留给重要的事Threadline · 09:30 · 2026",
+        "image": {
+          "width": 390,
+          "height": 1430
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "after/timers-expired-mobile-blue-light.png",
+      "label": "已知功能回归修复：expired-countdown-extension",
+      "source": ".impeccable/review/functional-update/timers-expired-mobile-blue-light.png",
+      "sha256": "051d7ba3a3c586b854db71ab1bde598665f187e80fcc6373ee86dddc066cebf7",
+      "image": {
+        "width": 390,
+        "height": 4085
+      },
+      "capture": {
+        "file": "timers-expired-mobile-blue-light.png",
+        "fixture": "production-preview-functional-update",
+        "module": "expired-countdown-extension",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅整理这段时间的课程资料与",
+        "image": {
+          "width": 390,
+          "height": 4085
+        },
+        "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "after/settings-row-focus-desktop-blue-light.png",
+      "label": "已知功能回归修复：settings-row-keyboard-description",
+      "source": ".impeccable/review/functional-update/settings-row-focus-desktop-blue-light.png",
+      "sha256": "ba9d60751332b05bdb8e3cc2d8b21c4d598ee2f19c1bc4fce2623caee3670fc2",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "settings-row-focus-desktop-blue-light.png",
+        "fixture": "production-preview-settings-row-fix",
+        "module": "settings-row-keyboard-description",
+        "scope": "viewport",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "个人资料女生",
+        "image": {
+          "width": 1280,
+          "height": 900
+        },
+        "captureBatchStartedAt": "2026-11-19T08:01:32.399Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T08:01:32.399Z"
+    },
+    {
+      "file": "after/settings-row-focus-mobile-blue-light.png",
+      "label": "已知功能回归修复：settings-row-keyboard-description",
+      "source": ".impeccable/review/functional-update/settings-row-focus-mobile-blue-light.png",
+      "sha256": "a3a6fb6e867cd21d2e693e9d69891e637a9d4acd126b4cb620e866a7f7b63530",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": {
+        "file": "settings-row-focus-mobile-blue-light.png",
+        "fixture": "production-preview-settings-row-fix",
+        "module": "settings-row-keyboard-description",
+        "scope": "viewport",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "个人资料女生",
+        "image": {
+          "width": 390,
+          "height": 844
+        },
+        "captureBatchStartedAt": "2026-11-19T08:01:32.399Z"
+      },
+      "captureBatchStartedAt": "2026-11-19T08:01:32.399Z"
     }
   ],
-  "note": "所有PNG原样复制；before和既有计时站来源时间与本次生产截图不同，详见README。"
+  "note": "所有PNG原样复制；before和既有计时站来源时间与本次生产截图不同，详见README。",
+  "functionalUpdate": {
+    "manifest": "functional-update-manifest.json",
+    "generatedAt": "2026-11-19T07:55:09.817Z",
+    "previousCompleteBatchStartedAt": "2026-11-19T06:27:03.603Z",
+    "lastUpdatedAt": "2026-11-19T08:01:32.399Z",
+    "batches": [
+      {
+        "startedAt": "2026-11-19T07:55:09.817Z",
+        "captures": 45,
+        "errors": 0,
+        "note": "首次功能补拍；除两张设置概览外原图仍有效。"
+      },
+      {
+        "startedAt": "2026-11-19T08:01:32.399Z",
+        "captures": 4,
+        "errors": 0,
+        "note": "仅设置行小字继承修复后，覆盖两张概览并新增两张真实键盘焦点说明图。"
+      }
+    ],
+    "replaced": 17,
+    "added": 13,
+    "note": "定向功能补拍，不重跑不受影响的原生/Auth/Together截图；原84项完整清单原样保留。"
+  }
 }

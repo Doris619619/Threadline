@@ -133,6 +133,8 @@
   min-width: 40px;
   padding: 4px 6px;
   border-radius: var(--radius-control);
+  /* 到时后此处是小号文字，使用正文墨色，避免强调色与浅危险底色仅有临界对比。 */
+  color: var(--text-primary);
 }
 .task-timers button:disabled {
   opacity: 0.6;

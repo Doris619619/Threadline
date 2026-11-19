@@ -3,6 +3,7 @@
  */
 
 import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
+import { waitForFiniteAnimations } from './support/animations';
 import {
   bootstrapLocalAdapterWorkspace,
   openProjectCreateDialog,
@@ -220,11 +221,34 @@ test.describe('desktop task drag scheduling', () => {
     const scheduledTask = page.locator('.timeline-row').filter({ hasText: '邮件处理' });
     const dragHandle = scheduledTask.getByRole('button', { name: '拖动邮件处理' });
     await expect(dragHandle).toBeEnabled();
+    const tools = page.getByRole('group', { name: '批注工具', exact: true });
+    const selection = tools.getByRole('button', { name: '选择模式', exact: true });
+    const highlighter = tools.getByRole('button', { name: '荧光笔', exact: true });
+    const eraser = tools.getByRole('button', { name: '橡皮擦', exact: true });
+    await expect(selection).toHaveAttribute('aria-pressed', 'true');
 
-    await page.getByRole('button', { name: '荧光笔' }).click();
+    await highlighter.click();
     await expect(dragHandle).toBeDisabled();
+    await expect(highlighter).toHaveAttribute('aria-pressed', 'true');
+    await expect(selection).toHaveAttribute('aria-pressed', 'false');
+    await highlighter.blur();
+    await page.mouse.move(0, 0);
+    await waitForFiniteAnimations(page);
+    const selectedBackground = await highlighter.evaluate(
+      (node) => getComputedStyle(node).backgroundColor,
+    );
+    await highlighter.hover();
+    await waitForFiniteAnimations(page);
+    await expect(highlighter).toHaveCSS('background-color', selectedBackground);
+    await eraser.click();
+    await expect(eraser).toHaveAttribute('aria-pressed', 'true');
+    await expect(highlighter).toHaveAttribute('aria-pressed', 'false');
+    await expect(dragHandle).toBeDisabled();
+    await eraser.click();
+    await expect(selection).toHaveAttribute('aria-pressed', 'true');
+    await expect(dragHandle).toBeEnabled();
 
-    await page.getByRole('button', { name: '选择模式' }).click();
+    await selection.click();
     await expect(dragHandle).toBeEnabled();
   });
 });

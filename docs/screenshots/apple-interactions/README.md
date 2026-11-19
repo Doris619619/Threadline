@@ -2,7 +2,7 @@
 
 # Apple 交互整改视觉证据
 
-本目录选录 64 张原始 PNG，未做裁切、合成、压缩或像素修改。除专门保留的 CDP 空白诊断图外，所选图片及完整本地批次均已逐张打开，确认有对应模块的内容。截图帮助检查布局与状态；菜单键盘行为、保存屏障、命中区域及强制色等结果仍以相应自动化验收为准。
+本目录选录 77 张原始 PNG，未做裁切、合成、压缩或像素修改。除专门保留的 CDP 空白诊断图外，所选图片及完整本地批次均已逐张打开，确认有对应模块的内容。截图帮助检查布局与状态；菜单键盘行为、保存屏障、命中区域及强制色等结果仍以相应自动化验收为准。
 
 ## 来源与查看入口
 
@@ -61,6 +61,22 @@
 
 四主题的深浅色代表图位于 `themes/theme-desktop-{blue,anya,cottage,classic}-{light,dark}.png`。`anya`是安雅粉色主题的代码值。主题切换同步实际偏好存储与React状态，包含对应主题的组件分支。
 
+## 已知功能回归的定向补拍
+
+首轮完整84项清单保留不变。随后Axe与状态门禁发现并修复外观卡说明文字对比、当前导航hover覆盖、绘制mode缺少选择语义，以及到时计时器“延长”小字对比；本次仅补拍相关页面，不扩展审美审查。补拍开始于2026-11-19T07:55:09.817Z，共47条唯一页面记录（首批45张，随后仅替换两张设置概览并新增两张行焦点图），桌面1280×900和手机390×844、同一虚构数据与固定日期。设置行说明的单独补拍开始于2026-11-19T08:01:32.399Z；各条记录保留实际批次时间。逐图来源见[功能补拍清单](functional-update-manifest.json)；索引中被替换图的previousEvidence保留上一版hash与来源，原84张本地PNG未覆盖。认证、同频与原生材料仍使用此前已验证批次，不冒充此次重新运行。
+
+主首页初始DOM与首轮清单逐字段比较相同，包含任务、统计、主题和viewport；所有新增选择操作均发生在主图之后。新增实际状态图包括当前导航hover与键盘焦点、已选荧光笔、已选主题/字体说明，以及已到时“延长”。截图只表示最终可见状态，不替代门禁中default/hover/pointerdown/up/keyboard与Axe的断言。
+
+| 状态             | 桌面                                                               | 手机                                                              |
+| ---------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| 当前导航hover    | [桌面](after/home-current-navigation-hover-desktop-blue-light.png) | [手机](after/home-current-navigation-hover-mobile-blue-light.png) |
+| 当前导航键盘焦点 | [桌面](after/home-current-navigation-focus-desktop-blue-light.png) | [手机](after/home-current-navigation-focus-mobile-blue-light.png) |
+| 荧光笔选中       | [桌面](after/home-annotation-selected-desktop-blue-light.png)      | 窄屏现有布局不提供鼠标绘制工具；补拍保留该实际边界                |
+| 外观主题说明     | [桌面](after/settings-theme-selected-desktop-blue-light.png)       | [手机](after/settings-theme-selected-mobile-blue-light.png)       |
+| 字体说明与焦点   | [桌面](after/settings-font-focus-desktop-blue-light.png)           | [手机](after/settings-font-focus-mobile-blue-light.png)           |
+| 设置行说明焦点   | [桌面](after/settings-row-focus-desktop-blue-light.png)            | [手机](after/settings-row-focus-mobile-blue-light.png)            |
+| 到时延长         | [桌面](after/timers-expired-desktop-blue-light.png)                | [手机](after/timers-expired-mobile-blue-light.png)                |
+
 ## 原生缩放与空图诊断
 
 此前通过的正式8场景矩阵保留全部几何和命中断言，同时改用 Electron44 的 `webContents.capturePage()` 捕获实际可见页面，并拒绝单色或近乎空白的PNG。8个场景均通过，已逐图打开；原生截图的像素尺寸会包含显示器缩放，不能直接当作CSS viewport。
@@ -81,4 +97,4 @@
 - 环图和任务列表有独立滚动区域，当前图只表示当时可见的部分；零预计、未知预计、完整任务以及输入等价性由真实交互测试另行验证。
 - 首轮Edge双密码图标已在本次唯一确认回合修复；保留的首轮问题图仅作修复对照，不能当作最终界面。
 - main baseline使用development服务，最终主要页面使用production Preview；主首页初始条件已核对，其余图按特定交互状态记录。这里不采用像素金图，也不虚构main基线的手机前后对照。
-- 本批专用fixture端口及临时Electron进程已关闭；保留主任务已有的32103生产Preview，不停止其他任务的服务。
+- 捕获批次关闭了自己的专用fixture与临时Electron进程，并保留主任务32103生产Preview；最终验收结束后由主任务关闭32103。其它任务的服务未被停止。

@@ -115,6 +115,8 @@ Daily 使用独立的 `daily-accent`，状态仍遵循共享系统。它是既�
 
 **The Independent Font Rule.** 新界面继承 `font-sans`，不通过主题选择覆盖用户字体；手机可编辑控件遵循 `mobile-form-control-font-size: max(1rem, var(--text-body-size))`，不降回桌面紧凑标签字号。
 
+外观主题 / 字体选项中的说明、字体标签与数字样例，以及设置操作行内的 small 说明，继承所属控件的可读墨色（`color: inherit`），选中、焦点和按下底色改变时仍保留对比；辅助层级由原有字号、字重与间距表达，不在这些后代元素中锁定 text-secondary。设置行保留 caption 字号，来源为 [settings.css](src/features/settings/settings.css)；此规则限定于这些会随操作状态改变底色的控件后代，不改写所有页面辅助文字的语义颜色。
+
 ## Layout
 
 间距基于 4px 节奏，允许已有组件中的功能性补充值。全局间距令牌为 `space-1: 4px`、`space-2: 8px`、`space-3: 12px`、`space-4: 16px`、`space-5: 20px`、`space-6: 24px`、`space-8: 32px`。共享按钮水平留白使用 space-4，紧凑按钮及输入使用 space-3；各业务容器保留自己的布局职责。
@@ -240,6 +242,10 @@ components:
 
 状态由 `interactions.css` 最后统一：仅 hover 设备显示 hover；中性按下使用 interaction-pressed，填色按钮 hover / pressed 为自身填色与 black 的 92% / 82% 混合。保持填色前景；普通按钮在状态中使用 text-primary。expanded 使用 9% accent-text 背景，selected 使用 13%，两者持续含义分别绑定 `aria-expanded` 与真实选择属性。`:active` 位于优先级末端，按住时短暂覆盖，释放后恢复持续状态；无缩放和几何跳动。
 
+日程批注的选择模式、荧光笔和橡皮擦均用真实 `aria-pressed` 表达工具是否启用；颜色菜单的展开仍由 `aria-expanded` 表达，互斥颜色仍用 `aria-checked`，不能将工具启用与浮层展开混成一个状态。来源：[schedule-panel.tsx](src/features/tasks/components/schedule-panel.tsx)、[annotation-color-picker.tsx](src/components/annotation-color-picker.tsx)。
+
+任务计时卡到时后的“延长”是小字号文字操作，常态明确使用 text-primary；保留原有 14% timer-color 与 surface 混合背景。时钟与图标仍可使用所属计时器的 timer-ink，不能把这种强调墨色直接套到浅色底上的小字操作。这是 [task-timers.css](src/features/tasks/task-timers.css) 中续时触发器的局部前景修正，没有新增或改写全局颜色令牌。
+
 键盘 `:focus-visible` 为清晰背景与 `inset 0 -2px 0` 内底线；填色按钮底线使用可读的填色前景。指针焦点不留下外围轮廓。禁用使用 opacity 0.48、surface-secondary 背景和 text-secondary；忙碌继续显示既有加载反馈并使用 progress 光标，业务保存屏障负责禁止重复提交，不能只靠 CSS。
 
 状态过渡 `motion-fast: 140ms`（ease），按下 `motion-press: 80ms`，菜单淡入 `motion-menu: 140ms`（ease-out）。减少动画时过渡为 0.01ms、菜单不播放进入动画；强制色时允许 `2px solid Highlight`、offset -2px 的系统轮廓。
@@ -258,7 +264,9 @@ components:
 
 ### Navigation
 
-桌面导航行最小高度 40px，左右 12px 内边距，12px 图文间距，使用 label 层级；默认 text-secondary，当前位置使用 accent-text、accent-soft 与 600 字重。既有 3px 侧标记表达当前位置，手机隐藏该标记并改为五列图文底栏。安妮雅与经典保留主题内的选中侧线，不将其误当成装饰或推广到普通卡片。选择语义通过真实 `aria-current` / `aria-pressed` 等属性进入共享状态系统。
+桌面导航行最小高度 40px，左右 12px 内边距，12px 图文间距，使用 label 层级；默认 text-secondary。当前位置的基础 accent 样式最终由共享 selected 状态统一为 interaction-selected 背景、text-primary 文字与 600 字重，hover 不覆盖当前位置的持续选中反馈。真实页面入口用 `aria-current="page"` 表达当前位置；手机“更多”聚合当前页时，限定在侧栏项的 `.is-active` 同样进入 selected 状态，菜单内的当前页面也保留 `aria-current`。键盘焦点与实际按下仍按共享优先级覆盖；不将其它模块用于预览的 `.is-active` 当作真实选择。
+
+既有 3px 侧标记表达当前位置，手机隐藏该标记并改为五列图文底栏。安妮雅与经典保留主题内的选中侧线，不将其误当成装饰或推广到普通卡片。来源：[sidebar-item.tsx](src/components/ui/sidebar-item.tsx)、[app-shell.tsx](src/components/app-shell.tsx) 与统一状态 CSS。
 
 ### Menus & Disclosures
 

@@ -29,7 +29,7 @@ type AnnotationColorPickerProps = {
 };
 
 /**
- * 将绘制启用和颜色选择分成两个明确动作；浮层打开时 Esc 只关闭浮层，避免误退出荧光笔。
+ * 绘制启用用pressed状态表达，颜色菜单用expanded表达；Esc只关闭浮层，避免误退出荧光笔。
  */
 export function AnnotationColorPicker({
   active,
@@ -52,6 +52,7 @@ export function AnnotationColorPicker({
           active && 'is-active',
         )}
         aria-label="荧光笔"
+        aria-pressed={active}
         title="荧光笔（Esc 退出）"
         onClick={onActivate}
       >

@@ -98,6 +98,11 @@ it('uses mutually exclusive colors and consumes Escape before the drawing-mode s
       />,
     );
     const trigger = screen.getByRole('button', { name: '选择颜色，当前黄色' });
+    expect(screen.getByRole('button', { name: '荧光笔' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(trigger).not.toHaveAttribute('aria-pressed');
     trigger.focus();
     fireEvent.click(trigger);
     const selected = screen.getByRole('menuitemradio', { name: '黄色', exact: true });

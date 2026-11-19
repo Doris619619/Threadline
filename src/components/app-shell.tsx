@@ -360,6 +360,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           type="button"
                           key={id}
                           className={active === id ? 'is-active' : ''}
+                          aria-current={active === id ? 'page' : undefined}
                           onClick={() => {
                             setActive(id);
                             setMobileMoreOpen(false);

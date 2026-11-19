@@ -2,9 +2,17 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { openWorkspaceSection } from './support/workspace';
+import { expectNavigationSelection } from './support/navigation-state';
+import { waitForFiniteAnimations } from './support/animations';
 
 const themes = ['blue', 'anya', 'cottage', 'classic'] as const;
 const schemes = ['light', 'dark'] as const;
+const themeLabels = {
+  blue: '默认蓝色',
+  anya: '安妮雅',
+  cottage: '皮卡小屋',
+  classic: '皮卡经典',
+};
 
 /** 每次导航使用隔离的 Preview 业务状态，日期固定以使环图与表单可重复。 */
 async function openPreview(page: Page) {
@@ -78,20 +86,58 @@ async function controlState(control: Locator) {
   });
 }
 
-/** 等待有限 CSS 过渡收敛；保留真实交互动画，不用任意延时掩盖状态。 */
+/** 复用浏览器实测的有限动画轮询，避免 WebKit 已结束的 finished Promise 永不 settle。 */
 async function settle(control: Locator) {
-  await control.evaluate(async (node) => {
-    // 先跨过一次样式更新帧，再等待该状态实际创建的过渡，避免主题变量尚未刷新就读取旧动画集合。
-    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-    await Promise.all(
-      node
-        .getAnimations({ subtree: true })
-        .filter(
-          (animation) => animation.effect?.getComputedTiming().iterations !== Infinity,
-        )
-        .map((animation) => animation.finished.catch(() => undefined)),
+  await waitForFiniteAnimations(control.page());
+}
+
+/** 恢复一条已暂停且到时的真实演示计时，仅写隔离本机缓存，不运行计时或改写账本。 */
+async function restoreExpiredTimer(page: Page) {
+  const tasksKey = 'threadline.preview-demo.v1:threadline.tasks.v1';
+  await expect
+    .poll(() => page.evaluate((key) => localStorage.getItem(key) !== null, tasksKey))
+    .toBe(true);
+  await page.evaluate((tasksKey) => {
+    const tasks: { id: string; title: string }[] = JSON.parse(
+      localStorage.getItem(tasksKey)!,
     );
-  });
+    const task = tasks.find((task) => task.id === 'demo-stage-time-task-0');
+    if (!task) throw new Error('演示缺少已到时计时验收任务');
+    localStorage.setItem(
+      'threadline.preview-demo.v1:threadline.task-timers.v1:local',
+      JSON.stringify([
+        {
+          id: 'hig-expired-contrast',
+          taskId: task.id,
+          title: task.title,
+          mode: 'down',
+          targetMs: 60000,
+          elapsedMs: 60000,
+          firstStartedAt: Date.now() - 60000,
+          entryDate: '2026-11-19',
+        },
+      ]),
+    );
+  }, tasksKey);
+  await page.reload();
+  await expect(page.getByTestId('home-panel')).toBeVisible();
+  await expect(page.locator('.task-timer')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: '延长', exact: true })).toBeVisible();
+}
+
+/** 说明文字有自己的样式；直接采其真实前景与祖先合成背景，防止父按钮通过但small仍低对比。 */
+async function expectDescriptionContrast(control: Locator, label: string) {
+  const descriptions = control
+    .locator(
+      'small, .appearance-option-label strong, .appearance-font-sample, .appearance-font-sample span',
+    )
+    .filter({ visible: true });
+  for (const description of await descriptions.all()) {
+    const state = await controlState(description);
+    expect
+      .soft(state.contrast, label + ' / ' + (await description.textContent())?.trim())
+      .toBeGreaterThanOrEqual(state.minimumContrast);
+  }
 }
 
 /** 用真实 pointerdown/up 检查短暂按下与松开恢复；在按钮外松开防止执行删除或保存。 */
@@ -101,19 +147,31 @@ async function expectControlStates(page: Page, control: Locator, label: string) 
   await control.evaluate((node) => (node as HTMLElement).blur());
   await settle(control);
   const baseline = await controlState(control);
+  const selected = await control.evaluate((node) =>
+    node.matches(
+      '[aria-pressed="true"], [aria-selected="true"], [aria-current="page"], .tl-sidebar-item.is-active',
+    ),
+  );
   expect
     .soft(baseline.contrast, label + ' default text contrast')
     .toBeGreaterThanOrEqual(baseline.minimumContrast);
+  await expectDescriptionContrast(control, label + ' default description');
   const bounds = (await control.boundingBox())!;
   await control.hover();
   await settle(control);
   const hover = await controlState(control);
   const hasHover = await page.evaluate(() => matchMedia('(hover: hover)').matches);
-  if (hasHover)
-    expect(hover.background, label + ' hover').not.toBe(baseline.background);
+  if (hasHover) {
+    if (selected)
+      expect(hover.background, label + ' keeps selected on hover').toBe(
+        baseline.background,
+      );
+    else expect(hover.background, label + ' hover').not.toBe(baseline.background);
+  }
   expect
     .soft(hover.contrast, label + ' hover text contrast')
     .toBeGreaterThanOrEqual(hover.minimumContrast);
+  await expectDescriptionContrast(control, label + ' hover description');
   await page.mouse.down();
   await settle(control);
   const pressed = await controlState(control);
@@ -121,6 +179,7 @@ async function expectControlStates(page: Page, control: Locator, label: string) 
   expect
     .soft(pressed.contrast, label + ' pressed text contrast')
     .toBeGreaterThanOrEqual(pressed.minimumContrast);
+  await expectDescriptionContrast(control, label + ' pressed description');
   expect(pressed.transform, label + ' does not scale').toBe('none');
   await page.mouse.move(0, 0);
   await page.mouse.up();
@@ -141,8 +200,28 @@ async function expectControlStates(page: Page, control: Locator, label: string) 
   expect
     .soft(focused.contrast, label + ' keyboard focus text contrast')
     .toBeGreaterThanOrEqual(focused.minimumContrast);
+  await expectDescriptionContrast(control, label + ' keyboard description');
   await control.evaluate((node) => (node as HTMLElement).blur());
   return { baseline, hover, pressed };
+}
+
+/** 当前导航在hover保持选择，键盘焦点/pressed仍可见，松开不能改变当前页或展开聚合入口。 */
+async function expectCurrentNavigation(page: Page, label: string) {
+  const active = await expectNavigationSelection(page);
+  const aggregate =
+    (await active.getAttribute('aria-controls')) === 'mobile-more-navigation';
+  if (aggregate) await expect(active).not.toHaveAttribute('aria-current');
+  else await expect(active).toHaveAttribute('aria-current', 'page');
+  const current = await active.getAttribute('aria-current');
+  const expanded = await active.getAttribute('aria-expanded');
+  const view = await page.locator('#main-content').getAttribute('data-workspace-view');
+  await expectControlStates(page, active, label + ' current navigation');
+  expect(await active.getAttribute('aria-current')).toBe(current);
+  expect(await active.getAttribute('aria-expanded')).toBe(expanded);
+  await expect(page.locator('#main-content')).toHaveAttribute(
+    'data-workspace-view',
+    view!,
+  );
 }
 
 /** 扫描可见交互项的焦点轮廓与文本输入字号，定位模块遗留覆盖；不触发任何业务操作。 */
@@ -188,20 +267,22 @@ async function expectNoOuterFocusRings(page: Page, root: Locator) {
   ).toBe(true);
 }
 
-test('all themes keep shared states and non-ring keyboard focus across workspace modules', async ({
-  page,
-}, info) => {
-  await openPreview(page);
-  const modules = [
-    ['首页', '.finish-day'],
-    ['日历', '.planning-month button[aria-label="上个月"]'],
-    ['计划', '.project-section button'],
-    ['习惯', '.habit-segments button:nth-child(2)'],
-    ['洞察', '.insight-period-controls button:nth-child(2)'],
-    ['节律', '.rhythm-calendar header button'],
-    ['设置', '.settings-row'],
-  ] as const;
-  for (const theme of themes)
+// 每个主题独立使用既有180秒预算；每例保留深浅两色的完整真实输入断言，避免总循环耗尽单例时间。
+for (const theme of themes)
+  test(`all themes keep shared states and non-ring keyboard focus across workspace modules: ${theme}`, async ({
+    page,
+  }, info) => {
+    await openPreview(page);
+    await restoreExpiredTimer(page);
+    const modules = [
+      ['首页', '.finish-day'],
+      ['日历', '.planning-month button[aria-label="上个月"]'],
+      ['计划', '.project-section button'],
+      ['习惯', '.habit-segments button:nth-child(2)'],
+      ['洞察', '.insight-period-controls button:nth-child(2)'],
+      ['节律', '.rhythm-calendar header button'],
+      ['设置', '.settings-row'],
+    ] as const;
     for (const scheme of schemes) {
       await chooseAppearance(page, theme, scheme);
       for (const [section, selector] of modules) {
@@ -229,16 +310,67 @@ test('all themes keep shared states and non-ring keyboard focus across workspace
           expect(selected.background).not.toBe(states.hover.background);
           expect(selected.contrast).toBeGreaterThanOrEqual(selected.minimumContrast);
         }
+        if (section === '首页' || section === '设置')
+          await expectCurrentNavigation(page, `${theme}/${scheme}/${section}`);
+        if (section === '首页') {
+          // 采实际到时卡片后代的小号文字，不能以父卡的正文色替代“延长”按钮的实际前景。
+          const timer = page.locator('.task-timer');
+          await expectControlStates(
+            page,
+            timer.getByRole('button', { name: '延长', exact: true }),
+            `${theme}/${scheme}/expired timer extension`,
+          );
+          for (const text of await timer
+            .locator('.task-timer-heading strong, .task-timer-ended, .task-timer-date')
+            .filter({ visible: true })
+            .all()) {
+            const state = await controlState(text);
+            expect
+              .soft(
+                state.contrast,
+                `${theme}/${scheme}/timer ${await text.textContent()}`,
+              )
+              .toBeGreaterThanOrEqual(state.minimumContrast);
+          }
+          if (page.viewportSize()!.width <= 760) {
+            // 窄屏现有布局不提供鼠标绘制工具；验证真实边界，不把隐藏的桌面控件当作手机入口。
+            await expect(page.locator('.annotation-tools')).toBeHidden();
+          } else {
+            const tools = page.getByRole('group', { name: '批注工具', exact: true });
+            for (const label of ['选择模式', '荧光笔', '橡皮擦']) {
+              const mode = tools.getByRole('button', { name: label, exact: true });
+              await mode.click();
+              await expect(mode).toHaveAttribute('aria-pressed', 'true');
+              await expect(tools.locator('[aria-pressed="true"]')).toHaveCount(1);
+              await expectControlStates(
+                page,
+                mode,
+                `${theme}/${scheme}/annotation ${label}`,
+              );
+            }
+            await tools.getByRole('button', { name: '选择模式', exact: true }).click();
+          }
+        }
+        if (section === '设置') {
+          await page.getByRole('button', { name: '外观', exact: true }).click();
+          const fonts = page.locator('.appearance-font-options');
+          await expect(fonts).toHaveAttribute('aria-busy', 'false');
+          await expectControlStates(
+            page,
+            fonts.locator('.appearance-font-option[aria-pressed="true"]'),
+            `${theme}/${scheme}/font choice`,
+          );
+        }
         await expectNoOuterFocusRings(page, page.locator('main').last());
       }
     }
-  await openWorkspaceSection(page, '首页');
-  await chooseAppearance(page, 'blue', 'light');
-  await page.screenshot({
-    path: info.outputPath('hig-workspace-states.png'),
-    fullPage: true,
+    await openWorkspaceSection(page, '首页');
+    await chooseAppearance(page, 'blue', 'light');
+    await page.screenshot({
+      path: info.outputPath('hig-workspace-states.png'),
+      fullPage: true,
+    });
   });
-});
 
 test('selection menu supports keyboard, checked selection, dismissal and focus return', async ({
   page,
@@ -441,7 +573,17 @@ test('onboarding keeps all themes, touch targets and non-ring focus', async ({
   ).toBeVisible();
   for (const theme of themes)
     for (const scheme of schemes) {
+      const choice = page
+        .locator('.appearance-theme-option')
+        .filter({ hasText: themeLabels[theme] });
+      await choice.click();
       await chooseAppearance(page, theme, scheme);
+      await expect(choice).toHaveAttribute('aria-pressed', 'true');
+      await expectControlStates(
+        page,
+        choice,
+        `onboarding/${theme}/${scheme}/theme choice`,
+      );
       await expectControlStates(
         page,
         page.getByRole('button', { name: '继续', exact: true }),
