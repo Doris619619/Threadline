@@ -1,0 +1,147 @@
+{
+  "description": "三张未裁剪、未加工的真实浏览器原始PNG，展示合成三任务的最终五列确认；不代表生产联调。",
+  "capturedAt": "2026-11-19T10:49:33.443Z",
+  "frozenLocalDateTime": "2026-11-19T12:00:00+08:00",
+  "timezone": "Asia/Shanghai",
+  "browser": "Microsoft Edge Chromium",
+  "browserVersion": "157.0.4341.60",
+  "runtime": "Next.js development, explicit local test adapter",
+  "sourceHead": "881c22e5c0be336455ef148cd31542f28b50ab53",
+  "pendingMergeHead": "e7f43ee7d5d9a50d1350ae7e814ad40b15cee16a",
+  "sourceText": "完成 ECE4016 作业，预计30分钟，14:00到14:30。整理建筑项目流程图，预计45分钟，16:00到16:45。更新简历并核对联系方式，预计20分钟。",
+  "parseSource": "Playwright route.fulfill fixed six-field response, all other local AI requests aborted before first navigation",
+  "savedTasks": false,
+  "realModelCalls": false,
+  "realCredentialsOrDatabase": false,
+  "captures": [
+    {
+      "file": "desktop.png",
+      "viewportCssPixels": {
+        "width": 1440,
+        "height": 1000
+      },
+      "deviceScaleFactor": 1,
+      "pointer": "fine",
+      "fullPage": false,
+      "pngModifiedAfterCapture": false,
+      "theme": "blue",
+      "colorScheme": "light",
+      "globalFont": "default",
+      "localFontFamily": "-apple-system, BlinkMacSystemFont, \"Threadline Source Han Sans\", -apple-system, BlinkMacSystemFont, system-ui, \"PingFang SC\", \"Segoe UI Variable\", \"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", \"Noto Sans SC\", sans-serif",
+      "columns": ["项目", "任务", "预计时长 分钟", "开始时间", "结束时间"],
+      "horizontalOverflow": false,
+      "tasks": [
+        {
+          "title": "完成 ECE4016 作业",
+          "projectId": "course",
+          "plannedMinutes": 30,
+          "startTime": "14:00",
+          "endTime": "14:30",
+          "actualMinutes": null
+        },
+        {
+          "title": "整理建筑项目流程图",
+          "projectId": "other",
+          "plannedMinutes": 45,
+          "startTime": "16:00",
+          "endTime": "16:45",
+          "actualMinutes": null
+        },
+        {
+          "title": "更新简历并核对联系方式",
+          "projectId": "other",
+          "plannedMinutes": 20,
+          "startTime": null,
+          "endTime": null,
+          "actualMinutes": null
+        }
+      ]
+    },
+    {
+      "file": "desktop-dark.png",
+      "viewportCssPixels": {
+        "width": 1440,
+        "height": 1000
+      },
+      "deviceScaleFactor": 1,
+      "pointer": "fine",
+      "fullPage": false,
+      "pngModifiedAfterCapture": false,
+      "theme": "blue",
+      "colorScheme": "dark",
+      "globalFont": "default",
+      "localFontFamily": "-apple-system, BlinkMacSystemFont, \"Threadline Source Han Sans\", -apple-system, BlinkMacSystemFont, system-ui, \"PingFang SC\", \"Segoe UI Variable\", \"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", \"Noto Sans SC\", sans-serif",
+      "columns": ["项目", "任务", "预计时长 分钟", "开始时间", "结束时间"],
+      "horizontalOverflow": false,
+      "tasks": [
+        {
+          "title": "完成 ECE4016 作业",
+          "projectId": "course",
+          "plannedMinutes": 30,
+          "startTime": "14:00",
+          "endTime": "14:30",
+          "actualMinutes": null
+        },
+        {
+          "title": "整理建筑项目流程图",
+          "projectId": "other",
+          "plannedMinutes": 45,
+          "startTime": "16:00",
+          "endTime": "16:45",
+          "actualMinutes": null
+        },
+        {
+          "title": "更新简历并核对联系方式",
+          "projectId": "other",
+          "plannedMinutes": 20,
+          "startTime": null,
+          "endTime": null,
+          "actualMinutes": null
+        }
+      ]
+    },
+    {
+      "file": "mobile.png",
+      "viewportCssPixels": {
+        "width": 390,
+        "height": 844
+      },
+      "deviceScaleFactor": 1,
+      "pointer": "coarse",
+      "fullPage": false,
+      "pngModifiedAfterCapture": false,
+      "theme": "blue",
+      "colorScheme": "light",
+      "globalFont": "default",
+      "localFontFamily": "-apple-system, BlinkMacSystemFont, \"Threadline Source Han Sans\", -apple-system, BlinkMacSystemFont, system-ui, \"PingFang SC\", \"Segoe UI Variable\", \"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", \"Noto Sans SC\", sans-serif",
+      "columns": ["项目", "任务", "预计时长 分钟", "开始时间", "结束时间"],
+      "horizontalOverflow": true,
+      "tasks": [
+        {
+          "title": "完成 ECE4016 作业",
+          "projectId": "course",
+          "plannedMinutes": 30,
+          "startTime": "14:00",
+          "endTime": "14:30",
+          "actualMinutes": null
+        },
+        {
+          "title": "整理建筑项目流程图",
+          "projectId": "other",
+          "plannedMinutes": 45,
+          "startTime": "16:00",
+          "endTime": "16:45",
+          "actualMinutes": null
+        },
+        {
+          "title": "更新简历并核对联系方式",
+          "projectId": "other",
+          "plannedMinutes": 20,
+          "startTime": null,
+          "endTime": null,
+          "actualMinutes": null
+        }
+      ]
+    }
+  ]
+}
