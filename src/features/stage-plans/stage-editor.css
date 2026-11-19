@@ -168,10 +168,9 @@
 }
 
 .stage-draft-item textarea:focus-visible {
-  outline: none;
   border-radius: 4px;
   background: var(--surface-secondary);
-  box-shadow: 0 0 0 1px var(--accent);
+  box-shadow: none;
 }
 .stage-draft-settings {
   display: flex;
@@ -200,9 +199,11 @@
   cursor: pointer;
 }
 
-.stage-draft-item > button:hover:not(:disabled) {
-  color: var(--danger);
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .stage-draft-item > button:hover:not(:disabled) {
+    color: var(--danger);
+    background: var(--surface-secondary);
+  }
 }
 
 .stage-draft-composer {
@@ -241,7 +242,6 @@
   font: inherit;
 }
 .stage-draft-title-field input:focus {
-  outline: none;
   box-shadow: none;
 }
 .stage-draft-title-field input::placeholder {
@@ -249,7 +249,6 @@
 }
 .stage-editor-fields input:focus,
 .stage-quick-input > input:focus {
-  outline: none;
   border-color: var(--accent);
   box-shadow: none;
 }
@@ -282,8 +281,10 @@
   white-space: nowrap;
   cursor: pointer;
 }
-.stage-draft-controls > button:hover:not(:disabled) {
-  background: var(--accent-soft);
+@media (hover: hover) {
+  .stage-draft-controls > button:hover:not(:disabled) {
+    background: var(--accent-soft);
+  }
 }
 .stage-draft-controls > button:disabled {
   color: var(--text-secondary);
@@ -343,11 +344,6 @@
   color: var(--text-on-accent);
   background: var(--accent);
   border-color: var(--accent);
-}
-
-.stage-visible-field input:focus-visible + .stage-visible-check {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
 }
 
 @media (max-width: 760px) {
@@ -424,7 +420,6 @@
   box-sizing: border-box;
 }
 .stage-estimate-input:focus {
-  outline: none;
   border-color: var(--accent);
   box-shadow: none;
 }

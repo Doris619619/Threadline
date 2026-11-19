@@ -324,15 +324,21 @@ test('does not offer incomplete-work transitions for a completed task', async ({
   await openTaskMenu(
     completed.getByRole('button', { name: '领域论文更多操作', includeHidden: true }),
   );
-  const menu = page.getByRole('group', { name: '领域论文操作', exact: true });
+  const menu = page.getByRole('menu', { name: '领域论文操作', exact: true });
   await expect(menu).toBeVisible();
 
-  await expect(menu.getByRole('button', { name: '移期', exact: true })).toHaveCount(0);
-  await expect(menu.getByRole('button', { name: '待安排', exact: true })).toHaveCount(
-    0,
-  );
-  await expect(menu.getByRole('button', { name: '放弃', exact: true })).toHaveCount(0);
-  await expect(menu.getByRole('button', { name: '删除', exact: true })).toBeVisible();
+  await expect(
+    menu.getByRole('menuitem', { name: '调整日期…', exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    menu.getByRole('menuitem', { name: '移到待安排', exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    menu.getByRole('menuitem', { name: '放弃任务', exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    menu.getByRole('menuitem', { name: '删除任务', exact: true }),
+  ).toBeVisible();
 });
 
 test('persists task changes and navigates across dates', async ({ page }) => {
@@ -425,7 +431,7 @@ test('uses the selected highlighter color for cursor, saved strokes, and reload 
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', '荧光笔绘制使用桌面鼠标路径。');
   await page.getByRole('button', { name: /选择颜色/ }).click();
-  await page.getByRole('radio', { name: '蓝色' }).click();
+  await page.getByRole('menuitemradio', { name: '蓝色' }).click();
   const canvas = page.locator('.tl-annotation-layer');
   await expect(canvas).toHaveCSS('cursor', /highlighter\.svg/);
   await drawHighlighterStrokeInScheduleBody(page);
@@ -435,7 +441,7 @@ test('uses the selected highlighter color for cursor, saved strokes, and reload 
   await expect(page.getByRole('button', { name: '选择颜色，当前蓝色' })).toBeVisible();
 
   await page.getByRole('button', { name: '选择颜色，当前蓝色' }).click();
-  await page.getByRole('radio', { name: '黄色' }).click();
+  await page.getByRole('menuitemradio', { name: '黄色' }).click();
   await expect(page.getByRole('button', { name: '荧光笔' })).toHaveClass(/is-active/);
   await drawHighlighterStrokeInScheduleBody(page);
   await expect(strokes).toHaveCount(2);
@@ -523,16 +529,15 @@ test('keeps every highlighter color option in stable swatch label and check slot
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', '批注菜单布局在完整桌面工作台验收。');
   await page.getByRole('button', { name: /选择颜色/ }).click();
-  const options = page.getByRole('radio');
+  const options = page.getByRole('menuitemradio');
   const optionBoxes = await options.evaluateAll((elements) =>
     elements.map((element) => element.getBoundingClientRect().toJSON()),
   );
   expect(optionBoxes).toHaveLength(5);
-  expect(new Set(optionBoxes.map((box) => Math.round(box.height)))).toEqual(
-    new Set([30]),
-  );
+  expect(new Set(optionBoxes.map((box) => Math.round(box.height))).size).toBe(1);
+  expect(optionBoxes.every((box) => box.height >= 36)).toBe(true);
 
-  await page.getByRole('radio', { name: '绿色' }).click();
+  await page.getByRole('menuitemradio', { name: '绿色' }).click();
   await page.getByRole('button', { name: /选择颜色，当前绿色/ }).click();
   const selected = page.locator('.annotation-color-option.is-selected');
   const [swatch, label, check] = await Promise.all([
@@ -641,7 +646,7 @@ test('moves an item to waiting then schedules it for today', async ({ page }) =>
   await openTaskMenu(
     page.getByRole('button', { name: '邮件处理更多操作', includeHidden: true }),
   );
-  await page.getByRole('button', { name: '待安排', exact: true }).click();
+  await page.getByRole('menuitem', { name: '移到待安排', exact: true }).click();
   const waiting = page.locator('.waiting-task-row').filter({ hasText: '邮件处理' });
   await expect(waiting).toBeVisible();
   await openTaskMenu(
@@ -700,7 +705,7 @@ test('records rescheduling and waiting deletion in history', async ({ page }) =>
   );
   await page
     .getByRole('menu', { name: '取快递待安排操作' })
-    .getByRole('menuitem', { name: '删除', exact: true })
+    .getByRole('menuitem', { name: '删除任务', exact: true })
     .click();
   await expect(pickup).not.toBeVisible();
 
@@ -709,8 +714,8 @@ test('records rescheduling and waiting deletion in history', async ({ page }) =>
     email.getByRole('button', { name: '邮件处理更多操作', includeHidden: true }),
   );
   await page
-    .getByRole('group', { name: '邮件处理操作', exact: true })
-    .getByRole('button', { name: '移期', exact: true })
+    .getByRole('menu', { name: '邮件处理操作', exact: true })
+    .getByRole('menuitem', { name: '调整日期…', exact: true })
     .click();
   const reschedule = page.getByRole('dialog', { name: '改期任务' });
   await reschedule.getByRole('button', { name: '确认改期' }).click();
@@ -723,8 +728,8 @@ test('can choose a future date when rescheduling', async ({ page }) => {
     email.getByRole('button', { name: '邮件处理更多操作', includeHidden: true }),
   );
   await page
-    .getByRole('group', { name: '邮件处理操作', exact: true })
-    .getByRole('button', { name: '移期', exact: true })
+    .getByRole('menu', { name: '邮件处理操作', exact: true })
+    .getByRole('menuitem', { name: '调整日期…', exact: true })
     .click();
   const reschedule = page.getByRole('dialog', { name: '改期任务' });
   await reschedule.getByLabel('移期日期').fill('2026-08-26');
@@ -744,7 +749,7 @@ test('deletes a task and restores it from trash', async ({ page }) => {
   );
   await page
     .getByRole('menu', { name: '取快递待安排操作' })
-    .getByRole('menuitem', { name: '删除', exact: true })
+    .getByRole('menuitem', { name: '删除任务', exact: true })
     .click();
   await openSettingsData(page);
   await expect(
@@ -819,7 +824,7 @@ test('shows task and daily data in unified insight periods', async ({ page }) =>
 test('edits a project from its management menu', async ({ page }) => {
   await openWorkspaceSection(page, '计划');
   await page.getByRole('button', { name: '管理项目 AI研究', exact: true }).click();
-  await page.getByRole('button', { name: '修改项目', exact: true }).click();
+  await page.getByRole('menuitem', { name: '修改项目…', exact: true }).click();
   await page.getByLabel('项目名称', { exact: true }).fill('AI 实验室');
   await page.getByRole('button', { name: '保存', exact: true }).click();
   await expect(page.getByText('AI 实验室', { exact: true })).toBeVisible();

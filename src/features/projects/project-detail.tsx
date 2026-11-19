@@ -1,6 +1,6 @@
-/** @fileoverview 完整项目任务总览：所有日期、阶段和状态共用原 Task，筛选搜索与原编辑/改期/完成命令。 */
+/** @fileoverview 完整项目任务总览沿用原 Task 命令，管理按钮把真实指针触发器交给共享操作菜单。 */
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEventHandler } from 'react';
 import { ArrowLeft, MoreHorizontal, Search } from 'lucide-react';
 import type { Project, Task } from '@/types/domain';
 import { PlanObjectIcon } from '@/features/stage-plans/object-icon';
@@ -19,15 +19,21 @@ import {
   type ProjectTaskFilter,
 } from './project-task-rules';
 
-/** 默认展示完整集合，包括保留的放弃/回收站记录；每个 Task 只占一行，历史项保持只读。 */
+/** 默认展示完整 Task 集合，历史项只读；管理入口仅传递按钮事件，不承担项目生命周期命令。 */
 export function ProjectDetail({
   project,
   onBack,
   onManage,
+  managementOpen = false,
+  managementMenuId,
+  managementBusy = false,
 }: {
   project: Project;
   onBack: () => void;
-  onManage: () => void;
+  onManage: MouseEventHandler<HTMLButtonElement>;
+  managementOpen?: boolean;
+  managementMenuId?: string;
+  managementBusy?: boolean;
 }) {
   const data = useWorkspaceData();
   const stages = useOptionalStagePlans();
@@ -91,7 +97,15 @@ export function ProjectDetail({
             {tasks.length} 个任务{project.status === 'archived' ? ' · 已归档' : ''}
           </p>
         </div>
-        <button className="plan-create-link" type="button" onClick={onManage}>
+        <button
+          className="plan-create-link"
+          type="button"
+          onClick={onManage}
+          aria-haspopup="menu"
+          aria-expanded={managementOpen}
+          aria-controls={managementOpen ? managementMenuId : undefined}
+          disabled={managementBusy}
+        >
           <MoreHorizontal size={18} aria-hidden="true" />
           管理项目
         </button>

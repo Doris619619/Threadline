@@ -14,6 +14,18 @@ Threadline 的测试目标是阻止功能、云端边界、桌面壳和明显布
 
 ## 分层与命令
 
+`pnpm test:hig` 先构建隔离生产 Preview，再执行 `playwright.hig.config.ts`：七个宽度、iPhone WebKit、四主题深浅色、非环形键盘焦点、按下/释放、菜单、真实触控目标与时间环等价操作。认证页通过单独的 loopback 假配置运行真实表单，网络请求由测试拦截，以验证 busy 和防重复提交；不连接用户账号。新增 CSS 合同禁止普通焦点外围环，并把 hover 限制在支持悬停的输入设备。CI 的 Preview job 同时运行该门禁；本机可用 `THREADLINE_HIG_BROWSER_CHANNEL=msedge` 替代未安装的 Chromium。
+
+Electron 主 smoke 新增两种常见原生窗口尺寸与 1/1.25/1.5/2.5 页面缩放矩阵，计时站另验最小窗口下逐卡可达、菜单、真实按钮命中和暂停/继续。页面缩放不等同于改变 Windows 物理 DPI；报告必须区分自动化原生窗口证据与实体屏幕验收。
+
+同一 checkout 的 Web 与 Electron Next 构建必须串行执行。已安装 Next 16.3.6 在 `output: 'export'` 且自定义输出目录时，仍用 `.next` 作为中间构建目录，最终才导出到 `.next-electron`；不要在生产 Web 测试服务仍运行时启动桌面 Renderer 构建，否则现有服务的 chunk 会失效。推荐先完成桌面验收，再重新构建 Web 并运行浏览器矩阵。认证 fixture 使用另一个 dev 输出目录，不用于证明两条生产构建可以并行。
+
+本地 `test:preview` / `test:hig` 默认使用 `127.0.0.1:3103`，可在 PowerShell 设置 `$env:THREADLINE_PREVIEW_PORT='32103'` 后执行原命令；runner 从同一端口同时派生 Next 参数和 Playwright URL。`test:e2e` 默认使用 `127.0.0.1:3100`，对应覆写为 `$env:THREADLINE_E2E_PORT='32100'`。两个变量均严格校验 1–65535 的整数；脚本在构建前、启动前实际试绑定 loopback 端口，若被占用则明确失败，不把其它服务的响应当作本次就绪，也不终止其它进程。端口检查使用真实临时 socket 回归验证忙端口拒绝与空闲探针释放。端口隔离不替代上述构建串行要求；运行后可清除本次 shell 的环境变量。
+
+`pnpm test:together:e2e` 默认使用 Next `127.0.0.1:3100` 与隔离 PostgreSQL 预览桥 `127.0.0.1:3102`。已有服务占用默认端口时，在 PowerShell 设置 `$env:THREADLINE_TOGETHER_E2E_PORT='32100'`、`$env:THREADLINE_TOGETHER_PREVIEW_PORT='32102'` 后再运行同一命令；手动启动预览桥和截图脚本也应继承这两个变量。配置、CORS 白名单与回归用例的 RPC 地址一起切换，仍只监听 loopback，不改变 SQL 或业务断言。端口必须是 1–65535 的整数；运行完可用 `Remove-Item Env:THREADLINE_TOGETHER_E2E_PORT, Env:THREADLINE_TOGETHER_PREVIEW_PORT` 清除本次 shell 覆写。
+
+Together development fixture 的浏览器客户端读取 `NEXT_PUBLIC_SUPABASE_URL`，Playwright 根据预览桥端口传入该值；未配置时保持 `http://127.0.0.1:3102`。fixture 仅接受无账号密码的 loopback HTTP 地址，并始终使用固定假 key，不能接入正式云。手动启动 Next 时也需设置对应的 `NEXT_PUBLIC_SUPABASE_URL`；公开变量由 Next 内联，修改后应重启测试 Next 服务。正式部署仍由现有路由条件返回 404。
+
 阶段计划增加 `pnpm test:stage:db`：在隔离 PostgreSQL 执行原迁移、阶段 RPC/RLS、事务和历史清理规则，不代替网络同步验收。原 `test:supabase:integration` 包含同账号两个独立客户端的阶段/任务 Realtime 检查。浏览器阶段业务只在 desktop/mobile/WebKit 各执行一次；`ui-stage-plans.spec.ts` 随布局项目验证深浅色和全部长清单，不建立像素快照基线。详见 [阶段计划](stage-plans.md)。
 
 | 层                     | 命令                          | 负责的风险                                                                                              |

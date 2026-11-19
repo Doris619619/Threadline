@@ -19,8 +19,10 @@
   background: transparent;
   color: var(--text-secondary);
 }
-.together-editor > header button:hover {
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .together-editor > header button:hover {
+    background: var(--surface-secondary);
+  }
 }
 .together-editor form {
   padding: 0 28px;
@@ -90,7 +92,6 @@
 /* 无边框字段的焦点留在输入区内，避免通用外描边盖住相邻标签。 */
 .together-dialog.together-editor .together-editor-goal textarea:focus-visible,
 .together-dialog.together-editor .together-editor-property input:focus-visible {
-  outline: none;
   box-shadow: inset 0 -2px var(--accent-text);
 }
 .together-editor details.together-editor-notes {
@@ -125,10 +126,6 @@
   border-color: var(--border);
   border-radius: 10px;
   line-height: 1.6;
-}
-.together-dialog.together-editor .together-editor-notes textarea:focus-visible {
-  outline: 2px solid var(--accent-text);
-  outline-offset: -2px;
 }
 /* 系统高对比度模式不显示 box-shadow，改用控件内部的系统焦点描边。 */
 @media (forced-colors: active) {

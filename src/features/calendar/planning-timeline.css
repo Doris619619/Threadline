@@ -95,10 +95,15 @@
     background-color 150ms ease,
     box-shadow 150ms ease;
 }
-.planning-panel .planning-time-event:hover,
 .planning-panel .planning-time-event:active {
   background: var(--planning-heat-2);
   box-shadow: inset 0 0 0 1px var(--planning-accent);
+}
+@media (hover: hover) {
+  .planning-panel .planning-time-event:hover {
+    background: var(--planning-heat-2);
+    box-shadow: inset 0 0 0 1px var(--planning-accent);
+  }
 }
 .planning-duration-mark {
   position: absolute;

@@ -132,9 +132,11 @@
 .compact-window-actions button:first-child {
   color: var(--accent);
 }
-.compact-window-actions button:hover {
-  color: var(--accent);
-  background: var(--accent-muted);
+@media (hover: hover) {
+  .compact-window-actions button:hover {
+    color: var(--accent);
+    background: var(--accent-muted);
+  }
 }
 .compact-collapse-button {
   padding-right: 3px !important;
@@ -144,9 +146,11 @@
   padding: 0 !important;
   color: var(--text-tertiary) !important;
 }
-.desktop-close-button:hover {
-  color: var(--danger) !important;
-  background: var(--accent-soft) !important;
+@media (hover: hover) {
+  .desktop-close-button:hover {
+    color: var(--danger) !important;
+    background: var(--accent-soft) !important;
+  }
 }
 .edge-tab {
   display: grid;
@@ -207,8 +211,10 @@ body:has(dialog[open], [aria-modal='true'], :popover-open)
   font-weight: 600;
   cursor: pointer;
 }
-.full-window-entries button:hover {
-  background: var(--accent-muted);
+@media (hover: hover) {
+  .full-window-entries button:hover {
+    background: var(--accent-muted);
+  }
 }
 .full-window-entries .desktop-close-button {
   width: 28px;
@@ -297,12 +303,16 @@ body:has(dialog[open], [aria-modal='true'], :popover-open)
   border-radius: 5px;
   cursor: pointer;
 }
-.desktop-entry-chrome button:hover {
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .desktop-entry-chrome button:hover {
+    background: var(--surface-secondary);
+  }
 }
-.desktop-entry-chrome button:last-child:hover {
-  background: var(--danger);
-  color: white;
+@media (hover: hover) {
+  .desktop-entry-chrome button:last-child:hover {
+    background: var(--danger);
+    color: white;
+  }
 }
 .auth-gate:has(.desktop-entry-chrome) {
   padding-top: 44px;

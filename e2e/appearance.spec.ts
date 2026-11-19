@@ -1,6 +1,7 @@
 /** @fileoverview Verifies device themes, real Chinese fonts, layout corrections and reload/cross-tab behavior. */
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { waitForFiniteAnimations } from './support/animations';
 import {
   bootstrapLocalAdapterWorkspace,
   openWorkspaceSection,
@@ -209,12 +210,7 @@ test('keeps the appearance chooser accessible in both Anya light and dark modes'
       'background-color',
       colorScheme === 'dark' ? 'rgb(88, 54, 70)' : 'rgb(249, 220, 230)',
     );
-    await page.evaluate(async () => {
-      void document.documentElement.offsetWidth;
-      await Promise.allSettled(
-        document.getAnimations().map((animation) => animation.finished),
-      );
-    });
+    await waitForFiniteAnimations(page);
     const report = await new AxeBuilder({ page }).analyze();
     expect(
       report.violations.filter(
@@ -261,12 +257,7 @@ test('keeps all pink calendar heat levels readable and enlarged task titles wide
       'background-color',
       colorScheme === 'dark' ? 'rgb(88, 54, 70)' : 'rgb(249, 220, 230)',
     );
-    await page.evaluate(async () => {
-      void document.documentElement.offsetWidth;
-      await Promise.allSettled(
-        document.getAnimations().map((animation) => animation.finished),
-      );
-    });
+    await waitForFiniteAnimations(page);
     const report = await new AxeBuilder({ page }).analyze();
     expect(
       report.violations.filter(

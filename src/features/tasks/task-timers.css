@@ -264,10 +264,6 @@
     min-height: 44px;
   }
 }
-.task-timer:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
 /* 原生顶层浮层独立于计时卡，切换自定义输入不挤动卡片与日程。 */
 .task-timer-extension {
   position: fixed;
@@ -317,14 +313,13 @@
   padding-inline: 2px;
   white-space: nowrap;
 }
-.task-timer-extension button:hover,
 .task-timer-extension button:active {
   background: var(--accent-soft);
 }
-.task-timer-extension button:focus-visible,
-.task-timer-extension input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+@media (hover: hover) {
+  .task-timer-extension button:hover {
+    background: var(--accent-soft);
+  }
 }
 .task-timer-extension-custom {
   width: 100%;

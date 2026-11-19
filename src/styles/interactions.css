@@ -1,0 +1,274 @@
+/** @fileoverview 全项目方案 A 状态系统：背景反馈、非环形键盘焦点与强制色回退；主题仅映射语义颜色。 */
+
+/* 在业务与主题样式之后加载；优先级用于统一状态，而不覆盖控件的常态材质和尺寸。 */
+html :where(button, summary, a[href], [role='button'], [role='tab'], [role='option']) {
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease;
+}
+
+/* 填色主操作保留前景对比；其它控件使用轻量中性背景，主题不另建状态逻辑。 */
+:where(
+  .tl-button--primary,
+  .auth-primary-btn,
+  .habit-record-button,
+  .period-save,
+  .planning-add,
+  .tl-inline-confirm-btn,
+  .timed-create-confirm-btn,
+  .quick-create-confirm-btn,
+  .task-dialog footer button[type='submit'],
+  .close-dialog footer button[type='submit'],
+  .manager-dialog .task-editor-form > footer button[type='submit']
+) {
+  --control-fill: var(--accent);
+  --control-hover-bg: color-mix(in srgb, var(--control-fill) 92%, black);
+  --control-pressed-bg: color-mix(in srgb, var(--control-fill) 82%, black);
+  --control-focus-bg: var(--control-fill);
+  --control-focus-ink: var(--text-on-accent);
+  --control-state-ink: var(--text-on-accent);
+  --control-expanded-bg: var(--control-hover-bg);
+  --control-selected-bg: var(--control-fill);
+}
+.tl-button--danger {
+  --control-fill: var(--danger-filled);
+  --control-hover-bg: color-mix(in srgb, var(--control-fill) 92%, black);
+  --control-pressed-bg: color-mix(in srgb, var(--control-fill) 82%, black);
+  --control-focus-bg: var(--control-fill);
+  --control-focus-ink: var(--danger-on-filled);
+  --control-state-ink: var(--danger-on-filled);
+  --control-expanded-bg: var(--control-hover-bg);
+  --control-selected-bg: var(--control-fill);
+  background: var(--danger-filled);
+  color: var(--danger-on-filled);
+}
+.together-primary {
+  --control-fill: var(--text-primary);
+  --control-hover-bg: color-mix(in srgb, var(--control-fill) 92%, black);
+  --control-pressed-bg: color-mix(in srgb, var(--control-fill) 82%, black);
+  --control-focus-bg: var(--control-fill);
+  --control-focus-ink: var(--surface);
+  --control-state-ink: var(--surface);
+  --control-expanded-bg: var(--control-hover-bg);
+  --control-selected-bg: var(--control-fill);
+}
+html[data-theme='cottage'] :where(.tl-button--primary, .planning-panel .planning-add) {
+  --control-fill: var(--pixel-jade);
+  --control-focus-ink: var(--pixel-on-jade);
+  --control-state-ink: var(--pixel-on-jade);
+}
+html:where([data-theme='cottage'], [data-theme='classic'])
+  .onboarding-page
+  .onboarding-card
+  .onboarding-actions
+  .tl-button--primary {
+  --control-fill: var(--onboarding-control-fill);
+  /* 引导固定使用深绿填色；深色主题的浅 accent 所用深字不能复用于这组状态。 */
+  --control-state-ink: var(--onboarding-control-ink);
+  --control-focus-ink: var(--control-state-ink);
+  background: var(--onboarding-control-fill);
+  color: var(--control-state-ink);
+}
+.is-danger:not(.tl-button--danger) {
+  --control-hover-bg: var(--interaction-danger-hover);
+  --control-pressed-bg: var(--interaction-danger-pressed);
+  --control-state-ink: color-mix(in srgb, var(--danger) 75%, var(--text-primary));
+}
+/* Windows 关闭按钮保留平台熟悉的危险色 hover，而非继承普通工具按钮的中性背景。 */
+.desktop-entry-chrome button:last-child {
+  --control-hover-bg: var(--danger-filled);
+  --control-pressed-bg: color-mix(in srgb, var(--danger-filled) 85%, black);
+  --control-hover-ink: var(--danger-on-filled);
+  --control-pressed-ink: var(--danger-on-filled);
+}
+.close-dialog footer button[type='submit'] {
+  background: var(--accent);
+}
+
+@media (hover: hover) {
+  html
+    :where(button, summary, a[href], [role='button'], [role='tab'], [role='option'])
+    :where(svg) {
+    pointer-events: none;
+  }
+  html
+    :where(
+      button,
+      summary,
+      a[href],
+      [role='button'],
+      [role='tab'],
+      [role='option']
+    ):hover:where(:not(:disabled)):where(:not([aria-disabled='true'])):where(
+      :not([aria-busy='true'])
+    ) {
+    background-color: var(--control-hover-bg, var(--interaction-hover)) !important;
+    color: var(
+      --control-hover-ink,
+      var(--control-state-ink, var(--text-primary))
+    ) !important;
+  }
+}
+
+html
+  :where(button, summary, [role='button'], [role='tab'])[aria-expanded='true']:where(
+    :not(:disabled)
+  ) {
+  background-color: var(--control-expanded-bg, var(--interaction-expanded)) !important;
+  color: var(--control-state-ink, var(--text-primary)) !important;
+}
+html
+  :where(button, [role='button'], [role='tab'])[aria-pressed='true']:where(
+    :not(:disabled)
+  ),
+html
+  :where(button, [role='tab'], [role='option'])[aria-selected='true']:where(
+    :not(:disabled)
+  ),
+html :where(button, [role='menuitemradio'])[aria-checked='true']:where(:not(:disabled)),
+html :where(button, a[href])[aria-current='page']:where(:not(:disabled)) {
+  background-color: var(--control-selected-bg, var(--interaction-selected)) !important;
+  color: var(--control-state-ink, var(--text-primary)) !important;
+}
+/* 原本采用实心填色的离散选择保持足够对比，与短暂 hover 区分。 */
+.habit-segments button[aria-pressed='true'] {
+  color: var(--accent-text);
+}
+
+/* 先提供清晰的背景和内部底线，再取消外围轮廓；不会因指针释放留下轮廓。 */
+html
+  :where(
+    button,
+    summary,
+    a[href],
+    [role='button'],
+    [role='tab'],
+    [role='option'],
+    [tabindex]:not([tabindex='-1'])
+  ):focus-visible {
+  background-color: var(--control-focus-bg, var(--interaction-focus)) !important;
+  color: var(--control-state-ink, var(--text-primary)) !important;
+  box-shadow: inset 0 -2px 0 var(--control-focus-ink, var(--interaction-focus-ink)) !important;
+  outline: none !important;
+}
+html
+  :where(
+    button,
+    summary,
+    a[href],
+    [role='button'],
+    [role='tab'],
+    [role='option'],
+    [tabindex]
+  ):focus:not(:focus-visible) {
+  outline: none !important;
+}
+
+/* 文本录入以现有边框表达输入焦点；无边框字段沿用各自内部底线，不添加光晕。 */
+html :where(input, select, textarea):focus {
+  outline: none;
+  border-color: var(--interaction-focus-ink);
+}
+.tl-checkbox:has(input:focus-visible),
+.stage-visible-field:has(input:focus-visible),
+.gender-options label:has(input:focus-visible),
+.auto-start-toggle:has(input:focus-visible),
+.tl-date:has(.tl-native-date-picker:focus-visible) .tl-date-picker {
+  background: var(--interaction-focus);
+  box-shadow: inset 0 -2px 0 var(--interaction-focus-ink);
+  outline: none;
+  border-radius: var(--radius-control);
+}
+.plan-search:focus-within {
+  background: var(--interaction-focus);
+  box-shadow: inset 0 -2px 0 var(--interaction-focus-ink);
+}
+.tl-checkbox input:focus-visible + span,
+.stage-visible-field input:focus-visible + .stage-visible-check {
+  outline: none;
+  box-shadow: none;
+}
+
+html :where(button, summary, [role='button'], [role='option']):disabled,
+html :where(button, [role='button'], [role='option'])[aria-disabled='true'] {
+  opacity: 0.48;
+  cursor: not-allowed;
+  background-color: var(--surface-secondary) !important;
+  color: var(--text-secondary) !important;
+}
+html button[aria-busy='true'] {
+  cursor: progress;
+}
+
+/* 实测补齐跨模块遗漏的小目标；扩展真实按钮，不通过溢出伪元素侵占相邻点击区。 */
+@media (max-width: 760px), (pointer: coarse) {
+  html
+    :where(
+      .task-project-trigger,
+      .stage-title-link,
+      .auth-icon-btn,
+      .auth-input-action-btn
+    ),
+  html .waiting-task-actions > .task-context-trigger {
+    min-width: var(--touch-target);
+    min-height: var(--touch-target);
+  }
+  html .together-page .together-icon-button {
+    flex-shrink: 0;
+    min-width: var(--touch-target);
+    min-height: var(--touch-target);
+  }
+}
+
+/* 系统强制色会移除背景色，使用系统轮廓作为必要的可访问例外。 */
+
+html
+  :where(
+    button,
+    summary,
+    a[href],
+    [role='button'],
+    [role='tab'],
+    [role='option']
+  ):active:where(:not(:disabled)):where(:not([aria-disabled='true'])):where(
+    :not([aria-busy='true'])
+  ) {
+  background-color: var(--control-pressed-bg, var(--interaction-pressed)) !important;
+  color: var(
+    --control-pressed-ink,
+    var(--control-state-ink, var(--text-primary))
+  ) !important;
+  transition-duration: var(--motion-press);
+}
+@media (forced-colors: active) {
+  html
+    :where(
+      button,
+      summary,
+      a[href],
+      input,
+      select,
+      textarea,
+      [role='button'],
+      [role='tab'],
+      [role='option'],
+      [tabindex]:not([tabindex='-1'])
+    ):focus-visible,
+  .tl-checkbox:has(input:focus-visible),
+  .stage-visible-field:has(input:focus-visible),
+  .tl-date:has(.tl-native-date-picker:focus-visible) .tl-date-picker {
+    outline: 2px solid Highlight !important;
+    outline-offset: -2px !important;
+    box-shadow: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html
+    :where(button, summary, a[href], [role='button'], [role='tab'], [role='option']) {
+    transition-duration: 0.01ms !important;
+  }
+}

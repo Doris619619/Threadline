@@ -1,0 +1,53 @@
+{
+  "description": "记录本次交互整改实际遇到、未通过改断言或无依据修改核心代码掩盖的两项验证边界。",
+  "date": "2026-11-19",
+  "baseCommit": "6b3b79c6217e9acefa35ceaa7419de0cbb9df1f6",
+  "issues": [
+    {
+      "id": "native-entry-centering",
+      "status": "reproduced-with-unchanged-owner-and-verifier",
+      "command": "pnpm test:electron",
+      "gate": "scripts/test-electron-entry-recovery.mjs / verifyEntryWindowCenter",
+      "displayScaleFactor": 1.5,
+      "visibleBoundsPhysicalPixels": {
+        "x": 3199,
+        "y": 54,
+        "width": 1926,
+        "height": 1263
+      },
+      "workAreaPhysicalPixels": { "x": 2880, "y": 0, "width": 2560, "height": 1368 },
+      "horizontalCenterDeltaPhysicalPixels": 2,
+      "allowedDeltaPhysicalPixels": 1.5,
+      "primaryDisplayAtScale2_5": "passed",
+      "ownerSourcesAndVerifierEqualBase": true,
+      "resolution": "未修改原生产品源码或放宽1 DIP阈值；后续桌面阶段单独执行通过，不等同完整suite通过。"
+    },
+    {
+      "id": "timer-concurrent-pause",
+      "status": "intermittent-unresolved",
+      "test": "e2e/timer-concurrency.spec.ts: concurrent pauses preserve both paused timers and the third running timer",
+      "project": "preview-desktop",
+      "expectedRunningFlags": [false, false, true],
+      "observedRunningFlags": [true, false, true],
+      "traceObserved": {
+        "dispatchedActions": 2,
+        "pendingLockRequestsBeforeRelease": 2,
+        "runningFlagsBeforeRelease": [true, true, true],
+        "runningFlagsFirstReadAfterRelease": [true, false, true]
+      },
+      "ownerSourcesAndTestEqualBase": true,
+      "boundedDiagnosis": {
+        "unmodifiedSingleCasePasses": 1,
+        "asyncObservationPasses": 4,
+        "synchronousObservationWithoutAdditionalStorageReadsPasses": 4,
+        "observedSuccessfulWriteSequence": [
+          [true, true, true],
+          [false, true, true],
+          [false, false, true]
+        ],
+        "extraWritesInObservedPassingRuns": 0
+      },
+      "resolution": "9次有界排查未复现，独立源码审查未找到确定原因；未修改产品核心、测试断言或等待阈值，不将后续通过解释为此问题已修好。"
+    }
+  ]
+}

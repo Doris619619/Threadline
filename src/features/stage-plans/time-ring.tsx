@@ -7,11 +7,12 @@ import { stageTimeLabelLayout } from './time-label-layout';
 import { TimeRingCenter } from './time-ring-center';
 import { softTimeColor } from './time-colors';
 
-/** 引线沿用项目色相；圆心文字区域置于内圈的内接方形以内，四角也保留留白。 */
+/** 引线沿用项目色相；悬停/焦点仅预览，只有显式 selected 才向辅助技术报告选中。 */
 export function StageTimeRing({
   sectors,
   total,
   active,
+  selected,
   centerTitle,
   onSelect,
   onHover,
@@ -19,6 +20,7 @@ export function StageTimeRing({
   sectors: StageTimeSector[];
   total: number;
   active?: string;
+  selected?: string;
   centerTitle: string;
   onSelect: (id: string) => void;
   onHover: (id: string | undefined) => void;
@@ -123,7 +125,7 @@ export function StageTimeRing({
           className="stage-time-callout"
           style={{ left: label.x, top: label.y, width: label.width }}
           aria-label={'查看 ' + label.title + ' ' + formatMinutes(label.minutes)}
-          aria-pressed={active === label.id}
+          aria-pressed={selected === label.id}
           title={label.title}
           onClick={() => onSelect(label.id)}
           onFocus={() => onHover(label.id)}

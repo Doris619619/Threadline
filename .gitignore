@@ -14,6 +14,8 @@ coverage/
 *.tsbuildinfo
 playwright-report/
 test-results/
+# Generated design review captures; selected evidence lives in docs/screenshots/.
+.impeccable/review/
 .pnpm-store/
 supabase/.temp/
 supabase/.branches/

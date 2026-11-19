@@ -157,7 +157,6 @@ html[data-theme='anya'] .theme-illustration {
 }
 .appearance-theme-option[aria-pressed='true'] {
   border-color: var(--accent-text);
-  box-shadow: 0 0 0 1px var(--accent-text);
 }
 .appearance-option-label {
   display: flex;
@@ -264,10 +263,6 @@ html[data-theme='anya'] .theme-illustration {
 }
 .appearance-font-option[aria-pressed='true'] {
   background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface));
-}
-.appearance-font-option:focus-visible {
-  outline: 2px solid var(--accent-text);
-  outline-offset: -3px;
 }
 .appearance-font-option .appearance-option-label {
   margin-top: 0;

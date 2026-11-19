@@ -1,7 +1,11 @@
 /** @fileoverview 独立 Preview 验证时间图、首页布局、三并行计时和不会写账本的到时续时流程。 */
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { openWorkspaceSection, openTaskMenu } from './support/workspace';
+import {
+  chooseHomeSideView,
+  openWorkspaceSection,
+  openTaskMenu,
+} from './support/workspace';
 
 const timerStorageKey = 'threadline.preview-demo.v1:threadline.task-timers.v1:local';
 const taskStorageKey = 'threadline.preview-demo.v1:threadline.tasks.v1';
@@ -82,9 +86,7 @@ test('saved overlapping timers preserve raw minutes and allocate 55/25/10 after 
   );
   expect(raw.tasks).toEqual([90, 60, 30]);
   expect(raw.records).toBe(3);
-  await page
-    .getByRole('combobox', { name: '右栏显示内容' })
-    .selectOption({ label: '今日时间分布' });
+  await chooseHomeSideView(page, 'time');
   await page.getByRole('button', { name: '实际投入', exact: true }).click();
   await expect(page.locator('.stage-time-panel')).toContainText('1h30min');
   for (const value of ['55min', '25min', '10min'])
@@ -398,9 +400,7 @@ test('keeps empty ring text clear of the ring and separates callout time from ta
 }, info) => {
   await page.goto('/');
   await waitForPreviewWorkspace(page);
-  await page
-    .getByRole('combobox', { name: '右栏显示内容', exact: true })
-    .selectOption('time');
+  await chooseHomeSideView(page, 'time');
   const chart = page.locator('#home-side-column .stage-time-panel');
   const callout = chart.locator('.stage-time-callout').first();
   await expect(callout).toBeVisible();
@@ -827,7 +827,7 @@ test('fits long center totals to the inner ring after resizing and text zoom', a
   await openTaskMenu(
     task.getByRole('button', { name: /更多操作/, includeHidden: true }),
   );
-  await page.getByRole('menuitem', { name: '编辑', exact: true }).click();
+  await page.getByRole('menuitem', { name: '编辑任务…', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
   await chart.screenshot({ path: info.outputPath('long-ring-center.png') });
@@ -1155,7 +1155,7 @@ test('adds timers from schedule and waiting menus and removes only the timer', a
         includeHidden: true,
       }),
     );
-  await page.getByRole('button', { name: '加入计时', exact: true }).click();
+  await page.getByRole('menuitem', { name: '加入计时', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '加入计时', exact: true });
   await dialog.getByLabel('计时方式').selectOption('down');
   await dialog.getByLabel('倒计时分钟').fill('15');
@@ -1188,9 +1188,9 @@ test('adds timers from schedule and waiting menus and removes only the timer', a
     }),
   );
   await expect(
-    page.getByRole('button', { name: '加入计时', exact: true }),
+    page.getByRole('menuitem', { name: '加入计时', exact: true }),
   ).toBeEnabled();
-  await page.getByRole('button', { name: '加入计时', exact: true }).click();
+  await page.getByRole('menuitem', { name: '加入计时', exact: true }).click();
   await dialog.getByRole('button', { name: '开始计时', exact: true }).click();
   await expect(card).toHaveCount(1);
   if (info.project.name === 'preview-desktop') await card.click({ button: 'right' });
@@ -1242,7 +1242,7 @@ test('re-adds the same task after timer removal across open tabs', async ({
     includeHidden: true,
   });
   await openTaskMenu(more);
-  await page.getByRole('button', { name: '加入计时', exact: true }).click();
+  await page.getByRole('menuitem', { name: '加入计时', exact: true }).click();
   await page
     .getByRole('dialog', { name: '加入计时', exact: true })
     .getByRole('button', { name: '开始计时', exact: true })
@@ -1262,7 +1262,7 @@ test('re-adds the same task after timer removal across open tabs', async ({
   await expect(page.locator('.task-timer')).toHaveCount(0);
   await openTaskMenu(more);
   await expect(
-    page.getByRole('button', { name: '加入计时', exact: true }),
+    page.getByRole('menuitem', { name: '加入计时', exact: true }),
   ).toBeEnabled();
   await page.keyboard.press('Escape');
   await expect(other.locator('.task-timer')).toHaveCount(0);
@@ -1274,9 +1274,9 @@ test('re-adds the same task after timer removal across open tabs', async ({
     }),
   );
   await expect(
-    other.getByRole('button', { name: '加入计时', exact: true }),
+    other.getByRole('menuitem', { name: '加入计时', exact: true }),
   ).toBeEnabled();
-  await other.getByRole('button', { name: '加入计时', exact: true }).click();
+  await other.getByRole('menuitem', { name: '加入计时', exact: true }).click();
   await other
     .getByRole('dialog', { name: '加入计时', exact: true })
     .getByRole('button', { name: '开始计时', exact: true })
@@ -1305,12 +1305,12 @@ test('keeps the home layout while switching the right column and using wide scre
   await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
   const schedule = page.locator('.schedule-panel');
   const side = page.locator('#home-side-column');
-  const choice = page.getByRole('combobox', { name: '右栏显示内容', exact: true });
-  await expect(choice).toHaveValue('tasks');
+  const choice = page.getByRole('button', { name: /^右栏显示内容：/ });
+  await expect(choice).toHaveText('任务列表');
   await expect(schedule.locator('.stage-time-panel')).toHaveCount(0);
   await expect(page.locator('#home-side-tasks')).toBeVisible();
   const initialSchedule = (await schedule.boundingBox())!;
-  await choice.selectOption('time');
+  await chooseHomeSideView(page, 'time');
   await expect(
     side.getByRole('region', { name: '日程时间分布', exact: true }),
   ).toBeVisible();
@@ -1359,16 +1359,16 @@ test('keeps the home layout while switching the right column and using wide scre
     (await new AxeBuilder({ page }).include('#home-side-column').analyze()).violations,
   ).toEqual([]);
   await page.screenshot({ path: info.outputPath('home-right-ring.png') });
-  await choice.selectOption('tasks');
+  await chooseHomeSideView(page, 'tasks');
   await expect(page.locator('#home-side-time')).not.toBeVisible();
-  await choice.selectOption('time');
+  await chooseHomeSideView(page, 'time');
   await expect(
     chart.getByRole('button', { name: '实际投入', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
   await page.reload();
   // WebKit 冷启动加载真实业务模块；先等工作台，避免把 5s 控件等待当成偏好丢失。
   await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
-  await expect(choice).toHaveValue('time');
+  await expect(choice).toHaveText('今日时间分布');
   await expect(chart).toBeVisible();
   const before = (await page.locator('.schedule-panel').boundingBox())!.width;
   await page.getByRole('button', { name: '收起右栏', exact: true }).click();
@@ -1381,8 +1381,8 @@ test('keeps the home layout while switching the right column and using wide scre
   await expect(page.locator('.dashboard')).toBeVisible({ timeout: 30000 });
   await expect(page.locator('#home-side-column')).not.toBeVisible();
   await page.getByRole('button', { name: '展开右栏', exact: true }).click();
-  await expect(choice).toHaveValue('time');
-  await choice.selectOption('tasks');
+  await expect(choice).toHaveText('今日时间分布');
+  await chooseHomeSideView(page, 'tasks');
   if (info.project.name === 'preview-desktop') {
     await page.setViewportSize({ width: 2560, height: 1440 });
     await expect

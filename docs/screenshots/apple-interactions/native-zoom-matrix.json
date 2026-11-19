@@ -1,0 +1,410 @@
+[
+  {
+    "requested": {
+      "width": 1000,
+      "height": 600
+    },
+    "clamped": {
+      "width": 1000,
+      "height": 600
+    },
+    "actual": {
+      "bounds": {
+        "x": 24,
+        "y": 24,
+        "width": 1104,
+        "height": 624
+      },
+      "contentBounds": {
+        "x": 24,
+        "y": 24,
+        "width": 1104,
+        "height": 624
+      },
+      "visible": true,
+      "minimized": false,
+      "display": {
+        "id": 1577027832,
+        "scaleFactor": 2.5,
+        "workArea": {
+          "x": 0,
+          "y": 0,
+          "width": 1152,
+          "height": 672
+        }
+      },
+      "insideWorkArea": true
+    },
+    "factor": 1,
+    "paint": {
+      "method": "Electron.webContents.capturePage",
+      "size": {
+        "width": 2760,
+        "height": 1560
+      },
+      "colors": 6425,
+      "nonDominantFraction": 0.2916364734299517
+    },
+    "viewport": {
+      "width": 1104,
+      "height": 624
+    }
+  },
+  {
+    "requested": {
+      "width": 1000,
+      "height": 600
+    },
+    "clamped": {
+      "width": 1000,
+      "height": 600
+    },
+    "actual": {
+      "bounds": {
+        "x": 24,
+        "y": 24,
+        "width": 1104,
+        "height": 624
+      },
+      "contentBounds": {
+        "x": 24,
+        "y": 24,
+        "width": 1104,
+        "height": 624
+      },
+      "visible": true,
+      "minimized": false,
+      "display": {
+        "id": 1577027832,
+        "scaleFactor": 2.5,
+        "workArea": {
+          "x": 0,
+          "y": 0,
+          "width": 1152,
+          "height": 672
+        }
+      },
+      "insideWorkArea": true
+    },
+    "factor": 1.25,
+    "paint": {
+      "method": "Electron.webContents.capturePage",
+      "size": {
+        "width": 2760,
+        "height": 1560
+      },
+      "colors": 5418,
+      "nonDominantFraction": 0.3233238108509847
+    },
+    "viewport": {
+      "width": 883,
+      "height": 499
+    }
+  },
+  {
+    "requested": {
+      "width": 1000,
+      "height": 600
+    },
+    "clamped": {
+      "width": 1000,
+      "height": 600
+    },
+    "actual": {
+      "bounds": {
+        "x": 24,
+        "y": 24,
+        "width": 1104,
+        "height": 624
+      },
+      "contentBounds": {
+        "x": 24,
+        "y": 24,
+        "width": 1104,
+        "height": 624
+      },
+      "visible": true,
+      "minimized": false,
+      "display": {
+        "id": 1577027832,
+        "scaleFactor": 2.5,
+        "workArea": {
+          "x": 0,
+          "y": 0,
+          "width": 1152,
+          "height": 672
+        }
+      },
+      "insideWorkArea": true
+    },
+    "factor": 1.5,
+    "paint": {
+      "method": "Electron.webContents.capturePage",
+      "size": {
+        "width": 2760,
+        "height": 1560
+      },
+      "colors": 1532,
+      "nonDominantFraction": 0.5655509104422147
+    },
+    "viewport": {
+      "width": 736,
+      "height": 416
+    }
+  },
+  {
+    "requested": {
+      "width": 1000,
+      "height": 600
+    },
+    "clamped": {
+      "width": 1000,
+      "height": 600
+    },
+    "actual": {
+      "bounds": {
+        "x": 24,
+        "y": 24,
+        "width": 1104,
+        "height": 624
+      },
+      "contentBounds": {
+        "x": 24,
+        "y": 24,
+        "width": 1104,
+        "height": 624
+      },
+      "visible": true,
+      "minimized": false,
+      "display": {
+        "id": 1577027832,
+        "scaleFactor": 2.5,
+        "workArea": {
+          "x": 0,
+          "y": 0,
+          "width": 1152,
+          "height": 672
+        }
+      },
+      "insideWorkArea": true
+    },
+    "factor": 2.5,
+    "paint": {
+      "method": "Electron.webContents.capturePage",
+      "size": {
+        "width": 2760,
+        "height": 1560
+      },
+      "colors": 3819,
+      "nonDominantFraction": 0.46855467298402076
+    },
+    "viewport": {
+      "width": 441,
+      "height": 249
+    }
+  },
+  {
+    "requested": {
+      "width": 850,
+      "height": 500
+    },
+    "clamped": {
+      "width": 850,
+      "height": 500
+    },
+    "actual": {
+      "bounds": {
+        "x": 151,
+        "y": 55,
+        "width": 851,
+        "height": 563
+      },
+      "contentBounds": {
+        "x": 152,
+        "y": 55,
+        "width": 850,
+        "height": 562
+      },
+      "visible": true,
+      "minimized": false,
+      "display": {
+        "id": 1577027832,
+        "scaleFactor": 2.5,
+        "workArea": {
+          "x": 0,
+          "y": 0,
+          "width": 1152,
+          "height": 672
+        }
+      },
+      "insideWorkArea": true
+    },
+    "factor": 1,
+    "paint": {
+      "method": "Electron.webContents.capturePage",
+      "size": {
+        "width": 2125,
+        "height": 1405
+      },
+      "colors": 4607,
+      "nonDominantFraction": 0.20520895959807406
+    },
+    "viewport": {
+      "width": 850,
+      "height": 562
+    }
+  },
+  {
+    "requested": {
+      "width": 850,
+      "height": 500
+    },
+    "clamped": {
+      "width": 850,
+      "height": 500
+    },
+    "actual": {
+      "bounds": {
+        "x": 151,
+        "y": 55,
+        "width": 851,
+        "height": 563
+      },
+      "contentBounds": {
+        "x": 152,
+        "y": 55,
+        "width": 850,
+        "height": 562
+      },
+      "visible": true,
+      "minimized": false,
+      "display": {
+        "id": 1577027832,
+        "scaleFactor": 2.5,
+        "workArea": {
+          "x": 0,
+          "y": 0,
+          "width": 1152,
+          "height": 672
+        }
+      },
+      "insideWorkArea": true
+    },
+    "factor": 1.25,
+    "paint": {
+      "method": "Electron.webContents.capturePage",
+      "size": {
+        "width": 2125,
+        "height": 1405
+      },
+      "colors": 3411,
+      "nonDominantFraction": 0.3552743562905589
+    },
+    "viewport": {
+      "width": 680,
+      "height": 449
+    }
+  },
+  {
+    "requested": {
+      "width": 850,
+      "height": 500
+    },
+    "clamped": {
+      "width": 850,
+      "height": 500
+    },
+    "actual": {
+      "bounds": {
+        "x": 151,
+        "y": 55,
+        "width": 851,
+        "height": 563
+      },
+      "contentBounds": {
+        "x": 152,
+        "y": 55,
+        "width": 850,
+        "height": 562
+      },
+      "visible": true,
+      "minimized": false,
+      "display": {
+        "id": 1577027832,
+        "scaleFactor": 2.5,
+        "workArea": {
+          "x": 0,
+          "y": 0,
+          "width": 1152,
+          "height": 672
+        }
+      },
+      "insideWorkArea": true
+    },
+    "factor": 1.5,
+    "paint": {
+      "method": "Electron.webContents.capturePage",
+      "size": {
+        "width": 2125,
+        "height": 1405
+      },
+      "colors": 1413,
+      "nonDominantFraction": 0.4068226920661503
+    },
+    "viewport": {
+      "width": 566,
+      "height": 374
+    }
+  },
+  {
+    "requested": {
+      "width": 850,
+      "height": 500
+    },
+    "clamped": {
+      "width": 850,
+      "height": 500
+    },
+    "actual": {
+      "bounds": {
+        "x": 151,
+        "y": 55,
+        "width": 851,
+        "height": 563
+      },
+      "contentBounds": {
+        "x": 152,
+        "y": 55,
+        "width": 850,
+        "height": 562
+      },
+      "visible": true,
+      "minimized": false,
+      "display": {
+        "id": 1577027832,
+        "scaleFactor": 2.5,
+        "workArea": {
+          "x": 0,
+          "y": 0,
+          "width": 1152,
+          "height": 672
+        }
+      },
+      "insideWorkArea": true
+    },
+    "factor": 2.5,
+    "paint": {
+      "method": "Electron.webContents.capturePage",
+      "size": {
+        "width": 2125,
+        "height": 1405
+      },
+      "colors": 3687,
+      "nonDominantFraction": 0.44967368641406735
+    },
+    "viewport": {
+      "width": 340,
+      "height": 224
+    }
+  }
+]

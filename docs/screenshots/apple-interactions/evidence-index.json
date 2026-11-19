@@ -1,0 +1,2211 @@
+{
+  "generatedAt": "2026-11-19T06:30:12.979Z",
+  "files": [
+    {
+      "file": "before/review-project-command-modal-desktop.png",
+      "observation": "纯项目命令使用modal",
+      "source": ".impeccable/review/project-management-desktop-viewport-blue-light.png",
+      "sourceModifiedAt": "2026-11-19T06:00:42.157Z",
+      "sha256": "a64e22f81b1246c84307f620aef5bfc5aa1a95709d2274e7b4a4aaff1fb92042",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "project-management-desktop-viewport-blue-light.png",
+        "fixture": "production-preview",
+        "module": "project-management",
+        "scope": "viewport",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "image": {
+          "width": 1280,
+          "height": 900
+        },
+        "note": "优先用于modal视觉验收；fullPage长图的fixed遮罩不能表示同一屏幕布局。"
+      },
+      "label": "本PR首轮审查：纯项目命令使用modal",
+      "fixture": "first-pr-review-working-tree-not-main",
+      "originalBatchStartedAt": "2026-11-19T05:55:52.842Z"
+    },
+    {
+      "file": "before/review-auth-duplicate-eye-desktop.png",
+      "observation": "Edge原生与自定义密码显示图标并存",
+      "source": ".impeccable/review/auth-form-desktop-blue-light.png",
+      "sourceModifiedAt": "2026-11-19T05:56:22.625Z",
+      "sha256": "8696510c5d3da6d811c497877a07543c89942272a6d6e5dbd9805ba01f73b8f5",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "auth-form-desktop-blue-light.png",
+        "fixture": "auth-dev-with-intercepted-loopback-api",
+        "module": "auth-form",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32120/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "",
+        "image": {
+          "width": 1280,
+          "height": 900
+        }
+      },
+      "label": "本PR首轮审查：Edge原生与自定义密码显示图标并存",
+      "fixture": "first-pr-review-working-tree-not-main",
+      "originalBatchStartedAt": "2026-11-19T05:55:52.842Z"
+    },
+    {
+      "file": "before/review-onboarding-eyebrow-desktop.png",
+      "observation": "步骤标题上方重复眉题",
+      "source": ".impeccable/review/onboarding-desktop-blue-light.png",
+      "sourceModifiedAt": "2026-11-19T05:56:02.054Z",
+      "sha256": "4f4b00fe323490b48225a5f6adf94e9874fade315a3d8d73e6a2991b3f1ad343",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "onboarding-desktop-blue-light.png",
+        "fixture": "production-preview",
+        "module": "onboarding",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "继续",
+        "image": {
+          "width": 1280,
+          "height": 900
+        }
+      },
+      "label": "本PR首轮审查：步骤标题上方重复眉题",
+      "fixture": "first-pr-review-working-tree-not-main",
+      "originalBatchStartedAt": "2026-11-19T05:55:52.842Z"
+    },
+    {
+      "file": "before/review-project-command-modal-mobile.png",
+      "observation": "纯项目命令使用modal",
+      "source": ".impeccable/review/project-management-mobile-viewport-blue-light.png",
+      "sourceModifiedAt": "2026-11-19T06:00:43.468Z",
+      "sha256": "48037918ef0c95ab01df62a5b14fc5bcbe91d7b93a36666fa27193ef08880587",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": {
+        "file": "project-management-mobile-viewport-blue-light.png",
+        "fixture": "production-preview",
+        "module": "project-management",
+        "scope": "viewport",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "image": {
+          "width": 390,
+          "height": 844
+        },
+        "note": "优先用于modal视觉验收；fullPage长图的fixed遮罩不能表示同一屏幕布局。"
+      },
+      "label": "本PR首轮审查：纯项目命令使用modal",
+      "fixture": "first-pr-review-working-tree-not-main",
+      "originalBatchStartedAt": "2026-11-19T05:55:52.842Z"
+    },
+    {
+      "file": "before/review-auth-duplicate-eye-mobile.png",
+      "observation": "Edge原生与自定义密码显示图标并存",
+      "source": ".impeccable/review/auth-form-mobile-blue-light.png",
+      "sourceModifiedAt": "2026-11-19T05:56:24.445Z",
+      "sha256": "c174677cdcde1507986821df193d9eb8106abe0be6a1600f4fd03dd2de81b9be",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": {
+        "file": "auth-form-mobile-blue-light.png",
+        "fixture": "auth-dev-with-intercepted-loopback-api",
+        "module": "auth-form",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32120/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "",
+        "image": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      "label": "本PR首轮审查：Edge原生与自定义密码显示图标并存",
+      "fixture": "first-pr-review-working-tree-not-main",
+      "originalBatchStartedAt": "2026-11-19T05:55:52.842Z"
+    },
+    {
+      "file": "before/review-onboarding-eyebrow-mobile.png",
+      "observation": "步骤标题上方重复眉题",
+      "source": ".impeccable/review/onboarding-mobile-blue-light.png",
+      "sourceModifiedAt": "2026-11-19T05:56:10.203Z",
+      "sha256": "e759a7e3fa05f43256fb1f1ab916782937e7151921090fe614af5418e819f6fa",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": {
+        "file": "onboarding-mobile-blue-light.png",
+        "fixture": "production-preview",
+        "module": "onboarding",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "继续",
+        "image": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      "label": "本PR首轮审查：步骤标题上方重复眉题",
+      "fixture": "first-pr-review-working-tree-not-main",
+      "originalBatchStartedAt": "2026-11-19T05:55:52.842Z"
+    },
+    {
+      "file": "before/home-desktop.png",
+      "label": "整改前首页",
+      "source": ".tmp/hig-before/home-desktop.png",
+      "sha256": "00553fa938d8603eab39ea7e53bd8fadf9eabe0492aa157a8a449b63e1d6e0a3",
+      "image": {
+        "width": 1280,
+        "height": 2231
+      },
+      "fixture": "baseline-next-dev-preview",
+      "commit": "6b3b79c6217e9acefa35ceaa7419de0cbb9df1f6",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "fixedTime": "2026-11-19T04:00:00Z"
+    },
+    {
+      "file": "before/keyboard-focus-desktop.png",
+      "label": "整改前结束今天键盘焦点",
+      "source": ".tmp/hig-before/keyboard-focus.png",
+      "sha256": "0083983855bc13176484720051992f49edf95f154a01b960f14ea385ff70689a",
+      "image": {
+        "width": 1280,
+        "height": 2231
+      },
+      "fixture": "baseline-next-dev-preview",
+      "commit": "6b3b79c6217e9acefa35ceaa7419de0cbb9df1f6",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "fixedTime": "2026-11-19T04:00:00Z"
+    },
+    {
+      "file": "before/plans-desktop.png",
+      "label": "整改前计划",
+      "source": ".tmp/hig-before/plans-desktop.png",
+      "sha256": "210107890f08894f428ad4af00b0da3eec631f5b3060eae51a46d46a5f77f798",
+      "image": {
+        "width": 1280,
+        "height": 1256
+      },
+      "fixture": "baseline-next-dev-preview",
+      "commit": "6b3b79c6217e9acefa35ceaa7419de0cbb9df1f6",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "fixedTime": "2026-11-19T04:00:00Z"
+    },
+    {
+      "file": "after/home-desktop.png",
+      "label": "首页桌面",
+      "source": ".impeccable/review/desktop.png",
+      "sha256": "330de37770ec11d873fdd8060a9e46db9ff982c223ff3ea4e7876e87cf86b05e",
+      "image": {
+        "width": 1280,
+        "height": 2185
+      },
+      "capture": {
+        "file": "desktop.png",
+        "fixture": "production-preview",
+        "module": "home",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅2026-11-19　周",
+        "image": {
+          "width": 1280,
+          "height": 2185
+        },
+        "copiedFrom": "home-desktop-blue-light.png"
+      }
+    },
+    {
+      "file": "after/home-mobile.png",
+      "label": "首页手机",
+      "source": ".impeccable/review/mobile.png",
+      "sha256": "4af094d6c984833f30b788e7f8eaba1ecebf8789e5e05b7459510642afe53b2c",
+      "image": {
+        "width": 390,
+        "height": 3800
+      },
+      "capture": {
+        "file": "mobile.png",
+        "fixture": "production-preview",
+        "module": "home",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅2026-11-19　周",
+        "image": {
+          "width": 390,
+          "height": 3800
+        },
+        "copiedFrom": "home-mobile-blue-light.png"
+      }
+    },
+    {
+      "file": "after/keyboard-focus-desktop.png",
+      "label": "首页键盘焦点",
+      "source": ".impeccable/review/home-keyboard-focus-desktop-blue-light.png",
+      "sha256": "7434f2dc066a5298f736aece0edf48a53009e29c8cf1e9f17a6b4d42f69c0a5d",
+      "image": {
+        "width": 1280,
+        "height": 2185
+      },
+      "capture": {
+        "file": "home-keyboard-focus-desktop-blue-light.png",
+        "fixture": "production-preview",
+        "module": "home-keyboard-focus",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "结束今天",
+        "image": {
+          "width": 1280,
+          "height": 2185
+        }
+      }
+    },
+    {
+      "file": "after/keyboard-focus-mobile.png",
+      "label": "手机键盘焦点",
+      "source": ".impeccable/review/home-keyboard-focus-mobile-blue-light.png",
+      "sha256": "2973fc1a363a414a033997985aaf9462d71ceebb0197eb7c5578db20afe6911e",
+      "image": {
+        "width": 390,
+        "height": 3800
+      },
+      "capture": {
+        "file": "home-keyboard-focus-mobile-blue-light.png",
+        "fixture": "production-preview",
+        "module": "home-keyboard-focus",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "结束今天",
+        "image": {
+          "width": 390,
+          "height": 3800
+        }
+      }
+    },
+    {
+      "file": "after/home-selection-menu-desktop.png",
+      "label": "首页互斥菜单",
+      "source": ".impeccable/review/home-selection-menu-desktop-blue-light.png",
+      "sha256": "9336bf81b006f859f9647f9082be73a121a18a63df6eef39727eadc45296a7db",
+      "image": {
+        "width": 1280,
+        "height": 2185
+      },
+      "capture": {
+        "file": "home-selection-menu-desktop-blue-light.png",
+        "fixture": "production-preview",
+        "module": "home-selection-menu",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "任务列表",
+        "image": {
+          "width": 1280,
+          "height": 2185
+        }
+      }
+    },
+    {
+      "file": "after/home-action-menu-desktop.png",
+      "label": "任务动作菜单",
+      "source": ".impeccable/review/home-action-menu-desktop-blue-light.png",
+      "sha256": "27f4ab2cbab0bb2d3d0e20a4d07c28827c25917c44f94cfbb04a49a2a4bef805",
+      "image": {
+        "width": 1280,
+        "height": 2185
+      },
+      "capture": {
+        "file": "home-action-menu-desktop-blue-light.png",
+        "fixture": "production-preview",
+        "module": "task-actions-menu",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "加入计时",
+        "image": {
+          "width": 1280,
+          "height": 2185
+        }
+      }
+    },
+    {
+      "file": "after/home-selection-menu-mobile.png",
+      "label": "手机互斥菜单",
+      "source": ".impeccable/review/home-selection-menu-mobile-blue-light.png",
+      "sha256": "452f20cb4f567fb6cfa205b7756aafd043d13eae7dffb3d1dfa3ad3a49cab7d5",
+      "image": {
+        "width": 390,
+        "height": 3800
+      },
+      "capture": {
+        "file": "home-selection-menu-mobile-blue-light.png",
+        "fixture": "production-preview",
+        "module": "home-selection-menu",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "任务列表",
+        "image": {
+          "width": 390,
+          "height": 3800
+        }
+      }
+    },
+    {
+      "file": "after/home-time-distribution-desktop.png",
+      "label": "首页时间分布",
+      "source": ".impeccable/review/home-time-distribution-desktop-blue-light.png",
+      "sha256": "8c951f7a9427eccb9fe406a64381dd6568686e9ae94cfb2e78206eda3ba1afd4",
+      "image": {
+        "width": 1280,
+        "height": 936
+      },
+      "capture": {
+        "file": "home-time-distribution-desktop-blue-light.png",
+        "fixture": "production-preview",
+        "module": "home-time-chart",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "右栏显示内容：今日时间分布",
+        "image": {
+          "width": 1280,
+          "height": 936
+        }
+      }
+    },
+    {
+      "file": "after/calendar-desktop.png",
+      "label": "日历",
+      "source": ".impeccable/review/calendar-desktop-blue-light.png",
+      "sha256": "5f85f018c540c698926dee174519804412c589a05edae3454c4c6da817c820a7",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "calendar-desktop-blue-light.png",
+        "fixture": "production-preview",
+        "module": "calendar",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "日历",
+        "image": {
+          "width": 1280,
+          "height": 900
+        }
+      }
+    },
+    {
+      "file": "after/plans-desktop.png",
+      "label": "计划",
+      "source": ".impeccable/review/plans-desktop-blue-light.png",
+      "sha256": "b61144c41e01c9a86c164d919f693e979ba67d7be4a3f943677d388d9cf3de23",
+      "image": {
+        "width": 1280,
+        "height": 1210
+      },
+      "capture": {
+        "file": "plans-desktop-blue-light.png",
+        "fixture": "production-preview",
+        "module": "plans",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "计划",
+        "image": {
+          "width": 1280,
+          "height": 1210
+        }
+      }
+    },
+    {
+      "file": "after/projects-desktop.png",
+      "label": "项目详情",
+      "source": ".impeccable/review/projects-desktop-blue-light.png",
+      "sha256": "efc504b076d544ffc1b6e84c3cf97e9bbdf7e4df454edc8bfe9d907fed09553a",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "projects-desktop-blue-light.png",
+        "fixture": "production-preview",
+        "module": "project-detail",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "工作",
+        "image": {
+          "width": 1280,
+          "height": 900
+        }
+      }
+    },
+    {
+      "file": "after/project-management-desktop.png",
+      "label": "项目操作菜单viewport",
+      "source": ".impeccable/review/project-management-desktop-blue-light.png",
+      "sha256": "e54ca0fe7c141446091b4e8833e2de0eb632cab2b9f1a3e94d7e5a0d0ae796f9",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "project-management-desktop-blue-light.png",
+        "fixture": "production-preview",
+        "module": "project-management",
+        "scope": "viewport",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "修改项目…",
+        "image": {
+          "width": 1280,
+          "height": 900
+        }
+      }
+    },
+    {
+      "file": "after/project-management-mobile.png",
+      "label": "手机项目操作菜单viewport",
+      "source": ".impeccable/review/project-management-mobile-blue-light.png",
+      "sha256": "7f33d6a2173757485e26a89f43bc98220c13f8e9a82f94ca6c535e9b9edc3cdd",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": {
+        "file": "project-management-mobile-blue-light.png",
+        "fixture": "production-preview",
+        "module": "project-management",
+        "scope": "viewport",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "修改项目…",
+        "image": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    },
+    {
+      "file": "after/project-delete-confirmation-desktop.png",
+      "label": "项目删除确认viewport",
+      "source": ".impeccable/review/project-delete-confirmation-desktop-blue-light.png",
+      "sha256": "e93df9064b168695200f5bf313b7c5ed23f68b6827158635567a06d9c65d92e6",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "project-delete-confirmation-desktop-blue-light.png",
+        "fixture": "production-preview",
+        "module": "project-delete-confirmation",
+        "scope": "viewport",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "取消",
+        "image": {
+          "width": 1280,
+          "height": 900
+        }
+      }
+    },
+    {
+      "file": "after/project-delete-confirmation-mobile.png",
+      "label": "手机项目删除确认viewport",
+      "source": ".impeccable/review/project-delete-confirmation-mobile-blue-light.png",
+      "sha256": "c1ab12b2e181596635848e78229e050ac7f33a7bc46f8ae3bf58dc8dda6a8884",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": {
+        "file": "project-delete-confirmation-mobile-blue-light.png",
+        "fixture": "production-preview",
+        "module": "project-delete-confirmation",
+        "scope": "viewport",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "取消",
+        "image": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    },
+    {
+      "file": "after/daily-today-mobile.png",
+      "label": "当日Daily",
+      "source": ".impeccable/review/daily-today-mobile-blue-light.png",
+      "sha256": "7acc427ca9f1d7b572c7941fc78e5dcb673bfc8d12967b70db09fdf0b10d6fc7",
+      "image": {
+        "width": 324,
+        "height": 298
+      },
+      "capture": {
+        "file": "daily-today-mobile-blue-light.png",
+        "fixture": "production-preview",
+        "module": "daily",
+        "scope": "element",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "右栏显示内容：任务列表",
+        "image": {
+          "width": 324,
+          "height": 298
+        }
+      }
+    },
+    {
+      "file": "after/daily-management-desktop.png",
+      "label": "Daily模板管理列表",
+      "source": ".impeccable/review/daily-management-desktop-blue-light.png",
+      "sha256": "514f1a544fec517098c3b6daf16616d2191c76e7aab9cb7c32711ab81572f6e2",
+      "image": {
+        "width": 1280,
+        "height": 1210
+      },
+      "capture": {
+        "file": "daily-management-desktop-blue-light.png",
+        "fixture": "production-preview",
+        "module": "daily-management",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "计划",
+        "image": {
+          "width": 1280,
+          "height": 1210
+        }
+      }
+    },
+    {
+      "file": "after/habits-desktop.png",
+      "label": "习惯",
+      "source": ".impeccable/review/habits-desktop-blue-light.png",
+      "sha256": "6940f7b2d777f37c353ca5cd04640d3180dcb01319a8218f0392c3979666edf6",
+      "image": {
+        "width": 1280,
+        "height": 1339
+      },
+      "capture": {
+        "file": "habits-desktop-blue-light.png",
+        "fixture": "production-preview",
+        "module": "habits",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "习惯",
+        "image": {
+          "width": 1280,
+          "height": 1339
+        }
+      }
+    },
+    {
+      "file": "after/rhythm-mobile.png",
+      "label": "节律",
+      "source": ".impeccable/review/rhythm-mobile-blue-light.png",
+      "sha256": "e698c20fe5c92eaea79518f3dd29ce9b8badd12f431b0d8b5972742e1319f3bb",
+      "image": {
+        "width": 390,
+        "height": 1088
+      },
+      "capture": {
+        "file": "rhythm-mobile-blue-light.png",
+        "fixture": "production-preview",
+        "module": "rhythm",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多节律记录生理期开始与结束，随账号",
+        "image": {
+          "width": 390,
+          "height": 1088
+        }
+      }
+    },
+    {
+      "file": "after/insights-desktop.png",
+      "label": "洞察",
+      "source": ".impeccable/review/insights-desktop-blue-light.png",
+      "sha256": "3e5c935d1fa2a9c4e6980314aedcaf632c98ca766593bac37b0d7a68ab0dd553",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "insights-desktop-blue-light.png",
+        "fixture": "production-preview",
+        "module": "insights",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "洞察",
+        "image": {
+          "width": 1280,
+          "height": 900
+        }
+      }
+    },
+    {
+      "file": "after/settings-mobile.png",
+      "label": "设置",
+      "source": ".impeccable/review/settings-mobile-blue-light.png",
+      "sha256": "30d215b134603e8a1cb8ea70d270ddde586f8d99b0e914e5cd3c51c876f3eba2",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": {
+        "file": "settings-mobile-blue-light.png",
+        "fixture": "production-preview",
+        "module": "settings",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多设置通用个人资料女生外观日期与时",
+        "image": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    },
+    {
+      "file": "after/stage-ring-desktop.png",
+      "label": "阶段时间环",
+      "source": ".impeccable/review/stage-ring-desktop-blue-light.png",
+      "sha256": "f2520b7ad5dfa8471ae48b64671e09e36fb7561a73935803282f1b1d54d0aa60",
+      "image": {
+        "width": 1280,
+        "height": 1023
+      },
+      "capture": {
+        "file": "stage-ring-desktop-blue-light.png",
+        "fixture": "production-preview",
+        "module": "stage-time",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "多项目时间验收",
+        "image": {
+          "width": 1280,
+          "height": 1023
+        }
+      }
+    },
+    {
+      "file": "after/stage-ring-classic-mobile.png",
+      "label": "经典时间环手机",
+      "source": ".impeccable/review/stage-ring-mobile-classic-dark.png",
+      "sha256": "fc171e9476ba166dff6a412ec4747b9a14f14a491a868653f34494f2a35fc14b",
+      "image": {
+        "width": 390,
+        "height": 5058
+      },
+      "capture": {
+        "file": "stage-ring-mobile-classic-dark.png",
+        "fixture": "production-preview",
+        "module": "stage-time-classic",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "classic",
+        "colorScheme": "dark",
+        "focus": "经典",
+        "image": {
+          "width": 390,
+          "height": 5058
+        }
+      }
+    },
+    {
+      "file": "after/timers-mobile.png",
+      "label": "三条暂停计时",
+      "source": ".impeccable/review/timers-mobile-blue-light.png",
+      "sha256": "b0ac07c285a1f0ee7f6a0b14befd1a56989b58e54691b824fcdc1be2d155ae06",
+      "image": {
+        "width": 390,
+        "height": 4085
+      },
+      "capture": {
+        "file": "timers-mobile-blue-light.png",
+        "fixture": "production-preview",
+        "module": "task-timers",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅整理这段时间的课程资料与",
+        "image": {
+          "width": 390,
+          "height": 4085
+        }
+      }
+    },
+    {
+      "file": "after/together-desktop.png",
+      "label": "同频安雅暗色",
+      "source": ".impeccable/review/together-desktop-anya-dark.png",
+      "sha256": "bc864742f7f2053152565169a6a017831f8b757caab7d76a8d2780a1b0670d1a",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "together-desktop-anya-dark.png",
+        "fixture": "together-dev-with-isolated-pglite",
+        "module": "together-dark",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32100/together-preview",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "anya",
+        "colorScheme": "dark",
+        "focus": "立个 flag",
+        "image": {
+          "width": 1280,
+          "height": 900
+        }
+      }
+    },
+    {
+      "file": "after/together-editor-mobile.png",
+      "label": "同频手机编辑器",
+      "source": ".impeccable/review/together-editor-mobile-blue-light.png",
+      "sha256": "e5dce7354b9094a785367756f0c1f7bdf35d36638dae7150494f99e32344173c",
+      "image": {
+        "width": 390,
+        "height": 992
+      },
+      "capture": {
+        "file": "together-editor-mobile-blue-light.png",
+        "fixture": "together-dev-with-isolated-pglite",
+        "module": "together-editor",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32100/together-preview",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "",
+        "image": {
+          "width": 390,
+          "height": 992
+        }
+      }
+    },
+    {
+      "file": "after/auth-form-mobile.png",
+      "label": "认证表单手机",
+      "source": ".impeccable/review/auth-form-mobile-blue-light.png",
+      "sha256": "0af9b9e156e61cfe46214e392d06cc4dd8ff2acdb7fa20ed746441a6fd3eedd5",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": {
+        "file": "auth-form-mobile-blue-light.png",
+        "fixture": "auth-dev-with-intercepted-loopback-api",
+        "module": "auth-form",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32120/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "",
+        "image": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    },
+    {
+      "file": "after/auth-form-desktop.png",
+      "label": "认证表单桌面",
+      "source": ".impeccable/review/auth-form-desktop-blue-light.png",
+      "sha256": "5ee2cd130fac16060c8e5aa7378a650a51f3bf13ba9fd94d5c91cac30f8828d0",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "auth-form-desktop-blue-light.png",
+        "fixture": "auth-dev-with-intercepted-loopback-api",
+        "module": "auth-form",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32120/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "",
+        "image": {
+          "width": 1280,
+          "height": 900
+        }
+      }
+    },
+    {
+      "file": "after/auth-busy-desktop.png",
+      "label": "认证忙碌经典暗色",
+      "source": ".impeccable/review/auth-busy-desktop-classic-dark.png",
+      "sha256": "cdce4244ba5579ac14d4475b0c3fbd72f57e4cf1a93078d914fe0ae127af8111",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "auth-busy-desktop-classic-dark.png",
+        "fixture": "auth-dev-with-intercepted-loopback-api",
+        "module": "auth-busy",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32120/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "classic",
+        "colorScheme": "dark",
+        "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。登录Threadline登录我的工作台请输入账号信息以继续。邮箱密码忘记密码？登录没有账号？请联系开发者12",
+        "image": {
+          "width": 1280,
+          "height": 900
+        }
+      }
+    },
+    {
+      "file": "after/auth-error-mobile.png",
+      "label": "认证错误手机",
+      "source": ".impeccable/review/auth-error-mobile-classic-dark.png",
+      "sha256": "e6b09cfea27dd5ebc54a2c1679461c537d13943b46247d45a46383b48f608939",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": {
+        "file": "auth-error-mobile-classic-dark.png",
+        "fixture": "auth-dev-with-intercepted-loopback-api",
+        "module": "auth-error",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32120/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "classic",
+        "colorScheme": "dark",
+        "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。self.__next_r=\"ZwM5LbACN8RAg1g7H1bhq\";if(document.cook",
+        "image": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    },
+    {
+      "file": "after/onboarding-cottage-dark-desktop.png",
+      "label": "引导深绿操作键盘焦点",
+      "source": ".impeccable/review/onboarding-desktop-cottage-dark.png",
+      "sha256": "da39f3a5e47e41619b8faba09e576288a631767306bd05103d9d282871fcd081",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "onboarding-desktop-cottage-dark.png",
+        "fixture": "production-preview",
+        "module": "onboarding",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "cottage",
+        "colorScheme": "dark",
+        "focus": "继续",
+        "image": {
+          "width": 1280,
+          "height": 900
+        }
+      }
+    },
+    {
+      "file": "after/onboarding-blue-light-desktop.png",
+      "label": "无重复眉题的引导桌面",
+      "source": ".impeccable/review/onboarding-desktop-blue-light.png",
+      "sha256": "7aa80f9cb7c6bd685aa0267376eef0a9792fecb82fb552c7682530992bcaef5f",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": {
+        "file": "onboarding-desktop-blue-light.png",
+        "fixture": "production-preview",
+        "module": "onboarding",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "继续",
+        "image": {
+          "width": 1280,
+          "height": 900
+        }
+      }
+    },
+    {
+      "file": "after/onboarding-blue-light-mobile.png",
+      "label": "无重复眉题的引导手机",
+      "source": ".impeccable/review/onboarding-mobile-blue-light.png",
+      "sha256": "78ed229eccb106eaf5d85b5282b3dcf5159bbee5cfe0a58cf95561b195831484",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": {
+        "file": "onboarding-mobile-blue-light.png",
+        "fixture": "production-preview",
+        "module": "onboarding",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "继续",
+        "image": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    },
+    {
+      "file": "themes/theme-desktop-blue-light.png",
+      "label": "blue/light",
+      "source": ".impeccable/review/theme-desktop-blue-light.png",
+      "sha256": "1ba959b036f6052f598d26dc84089a20280532a4ef05754ee09ef55646ac7f1b",
+      "image": {
+        "width": 1280,
+        "height": 2185
+      },
+      "capture": {
+        "file": "theme-desktop-blue-light.png",
+        "fixture": "production-preview",
+        "module": "theme-representative",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "首页",
+        "image": {
+          "width": 1280,
+          "height": 2185
+        }
+      }
+    },
+    {
+      "file": "themes/theme-desktop-blue-dark.png",
+      "label": "blue/dark",
+      "source": ".impeccable/review/theme-desktop-blue-dark.png",
+      "sha256": "1daad13c5c4dc5af41efcd5b29c3edbfe23832b1c2bd0d0ae26b68c4945de89c",
+      "image": {
+        "width": 1280,
+        "height": 2185
+      },
+      "capture": {
+        "file": "theme-desktop-blue-dark.png",
+        "fixture": "production-preview",
+        "module": "theme-representative",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "blue",
+        "colorScheme": "dark",
+        "focus": "首页",
+        "image": {
+          "width": 1280,
+          "height": 2185
+        }
+      }
+    },
+    {
+      "file": "themes/theme-desktop-anya-light.png",
+      "label": "anya/light",
+      "source": ".impeccable/review/theme-desktop-anya-light.png",
+      "sha256": "77dd42dbf29a820a6f21c5bb14bc9b37301f0eec3de92b70870dbaa4b512c8ab",
+      "image": {
+        "width": 1280,
+        "height": 2202
+      },
+      "capture": {
+        "file": "theme-desktop-anya-light.png",
+        "fixture": "production-preview",
+        "module": "theme-representative",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "anya",
+        "colorScheme": "light",
+        "focus": "首页",
+        "image": {
+          "width": 1280,
+          "height": 2202
+        }
+      }
+    },
+    {
+      "file": "themes/theme-desktop-anya-dark.png",
+      "label": "anya/dark",
+      "source": ".impeccable/review/theme-desktop-anya-dark.png",
+      "sha256": "398544a223e38140fc8007d9ea23fbb93d2004effe2ea429e29960ba5eb9addd",
+      "image": {
+        "width": 1280,
+        "height": 2202
+      },
+      "capture": {
+        "file": "theme-desktop-anya-dark.png",
+        "fixture": "production-preview",
+        "module": "theme-representative",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "anya",
+        "colorScheme": "dark",
+        "focus": "首页",
+        "image": {
+          "width": 1280,
+          "height": 2202
+        }
+      }
+    },
+    {
+      "file": "themes/theme-desktop-cottage-light.png",
+      "label": "cottage/light",
+      "source": ".impeccable/review/theme-desktop-cottage-light.png",
+      "sha256": "724ea102f4012e57793a4f0024954e777dd7a27ef1af59095563e7ed1aa053ef",
+      "image": {
+        "width": 1280,
+        "height": 2187
+      },
+      "capture": {
+        "file": "theme-desktop-cottage-light.png",
+        "fixture": "production-preview",
+        "module": "theme-representative",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "cottage",
+        "colorScheme": "light",
+        "focus": "首页",
+        "image": {
+          "width": 1280,
+          "height": 2187
+        }
+      }
+    },
+    {
+      "file": "themes/theme-desktop-cottage-dark.png",
+      "label": "cottage/dark",
+      "source": ".impeccable/review/theme-desktop-cottage-dark.png",
+      "sha256": "03c78d44a6d4a1a4d95214b904c9fc283004328708130efa18879dd160b2fcfe",
+      "image": {
+        "width": 1280,
+        "height": 2187
+      },
+      "capture": {
+        "file": "theme-desktop-cottage-dark.png",
+        "fixture": "production-preview",
+        "module": "theme-representative",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "cottage",
+        "colorScheme": "dark",
+        "focus": "首页",
+        "image": {
+          "width": 1280,
+          "height": 2187
+        }
+      }
+    },
+    {
+      "file": "themes/theme-desktop-classic-light.png",
+      "label": "classic/light",
+      "source": ".impeccable/review/theme-desktop-classic-light.png",
+      "sha256": "5bbbdd7ec4059826b0be4aceaae1def0550c87db604ce4a4e24689e1267eb3a9",
+      "image": {
+        "width": 1280,
+        "height": 2306
+      },
+      "capture": {
+        "file": "theme-desktop-classic-light.png",
+        "fixture": "production-preview",
+        "module": "theme-representative",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "classic",
+        "colorScheme": "light",
+        "focus": "首页",
+        "image": {
+          "width": 1280,
+          "height": 2306
+        }
+      }
+    },
+    {
+      "file": "themes/theme-desktop-classic-dark.png",
+      "label": "classic/dark",
+      "source": ".impeccable/review/theme-desktop-classic-dark.png",
+      "sha256": "98ca6ae8658a24e9983aa171e05b404d79095f46bf7625810eab776fabd1554d",
+      "image": {
+        "width": 1280,
+        "height": 2306
+      },
+      "capture": {
+        "file": "theme-desktop-classic-dark.png",
+        "fixture": "production-preview",
+        "module": "theme-representative",
+        "scope": "page",
+        "captureMethod": "Playwright.screenshot",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/",
+        "viewport": {
+          "width": 1280,
+          "height": 900,
+          "deviceScaleFactor": 1
+        },
+        "theme": "classic",
+        "colorScheme": "dark",
+        "focus": "首页",
+        "image": {
+          "width": 1280,
+          "height": 2306
+        }
+      }
+    },
+    {
+      "file": "native/workstation-blue-light.png",
+      "label": "原生视图",
+      "source": ".impeccable/review/native/workstation-blue-light.png",
+      "sha256": "74f1367442bfae33f489713a007bfc05a768eccff3eeb20a3edc840e5d077016",
+      "image": {
+        "width": 500,
+        "height": 343
+      },
+      "capture": {
+        "file": "native/workstation-blue-light.png",
+        "fixture": "isolated-real-electron-profile",
+        "module": "workstation",
+        "scope": "page",
+        "captureMethod": "Electron.webContents.capturePage",
+        "fixedTime": "2026-11-19T04:00:00Z",
+        "url": "http://127.0.0.1:32103/?threadline-role=main",
+        "viewport": {
+          "width": 200,
+          "height": 137,
+          "deviceScaleFactor": 2.5
+        },
+        "theme": "blue",
+        "colorScheme": "light",
+        "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。(self.__next_f=self.__next_f||[]).push([0])self.__next",
+        "image": {
+          "width": 500,
+          "height": 343
+        },
+        "native": {
+          "bounds": {
+            "x": 476,
+            "y": 236,
+            "width": 200,
+            "height": 138
+          },
+          "workArea": {
+            "x": 0,
+            "y": 0,
+            "width": 1152,
+            "height": 672
+          },
+          "visible": true,
+          "minimized": false
+        }
+      }
+    },
+    {
+      "file": "native/minimum-reachable-controls.png",
+      "label": "原生视图",
+      "source": ".impeccable/review/native/minimum-reachable-controls.png",
+      "sha256": "5c0e17a5235c3d0bb5d8c8025cd9a0ea653f3298b3bd4d4a88b1548b6e4262e7",
+      "image": {
+        "width": 200,
+        "height": 113
+      },
+      "capture": {
+        "file": "native/minimum-reachable-controls.png",
+        "module": "timer-station",
+        "fixture": "existing-passed-electron-timer-station-suite",
+        "source": "test-results/timer-station/minimum-reachable-controls.png",
+        "sourceModifiedAt": "2026-11-19T05:16:17.034Z",
+        "url": "threadline://app/?threadline-role=timer-station",
+        "viewport": null,
+        "theme": null,
+        "colorScheme": null,
+        "note": "来源suite未记录这三图的viewport/theme；PNG原始尺寸准确保留，不将未知元数据伪报为已测值。",
+        "image": {
+          "width": 200,
+          "height": 113
+        }
+      }
+    },
+    {
+      "file": "native/two-timers-small.png",
+      "label": "原生视图",
+      "source": ".impeccable/review/native/two-timers-small.png",
+      "sha256": "27a2c4b712886c55a234f394442efd13bee0b1f3184c0398e5dd1906eb2b8888",
+      "image": {
+        "width": 500,
+        "height": 178
+      },
+      "capture": {
+        "file": "native/two-timers-small.png",
+        "module": "timer-station",
+        "fixture": "existing-passed-electron-timer-station-suite",
+        "source": "test-results/timer-station/two-timers-small.png",
+        "sourceModifiedAt": "2026-11-19T05:16:27.636Z",
+        "url": "threadline://app/?threadline-role=timer-station",
+        "viewport": null,
+        "theme": null,
+        "colorScheme": null,
+        "note": "来源suite未记录这三图的viewport/theme；PNG原始尺寸准确保留，不将未知元数据伪报为已测值。",
+        "image": {
+          "width": 500,
+          "height": 178
+        }
+      }
+    },
+    {
+      "file": "native/vertical-minimum.png",
+      "label": "原生视图",
+      "source": ".impeccable/review/native/vertical-minimum.png",
+      "sha256": "22d94d5700cb19bf30ddde87cc7453a91fcc078c0f0cd50aa81e3bd1b45c520f",
+      "image": {
+        "width": 200,
+        "height": 355
+      },
+      "capture": {
+        "file": "native/vertical-minimum.png",
+        "module": "timer-station",
+        "fixture": "existing-passed-electron-timer-station-suite",
+        "source": "test-results/timer-station/vertical-minimum.png",
+        "sourceModifiedAt": "2026-11-19T05:16:23.412Z",
+        "url": "threadline://app/?threadline-role=timer-station",
+        "viewport": null,
+        "theme": null,
+        "colorScheme": null,
+        "note": "来源suite未记录这三图的viewport/theme；PNG原始尺寸准确保留，不将未知元数据伪报为已测值。",
+        "image": {
+          "width": 200,
+          "height": 355
+        }
+      }
+    },
+    {
+      "file": "native/full-1000x600-100.png",
+      "label": "原生页面缩放矩阵",
+      "source": "test-results/electron-hig/full-1000x600-100.png",
+      "sha256": "565eedbeca87dcd66e7607cdcc026ce3a43e0e231b666009dde16b1e0b156c05",
+      "image": {
+        "width": 2760,
+        "height": 1560
+      },
+      "fixture": "isolated-real-electron-profile",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "theme": "blue",
+      "colorScheme": "light",
+      "matrix": {
+        "requested": {
+          "width": 1000,
+          "height": 600
+        },
+        "clamped": {
+          "width": 1000,
+          "height": 600
+        },
+        "actual": {
+          "bounds": {
+            "x": 24,
+            "y": 24,
+            "width": 1104,
+            "height": 624
+          },
+          "contentBounds": {
+            "x": 24,
+            "y": 24,
+            "width": 1104,
+            "height": 624
+          },
+          "visible": true,
+          "minimized": false,
+          "display": {
+            "id": 1577027832,
+            "scaleFactor": 2.5,
+            "workArea": {
+              "x": 0,
+              "y": 0,
+              "width": 1152,
+              "height": 672
+            }
+          },
+          "insideWorkArea": true
+        },
+        "factor": 1,
+        "paint": {
+          "method": "Electron.webContents.capturePage",
+          "size": {
+            "width": 2760,
+            "height": 1560
+          },
+          "colors": 6425,
+          "nonDominantFraction": 0.2916364734299517
+        },
+        "viewport": {
+          "width": 1104,
+          "height": 624
+        }
+      }
+    },
+    {
+      "file": "native/full-1000x600-125.png",
+      "label": "原生页面缩放矩阵",
+      "source": "test-results/electron-hig/full-1000x600-125.png",
+      "sha256": "787f3788ee90d7f53487b75dba138ab7e985ab53396c4e556ee7bb088fc838ae",
+      "image": {
+        "width": 2760,
+        "height": 1560
+      },
+      "fixture": "isolated-real-electron-profile",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "theme": "blue",
+      "colorScheme": "light",
+      "matrix": {
+        "requested": {
+          "width": 1000,
+          "height": 600
+        },
+        "clamped": {
+          "width": 1000,
+          "height": 600
+        },
+        "actual": {
+          "bounds": {
+            "x": 24,
+            "y": 24,
+            "width": 1104,
+            "height": 624
+          },
+          "contentBounds": {
+            "x": 24,
+            "y": 24,
+            "width": 1104,
+            "height": 624
+          },
+          "visible": true,
+          "minimized": false,
+          "display": {
+            "id": 1577027832,
+            "scaleFactor": 2.5,
+            "workArea": {
+              "x": 0,
+              "y": 0,
+              "width": 1152,
+              "height": 672
+            }
+          },
+          "insideWorkArea": true
+        },
+        "factor": 1.25,
+        "paint": {
+          "method": "Electron.webContents.capturePage",
+          "size": {
+            "width": 2760,
+            "height": 1560
+          },
+          "colors": 5418,
+          "nonDominantFraction": 0.3233238108509847
+        },
+        "viewport": {
+          "width": 883,
+          "height": 499
+        }
+      }
+    },
+    {
+      "file": "native/full-1000x600-150.png",
+      "label": "原生页面缩放矩阵",
+      "source": "test-results/electron-hig/full-1000x600-150.png",
+      "sha256": "61b30a0491676d9e6d06cb38d4a457d389a5b5c12ecde3d56ce25bdb0c35cded",
+      "image": {
+        "width": 2760,
+        "height": 1560
+      },
+      "fixture": "isolated-real-electron-profile",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "theme": "blue",
+      "colorScheme": "light",
+      "matrix": {
+        "requested": {
+          "width": 1000,
+          "height": 600
+        },
+        "clamped": {
+          "width": 1000,
+          "height": 600
+        },
+        "actual": {
+          "bounds": {
+            "x": 24,
+            "y": 24,
+            "width": 1104,
+            "height": 624
+          },
+          "contentBounds": {
+            "x": 24,
+            "y": 24,
+            "width": 1104,
+            "height": 624
+          },
+          "visible": true,
+          "minimized": false,
+          "display": {
+            "id": 1577027832,
+            "scaleFactor": 2.5,
+            "workArea": {
+              "x": 0,
+              "y": 0,
+              "width": 1152,
+              "height": 672
+            }
+          },
+          "insideWorkArea": true
+        },
+        "factor": 1.5,
+        "paint": {
+          "method": "Electron.webContents.capturePage",
+          "size": {
+            "width": 2760,
+            "height": 1560
+          },
+          "colors": 1532,
+          "nonDominantFraction": 0.5655509104422147
+        },
+        "viewport": {
+          "width": 736,
+          "height": 416
+        }
+      }
+    },
+    {
+      "file": "native/full-1000x600-250.png",
+      "label": "原生页面缩放矩阵",
+      "source": "test-results/electron-hig/full-1000x600-250.png",
+      "sha256": "3a6ab7e1e1abcaa3460ea97ade22c5cb1955523f5026e0a91ab5762acefe57ea",
+      "image": {
+        "width": 2760,
+        "height": 1560
+      },
+      "fixture": "isolated-real-electron-profile",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "theme": "blue",
+      "colorScheme": "light",
+      "matrix": {
+        "requested": {
+          "width": 1000,
+          "height": 600
+        },
+        "clamped": {
+          "width": 1000,
+          "height": 600
+        },
+        "actual": {
+          "bounds": {
+            "x": 24,
+            "y": 24,
+            "width": 1104,
+            "height": 624
+          },
+          "contentBounds": {
+            "x": 24,
+            "y": 24,
+            "width": 1104,
+            "height": 624
+          },
+          "visible": true,
+          "minimized": false,
+          "display": {
+            "id": 1577027832,
+            "scaleFactor": 2.5,
+            "workArea": {
+              "x": 0,
+              "y": 0,
+              "width": 1152,
+              "height": 672
+            }
+          },
+          "insideWorkArea": true
+        },
+        "factor": 2.5,
+        "paint": {
+          "method": "Electron.webContents.capturePage",
+          "size": {
+            "width": 2760,
+            "height": 1560
+          },
+          "colors": 3819,
+          "nonDominantFraction": 0.46855467298402076
+        },
+        "viewport": {
+          "width": 441,
+          "height": 249
+        }
+      }
+    },
+    {
+      "file": "native/full-850x500-100.png",
+      "label": "原生页面缩放矩阵",
+      "source": "test-results/electron-hig/full-850x500-100.png",
+      "sha256": "41a1704f653cf0fd4ac854e080ef475ab6fb031dc0ab7e2a76d57e6ea6bc14fb",
+      "image": {
+        "width": 2125,
+        "height": 1405
+      },
+      "fixture": "isolated-real-electron-profile",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "theme": "blue",
+      "colorScheme": "light",
+      "matrix": {
+        "requested": {
+          "width": 850,
+          "height": 500
+        },
+        "clamped": {
+          "width": 850,
+          "height": 500
+        },
+        "actual": {
+          "bounds": {
+            "x": 151,
+            "y": 55,
+            "width": 851,
+            "height": 563
+          },
+          "contentBounds": {
+            "x": 152,
+            "y": 55,
+            "width": 850,
+            "height": 562
+          },
+          "visible": true,
+          "minimized": false,
+          "display": {
+            "id": 1577027832,
+            "scaleFactor": 2.5,
+            "workArea": {
+              "x": 0,
+              "y": 0,
+              "width": 1152,
+              "height": 672
+            }
+          },
+          "insideWorkArea": true
+        },
+        "factor": 1,
+        "paint": {
+          "method": "Electron.webContents.capturePage",
+          "size": {
+            "width": 2125,
+            "height": 1405
+          },
+          "colors": 4607,
+          "nonDominantFraction": 0.20520895959807406
+        },
+        "viewport": {
+          "width": 850,
+          "height": 562
+        }
+      }
+    },
+    {
+      "file": "native/full-850x500-125.png",
+      "label": "原生页面缩放矩阵",
+      "source": "test-results/electron-hig/full-850x500-125.png",
+      "sha256": "88a8fdffe13c9ec973c2929cfefcb0e0b85d3ad9960410a6cffb0726637850c8",
+      "image": {
+        "width": 2125,
+        "height": 1405
+      },
+      "fixture": "isolated-real-electron-profile",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "theme": "blue",
+      "colorScheme": "light",
+      "matrix": {
+        "requested": {
+          "width": 850,
+          "height": 500
+        },
+        "clamped": {
+          "width": 850,
+          "height": 500
+        },
+        "actual": {
+          "bounds": {
+            "x": 151,
+            "y": 55,
+            "width": 851,
+            "height": 563
+          },
+          "contentBounds": {
+            "x": 152,
+            "y": 55,
+            "width": 850,
+            "height": 562
+          },
+          "visible": true,
+          "minimized": false,
+          "display": {
+            "id": 1577027832,
+            "scaleFactor": 2.5,
+            "workArea": {
+              "x": 0,
+              "y": 0,
+              "width": 1152,
+              "height": 672
+            }
+          },
+          "insideWorkArea": true
+        },
+        "factor": 1.25,
+        "paint": {
+          "method": "Electron.webContents.capturePage",
+          "size": {
+            "width": 2125,
+            "height": 1405
+          },
+          "colors": 3411,
+          "nonDominantFraction": 0.3552743562905589
+        },
+        "viewport": {
+          "width": 680,
+          "height": 449
+        }
+      }
+    },
+    {
+      "file": "native/full-850x500-150.png",
+      "label": "原生页面缩放矩阵",
+      "source": "test-results/electron-hig/full-850x500-150.png",
+      "sha256": "8d464420010e202846a0f39f83228596b1055dccab1fb3985c11787c595985f9",
+      "image": {
+        "width": 2125,
+        "height": 1405
+      },
+      "fixture": "isolated-real-electron-profile",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "theme": "blue",
+      "colorScheme": "light",
+      "matrix": {
+        "requested": {
+          "width": 850,
+          "height": 500
+        },
+        "clamped": {
+          "width": 850,
+          "height": 500
+        },
+        "actual": {
+          "bounds": {
+            "x": 151,
+            "y": 55,
+            "width": 851,
+            "height": 563
+          },
+          "contentBounds": {
+            "x": 152,
+            "y": 55,
+            "width": 850,
+            "height": 562
+          },
+          "visible": true,
+          "minimized": false,
+          "display": {
+            "id": 1577027832,
+            "scaleFactor": 2.5,
+            "workArea": {
+              "x": 0,
+              "y": 0,
+              "width": 1152,
+              "height": 672
+            }
+          },
+          "insideWorkArea": true
+        },
+        "factor": 1.5,
+        "paint": {
+          "method": "Electron.webContents.capturePage",
+          "size": {
+            "width": 2125,
+            "height": 1405
+          },
+          "colors": 1413,
+          "nonDominantFraction": 0.4068226920661503
+        },
+        "viewport": {
+          "width": 566,
+          "height": 374
+        }
+      }
+    },
+    {
+      "file": "native/full-850x500-250.png",
+      "label": "原生页面缩放矩阵",
+      "source": "test-results/electron-hig/full-850x500-250.png",
+      "sha256": "ca66c7c889adfafb08c1943022a6a0475b0b3160ef774d6ec8d43252f2b32a5b",
+      "image": {
+        "width": 2125,
+        "height": 1405
+      },
+      "fixture": "isolated-real-electron-profile",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "theme": "blue",
+      "colorScheme": "light",
+      "matrix": {
+        "requested": {
+          "width": 850,
+          "height": 500
+        },
+        "clamped": {
+          "width": 850,
+          "height": 500
+        },
+        "actual": {
+          "bounds": {
+            "x": 151,
+            "y": 55,
+            "width": 851,
+            "height": 563
+          },
+          "contentBounds": {
+            "x": 152,
+            "y": 55,
+            "width": 850,
+            "height": 562
+          },
+          "visible": true,
+          "minimized": false,
+          "display": {
+            "id": 1577027832,
+            "scaleFactor": 2.5,
+            "workArea": {
+              "x": 0,
+              "y": 0,
+              "width": 1152,
+              "height": 672
+            }
+          },
+          "insideWorkArea": true
+        },
+        "factor": 2.5,
+        "paint": {
+          "method": "Electron.webContents.capturePage",
+          "size": {
+            "width": 2125,
+            "height": 1405
+          },
+          "colors": 3687,
+          "nonDominantFraction": 0.44967368641406735
+        },
+        "viewport": {
+          "width": 340,
+          "height": 224
+        }
+      }
+    },
+    {
+      "file": "capture-diagnostic/cdp-250-blank.png",
+      "label": "已确认的CDP空白截图诊断图；不能作为产品画面",
+      "source": ".tmp/hig-review-fixtures/native-1000x600-250-cdp.png",
+      "sha256": "31d8678151bb2ce4a8dc2661af5089dd88a8fc88a17da03b0760e162fd090b48",
+      "image": {
+        "width": 1000,
+        "height": 600
+      }
+    },
+    {
+      "file": "capture-diagnostic/native-250-visible.png",
+      "label": "同状态Electron原生可见页面对照",
+      "source": ".impeccable/review/native/full-1000x600-250-native.png",
+      "sha256": "30442a0d4a56c7ebb77f0ff8901e8dc426ccdcf6ec6184c23c37ce57356ffb85",
+      "image": {
+        "width": 2500,
+        "height": 1500
+      }
+    }
+  ],
+  "note": "所有PNG原样复制；before和既有计时站来源时间与本次生产截图不同，详见README。"
+}

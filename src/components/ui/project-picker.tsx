@@ -1,10 +1,11 @@
-/** @fileoverview 项目单选菜单：受控值、表单提交、键盘选择与弹窗内顶层定位。 */
+/** @fileoverview 项目单选菜单：受控值、检索与键盘选择，顶层定位适配边缘和软键盘。 */
 'use client';
 
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import { Check, ChevronDown, Search } from 'lucide-react';
 import type { Project } from '@/types/domain';
 import { cn } from '@/lib/cn';
+import { positionPopover } from './popover-position';
 
 type ProjectPickerProps = {
   projects: Project[];
@@ -37,37 +38,56 @@ export function ProjectPicker({
     project.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()),
   );
 
-  /** 每次打开按视口剩余空间选择方向；滚动和窗口变化时重新定位。 */
+  /** 弹层始终留在 Dialog DOM 内，按可见视口避让；软键盘、滚动和尺寸变化均重新定位。 */
   useEffect(() => {
     if (!open) return;
     const position = () => {
       const anchor = trigger.current?.getBoundingClientRect();
       const menu = panel.current;
       if (!anchor || !menu) return;
-      const width = Math.min(Math.max(anchor.width, 240), window.innerWidth - 24);
-      const below = window.innerHeight - anchor.bottom - 12;
-      const above = anchor.top - 12;
-      const upward = below < 260 && above > below;
-      const height = Math.min(320, upward ? above : below);
+      const visible = window.visualViewport;
+      const viewport = {
+        top: visible?.offsetTop ?? 0,
+        left: visible?.offsetLeft ?? 0,
+        height: visible?.height ?? window.innerHeight,
+        width: visible?.width ?? window.innerWidth,
+      };
+      const width = Math.min(Math.max(anchor.width, 240), viewport.width - 24);
+      menu.style.width = `${width}px`;
+      menu.style.maxHeight = `${Math.max(0, Math.min(320, viewport.height - 24))}px`;
+      const placement = positionPopover({
+        anchor,
+        viewport,
+        menu: menu.getBoundingClientRect(),
+        align: 'start',
+        margin: 12,
+        gap: 6,
+      });
       Object.assign(menu.style, {
-        width: `${width}px`,
-        maxHeight: `${Math.max(80, height)}px`,
-        left: `${Math.max(12, Math.min(anchor.left, window.innerWidth - width - 12))}px`,
-        top: upward ? 'auto' : `${anchor.bottom + 6}px`,
-        bottom: upward ? `${window.innerHeight - anchor.top + 6}px` : 'auto',
+        maxHeight: `${Math.min(320, placement.maxHeight)}px`,
+        left: `${placement.left}px`,
+        top: `${placement.top}px`,
+        bottom: 'auto',
       });
     };
-    position();
     panel.current?.showPopover();
+    position();
     const target = panel.current?.querySelector<HTMLElement>(
       projects.length > 7 ? 'input' : '[role="listbox"]',
     );
     target?.focus();
     window.addEventListener('resize', position);
     window.addEventListener('scroll', position, true);
+    window.visualViewport?.addEventListener('resize', position);
+    window.visualViewport?.addEventListener('scroll', position);
+    const observer = new ResizeObserver(position);
+    if (panel.current) observer.observe(panel.current);
     return () => {
       window.removeEventListener('resize', position);
       window.removeEventListener('scroll', position, true);
+      window.visualViewport?.removeEventListener('resize', position);
+      window.visualViewport?.removeEventListener('scroll', position);
+      observer.disconnect();
     };
   }, [open, projects.length]);
 
@@ -142,6 +162,8 @@ export function ProjectPicker({
           if (event.newState === 'closed') setOpen(false);
         }}
         onKeyDown={(event) => {
+          // 输入法正在处理候选词时，方向键和 Escape 也应交给输入法。
+          if (event.nativeEvent.isComposing || event.keyCode === 229) return;
           if (event.key === 'Escape') {
             event.preventDefault();
             event.stopPropagation();
@@ -169,12 +191,11 @@ export function ProjectPicker({
             setActive(next);
             panel.current
               ?.querySelectorAll('[role="option"]')
-              [next]?.scrollIntoView({ block: 'nearest' });
+              [next]?.scrollIntoView?.({ block: 'nearest' });
           }
           if (
-            event.key === 'Enter' &&
-            !event.nativeEvent.isComposing &&
-            event.keyCode !== 229
+            event.key === 'Enter' ||
+            (event.key === ' ' && !(event.target instanceof HTMLInputElement))
           ) {
             event.preventDefault();
             event.stopPropagation();

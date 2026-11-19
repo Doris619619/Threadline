@@ -1,6 +1,10 @@
-/** @fileoverview 以显式 local adapter 构建 Web 后运行 Playwright，不允许测试配置进入部署。 */
+/** @fileoverview 以显式 local adapter 和独占 loopback 端口验收 Web，不允许测试配置进入部署。 */
 
 import { spawn, spawnSync } from 'node:child_process';
+import {
+  assertTestServerPortAvailable,
+  resolveTestServerPort,
+} from './test-server-port.mjs';
 
 const pnpmCli = process.env.npm_execpath;
 if (!pnpmCli) throw new Error('test-web must be started through pnpm.');
@@ -9,7 +13,8 @@ const environment = {
   NEXT_PUBLIC_THREADLINE_TEST_ADAPTER: 'true',
 };
 const playwrightArguments = process.argv.slice(2).filter((value) => value !== '--');
-const port = process.env.THREADLINE_E2E_PORT ?? '3100';
+const port = resolveTestServerPort('THREADLINE_E2E_PORT', 3100);
+environment.THREADLINE_E2E_PORT = String(port);
 const origin = `http://127.0.0.1:${port}`;
 
 /** 继承当前控制台执行 pnpm 子命令，并保留原始退出码。 */
@@ -43,10 +48,20 @@ async function waitForServer(server) {
 
 let server;
 try {
+  await assertTestServerPortAvailable(port);
   runPnpm(['build:web']);
+  // 构建期间的端口竞争也必须失败，不能复用恰好已经就绪的外部服务。
+  await assertTestServerPortAvailable(port);
   server = spawn(
     process.execPath,
-    ['node_modules/next/dist/bin/next', 'start', '--port', port],
+    [
+      'node_modules/next/dist/bin/next',
+      'start',
+      '--hostname',
+      '127.0.0.1',
+      '--port',
+      String(port),
+    ],
     { env: environment, stdio: 'inherit' },
   );
   server.unref();

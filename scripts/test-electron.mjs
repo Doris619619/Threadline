@@ -17,6 +17,7 @@ import {
   testElectronDisplayRecovery,
 } from './test-electron-display-recovery.mjs';
 import { testElectronZoom } from './test-electron-zoom.mjs';
+import { testElectronHigZoom } from './test-electron-hig-zoom.mjs';
 
 const rendererPort = process.env.THREADLINE_ELECTRON_E2E_PORT ?? '3123';
 const rendererUrl = `http://127.0.0.1:${rendererPort}`;
@@ -201,6 +202,7 @@ try {
     'maximize and restore must retain the normal window geometry',
   );
   await testElectronInteractionFeedback(application, page);
+  await testElectronHigZoom(application, page);
   await testElectronCrossDpiRecovery(application, page);
   await testElectronDisplayRecovery(application);
   await page.getByRole('button', { name: '工作站', exact: true }).click();

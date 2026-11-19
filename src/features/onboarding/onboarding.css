@@ -19,10 +19,6 @@
   font-size: 26px;
   line-height: 1.4;
 }
-.onboarding-eyebrow {
-  color: var(--accent-text);
-  font-weight: 600;
-}
 .onboarding-progress,
 .onboarding-intro,
 .onboarding-footnote,
@@ -64,8 +60,8 @@ html:is([data-theme='cottage'], [data-theme='classic'])
   .onboarding-card
   .onboarding-actions
   .tl-button--primary {
-  background: #405f40;
-  color: #fffdf7;
+  background: var(--onboarding-control-fill);
+  color: var(--onboarding-control-ink);
 }
 .onboarding-footnote {
   margin-top: 20px;
@@ -133,12 +129,6 @@ html:is([data-theme='cottage'], [data-theme='classic'])
 }
 .auto-start-settings {
   margin-bottom: 24px;
-}
-.onboarding-card button:focus-visible,
-.gender-options label:focus-within,
-.auto-start-toggle:focus-within {
-  outline: 2px solid var(--accent);
-  outline-offset: 4px;
 }
 @media (max-width: 520px) {
   .onboarding-page {

@@ -111,8 +111,10 @@
   font-size: var(--text-caption-size);
 }
 
-.settings-row:hover {
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .settings-row:hover {
+    background: var(--surface-secondary);
+  }
 }
 .settings-back {
   display: inline-flex;

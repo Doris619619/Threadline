@@ -74,9 +74,11 @@
   cursor: pointer;
 }
 
-.calendar-toolbar button:hover,
-.rhythm-calendar > header button:hover {
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .calendar-toolbar button:hover,
+  .rhythm-calendar > header button:hover {
+    background: var(--surface-secondary);
+  }
 }
 
 .calendar-today-button {

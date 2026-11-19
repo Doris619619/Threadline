@@ -48,7 +48,10 @@ test('keeps single field focus and persists stage estimates into the time chart'
       await title.press('Tab');
       const picker = dialog.getByLabel('阶段任务项目', { exact: true });
       await expect(picker).toBeFocused();
-      await expect(picker).toHaveCSS('outline-style', 'solid');
+      await expect(picker).toHaveCSS('outline-style', 'none');
+      expect(
+        await picker.evaluate((node) => getComputedStyle(node).boxShadow),
+      ).toContain('inset');
       expect(
         await dialog
           .locator('.stage-draft-title-field')

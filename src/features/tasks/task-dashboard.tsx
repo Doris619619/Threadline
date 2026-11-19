@@ -8,6 +8,7 @@ import { useRef, useState, useEffect } from 'react';
 import { Moon, CircleCheck } from 'lucide-react';
 import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
 import { DayTimeStats } from './components/day-time-stats';
+import { HomeSideMenu } from './components/home-side-menu';
 import { Surface } from '@/components/ui/surface';
 import { DailyPanel, type DailyPanelHandle } from '@/features/daily/daily-panel';
 import { CalendarPanel } from '@/features/calendar/calendar-panel';
@@ -320,18 +321,11 @@ export function TaskDashboard() {
         />
         <div className="overview-close-action">
           <div className="home-side-controls">
-            <select
-              aria-label="右栏显示内容"
-              aria-controls="home-side-tasks home-side-time"
+            <HomeSideMenu
               value={sideView}
               disabled={preparingSideView}
-              onChange={(event) =>
-                void changeSideView(event.target.value as 'tasks' | 'time')
-              }
-            >
-              <option value="tasks">任务列表</option>
-              <option value="time">今日时间分布</option>
-            </select>
+              onChange={changeSideView}
+            />
             <button
               type="button"
               className="home-layout-toggle"

@@ -98,8 +98,12 @@ describe('mobile layout and visual regression contracts', () => {
     expect(meta).not.toBeNull();
     expect(meta?.querySelector('.timeline-time')).toHaveTextContent('09:00–10:30');
     expect(meta?.querySelector('.task-project-cell')).toHaveTextContent('工作');
-    expect(meta?.querySelector('.task-duration-planned')).toHaveTextContent('预计 1h30min');
-    expect(meta?.querySelector('.task-duration-actual')).toHaveTextContent('实际 1h20min');
+    expect(meta?.querySelector('.task-duration-planned')).toHaveTextContent(
+      '预计 1h30min',
+    );
+    expect(meta?.querySelector('.task-duration-actual')).toHaveTextContent(
+      '实际 1h20min',
+    );
   });
 
   /** 验证无时间待办已创建态将项目标签置于内容区域的元数据容器中，避免散落与空白块。 */
@@ -153,11 +157,11 @@ describe('mobile layout and visual regression contracts', () => {
     fireEvent.click(moreButton);
     expect(queryByText('加入工作站')).toBeNull();
     expect(queryByText('从工作站移除')).toBeNull();
-    expect(getByText('详细编辑')).toBeVisible();
-    expect(getByText('移期')).toBeVisible();
-    expect(getByText('待安排')).toBeVisible();
-    expect(getByText('放弃')).toBeVisible();
-    expect(getByText('删除')).toBeVisible();
+    expect(getByText('编辑任务…')).toBeVisible();
+    expect(getByText('调整日期…')).toBeVisible();
+    expect(getByText('移到待安排')).toBeVisible();
+    expect(getByText('放弃任务')).toBeVisible();
+    expect(getByText('删除任务')).toBeVisible();
   });
 
   /** 验证登录/欢迎页顶部人物插画使用 center top 裁切，保留头部完整。 */
@@ -180,9 +184,7 @@ describe('mobile layout and visual regression contracts', () => {
       'utf8',
     );
 
-    expect(authCss).toMatch(
-      /\.auth-brand-logo\s*\{[^}]*background:\s*transparent/s,
-    );
+    expect(authCss).toMatch(/\.auth-brand-logo\s*\{[^}]*background:\s*transparent/s);
     expect(startupCss).toMatch(
       /\.threadline-startup-icon-wrap img\s*\{[^}]*background:\s*transparent/s,
     );
@@ -190,8 +192,11 @@ describe('mobile layout and visual regression contracts', () => {
 
   /** 验证移动端 CSS 契约：Checkbox 与更多操作拥有独立 44x44 触控区且工作站/拖拽柄在移动端彻底隐藏。 */
   it('enforces 44x44 touch hit areas and hidden workstation/drag actions on mobile task rows', () => {
-    const dashboardCss = readFileSync(projectFile('src/features/tasks/task-dashboard.css'), 'utf8');
-    
+    const dashboardCss = readFileSync(
+      projectFile('src/features/tasks/task-dashboard.css'),
+      'utf8',
+    );
+
     // Checkbox 触控包装容器在移动端占用 44x44 布局独立槽位，杜绝侵占标题
     expect(dashboardCss).toMatch(
       /\.timeline-row \.task-check-wrap,\s*\.quick-task-row \.task-check-wrap\s*\{[^}]*flex:\s*0 0 44px/s,
@@ -217,13 +222,17 @@ describe('mobile layout and visual regression contracts', () => {
   /** 验证普通网页图标（PNG/SVG）保留视觉透明圆角，四角完全透明。 */
   it('validates brand icon assets have true alpha transparency for standard web display', async () => {
     const iconPngBuffer = readFileSync(projectFile('public/icon.png'));
-    const desktopIconPngBuffer = readFileSync(projectFile('public/desktop/threadline-app-icon.png'));
+    const desktopIconPngBuffer = readFileSync(
+      projectFile('public/desktop/threadline-app-icon.png'),
+    );
 
     const meta = await sharp(iconPngBuffer).metadata();
     expect(meta.format).toBe('png');
     expect(meta.hasAlpha).toBe(true);
 
-    const { data, info } = await sharp(iconPngBuffer).raw().toBuffer({ resolveWithObject: true });
+    const { data, info } = await sharp(iconPngBuffer)
+      .raw()
+      .toBuffer({ resolveWithObject: true });
     expect(info.channels).toBe(4);
 
     const getAlpha = (x: number, y: number) => {
@@ -263,7 +272,9 @@ describe('mobile layout and visual regression contracts', () => {
       expect(meta.width).toBe(512);
       expect(meta.height).toBe(512);
 
-      const { data, info } = await sharp(buffer).raw().toBuffer({ resolveWithObject: true });
+      const { data, info } = await sharp(buffer)
+        .raw()
+        .toBuffer({ resolveWithObject: true });
       const getPixel = (x: number, y: number) => {
         const idx = (y * info.width + x) * 4;
         return [data[idx], data[idx + 1], data[idx + 2], data[idx + 3]];
@@ -273,10 +284,15 @@ describe('mobile layout and visual regression contracts', () => {
       expect(getPixel(0, 0)[3], `${name} top-left alpha`).toBe(255);
       expect(getPixel(info.width - 1, 0)[3], `${name} top-right alpha`).toBe(255);
       expect(getPixel(0, info.height - 1)[3], `${name} bottom-left alpha`).toBe(255);
-      expect(getPixel(info.width - 1, info.height - 1)[3], `${name} bottom-right alpha`).toBe(255);
+      expect(
+        getPixel(info.width - 1, info.height - 1)[3],
+        `${name} bottom-right alpha`,
+      ).toBe(255);
 
       // 验证中心 Threadline 标志正常
-      expect(getPixel(Math.floor(info.width / 2), Math.floor(info.height / 2))[3]).toBe(255);
+      expect(getPixel(Math.floor(info.width / 2), Math.floor(info.height / 2))[3]).toBe(
+        255,
+      );
     }
   });
 
@@ -289,9 +305,15 @@ describe('mobile layout and visual regression contracts', () => {
     });
 
     // 验证 Web Manifest
-    const manifest = JSON.parse(readFileSync(projectFile('public/manifest.webmanifest'), 'utf8'));
-    const iconAny = manifest.icons.find((i: { purpose?: string; src: string }) => i.src === '/icon.png');
-    const iconMaskable = manifest.icons.find((i: { purpose?: string; src: string }) => i.src === '/icon-maskable.png');
+    const manifest = JSON.parse(
+      readFileSync(projectFile('public/manifest.webmanifest'), 'utf8'),
+    );
+    const iconAny = manifest.icons.find(
+      (i: { purpose?: string; src: string }) => i.src === '/icon.png',
+    );
+    const iconMaskable = manifest.icons.find(
+      (i: { purpose?: string; src: string }) => i.src === '/icon-maskable.png',
+    );
 
     expect(iconAny).toBeDefined();
     expect(iconAny.purpose).toBe('any');
