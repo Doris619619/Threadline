@@ -55,3 +55,4 @@ import '../components/ui/project-picker.css';
 import '../features/tasks/timer-station.css';
 import '../features/tasks/smart-import/smart-import.css';
 import '../features/settings/ai-api-settings.css';
+import '../features/tasks/schedule-toolbar.css';

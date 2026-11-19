@@ -224,7 +224,7 @@ test.describe('desktop task drag scheduling', () => {
     await page.getByRole('button', { name: '荧光笔' }).click();
     await expect(dragHandle).toBeDisabled();
 
-    await page.getByRole('button', { name: '选择模式' }).click();
+    await page.getByRole('button', { name: '荧光笔', exact: true }).click();
     await expect(dragHandle).toBeEnabled();
   });
 });
@@ -371,7 +371,7 @@ test('keeps drawn date annotations on their original day after navigation and re
     return Boolean(stored && JSON.parse(stored).strokes.length);
   });
 
-  await page.getByRole('button', { name: '选择模式' }).click();
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: '后一天' }).click();
   await expect(persistedStrokes).toHaveCount(0);
   await page.getByRole('button', { name: '前一天' }).click();

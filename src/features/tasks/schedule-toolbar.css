@@ -1,0 +1,183 @@
+/* 文件用途：按 B 方案分开日程标记工具与创建入口，并将调宽手柄移到面板边缘。 */
+
+.schedule-panel {
+  position: relative;
+}
+
+.schedule-panel > .schedule-panel-header {
+  gap: 20px;
+  min-height: 38px;
+}
+
+.schedule-panel-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 20px;
+}
+
+.schedule-panel-heading h2 {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.schedule-panel .annotation-tools {
+  gap: 3px;
+  margin: 0;
+  padding: 3px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface-secondary);
+}
+
+.schedule-panel .annotation-highlighter-control {
+  gap: 2px;
+  margin: 0;
+}
+
+.schedule-panel .annotation-tool-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 7px;
+  color: var(--text-secondary);
+}
+
+.schedule-panel .annotation-tool-btn:is(:hover, .is-active) {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+
+.schedule-panel .annotation-highlighter-button {
+  border-radius: 7px;
+}
+
+.schedule-panel .annotation-current-color {
+  right: 8px;
+  bottom: 3px;
+  width: 12px;
+  height: 3px;
+  border: 0;
+  border-radius: 3px;
+}
+
+.schedule-panel .annotation-color-menu-trigger {
+  display: flex;
+  width: auto;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 7px;
+}
+
+.annotation-color-current-swatch {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--annotation-color);
+}
+
+.schedule-panel-actions {
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.schedule-panel-actions .smart-import-trigger {
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 9px;
+  color: var(--text-secondary);
+  font-size: var(--text-body-size);
+  font-weight: 500;
+}
+
+.schedule-panel-actions .smart-import-trigger:hover {
+  color: var(--text-primary);
+  background: var(--surface-secondary);
+}
+
+.schedule-add-button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--text-on-accent);
+  background: var(--accent);
+  font-size: var(--text-body-size);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.schedule-add-button:hover {
+  background: var(--accent-hover);
+}
+
+.schedule-panel > .schedule-resize-handle {
+  position: absolute;
+  z-index: 10;
+  top: 50%;
+  right: -9px;
+  display: grid;
+  width: 18px;
+  height: 52px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  transform: translateY(-50%);
+}
+
+.schedule-panel > .schedule-resize-handle::before {
+  width: 3px;
+  height: 30px;
+  border-radius: 3px;
+  background: var(--border-strong);
+  content: '';
+}
+
+.schedule-panel
+  > .schedule-resize-handle:is(:hover, :focus-visible, .is-resizing)::before {
+  background: var(--accent);
+}
+
+@media (max-width: 1050px) {
+  .schedule-panel > .schedule-resize-handle {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .schedule-panel > .schedule-panel-header {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .schedule-panel-heading {
+    gap: 0;
+  }
+
+  .schedule-panel .annotation-tools {
+    display: none;
+  }
+
+  .schedule-panel-actions {
+    margin-left: auto;
+    gap: 4px;
+  }
+
+  .schedule-panel-actions .smart-import-trigger,
+  .schedule-add-button {
+    min-height: 44px;
+    padding: 0 10px;
+    font-size: 14px;
+  }
+}
