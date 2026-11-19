@@ -13,6 +13,8 @@ Web/PWA 保持完整工作台。Windows 的完整工作台、工作站和[计时
 - 工作站每个新进程初始宽度 200 logical px，保留有效位置；当前运行期间可调至 340px，切换和收起/展开保留用户宽度。默认高度 200px，按列表自然高度加 68px 调整，范围 96–220px；大量任务只滚动列表，不滚动标题栏。
 - Full 默认 1280×840，最小 800×560；屏幕工作区域不足时做可见性保护。最大化和最小化期间不保存异常 bounds。
 
+首次启动或登录需要生成居中位置时，Full 在奇数 DIP 工作区把半 DIP 坐标向工作区起边取整。宽高保持原规格，已有位置和工作站恢复不走这条取整规则；避免先向右／下取整，再叠加 Windows 无框外框的物理取整，使可见窗口中心超过一 DIP 偏差。
+
 ## 页面缩放快捷键
 
 完整工作台及工作站支持 Ctrl＋加号（或 Ctrl＋等号）放大、Ctrl＋减号缩小，Ctrl＋0 恢复 100%；主键盘与小键盘均可使用。输入框有焦点时同样有效，普通输入、输入法组合及其他快捷键继续透传。浏览器版使用浏览器自身缩放。
@@ -50,6 +52,10 @@ Web/PWA 保持完整工作台。Windows 的完整工作台、工作站和[计时
 `desktop:compact-height` 只接受 workstation 与有限高度；`desktop:appearance` 仅接受 blue/anya；`desktop:edge-pointer` 仅接受 Edge 的 start/move/end/cancel，坐标由原生 screen 获取。主题和入口位置保存在 Main 的 `compact-preferences.json`，不接触业务数据。拖动区与按钮区按 [Electron 窗口交互规则](https://www.electronjs.org/docs/latest/tutorial/custom-window-interactions) 分开。
 
 ## 验证
+
+2026-11-19 的隔离实体双屏回归先在未改 verifier 下复现：150% 外屏可见中心横向偏 2 物理像素，超过 1.5 像素（一 DIP）。修正 Full 回退坐标后，原 `test-electron-entry-recovery.mjs` 完整通过；250% 主屏可见边界不变，150% 外屏可见边界为 `x=3197,y=54,width=1925,height=1263`，对应工作区 `x=2880,y=0,width=2560,height=1368`，横／纵中心误差为 0.5／1.5 物理像素。内容尺寸仍为 1280×840 DIP，原一 DIP 阈值、窗口尺寸和紧凑视图策略均未放宽；正、负坐标的奇数工作区单测先失败再通过。
+
+两处原生修正后的完整 `pnpm test:electron` 已按原顺序通过全部阶段，包括入口居中、计时站、实际跨 DPI 恢复和最终窗口 smoke；未生成安装包或操作使用者的真实 profile。
 
 `pnpm test:e2e e2e/desktop-update.spec.ts --project=desktop` 覆盖有/无更新提示时首页与习惯页滚动后的标题栏位置、最小化/最大化/关闭事件，以及更新详情、主题与工作站切换。窗口按钮事件使用隔离 bridge；实际 Windows 产物另做 packaged smoke。
 

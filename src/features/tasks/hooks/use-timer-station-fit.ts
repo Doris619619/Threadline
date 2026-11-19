@@ -12,7 +12,7 @@ export function useTimerStationFit(count: number, layout: 'horizontal' | 'vertic
     const view = viewport?.ownerDocument.defaultView;
     if (!viewport || !canvas || !view) return;
     let frame = 0;
-    /** 标题栏不缩放，普通卡片最多放大到125%；紧凑窗不再把所有操作一起缩到无法命中。 */
+    /** 先判定比例再发布最终模式，避免小窗短暂宣告 scale；36px 操作缩放后至少24px。 */
     function fit() {
       if (!viewport || !canvas) return;
       const width = Math.max(1, viewport.clientWidth - 20);
@@ -27,25 +27,25 @@ export function useTimerStationFit(count: number, layout: 'horizontal' | 'vertic
       }
       const baseWidth = layout === 'horizontal' ? count * 300 + (count - 1) * 10 : 320;
       const baseHeight = layout === 'horizontal' ? 144 : count * 144 + (count - 1) * 10;
-      canvas.dataset.fit = 'scale';
-      viewport.dataset.fit = 'scale';
       canvas.style.height = 'auto';
-      const scale = Math.min(
-        1.25,
-        width / baseWidth,
-        height / Math.max(baseHeight, canvas.scrollHeight),
-      );
+      let scale = Math.min(1.25, width / baseWidth, height / baseHeight);
+      if (scale >= 2 / 3) {
+        // 只有理论上可完整缩放时，才使用该布局测量内容高度；viewport 仍保留上次最终模式。
+        canvas.dataset.fit = 'scale';
+        scale = Math.min(scale, height / Math.max(baseHeight, canvas.scrollHeight));
+      }
       if (scale < 2 / 3) {
         const cardWidth = Math.min(320, width);
         canvas.dataset.fit = 'scroll';
-        viewport.dataset.fit = 'scroll';
         canvas.style.setProperty('--timer-station-card-width', `${cardWidth}px`);
         canvas.style.width = `${layout === 'horizontal' ? count * cardWidth + (count - 1) * 10 : cardWidth}px`;
         canvas.style.transform = 'none';
+        viewport.dataset.fit = 'scroll';
         return;
       }
       canvas.style.width = `${Math.floor((width / scale) * 100) / 100}px`;
       canvas.style.transform = `scale(${scale})`;
+      viewport.dataset.fit = 'scale';
     }
     /** 合并拖动期间的测量，避免 ResizeObserver 回调内写尺寸导致循环告警。 */
     const schedule = () => {

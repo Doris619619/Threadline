@@ -5,7 +5,7 @@
   "issues": [
     {
       "id": "native-entry-centering",
-      "status": "reproduced-with-unchanged-owner-and-verifier",
+      "status": "resolved-with-original-strict-native-verifier",
       "command": "pnpm test:electron",
       "gate": "scripts/test-electron-entry-recovery.mjs / verifyEntryWindowCenter",
       "displayScaleFactor": 1.5,
@@ -15,12 +15,38 @@
         "width": 1926,
         "height": 1263
       },
-      "workAreaPhysicalPixels": { "x": 2880, "y": 0, "width": 2560, "height": 1368 },
+      "workAreaPhysicalPixels": {
+        "x": 2880,
+        "y": 0,
+        "width": 2560,
+        "height": 1368
+      },
       "horizontalCenterDeltaPhysicalPixels": 2,
       "allowedDeltaPhysicalPixels": 1.5,
       "primaryDisplayAtScale2_5": "passed",
-      "ownerSourcesAndVerifierEqualBase": true,
-      "resolution": "未修改原生产品源码或放宽1 DIP阈值；后续桌面阶段单独执行通过，不等同完整suite通过。"
+      "baselineOwnerSourcesAndVerifierEqualBase": true,
+      "verification": {
+        "command": "node scripts/test-electron-entry-recovery.mjs",
+        "result": "passed-on-both-attached-displays",
+        "visibleBoundsPhysicalPixelsAtScale1_5": {
+          "x": 3197,
+          "y": 54,
+          "width": 1925,
+          "height": 1263
+        },
+        "centerDeltaPhysicalPixelsAtScale1_5": {
+          "x": 0.5,
+          "y": 1.5
+        },
+        "contentSizeDIPAtScale1_5": {
+          "width": 1280,
+          "height": 840
+        },
+        "primaryDisplayAtScale2_5": "passed-with-unchanged-visible-bounds",
+        "verifierAndOneDIPThresholdUnchanged": true,
+        "fullNativeSuiteAfterFix": "pnpm test:electron passed all original stages"
+      },
+      "resolution": "已先复现严格失败；Full首次居中回退的半DIP坐标改为向工作区起边取整，正负奇数工作区回归先红后绿，原entry脚本完整通过。内容尺寸、已有位置、紧凑模式和1 DIP阈值保持；修改集中于desktop-window-policy，不采用会造成外框尺寸累积的setPosition或center补偿。"
     },
     {
       "id": "timer-concurrent-pause",
@@ -47,7 +73,12 @@
         ],
         "extraWritesInObservedPassingRuns": 0
       },
-      "resolution": "9次有界排查未复现，独立源码审查未找到确定原因；未修改产品核心、测试断言或等待阈值，不将后续通过解释为此问题已修好。"
+      "resolution": "9次有界排查未复现，独立源码审查未找到确定原因；未修改产品核心、测试断言或等待阈值，不将后续通过解释为此问题已修好。",
+      "handlingDecision": {
+        "date": "2026-11-19",
+        "decision": "deferred-by-user-for-pr63-pr64-pr65-merge",
+        "remainsUnresolved": true
+      }
     },
     {
       "id": "timer-concurrent-removal-extension",
@@ -76,7 +107,12 @@
         "failureTrace": ".tmp/timer-removal-diagnosis/original-preview/",
         "interpretation": "只读观测改变调度，四次通过不能否定未修改原例的失败；尚未取得失败时锁内读写证据。"
       },
-      "resolution": "删除filter与续时map在任一合法锁次序下都应收敛到删除，不能用操作顺序不同解释或放宽断言。CI与本机原例均保留已续时timer，违反现有契约，具体根因未定；保留原断言和核心，后续通过不代表已修复。"
+      "resolution": "删除filter与续时map在任一合法锁次序下都应收敛到删除，不能用操作顺序不同解释或放宽断言。CI与本机原例均保留已续时timer，违反现有契约，具体根因未定；保留原断言和核心，后续通过不代表已修复。",
+      "handlingDecision": {
+        "date": "2026-11-19",
+        "decision": "deferred-by-user-for-pr63-pr64-pr65-merge",
+        "remainsUnresolved": true
+      }
     }
   ]
 }

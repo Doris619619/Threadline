@@ -15,6 +15,31 @@ import {
 const primaryWorkArea: LogicalWorkArea = { x: 0, y: 0, width: 1920, height: 1040 };
 
 describe('desktop window policy', () => {
+  /** 奇数 DIP 工作区按起边落到整像素，避免向右/下取整再叠加原生外框的物理偏移。 */
+  it.each([
+    { x: 1152, y: 0, expectedX: 1365, expectedY: 36 },
+    { x: -1707, y: -913, expectedX: -1494, expectedY: -877 },
+  ])('centers full entry inward in an odd DIP work area at $x,$y', (position) => {
+    const area = { x: position.x, y: position.y, width: 1707, height: 913 };
+    const restored = resolveSafeWindowState(
+      'full',
+      { width: 1280, height: 840 },
+      [area],
+      area,
+    );
+    expect(restored).toEqual({
+      x: position.expectedX,
+      y: position.expectedY,
+      width: 1280,
+      height: 840,
+    });
+    expect(Math.abs(restored.x! + restored.width / 2 - area.x - area.width / 2)).toBe(
+      0.5,
+    );
+    expect(Math.abs(restored.y! + restored.height / 2 - area.y - area.height / 2)).toBe(
+      0.5,
+    );
+  });
   it('fits a large monitor window back inside a laptop work area even when a large strip remains visible', () => {
     const laptop = { x: 0, y: 0, width: 1536, height: 920 };
     const oversized = { x: -700, y: 40, width: 2400, height: 1400 };

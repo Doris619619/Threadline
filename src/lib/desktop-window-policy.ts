@@ -152,7 +152,7 @@ export function hasSufficientVisibleArea(
   });
 }
 
-/** 为当前工作区域创建居中 Full 或右上紧凑模式的安全恢复 geometry。 */
+/** 为当前工作区创建安全恢复 geometry；Full 半 DIP 位置向起边取整，避免叠加原生外框后偏离物理中心。 */
 function getFallbackWindowState(
   mode: DesktopViewMode,
   state: WindowStateConfig,
@@ -168,12 +168,13 @@ function getFallbackWindowState(
     mode === 'full'
       ? area.y + Math.max(WINDOW_MARGIN, (area.height - height) / 2)
       : area.y + WINDOW_MARGIN;
+  const roundPosition = mode === 'full' ? Math.floor : Math.round;
 
   return {
     width: Math.round(width),
     height: Math.round(height),
-    x: Math.round(x),
-    y: Math.round(y),
+    x: roundPosition(x),
+    y: roundPosition(y),
   };
 }
 
