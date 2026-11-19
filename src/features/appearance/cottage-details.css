@@ -48,11 +48,6 @@ html:is([data-theme='cottage'], [data-theme='classic'])
   .tl-sidebar-item.is-active::before {
   display: none;
 }
-html:is([data-theme='cottage'], [data-theme='classic'])
-  .tl-sidebar-item:hover
-  .cottage-sprite {
-  transform: translateY(-1px);
-}
 /* Inset seams fit inside existing panels; there is no new header row or room banner. */
 html:is([data-theme='cottage'], [data-theme='classic'])
   :is(
@@ -192,13 +187,6 @@ html:is([data-theme='cottage'], [data-theme='classic'])
 }
 html:is([data-theme='cottage'], [data-theme='classic'])
   .tl-checkbox
-  input:focus-visible
-  + span {
-  outline: 2px solid var(--accent-text);
-  outline-offset: 3px;
-}
-html:is([data-theme='cottage'], [data-theme='classic'])
-  .tl-checkbox
   input:checked
   + span::before {
   content: '';
@@ -222,13 +210,8 @@ html:is([data-theme='cottage'], [data-theme='classic'])
     0 2px 0 var(--border);
 }
 html:is([data-theme='cottage'], [data-theme='classic'])
-  :is(.tl-button--primary, .planning-panel .planning-add):hover:not(:disabled) {
-  filter: brightness(1.08);
-}
-html:is([data-theme='cottage'], [data-theme='classic'])
   :is(.tl-button, .planning-add):active:not(:disabled) {
   box-shadow: inset 0 2px 0 var(--border-strong);
-  transform: translateY(1px);
 }
 html:is([data-theme='cottage'], [data-theme='classic'])
   :is(.tl-input, .task-dialog input, .task-dialog select):not(:focus) {
@@ -264,8 +247,10 @@ html:is([data-theme='cottage'], [data-theme='classic']) .project-dot {
     inset 2px 2px 0 rgb(255 255 255 / 45%),
     1px 1px 0 var(--border);
 }
-html:is([data-theme='cottage'], [data-theme='classic']) .manager-row:hover {
-  background-image: linear-gradient(90deg, var(--surface-secondary), transparent);
+@media (hover: hover) {
+  html:is([data-theme='cottage'], [data-theme='classic']) .manager-row:hover {
+    background-image: linear-gradient(90deg, var(--surface-secondary), transparent);
+  }
 }
 html:is([data-theme='cottage'], [data-theme='classic'])
   :is(

@@ -1,8 +1,8 @@
-/** @fileoverview 按计时站真实可用宽高等比适配全部卡片；保留横纵排列，不借用首页手机断点。 */
+/** @fileoverview 计时站优先完整适配卡片；比例过小时改为可滚动的原尺寸卡片，保留真实可点击目标。 */
 'use client';
 import { useLayoutEffect, useRef } from 'react';
 
-/** 观察子窗口中的视口和卡片高度；统一缩放文字、按钮和间距，错误提示增高时也重新适配。 */
+/** 观察子窗口视口和内容；36px 按钮缩放后不得小于24px，否则保持原尺寸并允许键盘/指针滚动。 */
 export function useTimerStationFit(count: number, layout: 'horizontal' | 'vertical') {
   const viewportRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -12,12 +12,14 @@ export function useTimerStationFit(count: number, layout: 'horizontal' | 'vertic
     const view = viewport?.ownerDocument.defaultView;
     if (!viewport || !canvas || !view) return;
     let frame = 0;
-    /** 原生窗口尺寸以 CSS 像素测量；标题栏不缩放，卡片区域最大放大到 125%。 */
+    /** 先判定比例再发布最终模式，避免小窗短暂宣告 scale；36px 操作缩放后至少24px。 */
     function fit() {
       if (!viewport || !canvas) return;
       const width = Math.max(1, viewport.clientWidth - 20);
       const height = Math.max(1, viewport.clientHeight - 20);
       if (!count) {
+        delete viewport.dataset.fit;
+        delete canvas.dataset.fit;
         canvas.style.width = `${width}px`;
         canvas.style.height = `${height}px`;
         canvas.style.transform = 'none';
@@ -26,13 +28,24 @@ export function useTimerStationFit(count: number, layout: 'horizontal' | 'vertic
       const baseWidth = layout === 'horizontal' ? count * 300 + (count - 1) * 10 : 320;
       const baseHeight = layout === 'horizontal' ? 144 : count * 144 + (count - 1) * 10;
       canvas.style.height = 'auto';
-      const scale = Math.min(
-        1.25,
-        width / baseWidth,
-        height / Math.max(baseHeight, canvas.scrollHeight),
-      );
+      let scale = Math.min(1.25, width / baseWidth, height / baseHeight);
+      if (scale >= 2 / 3) {
+        // 只有理论上可完整缩放时，才使用该布局测量内容高度；viewport 仍保留上次最终模式。
+        canvas.dataset.fit = 'scale';
+        scale = Math.min(scale, height / Math.max(baseHeight, canvas.scrollHeight));
+      }
+      if (scale < 2 / 3) {
+        const cardWidth = Math.min(320, width);
+        canvas.dataset.fit = 'scroll';
+        canvas.style.setProperty('--timer-station-card-width', `${cardWidth}px`);
+        canvas.style.width = `${layout === 'horizontal' ? count * cardWidth + (count - 1) * 10 : cardWidth}px`;
+        canvas.style.transform = 'none';
+        viewport.dataset.fit = 'scroll';
+        return;
+      }
       canvas.style.width = `${Math.floor((width / scale) * 100) / 100}px`;
       canvas.style.transform = `scale(${scale})`;
+      viewport.dataset.fit = 'scale';
     }
     /** 合并拖动期间的测量，避免 ResizeObserver 回调内写尺寸导致循环告警。 */
     const schedule = () => {

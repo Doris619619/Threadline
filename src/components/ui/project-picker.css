@@ -1,4 +1,4 @@
-/* 文件用途：统一项目菜单尺寸、留白和状态；顶层 popover 避免被表单滚动容器裁切。 */
+/* 文件用途：项目选择器沿用方案 A 材质和状态；顶层 popover 保留表单语义并避免裁切。 */
 .project-picker {
   display: inline-flex;
   min-width: 0;
@@ -50,13 +50,16 @@ html .project-picker--compact .project-picker-trigger {
   font-size: var(--text-secondary-size);
   background: var(--surface-secondary);
 }
-html .project-picker .project-picker-trigger:hover:not(:disabled) {
-  border-color: var(--accent-border);
-  background: var(--accent-soft);
+@media (hover: hover) {
+  html .project-picker .project-picker-trigger:hover:not(:disabled) {
+    background: var(--interaction-hover, var(--accent-soft));
+  }
 }
-html .project-picker .project-picker-trigger:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+html .project-picker .project-picker-trigger:active:not(:disabled) {
+  background: var(--interaction-pressed, var(--accent-soft));
+}
+html .project-picker .project-picker-trigger[aria-expanded='true'] {
+  background: var(--interaction-expanded, var(--accent-soft));
 }
 html .project-picker .project-picker-trigger:disabled {
   opacity: 0.55;
@@ -67,11 +70,12 @@ html .project-picker-menu {
   inset: auto;
   margin: 0;
   padding: 6px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  background: var(--surface);
+  border: 0;
+  border-radius: var(--menu-radius, 16px);
+  background: var(--menu-surface, var(--surface));
   color: var(--text-primary);
-  box-shadow: var(--shadow-popover);
+  box-shadow: var(--menu-shadow, var(--shadow-popover));
+  backdrop-filter: blur(20px) saturate(1.15);
   overflow-y: auto;
   overscroll-behavior: contain;
   font-size: 0.9375rem;
@@ -82,7 +86,7 @@ html .project-picker-menu {
   background: transparent;
 }
 .project-picker-menu [role='listbox'] {
-  outline: none;
+  border-radius: 10px;
 }
 .project-picker-menu [role='option'] {
   display: flex;
@@ -90,7 +94,7 @@ html .project-picker-menu {
   gap: 10px;
   min-height: 44px;
   padding: 10px 12px;
-  border-radius: 6px;
+  border-radius: 10px;
   cursor: pointer;
 }
 .project-picker-menu [role='option'] > span {
@@ -99,11 +103,16 @@ html .project-picker-menu {
   overflow-wrap: anywhere;
 }
 .project-picker-menu [role='option'][data-active='true'] {
-  background: var(--accent-soft);
+  background: var(--interaction-hover, var(--accent-soft));
 }
 .project-picker-menu [role='option'][aria-selected='true'] {
   color: var(--accent-text);
   font-weight: 600;
+  background: var(--interaction-selected, var(--accent-soft));
+}
+.project-picker-menu [role='option'][data-active='true']:not([aria-selected='true']) {
+  background: var(--interaction-focus, var(--accent-soft));
+  box-shadow: inset 0 -2px 0 var(--interaction-focus-ink, var(--accent));
 }
 .project-picker-search {
   display: flex;
@@ -112,6 +121,11 @@ html .project-picker-menu {
   padding: 4px 10px;
   border-bottom: 1px solid var(--border-subtle);
   margin-bottom: 6px;
+}
+.project-picker-search:focus-within {
+  border-radius: 8px;
+  background: var(--interaction-focus, var(--accent-soft));
+  box-shadow: inset 0 -2px 0 var(--interaction-focus-ink, var(--accent));
 }
 html .project-picker-menu .project-picker-search input {
   width: 100%;
@@ -139,4 +153,16 @@ html .project-picker-menu .project-picker-search input {
   align-content: start;
   font-size: var(--text-secondary-size);
   color: var(--text-secondary);
+}
+
+@media (forced-colors: active) {
+  html .project-picker-menu {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    backdrop-filter: none;
+  }
+  .project-picker-menu [role='option'][data-active='true'] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
 }

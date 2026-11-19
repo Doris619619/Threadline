@@ -4,16 +4,16 @@
 
 'use client';
 
-import { GripVertical, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
+import { GripVertical, MoreHorizontal, Plus } from 'lucide-react';
 import { useTaskMenu } from '../hooks/use-task-menu';
-import { useRef, type RefObject } from 'react';
+import { useId, useRef, type RefObject } from 'react';
 import { TaskActionsPopover } from './task-actions-popover';
 import { TaskTimerMenuAction } from './task-timer-menu-action';
 import { cn } from '@/lib/cn';
 import type { TaskStatus } from '@/types/domain';
 
 /**
- * 渲染工作站开关和拖拽柄；桌面通过行右键操作，触屏保留更多菜单。
+ * 渲染工作站开关、更多菜单和拖拽柄；菜单分离任务流转与危险操作，保留点击及右键入口。
  */
 export function TaskRowActions({
   taskId,
@@ -50,6 +50,7 @@ export function TaskRowActions({
 }) {
   const localMenu = useTaskMenu();
   const localAnchor = useRef<HTMLButtonElement>(null);
+  const menuId = useId();
   const menu = controlledMenu ?? localMenu;
   const menuAnchor = controlledAnchor ?? localAnchor;
   return (
@@ -71,6 +72,8 @@ export function TaskRowActions({
           className="task-context-trigger"
           aria-label={`${title}更多操作`}
           ref={menuAnchor}
+          aria-haspopup="menu"
+          aria-controls={menu.open ? menuId : undefined}
           aria-expanded={menu.open}
           onClick={menu.toggle}
         >
@@ -78,71 +81,78 @@ export function TaskRowActions({
         </button>
         {menu.open && (
           <TaskActionsPopover
+            id={menuId}
             anchor={menuAnchor}
             point={menu.point}
             onClose={menu.close}
             label={`${title}操作`}
+            role="menu"
           >
             {canChangeWorkflow && (
-              <TaskTimerMenuAction taskId={taskId} onClose={menu.close} />
+              <TaskTimerMenuAction
+                taskId={taskId}
+                onClose={menu.close}
+                role="menuitem"
+              />
             )}
             <button
               type="button"
-
+              role="menuitem"
               onClick={() => {
                 menu.close();
                 onEdit();
               }}
             >
-              <Pencil size={13} />
-              详细编辑
+              编辑任务…
             </button>
             {canChangeWorkflow && (
               <button
                 type="button"
-
+                role="menuitem"
                 onClick={() => {
                   menu.close();
                   onReschedule();
                 }}
               >
-                移期
+                调整日期…
               </button>
             )}
             {canChangeWorkflow && (
               <button
                 type="button"
-
+                role="menuitem"
                 onClick={() => {
                   menu.close();
                   onMove(taskId, 'waiting');
                 }}
               >
-                待安排
+                移到待安排
               </button>
             )}
+            <hr />
             {canChangeWorkflow && (
               <button
                 type="button"
-
+                role="menuitem"
+                className="is-danger"
                 onClick={() => {
                   menu.close();
                   onMove(taskId, 'abandoned');
                 }}
               >
-                放弃
+                放弃任务
               </button>
             )}
             <button
               type="button"
-
+              role="menuitem"
+              className="is-danger"
               onClick={() => {
                 menu.close();
                 onMove(taskId, 'trashed');
               }}
             >
-              <Trash2 size={13} />
-              删除
+              删除任务
             </button>
           </TaskActionsPopover>
         )}

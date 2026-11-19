@@ -2,7 +2,34 @@
 'use client';
 import { useState, type KeyboardEvent, type MouseEvent } from 'react';
 
-export type TaskMenuPoint = { x: number; y: number };
+/** 右键是一个点；键盘入口额外保留控件上沿，向上展开时不覆盖当前控件。 */
+export type TaskMenuPoint = { x: number; y: number; anchorTop?: number };
+
+/** 文本、日期与富文本编辑保留原生菜单；用节点属性兼容另一窗口，勾选等控件仍开任务菜单。 */
+function isEditingTarget(target: EventTarget | null): boolean {
+  const element = target as Element | null;
+  if (element?.nodeType !== 1) return false;
+  const editor = element.closest('input, textarea, select, [contenteditable]');
+  if (!editor) return false;
+  if (editor.localName === 'textarea' || editor.localName === 'select') return true;
+  if (editor.localName === 'input')
+    return [
+      'text',
+      'search',
+      'email',
+      'url',
+      'tel',
+      'password',
+      'number',
+      'date',
+      'datetime-local',
+      'month',
+      'week',
+      'time',
+    ].includes((editor as HTMLInputElement).type);
+  const editable = editor.getAttribute('contenteditable')?.toLowerCase();
+  return editable === '' || editable === 'true' || editable === 'plaintext-only';
+}
 
 /** 右键按指针位置展开；Shift+F10/菜单键按焦点控件展开，触屏用同一个更多按钮。 */
 export function useTaskMenu() {
@@ -10,13 +37,7 @@ export function useTaskMenu() {
   const [point, setPoint] = useState<TaskMenuPoint>();
   /** 输入控件保留系统菜单，以免打断选择、复制和粘贴。 */
   function onContextMenu(event: MouseEvent<HTMLElement>) {
-    if (
-      (event.target as Element).nodeType === 1 &&
-      (event.target as Element).closest(
-        'input, textarea, select, [contenteditable="true"]',
-      )
-    )
-      return;
+    if (isEditingTarget(event.target)) return;
     event.preventDefault();
     event.stopPropagation();
     setPoint({ x: event.clientX, y: event.clientY });
@@ -25,6 +46,7 @@ export function useTaskMenu() {
   /** 键盘菜单定位到实际焦点所在控件，而非可能很高的整行底部。 */
   function onKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key !== 'ContextMenu' && !(event.shiftKey && event.key === 'F10')) return;
+    if (isEditingTarget(event.target)) return;
     event.preventDefault();
     event.stopPropagation();
     const target =
@@ -32,7 +54,7 @@ export function useTaskMenu() {
         ? (event.target as HTMLElement)
         : event.currentTarget;
     const bounds = target.getBoundingClientRect();
-    setPoint({ x: bounds.left, y: bounds.bottom });
+    setPoint({ x: bounds.left, y: bounds.bottom, anchorTop: bounds.top });
     setOpen(true);
   }
   /** 点击入口按触发器定位，清掉上一次右键的指针坐标。 */

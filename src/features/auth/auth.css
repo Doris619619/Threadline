@@ -113,12 +113,13 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.auth-icon-btn:hover {
-  background: rgba(0, 0, 0, 0.08);
+@media (hover: hover) {
+  .auth-icon-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+  }
 }
 
 .auth-icon-btn:active {
-  transform: scale(0.92);
   background: rgba(0, 0, 0, 0.12);
 }
 
@@ -194,12 +195,11 @@
   border-radius: 16px;
   border: none;
   background: var(--accent);
-  background: linear-gradient(180deg, var(--accent-hover) 0%, var(--accent) 100%);
   color: var(--text-on-accent);
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 28%, transparent);
+  box-shadow: none;
   transition:
     transform 120ms ease,
     box-shadow 140ms ease,
@@ -208,16 +208,6 @@
   align-items: center;
   justify-content: center;
   -webkit-tap-highlight-color: transparent;
-}
-
-.auth-primary-btn:hover:not(:disabled) {
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 36%, transparent);
-  opacity: 0.96;
-}
-
-.auth-primary-btn:active:not(:disabled) {
-  transform: scale(0.98);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
 .auth-primary-btn:disabled {
@@ -255,9 +245,11 @@
   transition: opacity 140ms ease;
 }
 
-.auth-footer-link:hover {
-  text-decoration: underline;
-  opacity: 0.85;
+@media (hover: hover) {
+  .auth-footer-link:hover {
+    text-decoration: underline;
+    opacity: 0.85;
+  }
 }
 
 /* ========================================================= */
@@ -370,7 +362,7 @@
 
 .auth-input-group:focus-within {
   border-color: var(--accent-hover);
-  box-shadow: 0 0 0 3.5px color-mix(in srgb, var(--accent) 14%, transparent);
+  box-shadow: none;
 }
 
 .auth-input-icon {
@@ -396,6 +388,11 @@
   color: var(--text-tertiary);
 }
 
+/* Edge 官方 ::-ms-reveal 会重复现有的可访问密码按钮；仅移除本表单的浏览器副本。 */
+.auth-text-input[type='password']::-ms-reveal {
+  display: none;
+}
+
 .auth-input-action-btn {
   border: none;
   background: transparent;
@@ -410,8 +407,10 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.auth-input-action-btn:hover {
-  color: var(--text-secondary);
+@media (hover: hover) {
+  .auth-input-action-btn:hover {
+    color: var(--text-secondary);
+  }
 }
 
 .auth-form-auxiliary {
@@ -428,8 +427,10 @@
   font-weight: 500;
 }
 
-.auth-auxiliary-link:hover {
-  text-decoration: underline;
+@media (hover: hover) {
+  .auth-auxiliary-link:hover {
+    text-decoration: underline;
+  }
 }
 
 .auth-error {

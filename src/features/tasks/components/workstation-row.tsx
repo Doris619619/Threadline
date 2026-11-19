@@ -1,10 +1,12 @@
-/** @fileoverview 工作站引用行与不占列表宽度的右键菜单；移出不会删除原任务。 */
+/** @fileoverview 工作站引用行复用共享操作菜单，支持可见更多、右键和键盘；移出不删除原任务。 */
 'use client';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import { useRef, type ReactNode } from 'react';
+import { MoreHorizontal } from 'lucide-react';
+import { useTaskMenu } from '../hooks/use-task-menu';
+import { TaskActionsPopover } from './task-actions-popover';
 import type { Task } from '@/types/domain';
 
-/** 支持拖动排序、右键及 Shift+F10；菜单在当前小窗内定位，关闭后返回行焦点。 */
+/** 保留引用拖动排序；更多按钮和右键共用小窗内可滚动菜单，Escape 归还入口焦点。 */
 export function WorkstationRow({
   task,
   index,
@@ -18,52 +20,22 @@ export function WorkstationRow({
   onRemove: (id: string) => void;
   onReorder: (sourceId: string, targetId: string) => void;
 }) {
-  const rowRef = useRef<HTMLLIElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
-  /** 菜单必须完全落在便签视口中，避免最右或最下方任务无法操作。 */
-  function openMenu(x: number, y: number) {
-    setMenu({
-      x: Math.max(4, Math.min(x, window.innerWidth - 148)),
-      y: Math.max(4, Math.min(y, window.innerHeight - 42)),
-    });
-  }
-  useEffect(() => {
-    if (!menu) return;
-    menuRef.current?.querySelector('button')?.focus();
-    /** 外部点击或窗口失焦收起菜单；不改变引用或正在操作的其他控件。 */
-    function dismiss(event: Event) {
-      if (event.target instanceof Node && menuRef.current?.contains(event.target))
-        return;
-      setMenu(null);
-    }
-    window.addEventListener('pointerdown', dismiss);
-    window.addEventListener('blur', dismiss);
-    return () => {
-      window.removeEventListener('pointerdown', dismiss);
-      window.removeEventListener('blur', dismiss);
-    };
-  }, [menu]);
+  const anchor = useRef<HTMLButtonElement>(null);
+  const menu = useTaskMenu();
   return (
     <li
-      ref={rowRef}
       className="workstation-row"
       draggable
       tabIndex={0}
-      aria-label={`${index + 1} ${task.title}，右键或 Shift+F10 移出工作站`}
-      onContextMenu={(event) => {
-        event.preventDefault();
-        openMenu(event.clientX, event.clientY);
-      }}
-      onKeyDown={(event) => {
-        if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
-          event.preventDefault();
-          const bounds = event.currentTarget.getBoundingClientRect();
-          openMenu(bounds.left, bounds.bottom);
-        }
-      }}
+      aria-label={`${index + 1} ${task.title}`}
+      onContextMenu={menu.onContextMenu}
+      onKeyDown={menu.onKeyDown}
       onDragStart={(event) => {
-        setMenu(null);
+        if ((event.target as Element).closest('button')) {
+          event.preventDefault();
+          return;
+        }
+        menu.close();
         event.dataTransfer.setData('text/workstation-task-id', task.id);
       }}
       onDragOver={(event) => event.preventDefault()}
@@ -75,35 +47,38 @@ export function WorkstationRow({
     >
       <span className="workstation-order">{index + 1}</span>
       {label}
-      {menu &&
-        createPortal(
-          <div
-            ref={menuRef}
-            className="workstation-context-menu"
-            role="menu"
-            aria-label={`${task.title}的工作站操作`}
-            style={{ left: menu.x, top: menu.y }}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape' || event.key === 'Tab') {
-                event.preventDefault();
-                setMenu(null);
-                rowRef.current?.focus();
-              }
+      <button
+        ref={anchor}
+        type="button"
+        className="workstation-menu-trigger"
+        aria-label={`${task.title}更多操作`}
+        aria-haspopup="menu"
+        aria-expanded={menu.open}
+        onClick={menu.toggle}
+      >
+        <MoreHorizontal size={16} aria-hidden="true" />
+      </button>
+      {menu.open && (
+        <TaskActionsPopover
+          anchor={anchor}
+          point={menu.point}
+          className="workstation-context-menu"
+          role="menu"
+          label={`${task.title}的工作站操作`}
+          onClose={menu.close}
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              menu.close();
+              onRemove(task.id);
             }}
           >
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setMenu(null);
-                onRemove(task.id);
-              }}
-            >
-              移出工作站
-            </button>
-          </div>,
-          document.body,
-        )}
+            移出工作站
+          </button>
+        </TaskActionsPopover>
+      )}
     </li>
   );
 }

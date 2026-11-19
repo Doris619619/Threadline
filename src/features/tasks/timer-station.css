@@ -1,4 +1,4 @@
-/** @fileoverview 紧凑暖白计时站；卡片整体适配窗口，固定信息层级和按钮位置，不使用裁切滚动或手机换行。 */
+/** @fileoverview 紧凑计时站统一方案 A 状态；正常尺寸完整适配，极小窗口保留可滚动的可点击卡片。 */
 html[data-timer-station='true'],
 html[data-timer-station='true'] body {
   margin: 0;
@@ -17,6 +17,13 @@ html[data-timer-station='true'],
   --border-subtle: #e7e0d2;
   --success: #4b6a15;
   --danger: #b44840;
+  --accent-text: #4b6a15;
+  --interaction-hover: #eeebe2;
+  --interaction-pressed: #e3dfd2;
+  --interaction-expanded: #edf0e3;
+  --interaction-selected: #e7eadb;
+  --interaction-focus: #e4eacb;
+  --interaction-focus-ink: #4b6a15;
 }
 .timer-station {
   height: 100dvh;
@@ -99,8 +106,10 @@ html[data-timer-station='true'],
   font: inherit;
   font-size: 12px;
 }
-.timer-station-controls button:hover {
-  background: #eeebe2;
+@media (hover: hover) {
+  .timer-station-controls button:hover {
+    background: #eeebe2;
+  }
 }
 .timer-station-controls .timer-station-workspace-link {
   width: auto;
@@ -116,18 +125,13 @@ html[data-timer-station='true'],
   background: var(--surface);
 }
 .timer-station-layout button {
-  height: 24px;
+  height: 28px;
   width: 34px;
   border-radius: 6px;
 }
 .timer-station-controls button[aria-pressed='true'] {
   color: var(--success);
   background: #e7eadb;
-}
-.timer-station button:focus-visible,
-.timer-station article:focus-visible {
-  outline: 2px solid #4b6a15;
-  outline-offset: 3px;
 }
 .timer-station ::selection {
   background: #dee5c8;
@@ -139,7 +143,21 @@ html[data-timer-station='true'],
   min-width: 0;
   overflow: clip;
 }
+.timer-station-controls .timer-station-compact-menu {
+  display: none;
+}
+.timer-station-viewport[data-fit='scroll'] {
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.timer-station-cards[data-fit='scroll'] {
+  position: relative;
+  inset: auto;
+  margin: 10px;
+  grid-auto-columns: minmax(0, var(--timer-station-card-width));
+}
 .timer-station-cards {
+  --timer-station-card-width: 320px;
   position: absolute;
   top: 10px;
   left: 10px;
@@ -227,13 +245,13 @@ html[data-timer-station='true'],
   grid-row: 2;
   justify-self: end;
   align-self: center;
-  gap: 6px;
+  gap: 8px;
 }
 .timer-station .task-timer-actions button {
-  width: 32px;
-  height: 32px;
-  min-height: 32px;
-  min-width: 32px;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  min-width: 36px;
   padding: 5px;
   background: var(--surface);
 }
@@ -241,11 +259,86 @@ html[data-timer-station='true'],
   background: color-mix(in srgb, var(--timer-color) 6%, #f2f2e9);
   border-color: color-mix(in srgb, var(--timer-color) 46%, #e7e0d2);
 }
-.timer-station .task-timer-actions button:hover {
-  background: color-mix(in srgb, var(--timer-color) 12%, var(--surface));
+@media (hover: hover) {
+  .timer-station .task-timer-actions button:hover {
+    background: color-mix(in srgb, var(--timer-color) 12%, var(--surface));
+  }
 }
 .timer-station .task-timer-actions .task-timer-more {
   display: none;
+}
+/* 滚动模式不缩小真实命中区；更多入口移至标题角落，避免窄卡挤压计时读数。 */
+.timer-station-cards[data-fit='scroll'] .task-timer-heading {
+  padding-right: 36px;
+}
+.timer-station-cards[data-fit='scroll'] .task-timer-more {
+  display: grid;
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+@media (width < 340px) {
+  .timer-station-header {
+    grid-template-rows: 30px 34px;
+    gap: 4px 6px;
+    padding: 5px 8px 6px;
+  }
+  .timer-station-cards[data-fit='scroll'] .task-timer-station {
+    padding: 8px;
+    column-gap: 6px;
+  }
+  .timer-station-cards[data-fit='scroll'] .task-timer-heading {
+    grid-column: 1;
+    grid-row: 1;
+    padding-right: 0;
+  }
+  .timer-station-cards[data-fit='scroll'] .task-timer-heading strong {
+    font-size: 14px;
+  }
+  .timer-station-cards[data-fit='scroll'] .task-timer-actions {
+    grid-row: 1;
+  }
+  .timer-station-cards[data-fit='scroll'] .task-timer-readout {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    font-size: 24px;
+    padding-right: 36px;
+  }
+  .timer-station-cards[data-fit='scroll'] .task-timer-readout svg {
+    display: none;
+  }
+  .timer-station-cards[data-fit='scroll'] .task-timer-project {
+    display: none;
+  }
+  .timer-station-cards[data-fit='scroll'] .task-timer-more {
+    top: 54px;
+  }
+}
+/* 极短窗保留单行标题与窗口按钮；导航/排列由同一个更多菜单承载，不缩小命中区域。 */
+@media (width < 340px) and (height < 240px) {
+  .timer-station-header {
+    display: flex;
+    flex-basis: 44px;
+    gap: 4px;
+    padding: 0 8px;
+  }
+  .timer-station-header h1 {
+    font-size: 13px;
+  }
+  .timer-station-controls {
+    display: flex;
+    gap: 0;
+  }
+  .timer-station-controls > .timer-station-workspace-link,
+  .timer-station-controls > .timer-station-layout {
+    display: none;
+  }
+  .timer-station-window-controls {
+    gap: 2px;
+  }
+  .timer-station-controls .timer-station-compact-menu {
+    display: grid;
+  }
 }
 .timer-station .task-timer-date {
   grid-column: 1 / -1;

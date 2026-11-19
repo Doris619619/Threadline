@@ -43,8 +43,10 @@
     url('/themes/cottage/pixels.svg#view-star') 87% 18% / 13px no-repeat,
     url('/themes/cottage/pixels.svg#view-star') 4% 45% / 9px no-repeat;
 }
-.cottage-companion--sidebar:hover .cottage-sidebar-scene::after {
-  animation: cottage-room-twinkle 1.8s steps(5, end);
+@media (hover: hover) {
+  .cottage-companion--sidebar:hover .cottage-sidebar-scene::after {
+    animation: cottage-room-twinkle 1.8s steps(5, end);
+  }
 }
 .cottage-dressing-mirror {
   position: relative;

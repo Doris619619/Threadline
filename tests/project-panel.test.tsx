@@ -1,6 +1,7 @@
-/** @fileoverview 验证项目管理与独立 Daily 模板管理的关键交互和数据边界。 */
+/** @fileoverview 验证项目管理的指针入口归焦、独立 Daily 模板交互和数据边界。 */
 
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -11,6 +12,7 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Daily } from '@/features/daily/types';
 import { ProjectManagementPage } from '@/features/projects/project-management-page';
+import { ProjectPanel } from '@/features/projects/project-panel';
 import type { Project } from '@/types/domain';
 
 const projects: Project[] = [
@@ -95,27 +97,28 @@ describe('ProjectManagementPage', () => {
     const fallbackRow = screen.getByRole('button', { name: '管理项目 其他' });
     const standardRow = screen.getByRole('button', { name: '管理项目 科研' });
     fireEvent.click(fallbackRow);
-    const fallbackDialog = screen.getByRole('dialog', { name: '其他' });
+    const fallbackDialog = screen.getByRole('menu', { name: '其他项目操作' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(
-      within(fallbackDialog).getByRole('button', { name: '修改项目' }),
+      within(fallbackDialog).getByRole('menuitem', { name: '修改项目…' }),
     ).toBeVisible();
     expect(
-      within(fallbackDialog).queryByRole('button', { name: '归档项目' }),
+      within(fallbackDialog).queryByRole('menuitem', { name: '归档项目' }),
     ).not.toBeInTheDocument();
     expect(
-      within(fallbackDialog).queryByRole('button', { name: '删除项目' }),
+      within(fallbackDialog).queryByRole('menuitem', { name: '删除项目…' }),
     ).not.toBeInTheDocument();
-    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.keyDown(fallbackDialog, { key: 'Escape' });
     fireEvent.click(standardRow);
-    const standardDialog = screen.getByRole('dialog', { name: '科研' });
+    const standardDialog = screen.getByRole('menu', { name: '科研项目操作' });
     expect(
-      within(standardDialog).getByRole('button', { name: '修改项目' }),
+      within(standardDialog).getByRole('menuitem', { name: '修改项目…' }),
     ).toBeVisible();
     expect(
-      within(standardDialog).getByRole('button', { name: '归档项目' }),
+      within(standardDialog).getByRole('menuitem', { name: '归档项目' }),
     ).toBeVisible();
     expect(
-      within(standardDialog).getByRole('button', { name: '删除项目' }),
+      within(standardDialog).getByRole('menuitem', { name: '删除项目…' }),
     ).toBeVisible();
     expect(screen.getByText('2 项 · 90 分钟')).toBeVisible();
     expect(screen.queryByText(/Daily 历史/)).not.toBeInTheDocument();
@@ -158,17 +161,145 @@ describe('ProjectManagementPage', () => {
     expect(screen.queryByRole('dialog', { name: '新建项目' })).not.toBeInTheDocument();
   });
 
-  it('opens project management from the row and restores focus after editing', () => {
+  it('opens the action menu from a pointer click and restores its real trigger after editing', () => {
     renderPanel();
     const row = screen.getByRole('button', { name: '管理项目 科研' });
-    row.focus();
+    screen.getByRole('button', { name: '+ 新建项目' }).focus();
     fireEvent.click(row);
-    const management = screen.getByRole('dialog', { name: '科研' });
-    fireEvent.click(within(management).getByRole('button', { name: '修改项目' }));
+    const management = screen.getByRole('menu', { name: '科研项目操作' });
+    expect(
+      within(management).getByRole('menuitem', { name: '修改项目…' }),
+    ).toHaveFocus();
+    fireEvent.click(within(management).getByRole('menuitem', { name: '修改项目…' }));
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     expect(screen.getByRole('dialog', { name: '修改项目' })).toBeVisible();
     expect(document.activeElement).toBe(screen.getByLabelText('项目名称'));
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(document.activeElement).toBe(row);
+  });
+
+  it.each([
+    ['管理项目 科研', 'menu', '科研项目操作'],
+    ['+ 新建项目', 'dialog', '新建项目'],
+    ['查看项目 科研', 'menu', '科研项目操作'],
+  ])(
+    'returns focus to the pointer opener %s even when another control was focused',
+    (label, role, title) => {
+      render(
+        <>
+          <button type="button">先前焦点</button>
+          <ProjectPanel
+            items={projects}
+            onCreateProject={vi.fn(async () => undefined)}
+            onUpdateProject={vi.fn(async () => undefined)}
+            onSetProjectArchived={vi.fn(async () => undefined)}
+            onDeleteProject={vi.fn(async () => undefined)}
+          />
+        </>,
+      );
+      screen.getByRole('button', { name: '先前焦点' }).focus();
+      const opener = screen.getByRole('button', { name: label, exact: true });
+      // fireEvent 不会代替指针触发器聚焦，覆盖 Safari 点击按钮仍保留旧 activeElement 的路径。
+      fireEvent.click(opener);
+      const surface = screen.getByRole(role, { name: title, exact: true });
+      expect(surface).toBeVisible();
+      fireEvent.keyDown(role === 'menu' ? surface : document, { key: 'Escape' });
+      expect(screen.queryByRole(role)).toBeNull();
+      expect(opener).toHaveFocus();
+    },
+  );
+
+  it('locks archive commands once and keeps a failed request available for retry', async () => {
+    const props = renderPanel();
+    let reject!: (reason: Error) => void;
+    const request = new Promise<undefined>((_resolve, no) => {
+      reject = no;
+    });
+    props.onSetProjectArchived.mockReturnValueOnce(request);
+    const trigger = screen.getByRole('button', { name: '管理项目 科研' });
+    fireEvent.click(trigger);
+    const menu = screen.getByRole('menu', { name: '科研项目操作' });
+    const archive = within(menu).getByRole('menuitem', { name: '归档项目' });
+    act(() => {
+      archive.click();
+      archive.click();
+    });
+    expect(props.onSetProjectArchived).toHaveBeenCalledExactlyOnceWith(
+      'research',
+      true,
+    );
+    for (const command of within(menu).getAllByRole('menuitem'))
+      expect(command).toBeDisabled();
+    expect(trigger).toBeDisabled();
+    await act(async () => reject(new Error('归档失败，请重试')));
+    expect(within(menu).getByRole('alert')).toHaveTextContent('归档失败，请重试');
+    expect(archive).toBeEnabled();
+    fireEvent.click(archive);
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+    expect(props.onSetProjectArchived).toHaveBeenNthCalledWith(2, 'research', true);
+    expect(trigger).toHaveFocus();
+  });
+
+  it('restores an archived project through the original command', async () => {
+    const props = renderPanel({
+      projectItems: [projects[0], { ...projects[1], status: 'archived' }],
+    });
+    fireEvent.click(screen.getByRole('button', { name: '管理项目 科研' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '恢复项目' }));
+    await waitFor(() =>
+      expect(props.onSetProjectArchived).toHaveBeenCalledExactlyOnceWith(
+        'research',
+        false,
+      ),
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('requires a separate delete confirmation and preserves failure, locking and pointer focus return', async () => {
+    const props = renderPanel();
+    const trigger = screen.getByRole('button', { name: '管理项目 科研' });
+    fireEvent.click(trigger);
+    const menu = screen.getByRole('menu', { name: '科研项目操作' });
+    const command = within(menu).getByRole('menuitem', { name: '删除项目…' });
+    expect(command.previousElementSibling).toHaveRole('separator');
+    fireEvent.click(command);
+    let dialog = screen.getByRole('dialog', { name: '删除项目', exact: true });
+    expect(
+      within(dialog).getByRole('button', { name: '取消', exact: true }),
+    ).toHaveFocus();
+    expect(props.onDeleteProject).not.toHaveBeenCalled();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole('menuitem', { name: '删除项目…' }));
+    dialog = screen.getByRole('dialog', { name: '删除项目', exact: true });
+    const submit = within(dialog).getByRole('button', {
+      name: '删除项目',
+      exact: true,
+    });
+    let reject!: (reason: Error) => void;
+    props.onDeleteProject.mockReturnValueOnce(
+      new Promise<undefined>((_resolve, no) => {
+        reject = no;
+      }),
+    );
+    act(() => {
+      submit.click();
+      submit.click();
+    });
+    expect(props.onDeleteProject).toHaveBeenCalledExactlyOnceWith('research');
+    expect(dialog).toHaveAttribute('aria-busy', 'true');
+    expect(submit).toBeDisabled();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(dialog).toBeInTheDocument();
+    await act(async () => reject(new Error('删除失败，请重试')));
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('删除失败，请重试');
+    expect(submit).toBeEnabled();
+    fireEvent.click(submit);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(props.onDeleteProject).toHaveBeenCalledTimes(2);
+    expect(trigger).toHaveFocus();
   });
 
   it('focuses the requested Daily business field for append, template edit, and item edit dialogs', () => {

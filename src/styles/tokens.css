@@ -32,6 +32,10 @@
   --success: #248a4d;
   --warning: #a86400;
   --danger: #d92d20;
+  --danger-filled: #b42318;
+  --danger-on-filled: #ffffff;
+  --onboarding-control-fill: #405f40;
+  --onboarding-control-ink: #fffdf7;
   --calendar-heat-1: color-mix(in srgb, var(--accent) 6%, var(--surface));
   --calendar-heat-2: color-mix(in srgb, var(--accent) 12%, var(--surface));
   --calendar-heat-3: color-mix(in srgb, var(--accent) 20%, var(--surface));
@@ -84,6 +88,19 @@
   --sidebar-width: 188px;
   --bottom-nav-height: 64px;
   --motion-fast: 140ms;
+  --motion-press: 80ms;
+  --motion-menu: 140ms;
+  --interaction-hover: color-mix(in srgb, var(--text-primary) 5%, var(--surface));
+  --interaction-pressed: color-mix(in srgb, var(--text-primary) 7%, var(--surface));
+  --interaction-expanded: color-mix(in srgb, var(--accent-text) 9%, var(--surface));
+  --interaction-selected: color-mix(in srgb, var(--accent-text) 13%, var(--surface));
+  --interaction-focus: color-mix(in srgb, var(--accent-text) 16%, var(--surface));
+  --interaction-focus-ink: var(--accent-text);
+  --interaction-danger-hover: color-mix(in srgb, var(--danger) 8%, var(--surface));
+  --interaction-danger-pressed: color-mix(in srgb, var(--danger) 15%, var(--surface));
+  --menu-surface: color-mix(in srgb, var(--surface) 94%, transparent);
+  --menu-shadow: 0 8px 32px rgb(0 0 0 / 14%), 0 2px 8px rgb(0 0 0 / 5%);
+  --menu-radius: 18px;
   --font-sans:
     -apple-system, BlinkMacSystemFont, system-ui, 'PingFang SC', 'Segoe UI Variable',
     'Segoe UI', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;

@@ -1,6 +1,7 @@
 /** @fileoverview 通过真实规划界面验证跨日创建、提前改期、安排与首页日期隔离。 */
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { waitForFiniteAnimations } from './support/animations';
 import {
   bootstrapLocalAdapterWorkspace,
   openWorkspaceSection,
@@ -42,7 +43,7 @@ test('creates next week work, brings it forward, completes it and keeps home on 
   let row = page.locator('.planning-task').filter({ hasText: '下周研究安排' });
   await expect(row).toBeVisible();
   await row.getByLabel('下周研究安排更多操作').click();
-  await row.getByRole('button', { name: '改期', exact: true }).click();
+  await page.getByRole('menuitem', { name: '调整日期…', exact: true }).click();
   await page.getByLabel('移期日期').fill('2026-08-24');
   await page.getByRole('button', { name: '确认改期' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -161,17 +162,7 @@ async function fillMonth(page: Page) {
 /** 同时检查整页水平边界与 serious/critical 可访问性债务，包含实际热力文字对比。 */
 async function checkAccessible(page: Page) {
   // 媒体变化由异步事件送达；先跨过布局帧，再等待有限过渡，避免扫描浅深色中间值。
-  await page.evaluate(async () => {
-    await new Promise<void>((resolve) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-    );
-    await Promise.allSettled(
-      document
-        .getAnimations()
-        .filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
-        .map((animation) => animation.finished),
-    );
-  });
+  await waitForFiniteAnimations(page);
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
   ).toBe(true);
@@ -261,12 +252,7 @@ test('keeps dense heat readable in light and dark and displays the exact day tas
   await page.getByRole('button', { name: '返回月历' }).click();
   await page.emulateMedia({ colorScheme: 'dark' });
   // 等待实际外观过渡完成，避免 axe 把侧栏的中间插值颜色当成稳定深色样式。
-  await page.evaluate(async () => {
-    void document.documentElement.offsetWidth;
-    await Promise.allSettled(
-      document.getAnimations().map((animation) => animation.finished),
-    );
-  });
+  await waitForFiniteAnimations(page);
   await checkAccessible(page);
   await page.screenshot({ path: info.outputPath('month-dark.png'), fullPage: true });
   if (info.project.name === 'planning-webkit') {
@@ -399,7 +385,7 @@ test('renders proportional time blocks and preserves detail, editing, completion
   await second.click();
   detail = page.getByRole('dialog', { name: '安排详情' });
   await detail.getByLabel('梳理项目方案更多操作').click();
-  await detail.getByRole('button', { name: '改期', exact: true }).click();
+  await page.getByRole('menuitem', { name: '调整日期…', exact: true }).click();
   await page.getByLabel('移期日期').fill('2026-08-24');
   await page.getByRole('button', { name: '确认改期' }).click();
   await expect(second).toHaveCount(0);
@@ -411,7 +397,7 @@ test('renders proportional time blocks and preserves detail, editing, completion
   await second.click();
   detail = page.getByRole('dialog', { name: '安排详情' });
   await detail.getByLabel('梳理项目方案更多操作').click();
-  await detail.getByRole('button', { name: '退回待安排', exact: true }).click();
+  await page.getByRole('menuitem', { name: '移到待安排', exact: true }).click();
   await expect(detail.getByRole('button', { name: '安排到 8/24' })).toBeVisible();
   await detail.getByRole('button', { name: '关闭', exact: true }).click();
   await expect(second).toHaveCount(0);
@@ -425,12 +411,7 @@ test('keeps timeline readable in dark mode, enlarged text and narrow layouts', a
     await page.setViewportSize({ width: 390, height: 844 });
   }
   await page.emulateMedia({ colorScheme: 'dark' });
-  await page.evaluate(async () => {
-    void document.documentElement.offsetWidth;
-    await Promise.allSettled(
-      document.getAnimations().map((animation) => animation.finished),
-    );
-  });
+  await waitForFiniteAnimations(page);
   await checkAccessible(page);
   await page.screenshot({ path: info.outputPath('timeline-dark.png'), fullPage: true });
   await page.screenshot({ path: info.outputPath('timeline-dark-first-screen.png') });

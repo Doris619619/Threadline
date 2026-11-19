@@ -1,6 +1,7 @@
 /** @fileoverview 跨手机与桌面验收日程控件对齐、独立预计、生理期流程和稳定外观的可读性，并保留页面截图。 */
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { waitForFiniteAnimations } from './support/animations';
 import {
   bootstrapLocalAdapterWorkspace,
   openWorkspaceSection,
@@ -52,12 +53,7 @@ for (const [label, selector, image] of [
     // 系统媒体变化通过外观运行时应用，先等根属性更新再等待 CSS 过渡。
     await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'dark');
     // 等待真实外观过渡结束，再检查最终配色；不关闭动画、不豁免对比度规则。
-    await page.evaluate(async () => {
-      void document.documentElement.offsetWidth;
-      await Promise.allSettled(
-        document.getAnimations().map((animation) => animation.finished),
-      );
-    });
+    await waitForFiniteAnimations(page);
     expect(
       (await new AxeBuilder({ page }).include(selector).analyze()).violations,
     ).toEqual([]);
@@ -277,7 +273,7 @@ test('independent estimates persist through schedule and waiting; compact pages 
   await openTaskMenu(
     row.getByRole('button', { name: '只有预计的任务更多操作', includeHidden: true }),
   );
-  await page.getByRole('button', { name: '待安排', exact: true }).click();
+  await page.getByRole('menuitem', { name: '移到待安排', exact: true }).click();
   const waiting = page
     .locator('.waiting-task-row')
     .filter({ hasText: '只有预计的任务' });
@@ -359,12 +355,7 @@ test('period start, end, backfill, edit, delete and offline retry use real form 
   await page.emulateMedia({ colorScheme: 'dark' });
   await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'dark');
   // 与本文件字体回归一致，等待实际 CSS 过渡完成；不关闭动画、不豁免对比度。
-  await page.evaluate(async () => {
-    void document.documentElement.offsetWidth;
-    await Promise.allSettled(
-      document.getAnimations().map((animation) => animation.finished),
-    );
-  });
+  await waitForFiniteAnimations(page);
   // 保存浏览器实际计算的外月数字和起止文字颜色，便于区分稳定主题与过渡中间帧。
   const darkColors = await page
     .locator(

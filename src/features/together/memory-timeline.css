@@ -113,10 +113,15 @@
     transform 180ms,
     opacity 180ms;
 }
-.together-memory-title:hover svg,
 .together-memory-title:focus-visible svg {
   opacity: 1;
   transform: translate(2px, -2px);
+}
+@media (hover: hover) {
+  .together-memory-title:hover svg {
+    opacity: 1;
+    transform: translate(2px, -2px);
+  }
 }
 .together-memory-footer {
   display: flex;

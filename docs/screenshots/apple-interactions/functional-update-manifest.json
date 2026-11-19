@@ -1,0 +1,1161 @@
+{
+  "generatedAt": "2026-11-19T07:55:09.817Z",
+  "fixedTime": "2026-11-19T04:00:00Z",
+  "baseURL": "http://127.0.0.1:32103",
+  "fixtures": {},
+  "note": "已知Axe/状态集成功能修复的定向补拍；原84项manifest与其native/Auth/Together证据原样保留，未重复这些流程。",
+  "entries": [
+    {
+      "file": "home-desktop-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "home",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅2026-11-19　周",
+      "image": {
+        "width": 1280,
+        "height": 2185
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "desktop.png",
+      "fixture": "production-preview-functional-update",
+      "module": "home",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅2026-11-19　周",
+      "image": {
+        "width": 1280,
+        "height": 2185
+      },
+      "copiedFrom": "home-desktop-blue-light.png",
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "home-keyboard-focus-desktop-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "home-keyboard-focus",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "结束今天",
+      "image": {
+        "width": 1280,
+        "height": 2185
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "home-current-navigation-hover-desktop-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "current-navigation-hover",
+      "scope": "viewport",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅2026-11-19　周",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "home-current-navigation-focus-desktop-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "current-navigation-focus",
+      "scope": "viewport",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "首页",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "home-annotation-selected-desktop-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "annotation-selected",
+      "scope": "viewport",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "荧光笔",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "theme-desktop-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "theme-representative",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "选择模式",
+      "image": {
+        "width": 1280,
+        "height": 2185
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "theme-desktop-blue-dark.png",
+      "fixture": "production-preview-functional-update",
+      "module": "theme-representative",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "dark",
+      "focus": "选择模式",
+      "image": {
+        "width": 1280,
+        "height": 2185
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "theme-desktop-anya-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "theme-representative",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "anya",
+      "colorScheme": "light",
+      "focus": "选择模式",
+      "image": {
+        "width": 1280,
+        "height": 2202
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "theme-desktop-anya-dark.png",
+      "fixture": "production-preview-functional-update",
+      "module": "theme-representative",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "anya",
+      "colorScheme": "dark",
+      "focus": "选择模式",
+      "image": {
+        "width": 1280,
+        "height": 2202
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "theme-desktop-cottage-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "theme-representative",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "cottage",
+      "colorScheme": "light",
+      "focus": "选择模式",
+      "image": {
+        "width": 1280,
+        "height": 2187
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "theme-desktop-cottage-dark.png",
+      "fixture": "production-preview-functional-update",
+      "module": "theme-representative",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "cottage",
+      "colorScheme": "dark",
+      "focus": "选择模式",
+      "image": {
+        "width": 1280,
+        "height": 2187
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "theme-desktop-classic-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "theme-representative",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "classic",
+      "colorScheme": "light",
+      "focus": "选择模式",
+      "image": {
+        "width": 1280,
+        "height": 2306
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "theme-desktop-classic-dark.png",
+      "fixture": "production-preview-functional-update",
+      "module": "theme-representative",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "classic",
+      "colorScheme": "dark",
+      "focus": "选择模式",
+      "image": {
+        "width": 1280,
+        "height": 2306
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "settings-desktop-blue-light.png",
+      "fixture": "production-preview-settings-row-fix",
+      "module": "settings",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "设置",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "captureBatchStartedAt": "2026-11-19T08:01:32.399Z"
+    },
+    {
+      "file": "settings-theme-selected-desktop-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "appearance-theme-selected",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多 设置外观让工作台更像你。主题与",
+      "image": {
+        "width": 1280,
+        "height": 1315
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "settings-font-focus-desktop-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "appearance-font-focus",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "默认字体把时间留给重要的事Threadline · 09:30 · 2026",
+      "image": {
+        "width": 1280,
+        "height": 1315
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "timers-desktop-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "task-timers",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅整理这段时间的课程资料与",
+      "image": {
+        "width": 1280,
+        "height": 2227
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "timers-expired-desktop-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "expired-countdown-extension",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅整理这段时间的课程资料与",
+      "image": {
+        "width": 1280,
+        "height": 2227
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "onboarding-desktop-blue-light.png",
+      "fixture": "production-preview",
+      "module": "onboarding",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "继续",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "onboarding-desktop-cottage-dark.png",
+      "fixture": "production-preview",
+      "module": "onboarding",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "cottage",
+      "colorScheme": "dark",
+      "focus": "继续",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "onboarding-desktop-classic-dark.png",
+      "fixture": "production-preview",
+      "module": "onboarding",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "classic",
+      "colorScheme": "dark",
+      "focus": "继续",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "onboarding-profile-desktop-blue-light.png",
+      "fixture": "production-preview",
+      "module": "onboarding-profile",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "home-mobile-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "home",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅2026-11-19　周",
+      "image": {
+        "width": 390,
+        "height": 3800
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "mobile.png",
+      "fixture": "production-preview-functional-update",
+      "module": "home",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅2026-11-19　周",
+      "image": {
+        "width": 390,
+        "height": 3800
+      },
+      "copiedFrom": "home-mobile-blue-light.png",
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "home-keyboard-focus-mobile-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "home-keyboard-focus",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "结束今天",
+      "image": {
+        "width": 390,
+        "height": 3800
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "home-current-navigation-hover-mobile-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "current-navigation-hover",
+      "scope": "viewport",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅2026-11-19　周",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "home-current-navigation-focus-mobile-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "current-navigation-focus",
+      "scope": "viewport",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "首页",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "theme-mobile-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "theme-representative",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅2026-11-19　周",
+      "image": {
+        "width": 390,
+        "height": 3800
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "theme-mobile-blue-dark.png",
+      "fixture": "production-preview-functional-update",
+      "module": "theme-representative",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "dark",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅2026-11-19　周",
+      "image": {
+        "width": 390,
+        "height": 3800
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "theme-mobile-anya-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "theme-representative",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "anya",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅2026-11-19　周",
+      "image": {
+        "width": 390,
+        "height": 3817
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "theme-mobile-anya-dark.png",
+      "fixture": "production-preview-functional-update",
+      "module": "theme-representative",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "anya",
+      "colorScheme": "dark",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅2026-11-19　周",
+      "image": {
+        "width": 390,
+        "height": 3817
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "theme-mobile-cottage-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "theme-representative",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "cottage",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多我的装扮›任务大厅2026-11",
+      "image": {
+        "width": 390,
+        "height": 3802
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "theme-mobile-cottage-dark.png",
+      "fixture": "production-preview-functional-update",
+      "module": "theme-representative",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "cottage",
+      "colorScheme": "dark",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多我的装扮›任务大厅2026-11",
+      "image": {
+        "width": 390,
+        "height": 3802
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "theme-mobile-classic-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "theme-representative",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "classic",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多我的装扮›任务大厅2026-11",
+      "image": {
+        "width": 390,
+        "height": 3796
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "theme-mobile-classic-dark.png",
+      "fixture": "production-preview-functional-update",
+      "module": "theme-representative",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "classic",
+      "colorScheme": "dark",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多我的装扮›任务大厅2026-11",
+      "image": {
+        "width": 390,
+        "height": 3796
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "settings-mobile-blue-light.png",
+      "fixture": "production-preview-settings-row-fix",
+      "module": "settings",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多设置通用个人资料女生外观日期与时",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "captureBatchStartedAt": "2026-11-19T08:01:32.399Z"
+    },
+    {
+      "file": "settings-theme-selected-mobile-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "appearance-theme-selected",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多 设置外观让工作台更像你。主题与",
+      "image": {
+        "width": 390,
+        "height": 1430
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "settings-font-focus-mobile-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "appearance-font-focus",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "默认字体把时间留给重要的事Threadline · 09:30 · 2026",
+      "image": {
+        "width": 390,
+        "height": 1430
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "timers-mobile-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "task-timers",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅整理这段时间的课程资料与",
+      "image": {
+        "width": 390,
+        "height": 4085
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "timers-expired-mobile-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "expired-countdown-extension",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多任务大厅整理这段时间的课程资料与",
+      "image": {
+        "width": 390,
+        "height": 4085
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "onboarding-mobile-blue-light.png",
+      "fixture": "production-preview",
+      "module": "onboarding",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "继续",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "onboarding-mobile-cottage-dark.png",
+      "fixture": "production-preview",
+      "module": "onboarding",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "cottage",
+      "colorScheme": "dark",
+      "focus": "继续",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "onboarding-mobile-classic-dark.png",
+      "fixture": "production-preview",
+      "module": "onboarding",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "classic",
+      "colorScheme": "dark",
+      "focus": "继续",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "onboarding-profile-mobile-blue-light.png",
+      "fixture": "production-preview",
+      "module": "onboarding-profile",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "captureBatchStartedAt": "2026-11-19T07:55:09.817Z"
+    },
+    {
+      "file": "settings-row-focus-desktop-blue-light.png",
+      "fixture": "production-preview-settings-row-fix",
+      "module": "settings-row-keyboard-description",
+      "scope": "viewport",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "个人资料女生",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "captureBatchStartedAt": "2026-11-19T08:01:32.399Z"
+    },
+    {
+      "file": "settings-row-focus-mobile-blue-light.png",
+      "fixture": "production-preview-settings-row-fix",
+      "module": "settings-row-keyboard-description",
+      "scope": "viewport",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "个人资料女生",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "captureBatchStartedAt": "2026-11-19T08:01:32.399Z"
+    }
+  ],
+  "errors": [],
+  "initialWorkspace": [
+    {
+      "device": "desktop",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "titles": [
+        "邮件处理",
+        "领域论文",
+        "准备访学材料",
+        "给家人打电话",
+        "备份学习资料"
+      ],
+      "remaining": "1h30min",
+      "total": "3h",
+      "statistics": "剩余 / 当日预计1h30min/3h今日实际投入56min",
+      "theme": "blue",
+      "colorScheme": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "beforeBusinessInteractions": true
+    },
+    {
+      "device": "mobile",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "titles": [
+        "邮件处理",
+        "领域论文",
+        "准备访学材料",
+        "给家人打电话",
+        "备份学习资料"
+      ],
+      "remaining": "1h30min",
+      "total": "3h",
+      "statistics": "剩余 / 当日预计1h30min/3h今日实际投入56min",
+      "theme": "blue",
+      "colorScheme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "beforeBusinessInteractions": true
+    }
+  ],
+  "previousBatchStartedAt": "2026-11-19T06:27:03.603Z",
+  "responsiveBoundaries": [
+    {
+      "device": "mobile",
+      "module": "annotation-tools",
+      "visible": false,
+      "reason": "Existing <=760px layout hides desktop mouse drawing toolbar; no mobile control is fabricated."
+    }
+  ],
+  "reusedOriginalEvidence": ["authentication", "together", "native"],
+  "previousSettingsCaptures": [
+    {
+      "file": "settings-desktop-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "settings",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 1280,
+        "height": 900,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "设置",
+      "image": {
+        "width": 1280,
+        "height": 900
+      },
+      "preservedRawImage": ".tmp/hig-functional-prior-settings/settings-desktop-blue-light.png"
+    },
+    {
+      "file": "settings-mobile-blue-light.png",
+      "fixture": "production-preview-functional-update",
+      "module": "settings",
+      "scope": "page",
+      "captureMethod": "Playwright.screenshot",
+      "fixedTime": "2026-11-19T04:00:00Z",
+      "url": "http://127.0.0.1:32103/",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1
+      },
+      "theme": "blue",
+      "colorScheme": "light",
+      "focus": "字体未能加载，暂时使用默认字体。可在外观设置中重试。Threadline首页日历计划洞察习惯节律两人空间设置首页日历计划习惯更多设置通用个人资料女生外观日期与时",
+      "image": {
+        "width": 390,
+        "height": 844
+      },
+      "preservedRawImage": ".tmp/hig-functional-prior-settings/settings-mobile-blue-light.png"
+    }
+  ],
+  "batches": [
+    {
+      "startedAt": "2026-11-19T07:55:09.817Z",
+      "captures": 45,
+      "errors": 0,
+      "note": "首次功能补拍；除两张设置概览外原图仍有效。"
+    },
+    {
+      "startedAt": "2026-11-19T08:01:32.399Z",
+      "captures": 4,
+      "errors": 0,
+      "note": "仅设置行小字继承修复后，覆盖两张概览并新增两张真实键盘焦点说明图。"
+    }
+  ],
+  "lastUpdatedAt": "2026-11-19T08:01:32.399Z"
+}

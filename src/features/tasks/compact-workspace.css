@@ -26,7 +26,7 @@
 }
 .workstation-row {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-columns: 24px minmax(0, 1fr) auto;
   min-height: 28px;
   align-items: center;
   gap: 2px;
@@ -35,6 +35,37 @@
 }
 .workstation-row:last-child {
   border-bottom: 0;
+}
+.workstation-menu-trigger {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+}
+.planning-task-menu-trigger {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+}
+@media (max-width: 760px), (pointer: coarse) {
+  .workstation-menu-trigger {
+    width: var(--touch-target);
+    height: var(--touch-target);
+  }
 }
 .compact-task-label {
   display: flex;
@@ -77,8 +108,10 @@
   font-weight: 500;
   cursor: pointer;
 }
-.compact-full-link:hover {
-  text-decoration: underline;
+@media (hover: hover) {
+  .compact-full-link:hover {
+    text-decoration: underline;
+  }
 }
 .workstation-row {
   grid-template-columns: 16px minmax(0, 1fr);
@@ -154,10 +187,16 @@
   cursor: pointer;
 }
 
-.annotation-tool-btn:hover,
 .annotation-tool-btn.is-active {
   color: var(--accent);
   background: var(--accent-muted);
+}
+
+@media (hover: hover) {
+  .annotation-tool-btn:hover {
+    color: var(--accent);
+    background: var(--accent-muted);
+  }
 }
 
 .annotation-highlighter-control {
@@ -185,7 +224,7 @@
 
 .annotation-color-menu-trigger {
   display: grid;
-  width: 17px;
+  width: 24px;
   height: 28px;
   padding: 0;
   place-items: center;
@@ -197,10 +236,16 @@
   cursor: pointer;
 }
 
-.annotation-color-menu-trigger:hover,
 .annotation-highlighter-control:focus-within .annotation-color-menu-trigger {
   color: var(--accent);
   background: var(--accent-muted);
+}
+
+@media (hover: hover) {
+  .annotation-color-menu-trigger:hover {
+    color: var(--accent);
+    background: var(--accent-muted);
+  }
 }
 
 .annotation-color-menu {
@@ -270,10 +315,16 @@
   place-items: center;
 }
 
-.annotation-color-option:hover,
 .annotation-color-option.is-selected {
   color: var(--text-primary);
   background: var(--surface-secondary);
+}
+
+@media (hover: hover) {
+  .annotation-color-option:hover {
+    color: var(--text-primary);
+    background: var(--surface-secondary);
+  }
 }
 
 .annotation-color-option.is-selected svg {
@@ -325,9 +376,11 @@
     opacity 140ms ease;
 }
 
-.task-row-draggable:not(.is-drag-disabled):hover {
-  background: color-mix(in srgb, var(--surface-secondary) 80%, transparent);
-  box-shadow: inset 3px 0 0 var(--accent-muted);
+@media (hover: hover) {
+  .task-row-draggable:not(.is-drag-disabled):hover {
+    background: color-mix(in srgb, var(--surface-secondary) 80%, transparent);
+    box-shadow: inset 3px 0 0 var(--accent-muted);
+  }
 }
 
 .task-row-draggable.is-dragging {
@@ -349,9 +402,11 @@
   touch-action: none;
 }
 
-.task-drag-handle:hover:not(:disabled) {
-  background: var(--surface-secondary);
-  color: var(--accent);
+@media (hover: hover) {
+  .task-drag-handle:hover:not(:disabled) {
+    background: var(--surface-secondary);
+    color: var(--accent);
+  }
 }
 
 .task-drag-handle:active:not(:disabled) {
@@ -407,7 +462,11 @@
   background: transparent;
   cursor: pointer;
 }
-.workstation-context-menu button:hover,
 .workstation-context-menu button:focus-visible {
   background: var(--surface-secondary);
+}
+@media (hover: hover) {
+  .workstation-context-menu button:hover {
+    background: var(--surface-secondary);
+  }
 }

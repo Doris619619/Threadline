@@ -12,7 +12,7 @@ import type { AnnotationTool } from '@/components/annotation-layer';
 type SchedulePanelChildren =
   ReactNode | ((controls: { isAdding: boolean; closeAdd: () => void }) => ReactNode);
 
-/** 保持日程 drop 契约、批注工具和 resize 控制；新增行开关由跨页面草稿控制器提供。 */
+/** 保持日程drop、互斥批注mode语义和resize；工具回调与新增行仍由上层持有。 */
 export function SchedulePanel({
   children,
   annotationTool,
@@ -69,6 +69,7 @@ export function SchedulePanel({
                 annotationTool === 'none' && 'is-active',
               )}
               aria-label="选择模式"
+              aria-pressed={annotationTool === 'none'}
               title="选择模式"
               onClick={() => onSelectAnnotationTool('none')}
             >
@@ -87,6 +88,7 @@ export function SchedulePanel({
                 annotationTool === 'eraser' && 'is-active',
               )}
               aria-label="橡皮擦"
+              aria-pressed={annotationTool === 'eraser'}
               title="橡皮擦（Esc 退出）"
               onClick={onToggleEraser}
             >

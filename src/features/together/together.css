@@ -40,11 +40,6 @@
   opacity: 0.5;
   cursor: default;
 }
-.together-page :focus-visible,
-.together-dialog :focus-visible {
-  outline: 2px solid var(--accent-text);
-  outline-offset: 4px;
-}
 .together-page .together-primary,
 .together-dialog .together-primary {
   background: var(--text-primary);
@@ -119,8 +114,10 @@
   color: var(--together-tone);
   z-index: 1;
 }
-.together-pair:hover .together-pair-link {
-  animation: together-heart 250ms ease-out;
+@media (hover: hover) {
+  .together-pair:hover .together-pair-link {
+    animation: together-heart 250ms ease-out;
+  }
 }
 .together-score {
   display: inline-flex;
@@ -402,12 +399,6 @@
 }
 .together-page .together-cheer[data-sent='true'] {
   opacity: 1;
-}
-.together-cheer:hover svg {
-  transform: scale(1.15);
-}
-.together-cheer svg {
-  transition: transform 180ms;
 }
 .together-note-loved {
   display: inline-flex;
@@ -927,7 +918,9 @@
     animation: none !important;
     transition: none !important;
   }
-  .together-note:hover {
-    transform: none;
+  @media (hover: hover) {
+    .together-note:hover {
+      transform: none;
+    }
   }
 }

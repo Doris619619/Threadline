@@ -155,7 +155,7 @@ export function PlanTaskRow({
                     onDate();
                   }}
                 >
-                  安排到其他日期
+                  安排到其他日期…
                 </button>
               )}
               <button
@@ -167,20 +167,23 @@ export function PlanTaskRow({
                   onEdit();
                 }}
               >
-                编辑
+                编辑任务…
               </button>
               {onRemove && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  disabled={busy || disabled}
-                  onClick={() => {
-                    menu.close();
-                    void run(onRemove);
-                  }}
-                >
-                  从阶段计划移除
-                </button>
+                <>
+                  <hr />
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={busy || disabled}
+                    onClick={() => {
+                      menu.close();
+                      void run(onRemove);
+                    }}
+                  >
+                    从阶段计划移除
+                  </button>
+                </>
               )}
             </TaskActionsPopover>
           )}

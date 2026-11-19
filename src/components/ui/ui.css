@@ -47,8 +47,10 @@
   background: var(--accent);
 }
 
-.tl-button--primary:hover:not(:disabled) {
-  background: var(--accent-hover);
+@media (hover: hover) {
+  .tl-button--primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
 }
 
 .tl-button--secondary {
@@ -57,8 +59,10 @@
   border-color: var(--border);
 }
 
-.tl-button--secondary:hover:not(:disabled) {
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .tl-button--secondary:hover:not(:disabled) {
+    background: var(--surface-secondary);
+  }
 }
 
 .tl-button--quiet {
@@ -66,8 +70,10 @@
   background: transparent;
 }
 
-.tl-button--quiet:hover:not(:disabled) {
-  background: var(--accent-soft);
+@media (hover: hover) {
+  .tl-button--quiet:hover:not(:disabled) {
+    background: var(--accent-soft);
+  }
 }
 
 .tl-button--danger {
@@ -92,7 +98,6 @@
 .tl-input:focus,
 .task-dialog :is(input, select):focus {
   border-color: var(--accent);
-  outline: none;
   box-shadow: none;
 }
 
@@ -148,8 +153,7 @@
 }
 
 .tl-checkbox input:focus-visible + span {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--accent-soft);
+  box-shadow: none;
 }
 
 .tl-project-tag {
@@ -183,9 +187,11 @@
     color var(--motion-fast) ease;
 }
 
-.tl-sidebar-item:hover {
-  color: var(--text-primary);
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .tl-sidebar-item:hover {
+    color: var(--text-primary);
+    background: var(--surface-secondary);
+  }
 }
 
 .tl-sidebar-item.is-active {

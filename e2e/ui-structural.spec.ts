@@ -104,7 +104,7 @@ test.describe('UI structural invariants', () => {
     page,
   }) => {
     await page.getByRole('button', { name: /选择颜色/ }).click();
-    const popover = page.getByRole('dialog', { name: '荧光笔颜色' });
+    const popover = page.getByRole('menu', { name: '荧光笔颜色' });
     await expect(popover).toHaveCount(1);
     await expectElementFullyWithinViewport(page, popover, '荧光笔颜色 Popover');
   });

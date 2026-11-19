@@ -77,6 +77,8 @@ jobs:
       - name: Verify WebKit ring resizing
         run: pnpm test:preview e2e/ui-task-time.spec.ts --project=preview-iphone-webkit --grep 'fits long center totals' --repeat-each=3
       - run: pnpm test:preview
+      - name: Verify shared HIG interaction states
+        run: pnpm test:hig
       - run: pnpm test:together:e2e
       - uses: actions/upload-artifact@v4
         if: always()

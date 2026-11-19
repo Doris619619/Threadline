@@ -65,8 +65,10 @@
   cursor: pointer;
 }
 
-.tl-profile:hover {
-  background: var(--accent-soft);
+@media (hover: hover) {
+  .tl-profile:hover {
+    background: var(--accent-soft);
+  }
 }
 
 .tl-avatar {
@@ -178,8 +180,10 @@
   cursor: pointer;
 }
 
-.tl-account-actions button:hover:not(:disabled) {
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .tl-account-actions button:hover:not(:disabled) {
+    background: var(--surface-secondary);
+  }
 }
 
 .tl-account-actions button.is-danger {
@@ -277,8 +281,6 @@
   min-width: 0;
 }
 .tl-date:has(.tl-native-date-picker:focus-visible) .tl-date-picker {
-  outline: 2px solid var(--accent-text);
-  outline-offset: 2px;
   border-radius: var(--radius-control);
 }
 .home-theme-illustration {
@@ -317,9 +319,11 @@ html[data-theme='anya'] .mode-full .tl-main {
     color var(--motion-fast) ease;
 }
 
-.tl-date button:hover {
-  background: var(--surface-secondary);
-  color: var(--text-primary);
+@media (hover: hover) {
+  .tl-date button:hover {
+    background: var(--surface-secondary);
+    color: var(--text-primary);
+  }
 }
 
 .tl-date time {

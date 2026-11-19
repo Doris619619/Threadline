@@ -31,13 +31,15 @@ html[data-theme='classic']
   font-weight: 600;
   box-shadow: none;
 }
-html[data-theme='classic']
-  :is(
-    .tl-button--primary,
-    .planning-panel .planning-add,
-    .manager-dialog button[type='submit']
-  ):hover:not(:disabled) {
-  background: var(--accent-hover);
+@media (hover: hover) {
+  html[data-theme='classic']
+    :is(
+      .tl-button--primary,
+      .planning-panel .planning-add,
+      .manager-dialog button[type='submit']
+    ):hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
 }
 html[data-theme='classic']
   :is(
@@ -52,8 +54,6 @@ html[data-theme='classic']
 }
 html[data-theme='classic'] .planning-date[aria-pressed='true'] {
   background: var(--accent-soft);
-  outline: 1px solid var(--accent-border);
-  outline-offset: -1px;
 }
 html[data-theme='classic'] .tl-checkbox input:checked + span {
   background: var(--accent);
@@ -86,11 +86,13 @@ html[data-theme='classic'] :is(.cottage-wardrobe, .manager-dialog) > header butt
   box-shadow: none;
   margin: 0;
 }
-html[data-theme='classic']
-  :is(.cottage-wardrobe, .manager-dialog)
-  > header
-  button:hover {
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  html[data-theme='classic']
+    :is(.cottage-wardrobe, .manager-dialog)
+    > header
+    button:hover {
+    background: var(--surface-secondary);
+  }
 }
 html[data-theme='classic'] .manager-dialog > header h2 {
   color: var(--text-primary);

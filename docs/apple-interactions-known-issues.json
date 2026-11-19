@@ -1,0 +1,118 @@
+{
+  "description": "记录本次交互整改实际遇到、未通过改断言或无依据修改核心代码掩盖的原生居中与两种计时并发验证边界。",
+  "date": "2026-11-19",
+  "baseCommit": "6b3b79c6217e9acefa35ceaa7419de0cbb9df1f6",
+  "issues": [
+    {
+      "id": "native-entry-centering",
+      "status": "resolved-with-original-strict-native-verifier",
+      "command": "pnpm test:electron",
+      "gate": "scripts/test-electron-entry-recovery.mjs / verifyEntryWindowCenter",
+      "displayScaleFactor": 1.5,
+      "visibleBoundsPhysicalPixels": {
+        "x": 3199,
+        "y": 54,
+        "width": 1926,
+        "height": 1263
+      },
+      "workAreaPhysicalPixels": {
+        "x": 2880,
+        "y": 0,
+        "width": 2560,
+        "height": 1368
+      },
+      "horizontalCenterDeltaPhysicalPixels": 2,
+      "allowedDeltaPhysicalPixels": 1.5,
+      "primaryDisplayAtScale2_5": "passed",
+      "baselineOwnerSourcesAndVerifierEqualBase": true,
+      "verification": {
+        "command": "node scripts/test-electron-entry-recovery.mjs",
+        "result": "passed-on-both-attached-displays",
+        "visibleBoundsPhysicalPixelsAtScale1_5": {
+          "x": 3197,
+          "y": 54,
+          "width": 1925,
+          "height": 1263
+        },
+        "centerDeltaPhysicalPixelsAtScale1_5": {
+          "x": 0.5,
+          "y": 1.5
+        },
+        "contentSizeDIPAtScale1_5": {
+          "width": 1280,
+          "height": 840
+        },
+        "primaryDisplayAtScale2_5": "passed-with-unchanged-visible-bounds",
+        "verifierAndOneDIPThresholdUnchanged": true,
+        "fullNativeSuiteAfterFix": "pnpm test:electron passed all original stages"
+      },
+      "resolution": "已先复现严格失败；Full首次居中回退的半DIP坐标改为向工作区起边取整，正负奇数工作区回归先红后绿，原entry脚本完整通过。内容尺寸、已有位置、紧凑模式和1 DIP阈值保持；修改集中于desktop-window-policy，不采用会造成外框尺寸累积的setPosition或center补偿。"
+    },
+    {
+      "id": "timer-concurrent-pause",
+      "status": "intermittent-unresolved",
+      "test": "e2e/timer-concurrency.spec.ts: concurrent pauses preserve both paused timers and the third running timer",
+      "project": "preview-desktop",
+      "expectedRunningFlags": [false, false, true],
+      "observedRunningFlags": [true, false, true],
+      "traceObserved": {
+        "dispatchedActions": 2,
+        "pendingLockRequestsBeforeRelease": 2,
+        "runningFlagsBeforeRelease": [true, true, true],
+        "runningFlagsFirstReadAfterRelease": [true, false, true]
+      },
+      "ownerSourcesAndTestEqualBase": true,
+      "boundedDiagnosis": {
+        "unmodifiedSingleCasePasses": 1,
+        "asyncObservationPasses": 4,
+        "synchronousObservationWithoutAdditionalStorageReadsPasses": 4,
+        "observedSuccessfulWriteSequence": [
+          [true, true, true],
+          [false, true, true],
+          [false, false, true]
+        ],
+        "extraWritesInObservedPassingRuns": 0
+      },
+      "resolution": "9次有界排查未复现，独立源码审查未找到确定原因；未修改产品核心、测试断言或等待阈值，不将后续通过解释为此问题已修好。",
+      "handlingDecision": {
+        "date": "2026-11-19",
+        "decision": "deferred-by-user-for-pr63-pr64-pr65-merge",
+        "remainsUnresolved": true
+      }
+    },
+    {
+      "id": "timer-concurrent-removal-extension",
+      "status": "ci-contract-failure-unresolved",
+      "test": "e2e/timer-concurrency.spec.ts: concurrent removal and extension cannot resurrect an expired countdown",
+      "project": "preview-desktop",
+      "ciRun": "https://github.com/Doris619619/Threadline/actions/runs/44478453713",
+      "testedCommit": "9d72c8f849010cc9b6d3a53e524d81a0761208f5",
+      "expected": "timer concurrency-timer-0 absent; other timers equal before.slice(1)",
+      "observed": {
+        "id": "concurrency-timer-0",
+        "mode": "down",
+        "elapsedMs": 300000,
+        "targetMs": 600000,
+        "startedAt": 1792569600000
+      },
+      "raceHelperGatesPassed": [
+        "both actions queued under the same held Web Lock",
+        "timer storage unchanged before lock release"
+      ],
+      "ownerSourcesAndTestEqualBase": true,
+      "localBoundedDiagnosis": {
+        "unmodifiedOriginalCaseOnCorrectPreview": "failed-with-the-same-retained-extended-timer",
+        "synchronousReadWriteLockObservationPasses": 4,
+        "observedPassingOrder": "remove then extend; second map read contains only the two remaining timers",
+        "failureTrace": ".tmp/timer-removal-diagnosis/original-preview/",
+        "interpretation": "只读观测改变调度，四次通过不能否定未修改原例的失败；尚未取得失败时锁内读写证据。"
+      },
+      "resolution": "删除filter与续时map在任一合法锁次序下都应收敛到删除，不能用操作顺序不同解释或放宽断言。CI与本机原例均保留已续时timer，违反现有契约，具体根因未定；保留原断言和核心，后续通过不代表已修复。",
+      "handlingDecision": {
+        "date": "2026-11-19",
+        "decision": "deferred-by-user-for-pr63-pr64-pr65-merge",
+        "remainsUnresolved": true
+      }
+    }
+  ]
+}

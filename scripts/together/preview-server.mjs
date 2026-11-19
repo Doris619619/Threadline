@@ -1,6 +1,14 @@
 /** @fileoverview 仅监听 loopback 的 PostgreSQL 预览桥；固定四个测试身份，不提供任意 SQL/正式账号入口。 */
 import { createServer } from 'node:http';
 import { createDatabase, asUser, command, seedPreview, users } from './database.mjs';
+const previewPort = Number(process.env.THREADLINE_TOGETHER_PREVIEW_PORT ?? 3102);
+const e2ePort = Number(process.env.THREADLINE_TOGETHER_E2E_PORT ?? 3100);
+for (const port of [previewPort, e2ePort]) {
+  if (!Number.isInteger(port) || port < 1 || port > 65535)
+    throw new Error('Together test ports must be integers between 1 and 65535');
+}
+const previewOrigin = `http://127.0.0.1:${previewPort}`;
+const allowedOrigins = [`http://localhost:${e2ePort}`, `http://127.0.0.1:${e2ePort}`];
 const db = await createDatabase();
 await seedPreview(db);
 /** 严格白名单 SQL 标识符；所有用户值均以绑定参数传递。 */
@@ -8,7 +16,7 @@ function identifier(value) {
   if (!/^[a-z_]+$/.test(value)) throw new Error('Invalid identifier');
   return `"${value}"`;
 }
-/** JSON 响应使用不缓存和固定 localhost CORS，不允许外站调用测试身份。 */
+/** JSON 响应不缓存，CORS 限定当前测试端口的 loopback 来源，不允许外站调用测试身份。 */
 function send(response, status, value, headers = {}) {
   response.writeHead(status, {
     'Content-Type': 'application/json',
@@ -17,12 +25,13 @@ function send(response, status, value, headers = {}) {
   });
   response.end(JSON.stringify(value));
 }
+/** 只接受当前 loopback 预览页及白名单身份，所有数据库读写继续走原有受限入口。 */
 const server = createServer(async (request, response) => {
   const origin = request.headers.origin;
-  if (origin && !['http://localhost:3100', 'http://127.0.0.1:3100'].includes(origin))
+  if (origin && !allowedOrigins.includes(origin))
     return send(response, 403, { message: 'Local preview only' });
   const cors = {
-    'Access-Control-Allow-Origin': origin ?? 'http://localhost:3100',
+    'Access-Control-Allow-Origin': origin ?? allowedOrigins[0],
     'Access-Control-Allow-Headers':
       'authorization,apikey,content-type,x-client-info,x-preview-user,prefer,accept-profile,content-profile,range,range-unit',
     'Access-Control-Allow-Methods': 'GET,HEAD,POST,OPTIONS',
@@ -35,7 +44,7 @@ const server = createServer(async (request, response) => {
   if (!users.includes(user))
     return send(response, 401, { message: 'Preview identity required' }, cors);
   try {
-    const url = new URL(request.url, 'http://127.0.0.1:3102');
+    const url = new URL(request.url, previewOrigin);
     if (url.pathname.startsWith('/rest/v1/rpc/')) {
       if (request.method !== 'POST') throw new Error('POST required');
       let body = '';
@@ -161,9 +170,10 @@ const server = createServer(async (request, response) => {
     );
   }
 });
-server.listen(3102, '127.0.0.1', () =>
+/** 端口可按测试环境覆写，监听地址始终固定为 loopback。 */
+server.listen(previewPort, '127.0.0.1', () =>
   console.log(
-    'Together preview database: http://127.0.0.1:3102 (ephemeral local PostgreSQL, no production connection).',
+    `Together preview database: ${previewOrigin} (ephemeral local PostgreSQL, no production connection).`,
   ),
 );
 /** 退出时释放内存数据库；重启得到干净的测试场景。 */

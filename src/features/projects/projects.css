@@ -60,14 +60,16 @@
   display: none;
 }
 
-.project-create-trigger:hover,
 .project-create-trigger[aria-expanded='true'] {
   background: var(--surface-secondary);
   border-color: var(--border);
 }
 
-.project-create-trigger:active {
-  transform: scale(0.96);
+@media (hover: hover) {
+  .project-create-trigger:hover {
+    background: var(--surface-secondary);
+    border-color: var(--border);
+  }
 }
 
 .project-create-actions {
@@ -100,9 +102,14 @@
   cursor: pointer;
 }
 
-.project-create-actions button:hover,
 .project-create-actions button:focus-visible {
   background: var(--accent-soft);
+}
+
+@media (hover: hover) {
+  .project-create-actions button:hover {
+    background: var(--accent-soft);
+  }
 }
 
 .manager-section {
@@ -166,8 +173,10 @@
   border-top: 0;
 }
 
-.manager-row:hover {
-  background: color-mix(in srgb, var(--accent-soft) 36%, var(--surface));
+@media (hover: hover) {
+  .manager-row:hover {
+    background: color-mix(in srgb, var(--accent-soft) 36%, var(--surface));
+  }
 }
 
 .manager-row:active {
@@ -232,8 +241,10 @@
   transition: background-color var(--motion-fast) ease;
 }
 
-.daily-disclosure:hover {
-  background: color-mix(in srgb, var(--accent-soft) 30%, var(--surface));
+@media (hover: hover) {
+  .daily-disclosure:hover {
+    background: color-mix(in srgb, var(--accent-soft) 30%, var(--surface));
+  }
 }
 
 .daily-disclosure > span:nth-child(2) {
@@ -279,9 +290,14 @@
   border-top: 1px solid var(--border-subtle);
 }
 
-.daily-manager-item:hover,
 .daily-manager-item:focus-visible {
   background: color-mix(in srgb, var(--accent-soft) 28%, var(--surface-secondary));
+}
+
+@media (hover: hover) {
+  .daily-manager-item:hover {
+    background: color-mix(in srgb, var(--accent-soft) 28%, var(--surface-secondary));
+  }
 }
 
 .daily-manager-item > svg {
@@ -317,8 +333,10 @@
   cursor: pointer;
 }
 
-.manager-inline-action:hover {
-  background: var(--accent-soft);
+@media (hover: hover) {
+  .manager-inline-action:hover {
+    background: var(--accent-soft);
+  }
 }
 
 .manager-action-list {
@@ -393,8 +411,10 @@
   cursor: pointer;
 }
 
-.manager-dialog header button:hover {
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .manager-dialog header button:hover {
+    background: var(--surface-secondary);
+  }
 }
 
 .manager-dialog footer,
@@ -449,9 +469,11 @@
   cursor: pointer;
 }
 
-.daily-draft-remove:hover {
-  color: var(--danger);
-  background: var(--surface-secondary);
+@media (hover: hover) {
+  .daily-draft-remove:hover {
+    color: var(--danger);
+    background: var(--surface-secondary);
+  }
 }
 
 .daily-mode-switch {
@@ -533,10 +555,16 @@
     font-weight: 500;
   }
 
-  .project-create-trigger:hover,
   .project-create-trigger[aria-expanded='true'] {
     background: var(--accent-soft);
     border-color: transparent;
+  }
+
+  @media (hover: hover) {
+    .project-create-trigger:hover {
+      background: var(--accent-soft);
+      border-color: transparent;
+    }
   }
 
   .manager-card {

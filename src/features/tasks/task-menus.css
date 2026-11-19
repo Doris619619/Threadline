@@ -1,0 +1,267 @@
+/* 文件用途：统一任务操作和首页互斥菜单的材质、分组及方案 A 状态，不改变业务布局。 */
+html
+  :is(
+    .task-actions-menu,
+    .waiting-task-menu,
+    .home-side-menu,
+    .workstation-context-menu,
+    .planning-task-menu,
+    .annotation-color-menu
+  ) {
+  position: fixed;
+  inset: auto;
+  width: max-content;
+  min-width: 188px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 16px);
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 0;
+  border-radius: var(--menu-radius, 16px);
+  color: var(--text-primary);
+  background: var(--menu-surface, var(--surface));
+  box-shadow: var(--menu-shadow, var(--shadow-popover));
+  backdrop-filter: blur(20px) saturate(1.15);
+  font-family: var(--font-sans);
+}
+html
+  :is(
+    .task-actions-menu,
+    .waiting-task-menu,
+    .home-side-menu,
+    .workstation-context-menu,
+    .planning-task-menu,
+    .annotation-color-menu
+  ):popover-open {
+  display: grid;
+  animation: task-menu-enter var(--motion-menu, 140ms) ease-out;
+}
+html
+  :is(
+    .task-actions-menu,
+    .waiting-task-menu,
+    .home-side-menu,
+    .workstation-context-menu,
+    .planning-task-menu,
+    .annotation-color-menu
+  )::backdrop {
+  background: transparent;
+}
+html
+  :is(
+    .task-actions-menu,
+    .waiting-task-menu,
+    .home-side-menu,
+    .workstation-context-menu,
+    .planning-task-menu,
+    .annotation-color-menu
+  )
+  button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--motion-press, 100ms) ease;
+}
+@media (hover: hover) {
+  html
+    :is(
+      .task-actions-menu,
+      .waiting-task-menu,
+      .home-side-menu,
+      .workstation-context-menu,
+      .planning-task-menu,
+      .annotation-color-menu
+    )
+    button:hover:not(:disabled) {
+    background: var(--interaction-hover, var(--surface-secondary));
+  }
+}
+html
+  :is(
+    .task-actions-menu,
+    .waiting-task-menu,
+    .home-side-menu,
+    .workstation-context-menu,
+    .planning-task-menu,
+    .annotation-color-menu
+  )
+  button:active:not(:disabled) {
+  background: var(--interaction-pressed, var(--accent-soft));
+}
+html
+  :is(
+    .task-actions-menu,
+    .waiting-task-menu,
+    .home-side-menu,
+    .workstation-context-menu,
+    .planning-task-menu,
+    .annotation-color-menu
+  )
+  button[aria-checked='true'] {
+  background: var(--interaction-selected, var(--accent-muted));
+}
+html
+  :is(
+    .task-actions-menu,
+    .waiting-task-menu,
+    .home-side-menu,
+    .workstation-context-menu,
+    .planning-task-menu,
+    .annotation-color-menu
+  )
+  hr {
+  margin: 5px 8px;
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+html :is(.task-actions-menu, .waiting-task-menu) .is-danger {
+  color: var(--danger);
+}
+html
+  :is(
+    .task-actions-menu,
+    .waiting-task-menu,
+    .home-side-menu,
+    .workstation-context-menu,
+    .planning-task-menu,
+    .annotation-color-menu
+  )
+  button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.menu-check {
+  display: inline-grid;
+  flex: 0 0 16px;
+  width: 16px;
+  place-items: center;
+}
+html .home-side-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  background: var(--surface);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-press, 100ms) ease;
+}
+.home-side-menu-trigger > svg {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+html .home-side-menu-trigger[aria-expanded='true'] {
+  background: var(--interaction-expanded, var(--surface-secondary));
+}
+html .home-side-menu-trigger[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: default;
+}
+@keyframes task-menu-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (max-width: 760px), (pointer: coarse) {
+  html
+    :is(
+      .task-actions-menu,
+      .waiting-task-menu,
+      .home-side-menu,
+      .workstation-context-menu,
+      .planning-task-menu,
+      .annotation-color-menu
+    )
+    button {
+    min-height: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html
+    :is(
+      .task-actions-menu,
+      .waiting-task-menu,
+      .home-side-menu,
+      .workstation-context-menu,
+      .planning-task-menu,
+      .annotation-color-menu
+    ):popover-open {
+    animation: none;
+  }
+}
+@media (forced-colors: active) {
+  html
+    :is(
+      .task-actions-menu,
+      .waiting-task-menu,
+      .home-side-menu,
+      .workstation-context-menu,
+      .planning-task-menu,
+      .annotation-color-menu
+    ) {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    backdrop-filter: none;
+  }
+}
+
+/* 表单、身份和导航披露沿用各自语义/布局，仅共享浮层材质，不套用菜单键盘模型。 */
+html
+  :is(
+    .task-project-popover,
+    .task-timer-extension,
+    .tl-account-popover,
+    .tl-mobile-more-menu,
+    .desktop-update-popover
+  ) {
+  border: 0;
+  border-radius: var(--menu-radius, 16px);
+  background: var(--menu-surface, var(--surface));
+  box-shadow: var(--menu-shadow, var(--shadow-popover));
+  backdrop-filter: blur(20px) saturate(1.15);
+}
+html .annotation-color-menu .annotation-color-option {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 16px;
+  height: auto;
+  max-height: none;
+}
+html .workstation-context-menu {
+  min-width: 144px;
+}
+@media (forced-colors: active) {
+  html
+    :is(
+      .task-project-popover,
+      .task-timer-extension,
+      .tl-account-popover,
+      .tl-mobile-more-menu,
+      .desktop-update-popover
+    ) {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    backdrop-filter: none;
+  }
+}

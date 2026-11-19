@@ -42,7 +42,7 @@ describe('WaitingTaskRow', () => {
     fireEvent.click(screen.getByRole('button', { name: '安排研究更多操作' }));
     expect(screen.getByRole('menuitem', { name: '安排到今天' })).toBeVisible();
     expect(screen.getByRole('menuitem', { name: '安排到其他日期…' })).toBeVisible();
-    expect(screen.getByRole('menuitem', { name: '删除' })).toBeVisible();
+    expect(screen.getByRole('menuitem', { name: '删除任务' })).toBeVisible();
     expect(screen.queryByRole('menuitem', { name: /编辑/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /【工作】安排研究.*待定/ }));
     expect(edit).toHaveBeenCalledOnce();

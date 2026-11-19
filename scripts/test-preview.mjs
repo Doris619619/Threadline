@@ -1,8 +1,13 @@
-/** @fileoverview 构建无 Supabase 的 Vercel Preview 演示并运行独立浏览器验收，不启动数据库。 */
+/** @fileoverview 使用可配置的独占 loopback 端口构建并验收无 Supabase 的 Preview，不启动数据库。 */
 import { spawn, spawnSync } from 'node:child_process';
+import {
+  assertTestServerPortAvailable,
+  resolveTestServerPort,
+} from './test-server-port.mjs';
 
 const pnpmCli = process.env.npm_execpath;
 if (!pnpmCli) throw new Error('test-preview must be started through pnpm.');
+const port = resolveTestServerPort('THREADLINE_PREVIEW_PORT', 3103);
 const environment = {
   ...process.env,
   VERCEL_ENV: 'preview',
@@ -11,7 +16,7 @@ const environment = {
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: '',
   NEXT_PUBLIC_THREADLINE_CLOUD_ENV: '',
   NEXT_PUBLIC_THREADLINE_TEST_ADAPTER: '',
-  THREADLINE_PREVIEW_URL: 'http://127.0.0.1:3103',
+  THREADLINE_PREVIEW_URL: `http://127.0.0.1:${port}`,
 };
 
 /** 顺序执行构建和测试，任一步失败保留原退出码。 */
@@ -44,7 +49,10 @@ async function waitForServer(server) {
 
 let server;
 try {
+  await assertTestServerPortAvailable(port);
   runPnpm(['build:web']);
+  // 构建期间其它任务可能启动服务，真正启动前再次检查，不能将其 HTTP 200 当作本次就绪。
+  await assertTestServerPortAvailable(port);
   server = spawn(
     process.execPath,
     [
@@ -53,7 +61,7 @@ try {
       '--hostname',
       '127.0.0.1',
       '--port',
-      '3103',
+      String(port),
     ],
     { env: environment, stdio: 'inherit' },
   );

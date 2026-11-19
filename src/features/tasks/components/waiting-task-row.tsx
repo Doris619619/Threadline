@@ -125,7 +125,7 @@ export function WaitingTaskRow({
               className="is-danger"
               onClick={() => submit(() => onDelete(task.id))}
             >
-              <Trash2 size={15} /> 删除
+              <Trash2 size={15} aria-hidden="true" /> 删除任务
             </button>
           </TaskActionsPopover>
         )}
