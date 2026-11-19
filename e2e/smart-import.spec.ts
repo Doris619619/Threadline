@@ -1,4 +1,4 @@
-/** @fileoverview 验证真实首页导入入口、文本保留、演示模式服务提示与移动弹窗边界。 */
+/** @fileoverview 验证真实首页导入入口、文本保留、解析不可用提示和移动弹窗边界，不调用收费解析。 */
 
 import { expect, test } from '@playwright/test';
 import {
@@ -6,9 +6,17 @@ import {
   openWorkspaceSection,
 } from './support/workspace';
 
-test('opens smart import from the schedule and preserves text on unavailable cloud parsing', async ({
+test('opens smart import from the schedule and preserves text when parsing is unavailable', async ({
   page,
 }) => {
+  // 同时支持生产演示和 localhost 开发服务；后者显式失败，避免自动化调用真实收费模型。
+  await page.route('**/api/local-smart-import', (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: '本地解析服务暂时不可用，请重试。' }),
+    }),
+  );
   await bootstrapLocalAdapterWorkspace(page, 'smart-import-entry');
   const trigger = page.getByRole('button', { name: '智能导入', exact: true });
   await trigger.click();
@@ -18,7 +26,9 @@ test('opens smart import from the schedule and preserves text on unavailable clo
   const text = '嗯，今天要做 ECE4016 作业，大概花 90 分钟。然后看 Lecture 6。';
   await source.fill(text);
   await dialog.getByRole('button', { name: '开始解析', exact: true }).click();
-  await expect(dialog.getByRole('alert')).toContainText('智能解析需要登录云工作区');
+  await expect(dialog.getByRole('alert')).toContainText(
+    /智能解析需要登录云工作区|本地解析服务暂时不可用/,
+  );
   await expect(source).toHaveValue(text);
   await expect(dialog.locator('input[type="date"]')).toHaveCount(0);
   expect(

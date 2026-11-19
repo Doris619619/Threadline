@@ -1,4 +1,4 @@
-/** @fileoverview 验证智能导入从杂乱原文到六字段确认的交互，以及逐条保存、防重复和失败重试边界。 */
+/** @fileoverview 验证智能导入五列表格的编辑顺序、确认保存与逐条进度、防重复和失败重试边界。 */
 
 import {
   act,
@@ -117,22 +117,32 @@ describe('智能导入确认流程', () => {
     expect(c.createTask).not.toHaveBeenCalled();
   });
 
-  it('directly edits exactly six task fields and saves their values with the selected date and incomplete defaults', async () => {
+  it('directly edits the five ordered task fields and saves them with the selected date and incomplete defaults', async () => {
     const c = dependencies();
     vi.mocked(parseImportTasks).mockResolvedValueOnce([parsedTask()]);
     render(<SmartImportDialog {...c} />);
     await openReview();
     const row = screen.getByRole('article', { name: '任务 1' });
     const fields = row.querySelector('fieldset');
-    expect(fields?.querySelectorAll('input, textarea, select')).toHaveLength(6);
     expect(
-      screen.queryByLabelText(/日期|优先级|阶段|完成状态|更多参数/),
+      [...(fields?.querySelectorAll('input, textarea, select') ?? [])].map((field) =>
+        field.getAttribute('aria-label'),
+      ),
+    ).toEqual([
+      '任务 1 项目',
+      '任务 1 名称',
+      '任务 1 预计时长',
+      '任务 1 开始时间',
+      '任务 1 结束时间',
+    ]);
+    expect(
+      screen.queryByLabelText(/实际耗时|日期|优先级|阶段|完成状态|更多参数/),
     ).not.toBeInTheDocument();
     const title = screen.getByRole('textbox', { name: '任务 1 名称' });
     const project = screen.getByRole('combobox', { name: '任务 1 项目' });
     expect(title).toBeRequired();
     expect(project).toBeRequired();
-    for (const name of ['开始时间', '结束时间', '预计时长', '实际耗时'])
+    for (const name of ['预计时长', '开始时间', '结束时间'])
       expect(screen.getByRole('textbox', { name: `任务 1 ${name}` })).toHaveValue('');
     const longName = '这是需要保留完整内容并允许编辑的长任务名称'.repeat(8);
     fireEvent.change(title, { target: { value: longName } });
@@ -148,9 +158,6 @@ describe('智能导入确认流程', () => {
     fireEvent.change(screen.getByLabelText('任务 1 预计时长'), {
       target: { value: '45' },
     });
-    fireEvent.change(screen.getByLabelText('任务 1 实际耗时'), {
-      target: { value: '30min' },
-    });
     fireEvent.click(screen.getByRole('button', { name: '确认导入' }));
     await waitFor(() => expect(c.onSuccess).toHaveBeenCalledWith(1));
     expect(c.createTask).toHaveBeenCalledExactlyOnceWith(
@@ -161,12 +168,61 @@ describe('智能导入确认流程', () => {
         plannedStartTime: '08:30',
         plannedEndTime: '10:00',
         plannedDurationMinutes: 45,
-        actualDurationMinutes: 30,
+        actualDurationMinutes: undefined,
         completed: false,
         completedAt: undefined,
         status: 'active',
         importance: 'normal',
       }),
+    );
+  });
+
+  it('does not silently save an AI actual duration omitted from the five-field review', async () => {
+    const c = dependencies();
+    vi.mocked(parseImportTasks).mockResolvedValueOnce([
+      { ...parsedTask(), actualMinutes: 30 },
+    ]);
+    render(<SmartImportDialog {...c} />);
+    await openReview();
+    expect(screen.queryByLabelText(/实际耗时/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '确认导入' }));
+    await waitFor(() => expect(c.onSuccess).toHaveBeenCalledWith(1));
+    expect(c.createTask).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ actualDurationMinutes: undefined }),
+    );
+  });
+
+  it('selects or excludes all remaining rows and reflects partial selection without saving drafts', async () => {
+    const c = dependencies();
+    vi.mocked(parseImportTasks).mockResolvedValueOnce([
+      parsedTask('任务一'),
+      parsedTask('任务二'),
+      parsedTask('任务三'),
+    ]);
+    render(<SmartImportDialog {...c} />);
+    await openReview();
+    const all = screen.getByRole('checkbox', { name: '全选待导入任务' });
+    expect(all).toBeChecked();
+    fireEvent.click(screen.getByRole('checkbox', { name: '导入任务 2' }));
+    expect(all).toBePartiallyChecked();
+    fireEvent.click(all);
+    for (let index = 1; index <= 3; index += 1)
+      expect(screen.getByRole('checkbox', { name: `导入任务 ${index}` })).toBeChecked();
+    fireEvent.click(all);
+    for (let index = 1; index <= 3; index += 1)
+      expect(
+        screen.getByRole('checkbox', { name: `导入任务 ${index}` }),
+      ).not.toBeChecked();
+    expect(screen.getByRole('button', { name: '确认导入' })).toBeDisabled();
+    expect(c.createTask).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('checkbox', { name: '导入任务 1' }));
+    fireEvent.click(screen.getByRole('button', { name: '删除任务 3' }));
+    fireEvent.click(screen.getByRole('button', { name: '删除任务 2' }));
+    expect(all).toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: '确认导入' }));
+    await waitFor(() => expect(c.onSuccess).toHaveBeenCalledWith(1));
+    expect(c.createTask).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ title: '任务一' }),
     );
   });
 
@@ -318,6 +374,7 @@ describe('智能导入真实保存队列', () => {
       '0',
     );
     expect(c.createTask).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('checkbox', { name: '全选待导入任务' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '关闭', exact: true })).toBeDisabled();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(c.onClose).not.toHaveBeenCalled();
@@ -349,6 +406,13 @@ describe('智能导入真实保存队列', () => {
     expect(c.onSuccess).not.toHaveBeenCalled();
     expect(screen.getByLabelText('任务 2 名称')).toBeDisabled();
     expect(screen.getByLabelText('任务 1 名称')).toBeDisabled();
+    const all = screen.getByRole('checkbox', { name: '全选待导入任务' });
+    fireEvent.click(all);
+    expect(screen.getByRole('checkbox', { name: '导入任务 1' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: '导入任务 1' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: '导入任务 2' })).not.toBeChecked();
+    expect(screen.getByRole('button', { name: '重试失败任务' })).toBeDisabled();
+    fireEvent.click(all);
     view.rerender(<SmartImportDialog {...c} selectedDate="2026-12-01" />);
     fireEvent.click(screen.getByRole('button', { name: '重试失败任务' }));
     await waitFor(() => expect(c.onSuccess).toHaveBeenCalledExactlyOnceWith(2));

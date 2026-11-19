@@ -1,4 +1,4 @@
-/** @fileoverview 展示可直接编辑的六项导入参数，长任务名随内容增高且不隐藏可选字段。 */
+/** @fileoverview 将五项确认参数按项目、任务、预计、开始和结束排成一行，长名称完整展开。 */
 
 import { useLayoutEffect, useRef } from 'react';
 import { Check, Trash2 } from 'lucide-react';
@@ -6,7 +6,7 @@ import type { Project } from '@/types/domain';
 import type { TimedTaskDraft } from '../task-drafts';
 import type { ImportRow } from './use-smart-import';
 
-/** 每条草稿只有六项业务字段；勾选与删除只控制本次导入，已发送内容锁定以支持安全重试。 */
+/** 每条草稿共用表头且保持五项字段的键盘顺序；勾选与删除仅控制本次导入，已发送内容保持锁定。 */
 export function ImportTaskRow({
   row,
   index,
@@ -64,20 +64,8 @@ export function ImportTaskRow({
         disabled={locked}
         aria-describedby={row.error ? errorId : undefined}
       >
-        <label className="import-task-title">
-          任务名称 <span aria-hidden="true">*</span>
-          <textarea
-            ref={title}
-            rows={1}
-            required
-            value={row.draft.title}
-            aria-label={`任务 ${index + 1} 名称`}
-            aria-invalid={Boolean(row.error)}
-            onChange={(event) => onEdit(row.id, { title: event.target.value })}
-          />
-        </label>
         <label className="import-task-project">
-          项目 <span aria-hidden="true">*</span>
+          <span className="import-field-label">项目</span>
           <select
             required
             value={row.draft.projectId}
@@ -91,28 +79,20 @@ export function ImportTaskRow({
             ))}
           </select>
         </label>
-        <label>
-          开始时间
-          <input
-            value={row.draft.startTime}
-            placeholder="--:--"
-            inputMode="decimal"
-            aria-label={`任务 ${index + 1} 开始时间`}
-            onChange={(event) => onEdit(row.id, { startTime: event.target.value })}
+        <label className="import-task-title">
+          <span className="import-field-label">任务</span>
+          <textarea
+            ref={title}
+            rows={1}
+            required
+            value={row.draft.title}
+            aria-label={`任务 ${index + 1} 名称`}
+            aria-invalid={Boolean(row.error)}
+            onChange={(event) => onEdit(row.id, { title: event.target.value })}
           />
         </label>
         <label>
-          结束时间
-          <input
-            value={row.draft.endTime}
-            placeholder="--:--"
-            inputMode="decimal"
-            aria-label={`任务 ${index + 1} 结束时间`}
-            onChange={(event) => onEdit(row.id, { endTime: event.target.value })}
-          />
-        </label>
-        <label>
-          预计时长 <span className="import-field-unit">分钟</span>
+          <span className="import-field-label">预计时长（分钟）</span>
           <input
             value={row.draft.planned}
             placeholder="留空"
@@ -122,13 +102,23 @@ export function ImportTaskRow({
           />
         </label>
         <label>
-          实际耗时 <span className="import-field-unit">分钟</span>
+          <span className="import-field-label">开始时间</span>
           <input
-            value={row.draft.actual}
-            placeholder="留空"
-            inputMode="numeric"
-            aria-label={`任务 ${index + 1} 实际耗时`}
-            onChange={(event) => onEdit(row.id, { actual: event.target.value })}
+            value={row.draft.startTime}
+            placeholder="--:--"
+            inputMode="decimal"
+            aria-label={`任务 ${index + 1} 开始时间`}
+            onChange={(event) => onEdit(row.id, { startTime: event.target.value })}
+          />
+        </label>
+        <label>
+          <span className="import-field-label">结束时间</span>
+          <input
+            value={row.draft.endTime}
+            placeholder="--:--"
+            inputMode="decimal"
+            aria-label={`任务 ${index + 1} 结束时间`}
+            onChange={(event) => onEdit(row.id, { endTime: event.target.value })}
           />
         </label>
       </fieldset>

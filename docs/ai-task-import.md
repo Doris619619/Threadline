@@ -1,10 +1,10 @@
-<!-- 文件用途：记录智能批量导入的六字段交互、解析服务边界、服务端配置与本地验证方式。 -->
+<!-- 文件用途：记录智能批量导入的五列表格确认、解析服务边界、服务端配置与本地验证方式。 -->
 
 # AI 智能批量导入任务
 
 首页「今日日程」的「智能导入」打开同一弹窗内的两步流程：粘贴 Markdown、纯文本或口语计划，点击「开始解析」；检查识别出的任务并点击「确认导入」。AI 清理废话、重复和背景，按行动意图提取任务，不按换行拆分。没有可执行任务时保留原文，供补充后重新解析。
 
-确认界面直接展示六项可编辑参数：开始时间、结束时间、项目、任务名称、预计时长、实际耗时。项目和名称必填，其余未知值留空；没有日期、优先级、阶段、完成状态或折叠的额外参数。长名称自动换行，每条可取消勾选或删除。桌面与手机、现有主题和深浅模式共用语义颜色。
+确认界面按用户最新选定的 A「轻边框表格」展示五项参数，顺序为：项目、任务名称、预计时长、开始时间、结束时间。每条任务为一个表格行，统一表头，各字段直接编辑；项目和名称必填，未知选填值留空。保留全选、逐条取消勾选和删除，没有日期、实际耗时、优先级、阶段、完成状态或折叠的额外参数。长名称在任务单元格内自然换行并撑高当前行，完整显示。手机沿用同一表格，在局部横向滑动访问后面的字段，按钮保持可见，不把整页撑宽。标题、输入框与行距保持紧凑，按钮上方不加分隔横线；现有主题与深浅模式共用语义颜色。
 
 输入弹窗按参考图使用左侧图标、加粗标题和标题下的一句说明，正文只保留输入框与取消/开始解析按钮；不显示长示例、底部辅助小字或按钮区分隔横线。弹窗局部使用已内置的思源黑体，保持清晰的无衬线文字与原有主题颜色，不改变其他页面字体。
 
@@ -12,11 +12,11 @@
 
 ## 架构与保存边界
 
-- `src/features/tasks/smart-import/`：入口、六字段编辑、解析客户端与保存队列。通过现有 Supabase browser client 调用函数，Web/PWA/Electron 均不依赖 Next 服务端路由。
+- `src/features/tasks/smart-import/`：入口、五列编辑、解析客户端与保存队列。正式 Web/PWA/Electron 通过现有 Supabase browser client 调用函数，不依赖 Next 服务端路由。
 - `supabase/functions/smart-task-import/`：仅接收 `{ text }`，验证当前用户 JWT，使用用户作用域客户端和 RLS 查询项目，再向 DeepSeek 发起 JSON 模式解析。返回 `{ tasks }`，每条只有 `title / projectId / startTime / endTime / plannedMinutes / actualMinutes`；未知选填字段为 `null`。不保存输入、解析结果或任务；服务角色只读取当前账号的加密凭据，不用于查询项目或写任务。
 - `supabase/functions/ai-api-settings/` 与 `_shared/`：设置端点按已认证 owner 管理 DeepSeek 凭据，只返回 `configured / serverConfigured / canSave` 三个布尔值。账号密钥 AES-GCM 加密后存入独立的 `account_ai_credentials` 表，随机 IV 与账号绑定的 AAD 防止跨账号交换密文；客户端角色没有表访问权限，也不接入 Realtime。设置仅提供 DeepSeek Key 保存/替换/移除，不扩展其他供应商、模型或自定义 API 地址。
 - `src/features/tasks/task-create.ts`：单条创建和导入共用名称、项目、时间及分钟校验。保留 `normalizeTime`、`parseEstimateMinutes`、`parseDurationInput` 和 `estimateFromTimeRange` 的现有语义。
-- 用户确认后逐条调用 `useWorkspaceData().createTask`。实际耗时直接随 Task 保存，由现有数据库 trigger 入账，不另行累计。
+- 用户确认后逐条调用 `useWorkspaceData().createTask`。解析响应保留原六字段合同以兼容已部署函数，但最新五列确认不接收其中的 `actualMinutes`，实际耗时草稿保持空白，避免静默保存未展示、未经确认的数据；不改变普通创建和实际耗时记账逻辑。
 
 解析阶段使用没有百分比的不确定进度条；最多 20,000 字、100 条任务，超量或畸形响应明确报错，不截取部分任务冒充完整结果。Edge 请求总时限 65 秒，前端 95 秒兜底；取消解析会中止客户端请求及可传播的上游请求。API 错误不向客户端转发密钥或上游响应正文。
 
@@ -48,7 +48,7 @@
 
 ## 验证
 
-`pnpm test` 覆盖模型输出与 HTTP/认证边界、六字段确认、真实进度、部分失败和固定 UUID 重试，以及个人 Key 设置、加密隔离与密文表权限。`pnpm typecheck`、`pnpm lint`、Web/PWA 构建与 Electron renderer 静态导出验证共享代码边界。localhost 已用一段真实计划验证 DeepSeek 解析与弹窗联通；更广泛的语义提取质量、已部署函数、真实 Supabase 保存及 iPhone 真机体验仍需单独验收，mock 测试不代表这些外部环节已通过。
+`pnpm test` 覆盖模型输出与 HTTP/认证边界、五列确认、真实进度、部分失败和固定 UUID 重试，以及个人 Key 设置、加密隔离与密文表权限。`pnpm typecheck`、`pnpm lint`、Web/PWA 构建与 Electron renderer 静态导出验证共享代码边界。localhost 已用一段真实计划验证 DeepSeek 解析与弹窗联通；更广泛的语义提取质量、已部署函数、真实 Supabase 保存及 iPhone 真机体验仍需单独验收，mock 测试不代表这些外部环节已通过。
 
 接口参考：[DeepSeek JSON 模式](https://api-docs.deepseek.com/guides/json_mode/)、[DeepSeek thinking 模式](https://api-docs.deepseek.com/guides/thinking_mode/)、[Supabase 函数认证请求头](https://supabase.com/docs/guides/functions/auth-headers)。
 
@@ -63,3 +63,4 @@
 - 首轮功能验证未运行生产迁移、未部署函数、未使用真实 DeepSeek 密钥；云端保存和 iPhone 真机验收待服务配置后进行。
 - 后续 localhost 临时联调：解析客户端、六字段交互、本机服务与开发代理共 77 项测试通过；类型检查、变更文件 ESLint 和 Prettier 通过。Host/Origin、生产/Electron 禁用、输入边界和异常脱敏均有覆盖。
 - 真实 localhost 弹窗通过内存代理调用 DeepSeek：课程、报销、大纲和简历的混合计划识别为 9 条任务，预计时长合计 310 分钟，简历去重，六字段可编辑；浏览器请求不含密钥，解析前后本地任务存储一致，未点击确认导入。此验证没有生产数据库写入或部署。
+- A 方案五列表格调整：79 项相关测试、桌面/手机共 6 项 E2E、类型检查和变更文件 ESLint/Prettier 通过。真实 Next 页面配合固定解析响应验证 7 组视口/主题（含 320px 手机、深色、Classic 和 Cottage）、axe、长名称展开、表格横向滚动及操作按钮可见；自动化没有调用收费模型或写入任务。

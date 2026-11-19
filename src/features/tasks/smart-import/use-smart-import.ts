@@ -90,7 +90,8 @@ export function useSmartImport({
               task.plannedMinutes === null
                 ? estimateFromTimeRange(task.startTime ?? '', task.endTime ?? '', '')
                 : String(task.plannedMinutes),
-            actual: task.actualMinutes === null ? '' : String(task.actualMinutes),
+            // 最新确认界面只审阅五项参数，不能静默保存不可见的 AI 实际耗时。
+            actual: '',
             completed: false,
           },
         })),
@@ -105,7 +106,7 @@ export function useSmartImport({
     }
   };
 
-  /** 原位编辑六项参数；起止时间变动复用日程的自动估时规则，发送过的任务保留原快照。 */
+  /** 原位编辑五项确认参数；起止时间变动复用日程的自动估时规则，发送过的任务保留原快照。 */
   const edit = (id: string, patch: Partial<TimedTaskDraft>) => {
     if (lock.current) return;
     setResult(undefined);
@@ -132,6 +133,14 @@ export function useSmartImport({
         if (row.id !== id || row.saved) return [row];
         return remove ? [] : [{ ...row, selected: !row.selected }];
       }),
+    );
+  };
+
+  /** 表头只选择或取消未保存的草稿，导入期间与已成功保存的行均不受影响。 */
+  const selectAll = (selected: boolean) => {
+    if (lock.current) return;
+    setRows((current) =>
+      current.map((row) => (row.saved ? row : { ...row, selected })),
     );
   };
 
@@ -229,6 +238,7 @@ export function useSmartImport({
     parse,
     edit,
     select,
+    selectAll,
     confirm,
     back,
   };

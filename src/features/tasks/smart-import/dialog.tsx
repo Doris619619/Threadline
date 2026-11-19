@@ -1,7 +1,7 @@
-/** @fileoverview 在同一可访问弹窗内切换文本解析与六字段确认，展示不确定解析进度和真实保存进度。 */
+/** @fileoverview 在同一弹窗内切换解析与紧凑五列表格确认，保留真实进度、全选和安全重试。 */
 
 import { useEffect, useRef } from 'react';
-import { Info, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ManagementDialog } from '@/components/ui/management-dialog';
 import { Button } from '@/components/ui/button';
@@ -41,7 +41,12 @@ export function SmartImportDialog({
     (project) => project.status === 'active' && !project.deletedAt,
   );
   const selected = state.rows.filter((row) => row.selected && !row.saved).length;
+  const selectable = state.rows.filter((row) => !row.saved).length;
   const attempted = state.rows.some((row) => row.task);
+  /** 用原生半选状态表达只选了部分待导入行，不将已成功行计入全选。 */
+  const syncSelection = (element: HTMLInputElement | null) => {
+    if (element) element.indeterminate = selected > 0 && selected < selectable;
+  };
   return (
     <ManagementDialog
       title={state.review ? '确认导入任务' : '智能导入任务'}
@@ -80,24 +85,54 @@ export function SmartImportDialog({
       ) : (
         <>
           <p className="import-notice" ref={reviewHeading} tabIndex={-1}>
-            <Info size={17} aria-hidden="true" />
             识别到 {state.rows.length} 条任务，可修改后导入
           </p>
-          <div className="import-task-list">
-            {state.rows.map((row, index) => (
-              <ImportTaskRow
-                key={row.id}
-                row={row}
-                index={index}
-                projects={activeProjects}
-                disabled={state.importing}
-                onEdit={state.edit}
-                onSelect={state.select}
-              />
-            ))}
-            {!state.rows.length && (
-              <p className="import-privacy">没有待导入任务，可以返回修改内容。</p>
-            )}
+          <div
+            className="import-table-scroll"
+            role="region"
+            aria-label="待导入任务表格"
+            tabIndex={0}
+          >
+            <div className="import-table">
+              <div className="import-table-heading">
+                <label className="import-task-selection">
+                  <input
+                    ref={syncSelection}
+                    type="checkbox"
+                    aria-label="全选待导入任务"
+                    checked={selectable > 0 && selected === selectable}
+                    disabled={state.importing || !selectable}
+                    onChange={(event) => state.selectAll(event.target.checked)}
+                  />
+                </label>
+                <div className="import-column-labels" aria-hidden="true">
+                  <span>项目</span>
+                  <span>任务</span>
+                  <span>
+                    预计时长 <small>分钟</small>
+                  </span>
+                  <span>开始时间</span>
+                  <span>结束时间</span>
+                </div>
+                <span className="import-field-label">操作</span>
+              </div>
+              <div className="import-task-list">
+                {state.rows.map((row, index) => (
+                  <ImportTaskRow
+                    key={row.id}
+                    row={row}
+                    index={index}
+                    projects={activeProjects}
+                    disabled={state.importing}
+                    onEdit={state.edit}
+                    onSelect={state.select}
+                  />
+                ))}
+                {!state.rows.length && (
+                  <p className="import-privacy">没有待导入任务，可以返回修改内容。</p>
+                )}
+              </div>
+            </div>
           </div>
           {state.importing && (
             <div className="import-progress" role="status" aria-live="polite">
