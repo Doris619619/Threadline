@@ -18,6 +18,8 @@ Threadline 的测试目标是阻止功能、云端边界、桌面壳和明显布
 
 Electron 主 smoke 新增两种常见原生窗口尺寸与 1/1.25/1.5/2.5 页面缩放矩阵，计时站另验最小窗口下逐卡可达、菜单、真实按钮命中和暂停/继续。页面缩放不等同于改变 Windows 物理 DPI；报告必须区分自动化原生窗口证据与实体屏幕验收。
 
+计时站调整尺寸后同时等待原生 `getContentSize()` 和渲染器的 `innerWidth`／`innerHeight`：两轴按实际 `webContents` zoom 换算后均须在原有一像素容差内。原生 API 已返回不代表 Chromium 已处理视口通知；只等待原生 ACK 会让旧布局通过适配模式检查，随后在另一帧执行错误的留白分支。原生脚本用 CDP 暂时保持上一视口，验证等待在原生 ACK 后仍未结束，释放后再执行原布局和实际命中断言；该回归在旧等待函数上失败。不使用固定 sleep、增加时限或放宽几何阈值，失败输出同时记录原生／CSS 尺寸、fit 模式、矩形和底部余量。
+
 同一 checkout 的 Web 与 Electron Next 构建必须串行执行。已安装 Next 16.3.6 在 `output: 'export'` 且自定义输出目录时，仍用 `.next` 作为中间构建目录，最终才导出到 `.next-electron`；不要在生产 Web 测试服务仍运行时启动桌面 Renderer 构建，否则现有服务的 chunk 会失效。推荐先完成桌面验收，再重新构建 Web 并运行浏览器矩阵。认证 fixture 使用另一个 dev 输出目录，不用于证明两条生产构建可以并行。
 
 本地 `test:preview` / `test:hig` 默认使用 `127.0.0.1:3103`，可在 PowerShell 设置 `$env:THREADLINE_PREVIEW_PORT='32103'` 后执行原命令；runner 从同一端口同时派生 Next 参数和 Playwright URL。`test:e2e` 默认使用 `127.0.0.1:3100`，对应覆写为 `$env:THREADLINE_E2E_PORT='32100'`。两个变量均严格校验 1–65535 的整数；脚本在构建前、启动前实际试绑定 loopback 端口，若被占用则明确失败，不把其它服务的响应当作本次就绪，也不终止其它进程。端口检查使用真实临时 socket 回归验证忙端口拒绝与空闲探针释放。端口隔离不替代上述构建串行要求；运行后可清除本次 shell 的环境变量。
@@ -67,7 +69,7 @@ Web CI 失败时上传 `web-test-results`，保留七天，包含 Playwright tra
 
 local adapter 的首开与交互回归刷新统一等待 `.dashboard` 就绪，上限 10 秒；页面 `load` 不代表 React 已读取本地数据。项目归属仍在刷新前校验存储身份，刷新后保留原业务按钮断言，不依靠固定 sleep、全局延长断言或自动重试。Linux WebKit 的故障 trace 曾显示 `load` 后超过 5 秒仍在载入，而随后任务与 `course` 归属均正确恢复，因此启动等待与保存验证必须分开。
 
-PR CI 分为 `supabase`、`web`、`windows-electron` 三个 job。`supabase` 先启动 local Supabase，再运行数据库、Node integration 和真实 Chromium browser integration；`web` 执行 lint、typecheck、coverage、Web build 与 adapter E2E；`windows-electron` 顺序执行开发壳行为、package-dir 和 packaged EXE smoke。
+PR CI 分为 `supabase`、`web`、`preview-demo`、`windows-electron` 四个 job。`supabase` 先启动 local Supabase，再运行数据库、Node integration 和真实 Chromium browser integration；`web` 执行 lint、typecheck、coverage、Web build 与 adapter E2E；`preview-demo` 验证独立演示、完整 HIG 和 Together；`windows-electron` 顺序执行开发壳行为、package-dir 和 packaged EXE smoke。
 
 `desktop:verify:parity` 会构建 Preview 和 canonical package-dir 两份 unpacked app，成本不适合常规 PR，因此只在 tag/manual release workflow 的发布前 job 执行，并使用隔离 local adapter。NSIS 安装/卸载没有可靠、独立的 CI harness；它保持 release-tier 人工验收，不能被误写为 PR gate 已覆盖。
 

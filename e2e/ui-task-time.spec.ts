@@ -45,7 +45,7 @@ test('distinguishes Daily estimates from an empty schedule and an entirely empty
   await expect(
     page.getByRole('region', { name: 'Daily 算法训练', exact: true }),
   ).toContainText('预计 50 分钟');
-  await page.getByRole('combobox', { name: '右栏显示内容' }).selectOption('time');
+  await chooseHomeSideView(page, 'time');
   const chart = page.getByRole('region', { name: '日程时间分布', exact: true });
   await expect(chart).toContainText('0min');
   await chart.getByRole('button', { name: '实际投入', exact: true }).click();
@@ -61,7 +61,7 @@ test('distinguishes Daily estimates from an empty schedule and an entirely empty
     fullPage: true,
   });
 
-  await page.getByRole('combobox', { name: '右栏显示内容' }).selectOption('tasks');
+  await chooseHomeSideView(page, 'tasks');
   const actualInput = page.getByLabel('算法训练 完成一道动态规划题并整理思路实际耗时');
   await actualInput.fill('12');
   await actualInput.press('Tab');
@@ -70,7 +70,7 @@ test('distinguishes Daily estimates from an empty schedule and an entirely empty
   );
   await expect(stats.locator('[data-day-remaining]')).toHaveText('0min');
   await expect(stats.locator('[data-day-total]')).toHaveText('0min');
-  await page.getByRole('combobox', { name: '右栏显示内容' }).selectOption('time');
+  await chooseHomeSideView(page, 'time');
   await expect(chart).toContainText('0min');
 
   await page.evaluate(() => {

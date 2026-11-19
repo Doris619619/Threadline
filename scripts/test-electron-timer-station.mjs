@@ -348,6 +348,7 @@ async function verifyStationZoom(station) {
         ),
       )
       .toBe(true);
+    await expectStationSize(nativeSize[0], nativeSize[1]);
     await verifyReachableControls(station);
     const remainedVisible = await application.evaluate(({ BrowserWindow }) => {
       const target = BrowserWindow.getAllWindows().find((window) =>
@@ -420,18 +421,127 @@ async function resizeStation(width, height, fittedHeight = height) {
   await expectStationSize(width, fittedHeight);
 }
 
-/** 以内容逻辑像素比较尺寸，容忍 Windows DPI 下的一像素舍入。 */
+/** 同时等待原生内容尺寸与两个渲染视口轴；原生 ACK 不代表 Chromium 已处理 resize/zoom。 */
 async function expectStationSize(width, height) {
-  await expect
-    .poll(async () => {
-      const size = await application.evaluate(({ BrowserWindow }) =>
-        BrowserWindow.getAllWindows()
-          .find((w) => w.webContents.getURL().includes('timer-station'))
-          .getContentSize(),
-      );
-      return Math.abs(size[0] - width) <= 1 && Math.abs(size[1] - height) <= 1;
-    })
-    .toBe(true);
+  let observed;
+  try {
+    await expect
+      .poll(async () => {
+        const native = await application.evaluate(({ BrowserWindow }) => {
+          const target = BrowserWindow.getAllWindows().find((window) =>
+            window.webContents.getURL().includes('timer-station'),
+          );
+          return target
+            ? {
+                size: target.getContentSize(),
+                zoom: target.webContents.getZoomFactor(),
+              }
+            : null;
+        });
+        observed = { requested: [width, height], native, renderer: null };
+        const station = application
+          .windows()
+          .find((page) => !page.isClosed() && page.url().includes('timer-station'));
+        if (!native || !station) return false;
+        try {
+          observed.renderer = await station.evaluate(() => {
+            const viewport = document.querySelector('.timer-station-viewport');
+            const cards = document.querySelector('.timer-station-cards');
+            return {
+              width: innerWidth,
+              height: innerHeight,
+              deviceScaleFactor: devicePixelRatio,
+              fit: viewport?.getAttribute('data-fit') ?? null,
+              viewport: viewport?.getBoundingClientRect().toJSON() ?? null,
+              cards: cards?.getBoundingClientRect().toJSON() ?? null,
+              bottomGap: cards
+                ? innerHeight - cards.getBoundingClientRect().bottom
+                : null,
+            };
+          });
+        } catch (error) {
+          // 首开导航尚未提供 execution context 时继续按就绪状态轮询，不改断言时限。
+          observed.rendererError = error.message;
+          return false;
+        }
+        return (
+          Math.abs(native.size[0] - width) <= 1 &&
+          Math.abs(native.size[1] - height) <= 1 &&
+          Math.abs(observed.renderer.width - native.size[0] / native.zoom) <= 1 &&
+          Math.abs(observed.renderer.height - native.size[1] / native.zoom) <= 1
+        );
+      })
+      .toBe(true);
+  } catch (error) {
+    console.error('Station resize synchronization failed:', JSON.stringify(observed));
+    throw error;
+  }
+}
+
+/** 固定上一渲染视口，验证原生尺寸 ACK 不会提前完成等待；释放后原布局与命中合同仍须通过。 */
+async function verifyResizeSynchronization(station) {
+  const metrics = await station.evaluate(() => ({
+    width: innerWidth,
+    height: innerHeight,
+    deviceScaleFactor: devicePixelRatio,
+    mobile: false,
+  }));
+  const session = await station.context().newCDPSession(station);
+  let settled = false;
+  let resizing;
+  try {
+    await session.send('Emulation.setDeviceMetricsOverride', metrics);
+    await application.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()
+        .find((window) => window.webContents.getURL().includes('timer-station'))
+        .setContentSize(200, 112),
+    );
+    resizing = expectStationSize(200, 112).then(() => {
+      settled = true;
+    });
+    // 两个独立进程的真实读取作为消息往返屏障，不用固定 sleep 猜测尺寸通知延迟。
+    const native = await application.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()
+        .find((window) => window.webContents.getURL().includes('timer-station'))
+        .getContentSize(),
+    );
+    const held = await station.evaluate(() => [innerWidth, innerHeight]);
+    assert.ok(Math.abs(native[0] - 200) <= 1 && Math.abs(native[1] - 112) <= 1);
+    assert.deepEqual(held, [metrics.width, metrics.height]);
+    assert.equal(
+      settled,
+      false,
+      '原生 ACK 后仍须等待两个渲染视口轴到达，不能以旧布局继续断言',
+    );
+    await session.send('Emulation.clearDeviceMetricsOverride');
+    await resizing;
+    await expect(station.locator('.timer-station-viewport')).toHaveAttribute(
+      'data-fit',
+      'scroll',
+    );
+    await verifyLayout(station);
+    await writeFile(
+      join(output, 'resize-synchronization.json'),
+      JSON.stringify(
+        {
+          native,
+          held,
+          settledBeforeRelease: false,
+          released: await station.evaluate(() => [innerWidth, innerHeight]),
+        },
+        null,
+        2,
+      ),
+    );
+  } finally {
+    await session.send('Emulation.clearDeviceMetricsOverride').catch(() => {});
+    try {
+      await resizing;
+    } finally {
+      await session.detach();
+    }
+  }
+  await resizeStation(940, 208);
 }
 
 /** 检查真实原生可见性，而不是隐藏窗口中仍然存在的 DOM。 */
@@ -484,6 +594,7 @@ try {
     false,
   );
   await verifyLayout(station);
+  await verifyResizeSynchronization(station);
   await station.screenshot({ path: join(output, 'horizontal.png'), scale: 'css' });
   await verifyStationZoom(station);
   // 真实最小原生窗口不再把按钮压到数个像素；每张卡片均可滚动到达并实际暂停/恢复。
