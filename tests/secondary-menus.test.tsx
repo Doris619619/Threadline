@@ -23,8 +23,10 @@ const task: Task = {
   updatedAt: '',
 };
 
-it('offers a visible workstation menu and only removes its reference after selection', () => {
+/** 工作站恢复无常显按钮的紧凑行；右键与键盘仍可移出引用，取消菜单归焦原行且不修改任务。 */
+it('keeps workstation rows compact while retaining context and keyboard removal menus', () => {
   const remove = vi.fn();
+  const originalTask = { ...task };
   render(
     <ul>
       <WorkstationRow
@@ -36,18 +38,25 @@ it('offers a visible workstation menu and only removes its reference after selec
       />
     </ul>,
   );
-  const trigger = screen.getByRole('button', { name: '课程准备更多操作' });
-  trigger.focus();
-  fireEvent.click(trigger);
+  const row = screen.getByRole('listitem', { name: /1 课程准备/ });
+  expect(within(row).queryByRole('button')).toBeNull();
+  row.focus();
+  fireEvent.contextMenu(row, { clientX: 190, clientY: 160 });
   const item = screen.getByRole('menuitem', { name: '移出工作站' });
   expect(item).toHaveFocus();
   fireEvent.keyDown(item, { key: 'Escape' });
-  expect(trigger).toHaveFocus();
+  expect(row).toHaveFocus();
   expect(remove).not.toHaveBeenCalled();
-  fireEvent.click(trigger);
+  fireEvent.keyDown(row, { key: 'F10', shiftKey: true });
+  const keyboardItem = screen.getByRole('menuitem', { name: '移出工作站' });
+  expect(keyboardItem).toHaveFocus();
+  fireEvent.keyDown(keyboardItem, { key: 'Escape' });
+  expect(row).toHaveFocus();
+  expect(remove).not.toHaveBeenCalled();
+  fireEvent.keyDown(row, { key: 'ContextMenu' });
   fireEvent.click(screen.getByRole('menuitem', { name: '移出工作站' }));
   expect(remove).toHaveBeenCalledExactlyOnceWith(task.id);
-  expect(task.completed).toBe(false);
+  expect(task).toEqual(originalTask);
 });
 
 it('keeps calendar menus inside their modal owner, restores focus and invokes the original transition', () => {
