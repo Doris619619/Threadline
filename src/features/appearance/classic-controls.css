@@ -1,4 +1,4 @@
-/** @fileoverview 皮卡经典的轻量控件：单层边框、稳定焦点和温暖强调色。 */
+/** @fileoverview 皮卡经典的轻量控件：单层边框、无加深底线的输入焦点和温暖强调色。 */
 html[data-theme='classic'] .manager-dialog-backdrop {
   z-index: 70;
 }
@@ -110,4 +110,18 @@ html[data-theme='classic'] .settings-icon {
   border: 1px solid var(--border-subtle);
   background: var(--accent-soft);
   box-shadow: none;
+}
+
+/* 智能导入、API 设置与共享 tabindex 规则都可能加内阴影；经典输入统一以原边框提示焦点。 */
+html[data-theme='classic'] :is(input, textarea, select):focus {
+  box-shadow: none !important;
+}
+html[data-theme='classic'] :is(.plan-search, .project-picker-search):focus-within {
+  box-shadow: none;
+}
+/* 无边框的两人目标字段改用轻背景，避免去掉加深底线后失去键盘焦点提示。 */
+html[data-theme='classic']
+  .together-editor
+  :is(.together-editor-goal textarea, .together-editor-property input):focus-visible {
+  background-color: var(--interaction-focus);
 }

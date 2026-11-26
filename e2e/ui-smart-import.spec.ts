@@ -1,4 +1,4 @@
-/** @fileoverview 通过真实开发页面与固定解析响应验证智能导入的非环形焦点、触屏目标和局部滚动，不调用模型或数据库。 */
+/** @fileoverview 通过真实开发页面与固定解析响应验证智能导入的焦点、经典主题无底线反馈、触屏目标和局部滚动，不调用模型或数据库。 */
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { bootstrapLocalAdapterWorkspace } from './support/workspace';
 import { openAiApiSettingsFixture } from './support/ai-api-settings-fixture';
@@ -65,6 +65,90 @@ async function expectInternalFieldFocus(page: Page, field: Locator) {
     )
     .toBe(true);
   expect.soft(focused.border).not.toBe(before);
+}
+
+/** 在已挂载的真实界面切换经典主题与明暗根属性，仅改变当前测试页面的样式作用域。 */
+async function applyClassicTheme(page: Page, colorScheme: 'light' | 'dark') {
+  await page.evaluate((scheme) => {
+    document.documentElement.dataset.theme = 'classic';
+    document.documentElement.dataset.colorScheme = scheme;
+  }, colorScheme);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'classic');
+  await expect(page.locator('html')).toHaveAttribute('data-color-scheme', colorScheme);
+}
+
+/** 用指针和真实 Tab 导航检查经典字段：只保留边框焦点，不能出现底部 inset 阴影。 */
+async function expectClassicFieldFocus(page: Page, field: Locator) {
+  await field.evaluate((element) => (element as HTMLElement).blur());
+  const restingBorder = await field.evaluate(
+    (element) => getComputedStyle(element).borderColor,
+  );
+  await field.click();
+  await expect(field).toBeFocused();
+  await expect(field).toHaveCSS('box-shadow', 'none');
+  await expect(field).toHaveCSS('outline-style', 'none');
+  await expect
+    .poll(() => field.evaluate((element) => getComputedStyle(element).borderColor))
+    .not.toBe(restingBorder);
+  // 原生 select 的指针点击会展开选单；先关闭选单，再检查键盘进入同一字段。
+  if (await field.evaluate((element) => element.tagName === 'SELECT'))
+    await page.keyboard.press('Escape');
+  await field.press('Shift+Tab');
+  await page.keyboard.press('Tab');
+  await expect(field).toBeFocused();
+  expect(await field.evaluate((element) => element.matches(':focus-visible'))).toBe(
+    true,
+  );
+  await expect(field).toHaveCSS('box-shadow', 'none');
+  await expect(field).toHaveCSS('outline-style', 'none');
+  await expect
+    .poll(() => field.evaluate((element) => getComputedStyle(element).borderColor))
+    .not.toBe(restingBorder);
+}
+
+/** 强制色移除普通阴影后，字段仍须保留共享系统的两像素实线轮廓。 */
+async function expectForcedColorFieldFocus(page: Page, field: Locator) {
+  await page.keyboard.press('Tab');
+  await field.focus();
+  await expect(field).toHaveCSS('box-shadow', 'none');
+  await expect(field).toHaveCSS('outline-style', 'solid');
+  await expect(field).toHaveCSS('outline-width', '2px');
+}
+
+for (const colorScheme of ['light', 'dark'] as const) {
+  /** 固定解析夹具覆盖原文和全部五列字段，避免仅用静态 CSS 断言遗漏真实焦点优先级。 */
+  test(`classic ${colorScheme} focus keeps source and reviewed fields free of bottom shadows`, async ({
+    page,
+  }) => {
+    const dialog = await openImport(page);
+    await applyClassicTheme(page, colorScheme);
+    const source = dialog.getByLabel('待解析内容');
+    await expectClassicFieldFocus(page, source);
+    await page.emulateMedia({ forcedColors: 'active' });
+    await expectForcedColorFieldFocus(page, source);
+    await page.emulateMedia({ forcedColors: 'none' });
+    await source.fill('完成课程作业，预计 30 分钟');
+    await dialog.getByRole('button', { name: '开始解析', exact: true }).click();
+    const review = page.getByRole('dialog', { name: '确认导入任务', exact: true });
+    const fields = ['项目', '名称', '预计时长', '开始时间', '结束时间'].map((label) =>
+      review.getByLabel(`任务 1 ${label}`, { exact: true }),
+    );
+    for (const field of fields) await expectClassicFieldFocus(page, field);
+    await page.emulateMedia({ forcedColors: 'active' });
+    for (const field of fields) await expectForcedColorFieldFocus(page, field);
+  });
+
+  /** 凭据夹具挂载真实设置组件；账号状态由内存提供，不保存或发送任何供应商凭据。 */
+  test(`classic ${colorScheme} focus keeps the real API credential field free of bottom shadows`, async ({
+    page,
+  }) => {
+    await openAiApiSettingsFixture(page);
+    await applyClassicTheme(page, colorScheme);
+    const field = page.getByLabel('DeepSeek API Key', { exact: true });
+    await expectClassicFieldFocus(page, field);
+    await page.emulateMedia({ forcedColors: 'active' });
+    await expectForcedColorFieldFocus(page, field);
+  });
 }
 
 test('keeps keyboard focus inside source and reviewed fields', async ({ page }) => {
