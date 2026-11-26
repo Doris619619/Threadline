@@ -1,12 +1,11 @@
-/** @fileoverview 工作站引用行复用共享操作菜单，支持可见更多、右键和键盘；移出不删除原任务。 */
+/** @fileoverview 工作站紧凑引用行，通过右键和键盘打开共享菜单；移出不删除原任务。 */
 'use client';
 import { useRef, type ReactNode } from 'react';
-import { MoreHorizontal } from 'lucide-react';
 import { useTaskMenu } from '../hooks/use-task-menu';
 import { TaskActionsPopover } from './task-actions-popover';
 import type { Task } from '@/types/domain';
 
-/** 保留引用拖动排序；更多按钮和右键共用小窗内可滚动菜单，Escape 归还入口焦点。 */
+/** 保留单行标题与拖动排序；右键或键盘打开移出菜单，Escape 将焦点归还当前引用行。 */
 export function WorkstationRow({
   task,
   index,
@@ -20,14 +19,15 @@ export function WorkstationRow({
   onRemove: (id: string) => void;
   onReorder: (sourceId: string, targetId: string) => void;
 }) {
-  const anchor = useRef<HTMLButtonElement>(null);
+  const anchor = useRef<HTMLLIElement>(null);
   const menu = useTaskMenu();
   return (
     <li
+      ref={anchor}
       className="workstation-row"
       draggable
       tabIndex={0}
-      aria-label={`${index + 1} ${task.title}`}
+      aria-label={`${index + 1} ${task.title}，右键或 Shift+F10 移出工作站`}
       onContextMenu={menu.onContextMenu}
       onKeyDown={menu.onKeyDown}
       onDragStart={(event) => {
@@ -47,17 +47,6 @@ export function WorkstationRow({
     >
       <span className="workstation-order">{index + 1}</span>
       {label}
-      <button
-        ref={anchor}
-        type="button"
-        className="workstation-menu-trigger"
-        aria-label={`${task.title}更多操作`}
-        aria-haspopup="menu"
-        aria-expanded={menu.open}
-        onClick={menu.toggle}
-      >
-        <MoreHorizontal size={16} aria-hidden="true" />
-      </button>
       {menu.open && (
         <TaskActionsPopover
           anchor={anchor}

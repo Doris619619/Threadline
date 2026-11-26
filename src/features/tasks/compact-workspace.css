@@ -1,4 +1,4 @@
-/** @fileoverview 原生便签窗口的连续列表，以及完整工作台的批注与拖拽样式。 */
+/** @fileoverview 原生便签窗口的紧凑双列列表，以及完整工作台的批注与拖拽样式。 */
 .compact-workspace {
   display: flex;
   flex-direction: column;
@@ -26,28 +26,17 @@
 }
 .workstation-row {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
+  grid-template-columns: 16px minmax(0, 1fr);
   min-height: 28px;
   align-items: center;
   gap: 2px;
   padding: 2px 4px;
   border-bottom: 1px solid var(--border-subtle);
+  position: relative;
+  cursor: grab;
 }
 .workstation-row:last-child {
   border-bottom: 0;
-}
-.workstation-menu-trigger {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  place-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: 6px;
-  color: var(--text-secondary);
-  background: transparent;
-  cursor: pointer;
 }
 .planning-task-menu-trigger {
   display: grid;
@@ -60,12 +49,6 @@
   color: var(--text-secondary);
   background: transparent;
   cursor: pointer;
-}
-@media (max-width: 760px), (pointer: coarse) {
-  .workstation-menu-trigger {
-    width: var(--touch-target);
-    height: var(--touch-target);
-  }
 }
 .compact-task-label {
   display: flex;
@@ -112,11 +95,6 @@
   .compact-full-link:hover {
     text-decoration: underline;
   }
-}
-.workstation-row {
-  grid-template-columns: 16px minmax(0, 1fr);
-  position: relative;
-  cursor: grab;
 }
 .workstation-order {
   font-size: 12px;
