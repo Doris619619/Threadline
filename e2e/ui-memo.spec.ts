@@ -123,7 +123,18 @@ test('主题和窄屏保留完整内容及工具按钮，截图核对方案 A', 
     }
   }
   await page.locator('.memo-header h2').click();
-  await expect(page.locator('.memo-footer')).toContainText('已保存到本机');
+  await expect(page.locator('.memo-footer')).toHaveText('2026-08-23');
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        Object.keys(localStorage).some(
+          (key) =>
+            key.includes('threadline.memo.local.v1:') &&
+            JSON.parse(localStorage.getItem(key)!).revision > 0,
+        ),
+      ),
+    )
+    .toBe(true);
   await page.evaluate(async () => {
     await document.fonts.ready;
     window.scrollTo(0, 0);

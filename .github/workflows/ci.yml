@@ -51,6 +51,8 @@ jobs:
       - run: pnpm test:coverage
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium webkit
+      - name: Verify daily memo paste and recovery
+        run: pnpm test:memo:ui
       - name: Verify smart import focus and touch targets
         run: pnpm test:smart-import:ui
       - name: Verify WebKit project reload

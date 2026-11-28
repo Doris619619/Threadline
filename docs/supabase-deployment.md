@@ -2,6 +2,12 @@
 
 # Supabase、Vercel 与跨端验收
 
+## 2026-11-28 · 0.1.18 今日备忘录
+
+生产项目 `yhhxsqozbildrnfhtgps` 已应用 `202611280001_day_memos.sql` 与 `202611280002_memo_conflict_response.sql`；备份结构并逐项核对 dry-run 后执行，最终 29 项迁移一致，无待执行项。新增表启用 RLS，authenticated 只读自己的记录，写入通过账号与版本双重检查的 RPC，anon 无执行权限。业务版本冲突返回 HTTP 409，不使用会触发 PostgREST 重试的 `40001`。
+
+两个临时账号通过真实 Auth/REST/RPC 完成 14 项验证，包含同账号独立客户端重读、跨账号隔离、换号旧队列拒绝、日期隔离、版本冲突与直接写入拒绝；账号和测试备忘录已清理。客户端发布和实体安装升级边界见 [0.1.18](release-0.1.18.md)，备忘录数据协议见[今日备忘录](today-memo.md)。
+
 ## 2026-11-19 · 0.1.16 发布前生产快照
 
 生产项目 `yhhxsqozbildrnfhtgps` 已应用 `202610210001_timer_midnight_dst.sql` 与 `202611190001_account_ai_credentials.sql`。前者修正跨午夜/DST 的统计日界，后者新增账号 AI 凭据密文表；迁移 dry-run 已返回 `upToDate` 和空迁移清单。

@@ -14,15 +14,17 @@ it('备忘录按账号隔离、禁止直接写入，陈旧版本和无效文档�
       create schema auth; create table auth.users(id uuid primary key);
       create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
       grant usage on schema auth to authenticated, anon; grant execute on function auth.uid() to authenticated, anon;`);
-    await database.exec(
-      readFileSync(
-        resolve(
-          import.meta.dirname,
-          '../supabase/migrations/202611280001_day_memos.sql',
+    for (const migration of [
+      '202611280001_day_memos.sql',
+      '202611280002_memo_conflict_response.sql',
+    ]) {
+      await database.exec(
+        readFileSync(
+          resolve(import.meta.dirname, '../supabase/migrations', migration),
+          'utf8',
         ),
-        'utf8',
-      ),
-    );
+      );
+    }
     await database.query('insert into auth.users(id) values ($1), ($2)', [alice, bob]);
     await database.exec('set role anon');
     await expect(
@@ -47,7 +49,7 @@ it('备忘录按账号隔离、禁止直接写入，陈旧版本和无效文档�
         content,
         alice,
       ]),
-    ).rejects.toThrow('MEMO_CONFLICT');
+    ).rejects.toMatchObject({ code: 'PT409', message: 'MEMO_CONFLICT' });
     await expect(
       database.query('update public.day_memos set revision = 99'),
     ).rejects.toThrow('permission denied');
@@ -62,7 +64,7 @@ it('备忘录按账号隔离、禁止直接写入，陈旧版本和无效文档�
         content,
         alice,
       ]),
-    ).rejects.toThrow('MEMO_CONFLICT');
+    ).rejects.toMatchObject({ code: 'PT409', message: 'MEMO_CONFLICT' });
     await expect(
       database.query('select public.save_day_memo($1, $2, 2, $3)', [
         '2026-11-28',

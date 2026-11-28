@@ -53,7 +53,6 @@ export function TodayMemoPanel({ date }: { date: string }) {
       owner={owner}
       date={date}
       repository={repository}
-      local={local}
     />
   );
 }
@@ -63,12 +62,10 @@ function MemoEditor({
   owner,
   date,
   repository,
-  local,
 }: {
   owner: string;
   date: string;
   repository: MemoRepository;
-  local: boolean;
 }) {
   const [session] = useState(() =>
     retainMemoSession(
@@ -113,6 +110,7 @@ function MemoEditor({
       try {
         session.change(parseMemoDocument(current.getJSON()));
         setEditorError('');
+        setNotice('');
       } catch (error) {
         setEditorError(
           error instanceof Error ? error.message : '内容未能保存，请先复制备份。',
@@ -185,17 +183,6 @@ function MemoEditor({
     setMenuOpen(false);
   }
 
-  const status = !state.ready
-    ? '正在读取…'
-    : state.saving
-      ? '正在保存…'
-      : state.error
-        ? '待同步'
-        : state.dirty
-          ? '草稿已保留'
-          : local
-            ? '已保存到本机'
-            : '已同步';
   return (
     <Surface className="memo-panel" aria-labelledby={`${id}-title`}>
       <header className="memo-header">
@@ -289,9 +276,11 @@ function MemoEditor({
       )}
       <footer className="memo-footer">
         <span>{date}</span>
-        <span role="status" aria-live="polite">
-          {notice || (editorError ? '尚未保存' : status)}
-        </span>
+        {notice && (
+          <span role="status" aria-live="polite">
+            {notice}
+          </span>
+        )}
       </footer>
     </Surface>
   );
