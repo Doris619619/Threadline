@@ -9,7 +9,10 @@ import {
   within,
 } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { HomeSideMenu } from '@/features/tasks/components/home-side-menu';
+import {
+  HomeSideMenu,
+  type HomeSideView,
+} from '@/features/tasks/components/home-side-menu';
 import { TaskRowActions } from '@/features/tasks/components/task-row-actions';
 import { TaskActionsPopover } from '@/features/tasks/components/task-actions-popover';
 import { ProjectPicker } from '@/components/ui/project-picker';
@@ -19,12 +22,8 @@ import type { Project } from '@/types/domain';
 afterEach(cleanup);
 
 /** 提供真实首页受控值，外部命令确认之前不更换当前显示内容。 */
-function HomeMenuHarness({
-  save,
-}: {
-  save: (value: 'tasks' | 'time') => Promise<void>;
-}) {
-  const [value, setValue] = useState<'tasks' | 'time'>('tasks');
+function HomeMenuHarness({ save }: { save: (value: HomeSideView) => Promise<void> }) {
+  const [value, setValue] = useState<HomeSideView>('tasks');
   return (
     <HomeSideMenu
       value={value}
