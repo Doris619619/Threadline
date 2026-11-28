@@ -1147,6 +1147,17 @@ test('runs three independent timers, resumes after reload and records completion
     await page.evaluate((scheme) => {
       document.documentElement.dataset.colorScheme = scheme;
     }, scheme);
+    // 主题切换会产生 140ms 前景/背景过渡；等待有限动画结束后审计最终颜色，保留完整 axe 断言。
+    await timers.evaluate(async (region) => {
+      await Promise.all(
+        region
+          .getAnimations({ subtree: true })
+          .filter((animation) =>
+            Number.isFinite(animation.effect?.getComputedTiming().endTime ?? Infinity),
+          )
+          .map((animation) => animation.finished.catch(() => undefined)),
+      );
+    });
     expect(
       (await new AxeBuilder({ page }).include('.task-timers').analyze()).violations,
     ).toEqual([]);
