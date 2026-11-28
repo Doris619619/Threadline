@@ -57,4 +57,5 @@ import '../features/tasks/smart-import/smart-import.css';
 import '../features/settings/ai-api-settings.css';
 import '../features/tasks/schedule-toolbar.css';
 import '../features/tasks/task-menus.css';
+import '../features/memo/memo.css';
 import '../styles/interactions.css';

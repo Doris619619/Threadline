@@ -5,10 +5,11 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Moon, CircleCheck } from 'lucide-react';
 import { AnnotationLayer, type AnnotationTool } from '@/components/annotation-layer';
 import { DayTimeStats } from './components/day-time-stats';
-import { HomeSideMenu } from './components/home-side-menu';
+import { HomeSideMenu, type HomeSideView } from './components/home-side-menu';
 import { Surface } from '@/components/ui/surface';
 import { DailyPanel, type DailyPanelHandle } from '@/features/daily/daily-panel';
 import { CalendarPanel } from '@/features/calendar/calendar-panel';
@@ -49,8 +50,23 @@ import { usePersistentState } from '@/hooks/use-persistent-state';
 import { useAccountToday } from '@/features/settings/account-timezone-provider';
 import { SmartImportAction } from './smart-import/action';
 
+// 富文本编辑器只在第一次打开备忘录时加载，Web 与 Electron 静态页面均在客户端创建实例。
+const TodayMemoPanel = dynamic(
+  () =>
+    import('@/features/memo/today-memo-panel').then((module) => module.TodayMemoPanel),
+  {
+    ssr: false,
+    loading: () => (
+      <Surface className="memo-panel">
+        <h2>今日备忘录</h2>
+        <p role="status">正在加载编辑器…</p>
+      </Surface>
+    ),
+  },
+);
+
 /**
- * 按当前视图渲染工作台；首页批量导入沿用当前日期与创建入口，顶部收尾等待 Daily 保存屏障。
+ * 按当前视图渲染工作台；右栏备忘录使用当前日期的独立文档，顶部收尾与切换沿用 Daily 保存屏障。
  */
 export function TaskDashboard() {
   const { active, selectedDate } = useWorkspaceView();
@@ -59,10 +75,10 @@ export function TaskDashboard() {
     'threadline.home-side-collapsed.v1',
     false,
   );
-  const [sideView, setSideView] = usePersistentState<'tasks' | 'time'>(
+  const [sideView, setSideView] = usePersistentState<HomeSideView>(
     'threadline.home-side-view.v1',
     'tasks',
-    (value) => (value === 'time' ? 'time' : 'tasks'),
+    (value) => (value === 'time' || value === 'memo' ? value : 'tasks'),
   );
   const [preparingSideView, setPreparingSideView] = useState(false);
   const { isWorkstation } = useDesktopWindow();
@@ -130,7 +146,7 @@ export function TaskDashboard() {
   };
 
   /** 隐藏 Daily 前确认失焦草稿；失败保留任务视图，让用户直接修正错误。 */
-  const changeSideView = async (view: 'tasks' | 'time') => {
+  const changeSideView = async (view: HomeSideView) => {
     if (preparingSideView) return;
     setPreparingSideView(true);
     try {
@@ -430,6 +446,7 @@ export function TaskDashboard() {
           )}
         </SchedulePanel>
         <div id="home-side-column" className="side-column" hidden={sideCollapsed}>
+          {sideView === 'memo' && <TodayMemoPanel date={selectedDate} />}
           <div id="home-side-time" hidden={sideView !== 'time'}>
             <DayTimeChart
               tasks={tasks}

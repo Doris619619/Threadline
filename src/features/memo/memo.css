@@ -1,0 +1,318 @@
+/** @fileoverview 今日备忘录的自由文档排版；继承主题/字体，窄右栏及触屏保持可编辑和可读。 */
+.memo-panel {
+  display: flex;
+  min-width: 0;
+  min-height: 420px;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px 14px;
+}
+.memo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.memo-header h2 {
+  margin: 0;
+  font-size: var(--text-section-size);
+  line-height: var(--text-section-leading);
+  font-weight: 700;
+}
+.memo-header-actions,
+.memo-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.memo-header-actions button,
+.memo-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 34px;
+  padding: 6px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.memo-toolbar {
+  flex-wrap: wrap;
+  padding: 3px;
+  border-radius: var(--radius-control);
+  background: var(--surface-secondary);
+}
+.memo-toolbar button[aria-pressed='true'] {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+.memo-editor {
+  flex: 1;
+  min-width: 0;
+}
+.memo-editor[hidden] {
+  display: none;
+}
+.memo-document {
+  --control-focus-bg: transparent;
+  --control-focus-ink: transparent;
+  min-height: 290px;
+  padding: 2px 1px 20px;
+  border: 0;
+  outline: none;
+  color: var(--text-primary);
+  font: inherit;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  caret-color: var(--accent-text);
+}
+.memo-panel:has(.memo-document:focus-visible) {
+  border-color: var(--accent-border);
+}
+.memo-document > p:has(> strong:only-child) {
+  margin-top: 1.2em;
+  margin-bottom: 0.5em;
+  font-size: 1.12em;
+}
+.memo-document > p:first-child:has(> strong:only-child) {
+  margin-top: 0;
+  font-size: 1.4em;
+  line-height: 1.4;
+}
+.memo-document:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.memo-document::selection,
+.memo-document *::selection {
+  background: var(--interaction-focus);
+  color: var(--text-primary);
+}
+.memo-document > :first-child {
+  margin-top: 0;
+}
+.memo-document p {
+  margin: 0 0 0.7em;
+}
+.memo-document h1,
+.memo-document h2,
+.memo-document h3 {
+  margin: 1.2em 0 0.5em;
+  line-height: 1.35;
+  text-wrap: pretty;
+  font-weight: 700;
+}
+.memo-document h1 {
+  font-size: 1.55em;
+}
+.memo-document h2 {
+  font-size: 1.22em;
+}
+.memo-document h3 {
+  font-size: 1.08em;
+}
+.memo-document strong {
+  font-weight: 700;
+}
+.memo-document ul,
+.memo-document ol {
+  margin: 0.6em 0 1em;
+  padding-left: 1.55em;
+}
+.memo-document ul {
+  list-style: disc;
+}
+.memo-document ol {
+  list-style: decimal;
+}
+.memo-document li {
+  padding-left: 0.12em;
+  margin: 0.3em 0;
+}
+.memo-document li p {
+  margin: 0.25em 0;
+}
+.memo-document li > :first-child {
+  margin-top: 0;
+}
+.memo-document li > ul,
+.memo-document li > ol {
+  margin-bottom: 0.5em;
+}
+.memo-document mark {
+  border-radius: 2px;
+  padding: 0 0.08em;
+  color: inherit;
+  background: color-mix(in srgb, var(--accent) 20%, var(--surface));
+}
+.memo-document a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: text;
+}
+.memo-editor[data-reading] .memo-document a {
+  cursor: pointer;
+}
+.memo-document blockquote {
+  border-left: 1px solid var(--border-strong);
+  margin: 1em 0;
+  padding-left: 1em;
+  color: var(--text-secondary);
+}
+.memo-document pre {
+  white-space: pre-wrap;
+  border-radius: var(--radius-control);
+  background: var(--surface-secondary);
+  padding: 10px;
+  font-size: 0.9em;
+}
+.memo-document code {
+  background: var(--surface-secondary);
+  padding: 0.12em 0.25em;
+  border-radius: 3px;
+}
+.memo-document pre code {
+  padding: 0;
+}
+.memo-document hr {
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+  margin: 1.25em 0;
+}
+.memo-document p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--text-secondary);
+}
+.memo-document ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0;
+}
+.memo-document li[data-type='taskItem'] {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-left: 0;
+}
+.memo-document li[data-type='taskItem'] > label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  min-width: 24px;
+}
+.memo-document li[data-type='taskItem'] input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.memo-document li[data-type='taskItem'] > div {
+  flex: 1;
+  min-width: 0;
+}
+.memo-document li[data-checked='true'] > div > p {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}
+.memo-document .ProseMirror-selectednode {
+  background: var(--interaction-selected);
+}
+.memo-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+}
+.memo-loading {
+  color: var(--text-secondary);
+}
+.memo-feedback {
+  color: var(--text-primary);
+  font-size: var(--text-secondary-size);
+}
+.memo-feedback p {
+  margin: 0 0 8px;
+}
+.memo-feedback > div,
+.memo-link-form > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.memo-feedback button,
+.memo-link-form button {
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: 6px 10px;
+  color: var(--accent-text);
+  background: var(--surface);
+  cursor: pointer;
+}
+.memo-link-form {
+  display: grid;
+  gap: 8px;
+  font-size: var(--text-secondary-size);
+}
+.memo-link-form input {
+  min-width: 0;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  background: var(--surface);
+}
+.memo-link-form p {
+  margin: 0;
+  color: var(--danger);
+}
+@container (max-width: 340px) {
+  .memo-panel {
+    padding: 16px 12px 12px;
+  }
+}
+@media (max-width: 760px), (pointer: coarse) {
+  .memo-toolbar button,
+  .memo-header-actions button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .memo-feedback button,
+  .memo-link-form button,
+  .memo-link-form input {
+    min-height: 44px;
+  }
+  .memo-link-form input,
+  .memo-document {
+    font-size: max(1rem, var(--text-body-size));
+  }
+  .memo-document li[data-type='taskItem'] > label {
+    min-width: 44px;
+    min-height: 44px;
+    margin-top: -7px;
+  }
+}
+@media (forced-colors: active) {
+  .memo-document:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+  .memo-toolbar button[aria-pressed='true'] {
+    outline: 1px solid Highlight;
+  }
+  .memo-document mark {
+    color: MarkText;
+    background: Mark;
+  }
+}

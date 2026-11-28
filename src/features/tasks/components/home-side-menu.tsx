@@ -5,10 +5,11 @@ import { useId, useRef, useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 import { TaskActionsPopover } from './task-actions-popover';
 
-type HomeSideView = 'tasks' | 'time';
+export type HomeSideView = 'tasks' | 'time' | 'memo';
 const choices: { value: HomeSideView; label: string }[] = [
   { value: 'tasks', label: '任务列表' },
   { value: 'time', label: '今日时间分布' },
+  { value: 'memo', label: '今日备忘录' },
 ];
 
 /** 只委托原有切换命令；等待草稿确认期间禁止重复选择，完成后关闭并回到可聚焦的触发器。 */
